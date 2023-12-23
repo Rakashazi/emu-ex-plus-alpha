@@ -79,7 +79,8 @@ static void allocBufferData(GLenum target, GLuint name, GLsizeiptr size, GLenum 
 template<BufferType type>
 void GLBuffer<type>::reset(ByteBufferConfig config)
 {
-	if(sizeBytes_ == config.size)
+	assumeExpr(taskPtr());
+	if(name() && sizeBytes_ == config.size)
 		return;
 	sizeBytes_ = config.size;
 	auto usage = toGLEnum(config.usageHint);
@@ -108,6 +109,7 @@ void GLBuffer<type>::reset(ByteBufferConfig config)
 template<BufferType type>
 MappedByteBuffer GLBuffer<type>::map(ssize_t offset, size_t size)
 {
+	assumeExpr(taskPtr());
 	if(!size)
 		size = sizeBytes() - offset;
 	assert(offset + size <= sizeBytes());
@@ -116,14 +118,14 @@ MappedByteBuffer GLBuffer<type>::map(ssize_t offset, size_t size)
 	if(hasBufferMap(task().renderer()))
 	{
 		void *ptr;
-		task().run([this, &ptr, offset, size]()
+		task().runSync([this, &ptr, offset, size]()
 		{
 			auto target = toGLEnum(type);
 			glBindBuffer(target, name());
 			ptr = task().renderer().support.glMapBufferRange(target,
 				offset, size, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 			//log.debug("mapped offset:{} size:{} of buffer:0x{:X} to {}", offset, size, name(), ptr);
-		}, true);
+		});
 		return {{static_cast<uint8_t*>(ptr), size}, [this](const uint8_t *ptr, size_t)
 		{
 			task().run([name = name(), &support = task().renderer().support]()
@@ -176,5 +178,60 @@ void destroyGLBufferRef(RendererTask &rTask, GLBufferRef name)
 
 template class GLBuffer<BufferType::vertex>;
 template class GLBuffer<BufferType::index>;
+
+void GLVertexArray::initArray(GLBufferRef vbo, GLBufferRef ibo, int stride, VertexLayoutFlags enabledLayout, VertexLayoutDesc layoutDesc)
+{
+	assumeExpr(taskPtr());
+	if(!task().renderer().support.hasVAOFuncs())
+	{
+		arr.get() = ibo;
+		return;
+	}
+	if(arr.get())
+		return;
+	task().runSync([=, &support = task().renderer().support, &arr = arr](GLTask::TaskContext ctx)
+	{
+		GLuint name;
+		support.glGenVertexArrays(1, &name);
+		arr.get() = name;
+		//log.info("created vertex array object:{:X}", name);
+		ctx.notifySemaphore();
+		support.glBindVertexArray(name);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glEnableVertexAttribArray(VATTR_POS);
+		if(layoutDesc.texCoord.size)
+			glEnableVertexAttribArray(VATTR_TEX_UV);
+		else
+			glDisableVertexAttribArray(VATTR_TEX_UV);
+		if(layoutDesc.color.size)
+			glEnableVertexAttribArray(VATTR_COLOR);
+		else
+			glDisableVertexAttribArray(VATTR_COLOR);
+		glVertexAttribPointer(VATTR_POS, layoutDesc.pos.size, asGLType(layoutDesc.pos.type),
+			layoutDesc.pos.normalize, stride, (const void*)layoutDesc.pos.offset);
+		if(layoutDesc.texCoord.size)
+		{
+			glVertexAttribPointer(VATTR_TEX_UV, layoutDesc.texCoord.size, asGLType(layoutDesc.texCoord.type),
+				layoutDesc.texCoord.normalize, stride, (const void*)layoutDesc.texCoord.offset);
+		}
+		if(layoutDesc.color.size)
+		{
+			glVertexAttribPointer(VATTR_COLOR, layoutDesc.color.size, asGLType(layoutDesc.color.type),
+				layoutDesc.color.normalize, stride, (const void*)layoutDesc.color.offset);
+		}
+	});
+}
+
+void destroyGLVertexArrayRef(RendererTask &rTask, GLVertexArrayRef name)
+{
+	if(!rTask.renderer().support.hasVAOFuncs()) // name is actually a non-owning index buffer name
+		return;
+	rTask.run([&support = rTask.renderer().support, name]()
+	{
+		//log.debug("deleting vertex array object:0x{:X}", name);
+		support.glDeleteVertexArrays(1, &name);
+	});
+}
 
 }

@@ -17,7 +17,7 @@
 
 #include <cmath>
 #include <imagine/util/Point2D.hh>
-#include <imagine/util/math/space.hh>
+#include <imagine/util/math.hh>
 
 namespace IG
 {

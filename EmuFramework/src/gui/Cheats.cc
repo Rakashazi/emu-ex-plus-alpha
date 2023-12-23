@@ -16,7 +16,6 @@
 #include <emuframework/Cheats.hh>
 #include <emuframework/EmuApp.hh>
 #include <imagine/gui/TextEntry.hh>
-#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
@@ -40,7 +39,7 @@ BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 	},
 	edit
 	{
-		"Add/Edit", &defaultFace(),
+		"Add/Edit", attach,
 		[this](const Input::Event &e)
 		{
 			auto editCheatsView = EmuApp::makeView(attachParams(), EmuApp::ViewID::EDIT_CHEATS);
@@ -54,8 +53,7 @@ BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 				});
 			pushAndShow(std::move(editCheatsView), e);
 		}
-	}
-{}
+	} {}
 
 BaseEditCheatListView::BaseEditCheatListView(ViewAttachParams attach, TableView::ItemsDelegate items, TableView::ItemDelegate item):
 	TableView
@@ -64,8 +62,7 @@ BaseEditCheatListView::BaseEditCheatListView(ViewAttachParams attach, TableView:
 		attach,
 		items,
 		item
-	}
-{}
+	} {}
 
 void BaseEditCheatListView::setOnCheatListChanged(RefreshCheatsDelegate del)
 {

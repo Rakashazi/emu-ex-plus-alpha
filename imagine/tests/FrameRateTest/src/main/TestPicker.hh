@@ -31,8 +31,8 @@ public:
 	void setTests(const TestDesc *testParams, unsigned tests);
 
 private:
-	std::vector<DualTextMenuItem> testEntry{};
-	std::vector<TestParams> testParam{};
+	std::vector<DualTextMenuItem> testEntry;
+	std::vector<TestParams> testParam;
 };
 
 }

@@ -32,6 +32,8 @@
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"VideoOptionView"};
+
 class DetectFrameRateView final: public View, public EmuAppHelper<DetectFrameRateView>
 {
 public:
@@ -47,7 +49,7 @@ public:
 	bool useRenderTaskTime = false;
 
 	DetectFrameRateView(ViewAttachParams attach): View(attach),
-		fpsText{&defaultFace()}
+		fpsText{attach.rendererTask, &defaultFace()}
 	{
 		defaultFace().precacheAlphaNum(attach.renderer());
 		defaultFace().precache(attach.renderer(), ".");
@@ -65,14 +67,14 @@ public:
 
 	void place() final
 	{
-		fpsText.compile(renderer());
+		fpsText.compile();
 	}
 
 	bool inputEvent(const Input::Event &e) final
 	{
 		if(e.keyEvent() && e.keyEvent()->pushed(Input::DefaultKey::CANCEL))
 		{
-			logMsg("aborted detection");
+			log.info("aborted detection");
 			dismiss();
 			return true;
 		}
@@ -106,7 +108,7 @@ public:
 						std::abs(IG::FloatSeconds(lastFrameTime - frameTime).count());
 					if(lastFrameTime.count() && frameTimeDiffSecs > slack)
 					{
-						logMsg("frame times differed by:%f", frameTimeDiffSecs);
+						log.info("frame times differed by:{}", frameTimeDiffSecs);
 						stableFrameTime = false;
 					}
 					lastFrameTime = frameTime;
@@ -116,16 +118,15 @@ public:
 			auto detectedFrameTimeSecs = frameTimeTotalSecs / (double)frameTimeSample.size();
 			auto detectedFrameTime = round<SteadyClockTime>(detectedFrameTimeSecs);
 			{
-				waitForDrawFinished();
 				if(detectedFrameTime.count())
 					fpsText.resetString(std::format("{:g}fps", toHz(detectedFrameTimeSecs)));
 				else
 					fpsText.resetString("0fps");
-				fpsText.compile(renderer());
+				fpsText.compile();
 			}
 			if(stableFrameTime)
 			{
-				logMsg("found frame time:%f", detectedFrameTimeSecs.count());
+				log.info("found frame time:{}", detectedFrameTimeSecs);
 				onDetectFrameTime(detectedFrameTime);
 				dismiss();
 				return false;
@@ -135,7 +136,7 @@ public:
 		}
 		else
 		{
-			//logMsg("waiting for capacity:%zd/%zd", frameTimeSample.size(), frameTimeSample.capacity());
+			//log.info("waiting for capacity:{}/{}", frameTimeSample.size(), frameTimeSample.capacity());
 		}
 		if(allTotalFrames >= framesToTime)
 		{
@@ -205,53 +206,53 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		[&]
 		{
 			decltype(textureBufferModeItem) items;
-			items.emplace_back("Auto (Set optimal mode)", &defaultFace(), [this](View &view)
+			items.emplace_back("Auto (Set optimal mode)", attach, [this](View &view)
 			{
 				app().textureBufferModeOption() = 0;
 				auto defaultMode = renderer().makeValidTextureBufferMode();
 				emuVideo().setTextureBufferMode(system(), defaultMode);
-				textureBufferMode.setSelected(MenuItem::Id(defaultMode));
+				textureBufferMode.setSelected(MenuId{defaultMode});
 				view.dismiss();
 				return false;
-			}, 0);
+			}, MenuItem::Config{.id = 0});
 			for(auto desc: renderer().textureBufferModes())
 			{
-				items.emplace_back(desc.name, &defaultFace(), [this](MenuItem &item)
+				items.emplace_back(desc.name, attach, [this](MenuItem &item)
 				{
-					app().textureBufferModeOption() = item.id();
-					emuVideo().setTextureBufferMode(system(), Gfx::TextureBufferMode(item.id()));
-				}, to_underlying(desc.mode));
+					app().textureBufferModeOption() = item.id;
+					emuVideo().setTextureBufferMode(system(), Gfx::TextureBufferMode(item.id.val));
+				}, MenuItem::Config{.id = desc.mode});
 			}
 			return items;
 		}()
 	},
 	textureBufferMode
 	{
-		"GPU Copy Mode", &defaultFace(),
-		MenuItem::Id(renderer().makeValidTextureBufferMode(Gfx::TextureBufferMode(app().textureBufferModeOption().val))),
+		"GPU Copy Mode", attach,
+		MenuId{renderer().makeValidTextureBufferMode(Gfx::TextureBufferMode(app().textureBufferModeOption().val))},
 		textureBufferModeItem
 	},
 	frameIntervalItem
 	{
-		{"Full (No Skip)", &defaultFace(), 0},
-		{"Full",           &defaultFace(), 1},
-		{"1/2",            &defaultFace(), 2},
-		{"1/3",            &defaultFace(), 3},
-		{"1/4",            &defaultFace(), 4},
+		{"Full (No Skip)", attach, {.id = 0}},
+		{"Full",           attach, {.id = 1}},
+		{"1/2",            attach, {.id = 2}},
+		{"1/3",            attach, {.id = 3}},
+		{"1/4",            attach, {.id = 4}},
 	},
 	frameInterval
 	{
-		"Frame Rate Target", &defaultFace(),
-		MultiChoiceMenuItem::Delegates
+		"Frame Rate Target", attach,
+		MenuId{app().frameInterval()},
+		frameIntervalItem,
+		MultiChoiceMenuItem::Config
 		{
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setFrameInterval(item.id()); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setFrameInterval(item.id); }
 		},
-		MenuItem::Id(app().frameInterval()),
-		frameIntervalItem
 	},
 	frameRateItems
 	{
-		{"Auto (Match screen when rates are similar)", &defaultFace(),
+		{"Auto (Match screen when rates are similar)", attach,
 			[this]
 			{
 				if(!app().viewController().emuWindowScreen()->frameRateIsReliable())
@@ -260,15 +261,15 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 						"using the detected rate may give better results");
 				}
 				onFrameTimeChange(activeVideoSystem, OutputTimingManager::autoOption);
-			}, int(OutputTimingManager::autoOption.count())
+			}, {.id = OutputTimingManager::autoOption.count()}
 		},
-		{"Original (Use emulated system's rate)", &defaultFace(),
+		{"Original (Use emulated system's rate)", attach,
 			[this]
 			{
 				onFrameTimeChange(activeVideoSystem, OutputTimingManager::originalOption);
-			}, int(OutputTimingManager::originalOption.count())
+			}, {.id = OutputTimingManager::originalOption.count()}
 		},
-		{"Detect Custom Rate", &defaultFace(),
+		{"Detect Custom Rate", attach,
 			[this](const Input::Event &e)
 			{
 				window().setIntendedFrameRate(system().frameRate());
@@ -290,7 +291,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				return false;
 			}
 		},
-		{"Custom Rate", &defaultFace(),
+		{"Custom Rate", attach,
 			[this](const Input::Event &e)
 			{
 				app().pushAndShowNewCollectValueInputView<std::pair<double, double>>(attachParams(), e,
@@ -299,6 +300,10 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 					{
 						if(onFrameTimeChange(activeVideoSystem, fromSeconds<SteadyClockTime>(val.second / val.first)))
 						{
+							if(activeVideoSystem == VideoSystem::NATIVE_NTSC)
+								frameRate.setSelected(defaultMenuId, *this);
+							else
+								frameRatePAL.setSelected(defaultMenuId, *this);
 							dismissPrevious();
 							return true;
 						}
@@ -306,12 +311,14 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 							return false;
 					});
 				return false;
-			}, MenuItem::DEFAULT_ID
+			}, {.id = defaultMenuId}
 		},
 	},
 	frameRate
 	{
-		"Frame Rate", &defaultFace(),
+		"Frame Rate", attach,
+		app().outputTimingManager.frameTimeOptionAsMenuId(VideoSystem::NATIVE_NTSC),
+		frameRateItems,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -324,12 +331,12 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				item.defaultOnSelect(view, e);
 			},
 		},
-		app().outputTimingManager.frameTimeOptionAsMenuId(VideoSystem::NATIVE_NTSC),
-		frameRateItems
 	},
 	frameRatePAL
 	{
-		"Frame Rate (PAL)", &defaultFace(),
+		"Frame Rate (PAL)", attach,
+		app().outputTimingManager.frameTimeOptionAsMenuId(VideoSystem::PAL),
+		frameRateItems,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -342,12 +349,10 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				item.defaultOnSelect(view, e);
 			},
 		},
-		app().outputTimingManager.frameTimeOptionAsMenuId(VideoSystem::PAL),
-		frameRateItems
 	},
 	frameTimeStats
 	{
-		"Show Frame Time Stats", &defaultFace(),
+		"Show Frame Time Stats", attach,
 		app().showFrameTimeStats,
 		[this](BoolMenuItem &item) { app().showFrameTimeStats = item.flipBoolValue(*this); }
 	},
@@ -358,23 +363,23 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			StaticArrayList<TextMenuItem, MAX_ASPECT_RATIO_ITEMS> aspectRatioItem;
 			for(const auto &i : EmuSystem::aspectRatioInfos())
 			{
-				aspectRatioItem.emplace_back(i.name, &defaultFace(), [this](TextMenuItem &item)
+				aspectRatioItem.emplace_back(i.name, attach, [this](TextMenuItem &item)
 				{
-					app().setVideoAspectRatio(std::bit_cast<float>(item.id()));
-				}, std::bit_cast<MenuItem::Id>(i.aspect.ratio<float>()));
+					app().setVideoAspectRatio(std::bit_cast<float>(item.id));
+				}, MenuItem::Config{.id = std::bit_cast<MenuId>(i.aspect.ratio<float>())});
 			}
 			if(EmuSystem::hasRectangularPixels)
 			{
-				aspectRatioItem.emplace_back("Square Pixels", &defaultFace(), [this]()
+				aspectRatioItem.emplace_back("Square Pixels", attach, [this]()
 				{
 					app().setVideoAspectRatio(-1);
-				}, std::bit_cast<MenuItem::Id>(-1.f));
+				}, MenuItem::Config{.id = std::bit_cast<MenuId>(-1.f)});
 			}
-			aspectRatioItem.emplace_back("Fill Display", &defaultFace(), [this]()
+			aspectRatioItem.emplace_back("Fill Display", attach, [this]()
 			{
 				app().setVideoAspectRatio(0);
-			}, 0);
-			aspectRatioItem.emplace_back("Custom Value", &defaultFace(), [this](const Input::Event &e)
+			}, MenuItem::Config{.id = 0});
+			aspectRatioItem.emplace_back("Custom Value", attach, [this](const Input::Event &e)
 			{
 				app().pushAndShowNewCollectValueInputView<std::pair<float, float>>(attachParams(), e,
 					"Input decimal or fraction", "",
@@ -383,7 +388,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 						float ratio = val.first / val.second;
 						if(app.setVideoAspectRatio(ratio))
 						{
-							aspectRatio.setSelected(std::bit_cast<MenuItem::Id>(ratio), *this);
+							aspectRatio.setSelected(std::bit_cast<MenuId>(ratio), *this);
 							dismissPrevious();
 							return true;
 						}
@@ -394,13 +399,15 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 						}
 					});
 				return false;
-			}, MenuItem::DEFAULT_ID);
+			}, MenuItem::Config{.id = defaultMenuId});
 			return aspectRatioItem;
 		}()
 	},
 	aspectRatio
 	{
-		"Aspect Ratio", &defaultFace(),
+		"Aspect Ratio", attach,
+		std::bit_cast<MenuId>(app().videoAspectRatio()),
+		aspectRatioItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -412,34 +419,34 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				return false;
 			}
 		},
-		std::bit_cast<MenuItem::Id>(app().videoAspectRatio()),
-		aspectRatioItem
 	},
 	zoomItem
 	{
-		{"100%",                  &defaultFace(), 100},
-		{"90%",                   &defaultFace(), 90},
-		{"80%",                   &defaultFace(), 80},
-		{"Integer-only",          &defaultFace(), optionImageZoomIntegerOnly},
-		{"Integer-only (Height)", &defaultFace(), optionImageZoomIntegerOnlyY},
-		{"Custom Value", &defaultFace(),
+		{"100%",                  attach, {.id = 100}},
+		{"90%",                   attach, {.id = 90}},
+		{"80%",                   attach, {.id = 80}},
+		{"Integer-only",          attach, {.id = optionImageZoomIntegerOnly}},
+		{"Integer-only (Height)", attach, {.id = optionImageZoomIntegerOnlyY}},
+		{"Custom Value", attach,
 			[this](const Input::Event &e)
 			{
 				app().pushAndShowNewCollectValueRangeInputView<int, 10, 200>(attachParams(), e, "Input 10 to 200", "",
 					[this](EmuApp &app, auto val)
 					{
 						app.setVideoZoom(val);
-						zoom.setSelected((MenuItem::Id)val, *this);
+						zoom.setSelected(MenuId{val}, *this);
 						dismissPrevious();
 						return true;
 					});
 				return false;
-			}, MenuItem::DEFAULT_ID
+			}, {.id = defaultMenuId}
 		},
 	},
 	zoom
 	{
-		"Content Zoom", &defaultFace(),
+		"Content Zoom", attach,
+		MenuId{app().videoZoom()},
+		zoomItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -450,65 +457,63 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				}
 				return false;
 			},
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setVideoZoom(item.id()); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setVideoZoom(item.id); }
 		},
-		(MenuItem::Id)app().videoZoom(),
-		zoomItem
 	},
 	viewportZoomItem
 	{
-		{"100%", &defaultFace(), 100},
-		{"95%", &defaultFace(),  95},
-		{"90%", &defaultFace(),  90},
-		{"Custom Value", &defaultFace(),
+		{"100%", attach, {.id = 100}},
+		{"95%", attach,  {.id = 95}},
+		{"90%", attach,  {.id = 90}},
+		{"Custom Value", attach,
 			[this](const Input::Event &e)
 			{
 				app().pushAndShowNewCollectValueRangeInputView<int, 50, 100>(attachParams(), e, "Input 50 to 100", "",
 					[this](EmuApp &app, auto val)
 					{
 						app.setViewportZoom(val);
-						viewportZoom.setSelected((MenuItem::Id)val, *this);
+						viewportZoom.setSelected(MenuId{val}, *this);
 						dismissPrevious();
 						return true;
 					});
 				return false;
-			}, MenuItem::DEFAULT_ID
+			}, {.id = defaultMenuId}
 		},
 	},
 	viewportZoom
 	{
-		"App Zoom", &defaultFace(),
+		"App Zoom", attach,
+		MenuId{app().viewportZoom()},
+		viewportZoomItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
 				t.resetString(std::format("{}%", app().viewportZoom()));
 				return true;
 			},
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setViewportZoom(item.id()); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setViewportZoom(item.id); }
 		},
-		(MenuItem::Id)app().viewportZoom(),
-		viewportZoomItem
 	},
 	contentRotationItem
 	{
-		{"Auto",        &defaultFace(), std::to_underlying(Rotation::ANY)},
-		{"Standard",    &defaultFace(), std::to_underlying(Rotation::UP)},
-		{"90° Right",   &defaultFace(), std::to_underlying(Rotation::RIGHT)},
-		{"Upside Down", &defaultFace(), std::to_underlying(Rotation::DOWN)},
-		{"90° Left",    &defaultFace(), std::to_underlying(Rotation::LEFT)},
+		{"Auto",        attach, {.id = Rotation::ANY}},
+		{"Standard",    attach, {.id = Rotation::UP}},
+		{"90° Right",   attach, {.id = Rotation::RIGHT}},
+		{"Upside Down", attach, {.id = Rotation::DOWN}},
+		{"90° Left",    attach, {.id = Rotation::LEFT}},
 	},
 	contentRotation
 	{
-		"Content Rotation", &defaultFace(),
+		"Content Rotation", attach,
+		MenuId{app().contentRotation()},
+		contentRotationItem,
 		{
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setContentRotation(Rotation(item.id())); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setContentRotation(Rotation(item.id.val)); }
 		},
-		(MenuItem::Id)app().contentRotation(),
-		contentRotationItem
 	},
 	placeVideo
 	{
-		"Set Video Position", &defaultFace(),
+		"Set Video Position", attach,
 		[this](const Input::Event &e)
 		{
 			if(!system().hasContent())
@@ -518,7 +523,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	imgFilter
 	{
-		"Image Interpolation", &defaultFace(),
+		"Image Interpolation", attach,
 		(bool)app().videoFilterOption(),
 		"None", "Linear",
 		[this](BoolMenuItem &item)
@@ -530,99 +535,101 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	imgEffectItem
 	{
-		{"Off",         &defaultFace(), std::to_underlying(ImageEffectId::DIRECT)},
-		{"hq2x",        &defaultFace(), std::to_underlying(ImageEffectId::HQ2X)},
-		{"Scale2x",     &defaultFace(), std::to_underlying(ImageEffectId::SCALE2X)},
-		{"Prescale 2x", &defaultFace(), std::to_underlying(ImageEffectId::PRESCALE2X)},
-		{"Prescale 3x", &defaultFace(), std::to_underlying(ImageEffectId::PRESCALE3X)},
-		{"Prescale 4x", &defaultFace(), std::to_underlying(ImageEffectId::PRESCALE4X)},
+		{"Off",         attach, {.id = ImageEffectId::DIRECT}},
+		{"hq2x",        attach, {.id = ImageEffectId::HQ2X}},
+		{"Scale2x",     attach, {.id = ImageEffectId::SCALE2X}},
+		{"Prescale 2x", attach, {.id = ImageEffectId::PRESCALE2X}},
+		{"Prescale 3x", attach, {.id = ImageEffectId::PRESCALE3X}},
+		{"Prescale 4x", attach, {.id = ImageEffectId::PRESCALE4X}},
 	},
 	imgEffect
 	{
-		"Image Effect", &defaultFace(),
+		"Image Effect", attach,
+		MenuId{app().videoEffectOption().val},
+		imgEffectItem,
 		{
 			.defaultItemOnSelect = [this](TextMenuItem &item)
 			{
-				app().videoEffectOption() = item.id();
+				app().videoEffectOption() = item.id;
 				if(emuVideo().image())
 				{
-					videoLayer->setEffect(system(), ImageEffectId(item.id()), app().videoEffectPixelFormat());
+					videoLayer->setEffect(system(), ImageEffectId(item.id.val), app().videoEffectPixelFormat());
 					app().viewController().postDrawToEmuWindows();
 				}
 			}
 		},
-		(MenuItem::Id)app().videoEffectOption().val,
-		imgEffectItem
 	},
 	overlayEffectItem
 	{
-		{"Off",            &defaultFace(), 0},
-		{"Scanlines",      &defaultFace(), std::to_underlying(ImageOverlayId::SCANLINES)},
-		{"Scanlines 2x",   &defaultFace(), std::to_underlying(ImageOverlayId::SCANLINES_2)},
-		{"LCD Grid",       &defaultFace(), std::to_underlying(ImageOverlayId::LCD)},
-		{"CRT Mask",       &defaultFace(), std::to_underlying(ImageOverlayId::CRT_MASK)},
-		{"CRT Mask .5x",   &defaultFace(), std::to_underlying(ImageOverlayId::CRT_MASK_2)},
-		{"CRT Grille",     &defaultFace(), std::to_underlying(ImageOverlayId::CRT_GRILLE)},
-		{"CRT Grille .5x", &defaultFace(), std::to_underlying(ImageOverlayId::CRT_GRILLE_2)}
+		{"Off",            attach, {.id = 0}},
+		{"Scanlines",      attach, {.id = ImageOverlayId::SCANLINES}},
+		{"Scanlines 2x",   attach, {.id = ImageOverlayId::SCANLINES_2}},
+		{"LCD Grid",       attach, {.id = ImageOverlayId::LCD}},
+		{"CRT Mask",       attach, {.id = ImageOverlayId::CRT_MASK}},
+		{"CRT Mask .5x",   attach, {.id = ImageOverlayId::CRT_MASK_2}},
+		{"CRT Grille",     attach, {.id = ImageOverlayId::CRT_GRILLE}},
+		{"CRT Grille .5x", attach, {.id = ImageOverlayId::CRT_GRILLE_2}}
 	},
 	overlayEffect
 	{
-		"Overlay Effect", &defaultFace(),
+		"Overlay Effect", attach,
+		MenuId{app().overlayEffectOption().val},
+		overlayEffectItem,
 		{
 			.defaultItemOnSelect = [this](TextMenuItem &item)
 			{
-				app().overlayEffectOption() = item.id();
-				videoLayer->setOverlay((ImageOverlayId)item.id());
+				app().overlayEffectOption() = item.id;
+				videoLayer->setOverlay((ImageOverlayId)item.id.val);
 				app().viewController().postDrawToEmuWindows();
 			}
 		},
-		(MenuItem::Id)app().overlayEffectOption().val,
-		overlayEffectItem
 	},
 	overlayEffectLevelItem
 	{
-		{"100%", &defaultFace(), 100},
-		{"75%",  &defaultFace(), 75},
-		{"50%",  &defaultFace(), 50},
-		{"25%",  &defaultFace(), 25},
-		{"Custom Value", &defaultFace(),
+		{"100%", attach, {.id = 100}},
+		{"75%",  attach, {.id = 75}},
+		{"50%",  attach, {.id = 50}},
+		{"25%",  attach, {.id = 25}},
+		{"Custom Value", attach,
 			[this](const Input::Event &e)
 			{
 				app().pushAndShowNewCollectValueRangeInputView<int, 0, 100>(attachParams(), e, "Input 0 to 100", "",
 					[this](EmuApp &app, auto val)
 					{
 						app.setOverlayEffectLevel(*videoLayer, val);
-						overlayEffectLevel.setSelected((MenuItem::Id)val, *this);
+						overlayEffectLevel.setSelected(MenuId{val}, *this);
 						dismissPrevious();
 						return true;
 					});
 				return false;
-			}, MenuItem::DEFAULT_ID
+			}, {.id = defaultMenuId}
 		},
 	},
 	overlayEffectLevel
 	{
-		"Overlay Effect Level", &defaultFace(),
+		"Overlay Effect Level", attach,
+		MenuId{app().overlayEffectLevel()},
+		overlayEffectLevelItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
 				t.resetString(std::format("{}%", app().overlayEffectLevel()));
 				return true;
 			},
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setOverlayEffectLevel(*videoLayer, item.id()); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setOverlayEffectLevel(*videoLayer, item.id); }
 		},
-		(MenuItem::Id)app().overlayEffectLevel(),
-		overlayEffectLevelItem
 	},
 	imgEffectPixelFormatItem
 	{
-		{"Auto (Match display format)", &defaultFace(), PIXEL_NONE},
-		{"RGBA8888",                    &defaultFace(), PIXEL_RGBA8888},
-		{"RGB565",                      &defaultFace(), PIXEL_RGB565},
+		{"Auto (Match display format)", attach, {.id = PIXEL_NONE}},
+		{"RGBA8888",                    attach, {.id = PIXEL_RGBA8888}},
+		{"RGB565",                      attach, {.id = PIXEL_RGB565}},
 	},
 	imgEffectPixelFormat
 	{
-		"Effect Color Format", &defaultFace(),
+		"Effect Color Format", attach,
+		MenuId{app().videoEffectPixelFormatOption().val},
+		imgEffectPixelFormatItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -636,13 +643,11 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item)
 			{
-				app().videoEffectPixelFormatOption() = item.id();
+				app().videoEffectPixelFormatOption() = item.id;
 				videoLayer->setEffectFormat(app().videoEffectPixelFormat());
 				app().viewController().postDrawToEmuWindows();
 			}
 		},
-		(MenuItem::Id)app().videoEffectPixelFormatOption().val,
-		imgEffectPixelFormatItem
 	},
 	windowPixelFormatItem
 	{
@@ -651,7 +656,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			decltype(windowPixelFormatItem) items;
 			auto setWindowDrawableConfigDel = [this](TextMenuItem &item)
 			{
-				auto conf = unpackDrawableConfig(item.id());
+				auto conf = unpackDrawableConfig(item.id);
 				if(!app().setWindowDrawableConfig(conf))
 				{
 					app().postMessage("Restart app for option to take effect");
@@ -660,17 +665,19 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				renderPixelFormat.updateDisplayString();
 				imgEffectPixelFormat.updateDisplayString();
 			};
-			items.emplace_back("Auto", &defaultFace(), setWindowDrawableConfigDel, 0);
+			items.emplace_back("Auto", attach, setWindowDrawableConfigDel, MenuItem::Config{.id = 0});
 			for(auto desc: renderer().supportedDrawableConfigs())
 			{
-				items.emplace_back(desc.name, &defaultFace(), setWindowDrawableConfigDel, pack(desc.config));
+				items.emplace_back(desc.name, attach, setWindowDrawableConfigDel, MenuItem::Config{.id = pack(desc.config)});
 			}
 			return items;
 		}()
 	},
 	windowPixelFormat
 	{
-		"Display Color Format", &defaultFace(),
+		"Display Color Format", attach,
+		MenuId{pack(app().windowDrawableConfig())},
+		windowPixelFormatItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -683,12 +690,10 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 					return false;
 			}
 		},
-		MenuItem::Id(pack(app().windowDrawableConfig())),
-		windowPixelFormatItem
 	},
 	secondDisplay
 	{
-		"2nd Window (for testing only)", &defaultFace(),
+		"2nd Window (for testing only)", attach,
 		false,
 		[this](BoolMenuItem &item)
 		{
@@ -697,7 +702,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	showOnSecondScreen
 	{
-		"External Screen", &defaultFace(),
+		"External Screen", attach,
 		(bool)app().showOnSecondScreenOption(),
 		"OS Managed", "Emu Content",
 		[this](BoolMenuItem &item)
@@ -707,40 +712,18 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				app().setEmuViewOnExtraWindow(app().showOnSecondScreenOption(), *appContext().screens()[1]);
 		}
 	},
-	imageBuffersItem
-	{
-		{"Auto",                                     &defaultFace(), 0},
-		{"1 (Syncs GPU each frame, less input lag)", &defaultFace(), 1},
-		{"2 (More stable, may add 1 frame of lag)",  &defaultFace(), 2},
-	},
-	imageBuffers
-	{
-		"Image Buffers", &defaultFace(),
-		{
-			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
-			{
-				t.resetString(emuVideo().imageBuffers() == 1 ? "1" : "2");
-				return true;
-			},
-			.defaultItemOnSelect = [this](TextMenuItem &item)
-			{
-				app().videoImageBuffersOption() = item.id();
-				emuVideo().setImageBuffers(item.id());
-			}
-		},
-		(MenuItem::Id)app().videoImageBuffersOption().val,
-		imageBuffersItem
-	},
 	presentModeItems
 	{
-		{"Auto",                                                    &defaultFace(), to_underlying(Gfx::PresentMode::Auto)},
-		{"Immediate (Less compositor latency but may drop frames)", &defaultFace(), to_underlying(Gfx::PresentMode::Immediate)},
-		{"Queued (Better frame rate stability)",                    &defaultFace(), to_underlying(Gfx::PresentMode::FIFO)},
+		{"Auto",                                                    attach, MenuItem::Config{.id = Gfx::PresentMode::Auto}},
+		{"Immediate (Less compositor latency but may drop frames)", attach, MenuItem::Config{.id = Gfx::PresentMode::Immediate}},
+		{"Queued (Better frame rate stability)",                    attach, MenuItem::Config{.id = Gfx::PresentMode::FIFO}},
 	},
 	presentMode
 	{
-		"Present Mode", &defaultFace(),
-		MultiChoiceMenuItem::Delegates
+		"Present Mode", attach,
+		MenuId{Gfx::PresentMode(app().presentMode)},
+		presentModeItems,
+		MultiChoiceMenuItem::Config
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -749,21 +732,21 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item)
 			{
-				app().presentMode = Gfx::PresentMode(item.id());
+				app().presentMode = Gfx::PresentMode(item.id.val);
 			}
 		},
-		MenuItem::Id(Gfx::PresentMode(app().presentMode)),
-		presentModeItems
 	},
 	renderPixelFormatItem
 	{
-		{"Auto (Match display format)", &defaultFace(), PIXEL_NONE},
-		{"RGBA8888",                    &defaultFace(), PIXEL_RGBA8888},
-		{"RGB565",                      &defaultFace(), PIXEL_RGB565},
+		{"Auto (Match display format)", attach, {.id = PIXEL_NONE}},
+		{"RGBA8888",                    attach, {.id = PIXEL_RGBA8888}},
+		{"RGB565",                      attach, {.id = PIXEL_RGB565}},
 	},
 	renderPixelFormat
 	{
-		"Render Color Format", &defaultFace(),
+		"Render Color Format", attach,
+		MenuId{app().renderPixelFormat().id()},
+		renderPixelFormatItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -774,71 +757,89 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				}
 				return false;
 			},
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setRenderPixelFormat(PixelFormatID(item.id())); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setRenderPixelFormat(PixelFormatID(item.id.val)); }
 		},
-		(MenuItem::Id)app().renderPixelFormat().id(),
-		renderPixelFormatItem
 	},
 	screenFrameRateItems
 	{
 		[&]
 		{
 			std::vector<TextMenuItem> items;
-			auto setRateDel = [this](TextMenuItem &item) { app().overrideScreenFrameRate = std::bit_cast<FrameRate>(item.id()); };
-			items.emplace_back("Off", &defaultFace(), setRateDel, 0);
+			auto setRateDel = [this](TextMenuItem &item) { app().overrideScreenFrameRate = std::bit_cast<FrameRate>(item.id); };
+			items.emplace_back("Off", attach, setRateDel, MenuItem::Config{.id = 0});
 			for(auto rate : app().emuScreen().supportedFrameRates())
-				items.emplace_back(std::format("{:g}Hz", rate), &defaultFace(), setRateDel, std::bit_cast<MenuItem::Id>(rate));
+				items.emplace_back(std::format("{:g}Hz", rate), attach, setRateDel, MenuItem::Config{.id = std::bit_cast<MenuId>(rate)});
 			return items;
 		}()
 	},
 	screenFrameRate
 	{
-		"Override Screen Frame Rate", &defaultFace(),
-		std::bit_cast<MenuItem::Id>(FrameRate(app().overrideScreenFrameRate)),
+		"Override Screen Frame Rate", attach,
+		std::bit_cast<MenuId>(FrameRate(app().overrideScreenFrameRate)),
 		screenFrameRateItems
+	},
+	presentationTimeItems
+	{
+		{"Full (Apply to all frame rate targets)",         attach, MenuItem::Config{.id = PresentationTimeMode::full}},
+		{"Basic (Only apply to lower frame rate targets)", attach, MenuItem::Config{.id = PresentationTimeMode::basic}},
+		{"Off",                                            attach, MenuItem::Config{.id = PresentationTimeMode::off}},
 	},
 	presentationTime
 	{
-		"Precise Frame Pacing", &defaultFace(),
-		app().usePresentationTime,
-		[this](BoolMenuItem &item) { app().usePresentationTime = item.flipBoolValue(*this); }
+		"Precise Frame Pacing", attach,
+		MenuId{app().presentationTimeMode},
+		presentationTimeItems,
+		MultiChoiceMenuItem::Config
+		{
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				if(app().presentationTimeMode == PresentationTimeMode::off)
+					return false;
+				t.resetString(app().presentationTimeMode == PresentationTimeMode::full ? "Full" : "Basic");
+				return true;
+			},
+			.defaultItemOnSelect = [this](TextMenuItem &item)
+			{
+				app().presentationTimeMode = PresentationTimeMode(item.id.val);
+			}
+		},
 	},
 	blankFrameInsertion
 	{
-		"Allow Blank Frame Insertion", &defaultFace(),
+		"Allow Blank Frame Insertion", attach,
 		app().allowBlankFrameInsertion,
 		[this](BoolMenuItem &item) { app().allowBlankFrameInsertion = item.flipBoolValue(*this); }
 	},
 	brightnessItem
 	{
 		{
-			"Default", &defaultFace(), [this](View &v)
+			"Default", attach, [this](View &v)
 			{
 				app().setVideoBrightness(1.f, ImageChannel::All);
-				setAllColorLevelsSelected(MenuItem::Id{100});
+				setAllColorLevelsSelected(MenuId{100});
 				v.dismiss();
 			}
 		},
-		{"Custom Value", &defaultFace(), setVideoBrightnessCustomDel(ImageChannel::All)},
+		{"Custom Value", attach, setVideoBrightnessCustomDel(ImageChannel::All)},
 	},
 	redItem
 	{
-		{"Default", &defaultFace(), [this](){ app().setVideoBrightness(1.f, ImageChannel::Red); }, 100},
-		{"Custom Value", &defaultFace(), setVideoBrightnessCustomDel(ImageChannel::Red), MenuItem::DEFAULT_ID},
+		{"Default", attach, [this](){ app().setVideoBrightness(1.f, ImageChannel::Red); }, {.id = 100}},
+		{"Custom Value", attach, setVideoBrightnessCustomDel(ImageChannel::Red), {.id = defaultMenuId}},
 	},
 	greenItem
 	{
-		{"Default", &defaultFace(), [this](){ app().setVideoBrightness(1.f, ImageChannel::Green); }, 100},
-		{"Custom Value", &defaultFace(), setVideoBrightnessCustomDel(ImageChannel::Green), MenuItem::DEFAULT_ID},
+		{"Default", attach, [this](){ app().setVideoBrightness(1.f, ImageChannel::Green); }, {.id = 100}},
+		{"Custom Value", attach, setVideoBrightnessCustomDel(ImageChannel::Green), {.id = defaultMenuId}},
 	},
 	blueItem
 	{
-		{"Default", &defaultFace(), [this](){ app().setVideoBrightness(1.f, ImageChannel::Blue); }, 100},
-		{"Custom Value", &defaultFace(), setVideoBrightnessCustomDel(ImageChannel::Blue), MenuItem::DEFAULT_ID},
+		{"Default", attach, [this](){ app().setVideoBrightness(1.f, ImageChannel::Blue); }, {.id = 100}},
+		{"Custom Value", attach, setVideoBrightnessCustomDel(ImageChannel::Blue), {.id = defaultMenuId}},
 	},
 	brightness
 	{
-		"Set All Levels", &defaultFace(),
+		"Set All Levels", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeViewWithName<TableView>("All Levels", brightnessItem), e);
@@ -846,7 +847,9 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	red
 	{
-		"Red", &defaultFace(),
+		"Red", attach,
+		MenuId{app().videoBrightnessAsInt(ImageChannel::Red)},
+		redItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -854,12 +857,12 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				return true;
 			}
 		},
-		MenuItem::Id{app().videoBrightnessAsInt(ImageChannel::Red)},
-		redItem
 	},
 	green
 	{
-		"Green", &defaultFace(),
+		"Green", attach,
+		MenuId{app().videoBrightnessAsInt(ImageChannel::Green)},
+		greenItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -867,12 +870,12 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				return true;
 			}
 		},
-		MenuItem::Id{app().videoBrightnessAsInt(ImageChannel::Green)},
-		greenItem
 	},
 	blue
 	{
-		"Blue", &defaultFace(),
+		"Blue", attach,
+		MenuId{app().videoBrightnessAsInt(ImageChannel::Blue)},
+		blueItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -880,14 +883,12 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				return true;
 			}
 		},
-		MenuItem::Id{app().videoBrightnessAsInt(ImageChannel::Blue)},
-		blueItem
 	},
-	visualsHeading{"Visuals", &defaultBoldFace()},
-	screenShapeHeading{"Screen Shape", &defaultBoldFace()},
-	colorLevelsHeading{"Color Levels", &defaultBoldFace()},
-	advancedHeading{"Advanced", &defaultBoldFace()},
-	systemSpecificHeading{"System-specific", &defaultBoldFace()}
+	visualsHeading{"Visuals", attach},
+	screenShapeHeading{"Screen Shape", attach},
+	colorLevelsHeading{"Color Levels", attach},
+	advancedHeading{"Advanced", attach},
+	systemSpecificHeading{"System-specific", attach}
 {
 	if(!customMenu)
 	{
@@ -897,7 +898,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 
 void VideoOptionView::place()
 {
-	aspectRatio.setSelected(std::bit_cast<MenuItem::Id>(app().videoAspectRatio()), *this);
+	aspectRatio.setSelected(std::bit_cast<MenuId>(app().videoAspectRatio()), *this);
 	TableView::place();
 }
 
@@ -938,8 +939,6 @@ void VideoOptionView::loadStockItems()
 	if(EmuSystem::canRenderRGBA8888)
 		item.emplace_back(&renderPixelFormat);
 	item.emplace_back(&imgEffectPixelFormat);
-	if(!app().videoImageBuffersOption().isConst)
-		item.emplace_back(&imageBuffers);
 	if(used(presentMode) && app().supportsPresentModes())
 		item.emplace_back(&presentMode);
 	if(used(presentationTime) && renderer().supportsPresentationTime())
@@ -977,7 +976,7 @@ TextMenuItem::SelectDelegate VideoOptionView::setVideoBrightnessCustomDel(ImageC
 			{
 				app.setVideoBrightness(val / 100.f, ch);
 				if(ch == ImageChannel::All)
-					setAllColorLevelsSelected(MenuItem::Id{val});
+					setAllColorLevelsSelected(MenuId{val});
 				else
 					[&]() -> MultiChoiceMenuItem&
 					{
@@ -989,7 +988,7 @@ TextMenuItem::SelectDelegate VideoOptionView::setVideoBrightnessCustomDel(ImageC
 							case ImageChannel::Blue: return blue;
 						}
 						bug_unreachable("invalid ImageChannel");
-					}().setSelected(MenuItem::Id{val}, *this);
+					}().setSelected(MenuId{val}, *this);
 				dismissPrevious();
 				return true;
 			});
@@ -997,7 +996,7 @@ TextMenuItem::SelectDelegate VideoOptionView::setVideoBrightnessCustomDel(ImageC
 	};
 }
 
-void VideoOptionView::setAllColorLevelsSelected(MenuItem::Id val)
+void VideoOptionView::setAllColorLevelsSelected(MenuId val)
 {
 	red.setSelected(val, *this);
 	green.setSelected(val, *this);

@@ -45,7 +45,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 {
 	BoolMenuItem fourScore
 	{
-		"4-Player Adapter", &defaultFace(),
+		"4-Player Adapter", attachParams(),
 		(bool)system().optionFourScore,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -67,16 +67,16 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 
 	TextMenuItem inputPortsItem[4]
 	{
-		{"Auto",          &defaultFace(), setInputPortsDel(), packInputEnums(SI_UNSET, SI_UNSET)},
-		{"Gamepads",      &defaultFace(), setInputPortsDel(), packInputEnums(SI_GAMEPAD, SI_GAMEPAD)},
-		{"Gun (2P, NES)", &defaultFace(), setInputPortsDel(), packInputEnums(SI_GAMEPAD, SI_ZAPPER)},
-		{"Gun (1P, VS)",  &defaultFace(), setInputPortsDel(), packInputEnums(SI_ZAPPER, SI_GAMEPAD)},
+		{"Auto",          attachParams(), setInputPortsDel(), {.id = packInputEnums(SI_UNSET, SI_UNSET)}},
+		{"Gamepads",      attachParams(), setInputPortsDel(), {.id = packInputEnums(SI_GAMEPAD, SI_GAMEPAD)}},
+		{"Gun (2P, NES)", attachParams(), setInputPortsDel(), {.id = packInputEnums(SI_GAMEPAD, SI_ZAPPER)}},
+		{"Gun (1P, VS)",  attachParams(), setInputPortsDel(), {.id = packInputEnums(SI_ZAPPER, SI_GAMEPAD)}},
 	};
 
 	MultiChoiceMenuItem inputPorts
 	{
-		"Input Ports", &defaultFace(),
-		(MenuItem::Id)packInputEnums(system().nesInputPortDev[0], system().nesInputPortDev[1]),
+		"Input Ports", attachParams(),
+		MenuId{packInputEnums(system().nesInputPortDev[0], system().nesInputPortDev[1])},
 		inputPortsItem
 	};
 
@@ -85,7 +85,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		return [this](TextMenuItem &item)
 		{
 			system().sessionOptionSet();
-			auto [port1, port2] = unpackInputEnums(item.id());
+			auto [port1, port2] = unpackInputEnums(item.id);
 			system().optionInputPort1 = (int)port1;
 			system().optionInputPort2 = (int)port2;
 			system().nesInputPortDev[0] = port1;
@@ -96,15 +96,17 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 
 	TextMenuItem videoSystemItem[4]
 	{
-		{"Auto", &defaultFace(), [this](Input::Event e){ setVideoSystem(0, e); }},
-		{"NTSC", &defaultFace(), [this](Input::Event e){ setVideoSystem(1, e); }},
-		{"PAL", &defaultFace(), [this](Input::Event e){ setVideoSystem(2, e); }},
-		{"Dendy", &defaultFace(), [this](Input::Event e){ setVideoSystem(3, e); }},
+		{"Auto", attachParams(), [this](Input::Event e){ setVideoSystem(0, e); }},
+		{"NTSC", attachParams(), [this](Input::Event e){ setVideoSystem(1, e); }},
+		{"PAL", attachParams(), [this](Input::Event e){ setVideoSystem(2, e); }},
+		{"Dendy", attachParams(), [this](Input::Event e){ setVideoSystem(3, e); }},
 	};
 
 	MultiChoiceMenuItem videoSystem
 	{
-		"System", &defaultFace(),
+		"System", attachParams(),
+		system().optionVideoSystem.val,
+		videoSystemItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -116,8 +118,6 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 				return false;
 			}
 		},
-		system().optionVideoSystem.val,
-		videoSystemItem
 	};
 
 	void setVideoSystem(int val, Input::Event e)
@@ -130,7 +130,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 
 	BoolMenuItem compatibleFrameskip
 	{
-		"Frameskip Mode", &defaultFace(),
+		"Frameskip Mode", attachParams(),
 		(bool)system().optionCompatibleFrameskip,
 		"Fast", "Compatible",
 		[this](BoolMenuItem &item, View &, Input::Event e)
@@ -156,19 +156,19 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		}
 	};
 
-	TextHeadingMenuItem videoHeading{"Video", &defaultBoldFace()};
+	TextHeadingMenuItem videoHeading{"Video", attachParams()};
 
 	TextMenuItem visibleVideoLinesItem[4]
 	{
-		{"8+224", &defaultFace(), setVisibleVideoLinesDel(8, 224)},
-		{"8+232", &defaultFace(), setVisibleVideoLinesDel(8, 232)},
-		{"0+232", &defaultFace(), setVisibleVideoLinesDel(0, 232)},
-		{"0+240", &defaultFace(), setVisibleVideoLinesDel(0, 240)},
+		{"8+224", attachParams(), setVisibleVideoLinesDel(8, 224)},
+		{"8+232", attachParams(), setVisibleVideoLinesDel(8, 232)},
+		{"0+232", attachParams(), setVisibleVideoLinesDel(0, 232)},
+		{"0+240", attachParams(), setVisibleVideoLinesDel(0, 240)},
 	};
 
 	MultiChoiceMenuItem visibleVideoLines
 	{
-		"Visible Lines", &defaultFace(),
+		"Visible Lines", attachParams(),
 		[this]()
 		{
 			switch(system().optionVisibleVideoLines.val)
@@ -196,7 +196,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 
 	BoolMenuItem horizontalVideoCrop
 	{
-		"Crop 8 Pixels On Sides", &defaultFace(),
+		"Crop 8 Pixels On Sides", attachParams(),
 		(bool)system().optionHorizontalVideoCrop,
 		[this](BoolMenuItem &item)
 		{
@@ -208,11 +208,11 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		}
 	};
 
-	TextHeadingMenuItem overclocking{"Overclocking", &defaultBoldFace()};
+	TextHeadingMenuItem overclocking{"Overclocking", attachParams()};
 
 	BoolMenuItem overclockingEnabled
 	{
-		"Enabled", &defaultFace(),
+		"Enabled", attachParams(),
 		overclock_enabled,
 		[this](BoolMenuItem &item)
 		{
@@ -223,7 +223,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 
 	DualTextMenuItem extraLines
 	{
-		"Extra Lines Per Frame", std::to_string(postrenderscanlines), &defaultFace(),
+		"Extra Lines Per Frame", std::to_string(postrenderscanlines), attachParams(),
 		[this](const Input::Event &e)
 		{
 			app().pushAndShowNewCollectValueRangeInputView<int, 0, maxExtraLinesPerFrame>(attachParams(), e,
@@ -240,7 +240,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 
 	DualTextMenuItem vblankMultipler
 	{
-		"Vertical Blank Line Multiplier", std::to_string(vblankscanlines), &defaultFace(),
+		"Vertical Blank Line Multiplier", std::to_string(vblankscanlines), attachParams(),
 		[this](const Input::Event &e)
 		{
 			app().pushAndShowNewCollectValueRangeInputView<int, 0, maxVBlankMultiplier>(attachParams(), e,
@@ -288,7 +288,7 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 
 	BoolMenuItem spriteLimit
 	{
-		"Sprite Limit", &defaultFace(),
+		"Sprite Limit", attachParams(),
 		(bool)system().optionSpriteLimit,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -299,15 +299,15 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 
 	TextMenuItem videoSystemItem[4]
 	{
-		{"Auto", &defaultFace(), [this](){ system().optionDefaultVideoSystem = 0; }},
-		{"NTSC", &defaultFace(), [this](){ system().optionDefaultVideoSystem = 1; }},
-		{"PAL", &defaultFace(), [this](){ system().optionDefaultVideoSystem = 2; }},
-		{"Dendy", &defaultFace(), [this](){ system().optionDefaultVideoSystem = 3; }},
+		{"Auto", attachParams(), [this](){ system().optionDefaultVideoSystem = 0; }},
+		{"NTSC", attachParams(), [this](){ system().optionDefaultVideoSystem = 1; }},
+		{"PAL", attachParams(), [this](){ system().optionDefaultVideoSystem = 2; }},
+		{"Dendy", attachParams(), [this](){ system().optionDefaultVideoSystem = 3; }},
 	};
 
 	MultiChoiceMenuItem videoSystem
 	{
-		"Default Video System", &defaultFace(),
+		"Default Video System", attachParams(),
 		system().optionDefaultVideoSystem.val,
 		videoSystemItem
 	};
@@ -329,16 +329,16 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 
 	constexpr uint32_t defaultPaletteCustomFileIdx()
 	{
-		return std::size(defaultPalItem) - 1;
+		return lastIndex(defaultPalItem);
 	}
 
 	TextMenuItem defaultPalItem[5]
 	{
-		{"FCEUX", &defaultFace(), [this](){ setPalette(appContext(), ""); }},
-		{"FirebrandX", &defaultFace(), [this]() { setPalette(appContext(), firebrandXPalPath); }},
-		{"Wavebeam", &defaultFace(), [this]() { setPalette(appContext(), wavebeamPalPath); }},
-		{"Classic", &defaultFace(), [this]() { setPalette(appContext(), classicPalPath); }},
-		{"Custom File", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e)
+		{"FCEUX", attachParams(), [this](){ setPalette(appContext(), ""); }},
+		{"FirebrandX", attachParams(), [this]() { setPalette(appContext(), firebrandXPalPath); }},
+		{"Wavebeam", attachParams(), [this]() { setPalette(appContext(), wavebeamPalPath); }},
+		{"Classic", attachParams(), [this]() { setPalette(appContext(), classicPalPath); }},
+		{"Custom File", attachParams(), [this](TextMenuItem &, View &, Input::Event e)
 			{
 				auto fsFilter = [](std::string_view name)
 					{
@@ -361,18 +361,7 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 
 	MultiChoiceMenuItem defaultPal
 	{
-		"Default Palette", &defaultFace(),
-		{
-			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
-			{
-				if(idx == defaultPaletteCustomFileIdx())
-				{
-					t.resetString(IG::withoutDotExtension(appContext().fileUriDisplayName(system().defaultPalettePath)));
-					return true;
-				}
-				return false;
-			}
-		},
+		"Default Palette", attachParams(),
 		[this]()
 		{
 			if(system().defaultPalettePath.empty())
@@ -386,20 +375,31 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 			else
 				return (int)defaultPaletteCustomFileIdx();
 		}(),
-		defaultPalItem
+		defaultPalItem,
+		{
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				if(idx == defaultPaletteCustomFileIdx())
+				{
+					t.resetString(IG::withoutDotExtension(appContext().fileUriDisplayName(system().defaultPalettePath)));
+					return true;
+				}
+				return false;
+			}
+		},
 	};
 
 	TextMenuItem visibleVideoLinesItem[4]
 	{
-		{"8+224", &defaultFace(), setVisibleVideoLinesDel(8, 224)},
-		{"8+232", &defaultFace(), setVisibleVideoLinesDel(8, 232)},
-		{"0+232", &defaultFace(), setVisibleVideoLinesDel(0, 232)},
-		{"0+240", &defaultFace(), setVisibleVideoLinesDel(0, 240)},
+		{"8+224", attachParams(), setVisibleVideoLinesDel(8, 224)},
+		{"8+232", attachParams(), setVisibleVideoLinesDel(8, 232)},
+		{"0+232", attachParams(), setVisibleVideoLinesDel(0, 232)},
+		{"0+240", attachParams(), setVisibleVideoLinesDel(0, 240)},
 	};
 
 	MultiChoiceMenuItem visibleVideoLines
 	{
-		"Default Visible Lines", &defaultFace(),
+		"Default Visible Lines", attachParams(),
 		[this]()
 		{
 			switch(system().optionDefaultVisibleVideoLines.val)
@@ -425,7 +425,7 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 
 	BoolMenuItem correctLineAspect
 	{
-		"Correct Line Aspect Ratio", &defaultFace(),
+		"Correct Line Aspect Ratio", attachParams(),
 		(bool)system().optionCorrectLineAspect,
 		[this](BoolMenuItem &item)
 		{
@@ -459,21 +459,21 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 
 	TextMenuItem qualityItem[3]
 	{
-		{"Normal", &defaultFace(), [this](){ setQuality(0); }},
-		{"High", &defaultFace(), [this]() { setQuality(1); }},
-		{"Highest", &defaultFace(), [this]() { setQuality(2); }}
+		{"Normal", attachParams(), [this](){ setQuality(0); }},
+		{"High", attachParams(), [this]() { setQuality(1); }},
+		{"Highest", attachParams(), [this]() { setQuality(2); }}
 	};
 
 	MultiChoiceMenuItem quality
 	{
-		"Emulation Quality", &defaultFace(),
+		"Emulation Quality", attachParams(),
 		system().optionSoundQuality.val,
 		qualityItem
 	};
 
 	BoolMenuItem lowPassFilter
 	{
-		"Low Pass Filter", &defaultFace(),
+		"Low Pass Filter", attachParams(),
 		(bool)FSettings.lowpass,
 		[this](BoolMenuItem &item)
 		{
@@ -483,7 +483,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 
 	BoolMenuItem swapDutyCycles
 	{
-		"Swap Duty Cycles", &defaultFace(),
+		"Swap Duty Cycles", attachParams(),
 		swapDuty,
 		[this](BoolMenuItem &item)
 		{
@@ -491,11 +491,11 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 		}
 	};
 
-	TextHeadingMenuItem mixer{"Mixer", &defaultBoldFace()};
+	TextHeadingMenuItem mixer{"Mixer", attachParams()};
 
 	BoolMenuItem squareWave1
 	{
-		"Square Wave #1", &defaultFace(),
+		"Square Wave #1", attachParams(),
 		(bool)FSettings.Square1Volume,
 		[this](BoolMenuItem &item)
 		{
@@ -505,7 +505,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 
 	BoolMenuItem squareWave2
 	{
-		"Square Wave #2", &defaultFace(),
+		"Square Wave #2", attachParams(),
 		(bool)FSettings.Square2Volume,
 		[this](BoolMenuItem &item)
 		{
@@ -515,7 +515,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 
 	BoolMenuItem triangleWave1
 	{
-		"Triangle Wave", &defaultFace(),
+		"Triangle Wave", attachParams(),
 		(bool)FSettings.TriangleVolume,
 		[this](BoolMenuItem &item)
 		{
@@ -525,7 +525,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 
 	BoolMenuItem noise
 	{
-		"Noise", &defaultFace(),
+		"Noise", attachParams(),
 		(bool)FSettings.NoiseVolume,
 		[this](BoolMenuItem &item)
 		{
@@ -535,7 +535,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 
 	BoolMenuItem dpcm
 	{
-		"DPCM", &defaultFace(),
+		"DPCM", attachParams(),
 		(bool)FSettings.PCMVolume,
 		[this](BoolMenuItem &item)
 		{
@@ -566,7 +566,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	TextMenuItem cheatsPath
 	{
-		cheatsMenuName(appContext(), system().cheatsDir), &defaultFace(),
+		cheatsMenuName(appContext(), system().cheatsDir), attachParams(),
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeViewWithName<UserPathSelectView>("Cheats", system().userPath(system().cheatsDir),
@@ -574,14 +574,14 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					logMsg("set cheats path:%s", path.data());
 					system().cheatsDir = path;
-					cheatsPath.compile(cheatsMenuName(appContext(), path), renderer());
+					cheatsPath.compile(cheatsMenuName(appContext(), path));
 				}), e);
 		}
 	};
 
 	TextMenuItem patchesPath
 	{
-		patchesMenuName(appContext(), system().patchesDir), &defaultFace(),
+		patchesMenuName(appContext(), system().patchesDir), attachParams(),
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeViewWithName<UserPathSelectView>("Patches", system().userPath(system().patchesDir),
@@ -589,14 +589,14 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					logMsg("set patches path:%s", path.data());
 					system().patchesDir = path;
-					patchesPath.compile(patchesMenuName(appContext(), path), renderer());
+					patchesPath.compile(patchesMenuName(appContext(), path));
 				}), e);
 		}
 	};
 
 	TextMenuItem palettesPath
 	{
-		palettesMenuName(appContext(), system().palettesDir), &defaultFace(),
+		palettesMenuName(appContext(), system().palettesDir), attachParams(),
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeViewWithName<UserPathSelectView>("Palettes", system().userPath(system().palettesDir),
@@ -604,14 +604,14 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					logMsg("set palettes path:%s", path.data());
 					system().palettesDir = path;
-					palettesPath.compile(palettesMenuName(appContext(), path), renderer());
+					palettesPath.compile(palettesMenuName(appContext(), path));
 				}), e);
 		}
 	};
 
 	TextMenuItem fdsBios
 	{
-		biosMenuEntryStr(system().fdsBiosPath), &defaultFace(),
+		biosMenuEntryStr(system().fdsBiosPath), attachParams(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			pushAndShow(makeViewWithName<DataFileSelectView<>>("Disk System BIOS",
@@ -620,7 +620,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					system().fdsBiosPath = path;
 					logMsg("set fds bios:%s", path.data());
-					fdsBios.compile(biosMenuEntryStr(path), renderer());
+					fdsBios.compile(biosMenuEntryStr(path));
 					return true;
 				}, hasFDSBIOSExtension), e);
 		}
@@ -649,7 +649,7 @@ private:
 	TextMenuItem setSide[DISK_SIDES]
 	{
 		{
-			"Set Disk 1 Side A", &defaultFace(),
+			"Set Disk 1 Side A", attachParams(),
 			[this](View &view, Input::Event e)
 			{
 				FCEU_FDSSetDisk(0, system());
@@ -657,7 +657,7 @@ private:
 			}
 		},
 		{
-			"Set Disk 1 Side B", &defaultFace(),
+			"Set Disk 1 Side B", attachParams(),
 			[this](View &view, Input::Event e)
 			{
 				FCEU_FDSSetDisk(1, system());
@@ -665,7 +665,7 @@ private:
 			}
 		},
 		{
-			"Set Disk 2 Side A", &defaultFace(),
+			"Set Disk 2 Side A", attachParams(),
 			[this](View &view, Input::Event e)
 			{
 				FCEU_FDSSetDisk(2, system());
@@ -673,7 +673,7 @@ private:
 			}
 		},
 		{
-			"Set Disk 2 Side B", &defaultFace(),
+			"Set Disk 2 Side B", attachParams(),
 			[this](View &view, Input::Event e)
 			{
 				FCEU_FDSSetDisk(3, system());
@@ -684,7 +684,7 @@ private:
 
 	TextMenuItem insertEject
 	{
-		"Eject", &defaultFace(),
+		"Eject", attachParams(),
 		[this](View &view, Input::Event e)
 		{
 			if(FCEU_FDSInserted())
@@ -731,7 +731,7 @@ class CustomSystemActionsView : public SystemActionsView
 private:
 	TextMenuItem fdsControl
 	{
-		u"", &defaultFace(),
+		u"", attachParams(),
 		[this](Input::Event e) { pushAndShow(makeView<FDSControlView>(), e); }
 	};
 
@@ -740,15 +740,14 @@ private:
 		if(!isFDS)
 			return;
 		if(!FCEU_FDSInserted())
-			fdsControl.compile("FDS Control (No Disk)", renderer());
+			fdsControl.compile("FDS Control (No Disk)");
 		else
-			fdsControl.compile(std::format("FDS Control (Disk {}:{})", (FCEU_FDSCurrentSide() >> 1) + 1, (FCEU_FDSCurrentSide() & 1) ? 'B' : 'A'),
-				renderer());
+			fdsControl.compile(std::format("FDS Control (Disk {}:{})", (FCEU_FDSCurrentSide() >> 1) + 1, (FCEU_FDSCurrentSide() & 1) ? 'B' : 'A'));
 	}
 
 	TextMenuItem options
 	{
-		"Console Options", &defaultFace(),
+		"Console Options", attachParams(),
 		[this](Input::Event e) { pushAndShow(makeView<ConsoleOptionView>(), e); }
 	};
 
@@ -774,7 +773,7 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 
 	BoolMenuItem skipFdcAccess
 	{
-		"Fast-forward Disk IO", &defaultFace(),
+		"Fast-forward Disk IO", attachParams(),
 		(bool)system().fastForwardDuringFdsAccess,
 		[this](BoolMenuItem &item)
 		{

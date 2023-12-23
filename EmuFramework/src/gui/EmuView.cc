@@ -25,17 +25,15 @@
 namespace EmuEx
 {
 
-EmuView::EmuView() {}
-
 EmuView::EmuView(ViewAttachParams attach, EmuVideoLayer *layer, EmuSystem &sys):
 	View{attach},
 	layer{layer},
 	sysPtr{&sys},
-	frameTimeStats{&defaultFace(), Gfx::IQuads{attach.rendererTask, {.size = 1}}} {}
+	frameTimeStats{Gfx::Text{attach.rendererTask, &defaultFace()}, Gfx::IQuads{attach.rendererTask, {.size = 1}}} {}
 
 void EmuView::prepareDraw()
 {
-	doIfUsed(frameTimeStats, [&](auto &stats){ stats.text.makeGlyphs(renderer()); });
+	doIfUsed(frameTimeStats, [&](auto &stats){ stats.text.makeGlyphs(); });
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 	audioStatsText.makeGlyphs(renderer());
 	#endif
@@ -99,7 +97,7 @@ void EmuView::placeFrameTimeStats()
 {
 	doIfUsed(frameTimeStats, [&](auto &stats)
 	{
-		if(stats.text.compile(renderer()))
+		if(stats.text.compile())
 		{
 			WRect rect = {{},
 				{stats.text.pixelSize().x + stats.text.spaceWidth() * 2, stats.text.fullHeight()}};

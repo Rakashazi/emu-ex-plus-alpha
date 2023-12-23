@@ -23,6 +23,7 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/BasicEffect.hh>
+#include <imagine/gfx/Quads.hh>
 #include <imagine/util/used.hh>
 #include <memory>
 #include <optional>
@@ -54,6 +55,9 @@ public:
 	void (* GL_APIENTRY glBindSampler) (GLuint unit, GLuint sampler){};
 	void (* GL_APIENTRY glSamplerParameteri) (GLuint sampler, GLenum pname, GLint param){};
 	void (* GL_APIENTRY glTexStorage2D) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height){};
+	void (* GL_APIENTRY glBindVertexArray) (GLuint array){};
+	void (* GL_APIENTRY glDeleteVertexArrays) (GLsizei n, const GLuint *arrays){};
+	void (* GL_APIENTRY glGenVertexArrays) (GLsizei n, GLuint *arrays){};
 	GLvoid* (* GL_APIENTRY glMapBufferRange) (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access){};
 	using UnmapBufferProto = GLboolean (* GL_APIENTRY) (GLenum target);
 	UnmapBufferProto glUnmapBuffer{};
@@ -80,6 +84,9 @@ public:
 	static void glBindSampler(GLuint unit, GLuint sampler) { ::glBindSampler(unit, sampler); };
 	static void glSamplerParameteri(GLuint sampler, GLenum pname, GLint param) { ::glSamplerParameteri(sampler, pname, param); };
 	static void glTexStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height) { ::glTexStorage2D(target, levels, internalformat, width, height); };
+	static void glBindVertexArray(GLuint array) { ::glBindVertexArray(array); };
+	static void glDeleteVertexArrays(GLsizei n, const GLuint *arrays) { ::glDeleteVertexArrays(n, arrays); };
+	static void glGenVertexArrays(GLsizei n, GLuint *arrays) { ::glGenVertexArrays(n, arrays); };
 	static GLvoid* glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access) { return ::glMapBufferRange(target, offset, length, access); };
 	static GLboolean glUnmapBuffer(GLenum target) { return ::glUnmapBuffer(target); }
 	static void glDrawBuffers(GLsizei size, const GLenum *bufs) { ::glDrawBuffers(size, bufs); };
@@ -144,6 +151,7 @@ public:
 	bool hasEGLTextureStorage() const;
 	bool hasImmutableBufferStorage() const;
 	bool hasMemoryBarriers() const;
+	bool hasVAOFuncs() const;
 	GLsync fenceSync(GLDisplay dpy);
 	void deleteSync(GLDisplay dpy, GLsync sync);
 	GLenum clientWaitSync(GLDisplay dpy, GLsync sync, GLbitfield flags, GLuint64 timeout);
@@ -158,6 +166,7 @@ public:
 	[[no_unique_address]] GLManager glManager;
 	RendererTask mainTask;
 	BasicEffect basicEffect_{};
+	Gfx::QuadIndexArray<uint8_t> quadIndices;
 	CustomEvent releaseShaderCompilerEvent{CustomEvent::NullInit{}};
 
 	GLRenderer(ApplicationContext);
@@ -183,6 +192,7 @@ protected:
 	void setupUnmapBufferFunc();
 	void setupImmutableBufferStorage();
 	void setupMemoryBarrier();
+	void setupVAOFuncs(bool oes = false);
 	void setupFenceSync();
 	void setupAppleFenceSync();
 	void setupEglFenceSync(std::string_view eglExtenstionStr);

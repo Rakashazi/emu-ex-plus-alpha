@@ -76,9 +76,11 @@ protected:
 	{
 		static constexpr auto isDirFlag = bit(0);
 
-		std::string path{};
-		TextMenuItem text{};
+		std::string path;
+		TextMenuItem text;
 
+		FileEntry(ViewAttachParams attach, auto &&path, UTF16Convertible auto &&name):
+			path{IG_forward(path)}, text{IG_forward(name), attach} {}
 		bool isDir() const { return text.flags.user & isDirFlag; }
 	};
 

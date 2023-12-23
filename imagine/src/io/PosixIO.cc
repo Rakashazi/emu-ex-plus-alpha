@@ -13,11 +13,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "PosixIO"
 #include <imagine/io/PosixIO.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/utility.h>
 #include <imagine/util/string/StaticString.hh>
+#include <imagine/util/format.hh>
 #include <imagine/config/defs.hh>
 #include <imagine/logger/logger.h>
 #include "utils.hh"
@@ -28,10 +28,21 @@
 #include <sys/mman.h>
 #include <system_error>
 
+#if defined __ANDROID__ && ANDROID_MIN_API < 24
+#include <sys/syscall.h>
+
+static ssize_t pwritev(int fd, const struct iovec* _Nonnull iov, int count, off_t offset)
+{
+	return syscall(__NR_pwritev, fd, iov, count, offset);
+}
+#endif
+
 namespace IG
 {
 
 template class IOUtils<PosixIO>;
+
+constexpr SystemLogger log{"PosixIO"};
 
 #if !defined __linux__
 constexpr int MAP_POPULATE = 0;
@@ -39,7 +50,7 @@ constexpr int MAP_POPULATE = 0;
 
 static auto flagsString(OpenFlags openFlags)
 {
-	IG::StaticString<5> logFlagsStr{};
+	StaticString<5> logFlagsStr{};
 	if(openFlags.read) logFlagsStr += 'r';
 	if(openFlags.write) logFlagsStr += 'w';
 	if(openFlags.create) logFlagsStr += 'c';
@@ -49,7 +60,7 @@ static auto flagsString(OpenFlags openFlags)
 
 static auto protectionFlagsString(int flags)
 {
-	IG::StaticString<3> logFlagsStr{};
+	StaticString<3> logFlagsStr{};
 	if(flags & PROT_READ) logFlagsStr += 'r';
 	if(flags & PROT_WRITE) logFlagsStr += 'w';
 	return logFlagsStr;
@@ -90,14 +101,14 @@ PosixIO::PosixIO(CStringView path, OpenFlags openFlags)
 	if((fd_ = ::open(path, flags, openMode)) == -1) [[unlikely]]
 	{
 		if constexpr(Config::DEBUG_BUILD)
-			logErr("error opening file (%s) @ %s:%s", flagsString(openFlags).data(), path.data(), strerror(errno));
+			log.error("error opening file ({}) @ {}:{}", flagsString(openFlags), path, strerror(errno));
 		if(openFlags.test)
 			return;
 		else
 			throw std::system_error{errno, std::system_category(), path};
 	}
 	if constexpr(Config::DEBUG_BUILD)
-		logMsg("opened (%s) fd:%d @ %s", flagsString(openFlags).data(), fd(), path.data());
+		log.info("opened ({}) fd:{} @ {}", flagsString(openFlags), fd(), path);
 }
 
 ssize_t PosixIO::read(void *buff, size_t bytes, std::optional<off_t> offset)
@@ -107,7 +118,7 @@ ssize_t PosixIO::read(void *buff, size_t bytes, std::optional<off_t> offset)
 		auto bytesRead = ::pread(fd(), buff, bytes, *offset);
 		if(bytesRead == -1) [[unlikely]]
 		{
-			logErr("error reading %zu bytes at offset %lld", bytes, (long long)*offset);
+			log.error("error reading {} bytes at offset:{}", bytes, *offset);
 		}
 		return bytesRead;
 	}
@@ -117,7 +128,7 @@ ssize_t PosixIO::read(void *buff, size_t bytes, std::optional<off_t> offset)
 		if(bytesRead == -1) [[unlikely]]
 		{
 			if(Config::DEBUG_BUILD && errno != EAGAIN)
-				logErr("error reading %zu bytes", bytes);
+				log.error("error reading %zu bytes", bytes);
 		}
 		return bytesRead;
 	}
@@ -130,7 +141,7 @@ ssize_t PosixIO::write(const void *buff, size_t bytes, std::optional<off_t> offs
 		auto bytesWritten = ::pwrite(fd(), buff, bytes, *offset);
 		if(bytesWritten == -1)
 		{
-			logErr("error writing %zu bytes at offset %lld", bytes, (long long)*offset);
+			log.error("error writing {} bytes at offset {}", bytes, *offset);
 		}
 		return bytesWritten;
 	}
@@ -139,7 +150,31 @@ ssize_t PosixIO::write(const void *buff, size_t bytes, std::optional<off_t> offs
 		auto bytesWritten = ::write(fd(), buff, bytes);
 		if(bytesWritten == -1)
 		{
-			logErr("error writing %zu bytes", bytes);
+			log.error("error writing {} bytes", bytes);
+		}
+		return bytesWritten;
+	}
+}
+
+ssize_t PosixIO::writeVector(std::span<const OutVector> buffs, std::optional<off_t> offset)
+{
+	if(!buffs.size())
+		return 0;
+	if(offset)
+	{
+		auto bytesWritten = ::pwritev(fd(), buffs.data()->iovecPtr(), buffs.size(), *offset);
+		if(bytesWritten == -1)
+		{
+			log.error("error writing {} buffers at offset {}", buffs.size(), *offset);
+		}
+		return bytesWritten;
+	}
+	else
+	{
+		auto bytesWritten = ::writev(fd(), buffs.data()->iovecPtr(), buffs.size());
+		if(bytesWritten == -1)
+		{
+			log.error("error writing {} buffers", buffs.size());
 		}
 		return bytesWritten;
 	}
@@ -147,10 +182,10 @@ ssize_t PosixIO::write(const void *buff, size_t bytes, std::optional<off_t> offs
 
 bool PosixIO::truncate(off_t offset)
 {
-	logMsg("truncating at offset %lld", (long long)offset);
+	log.info("truncating at offset {}", offset);
 	if(ftruncate(fd(), offset) == -1) [[unlikely]]
 	{
-		logErr("truncate failed");
+		log.error("truncate failed");
 		return false;
 	}
 	return true;
@@ -161,7 +196,7 @@ off_t PosixIO::seek(off_t offset, SeekMode mode)
 	auto newPos = lseek(fd(), offset, (int)mode);
 	if(newPos == -1) [[unlikely]]
 	{
-		logErr("seek to offset %lld failed", (long long)offset);
+		log.error("seek to offset {} failed", offset);
 		return -1;
 	}
 	return newPos;
@@ -177,7 +212,7 @@ size_t PosixIO::size()
 	auto s = fd_size(fd());
 	if(s == 0)
 	{
-		logMsg("fd:%d is empty or a stream", fd());
+		log.info("fd:{} is empty or a stream", fd());
 	}
 	return s;
 }
@@ -210,7 +245,7 @@ void PosixIO::advise(off_t offset, size_t bytes, Advice advice)
 		int fAdv =  adviceToFAdv(advice);
 		if(posix_fadvise(fd(), offset, bytes, fAdv) != 0)
 		{
-			logMsg("fadvise for offset 0x%llX with size %zu failed", (unsigned long long)offset, bytes);
+			log.error("fadvise for offset:{:X} with size:{} failed", offset, bytes);
 		}
 		#endif
 	#endif
@@ -227,7 +262,7 @@ IOBuffer PosixIO::releaseBuffer()
 	if(flags == -1) [[unlikely]]
 	{
 		if(Config::DEBUG_BUILD)
-			logErr("fcntl(%d) failed:%s", fd(), strerror(errno));
+			log.error("fcntl({}) failed:{}", fd(), strerror(errno));
 		flags = 0;
 	}
 	bool isWritable = (flags & O_WRONLY) || (flags & O_RDWR);
@@ -245,10 +280,10 @@ IOBuffer PosixIO::mapRange(off_t start, size_t size, IOMapFlags mapFlags)
 	void *data = mmap(nullptr, size, prot, flags, fd(), start);
 	if(data == MAP_FAILED) [[unlikely]]
 	{
-		logErr("mmap (%s) fd:%d @ %zu (%zu bytes) failed", protectionFlagsString(prot).data(), fd(), (size_t)start, size);
+		log.error("mmap ({}) fd:{} @ {} ({} bytes) failed", protectionFlagsString(prot), fd(), start, size);
 		return {};
 	}
-	logMsg("mapped (%s) fd:%d @ %zu to %p (%zu bytes)", protectionFlagsString(prot).data(), fd(), (size_t)start, data, size);
+	log.info("mapped ({}) fd:{} @ {} to {} ({} bytes)", protectionFlagsString(prot), fd(), start, data, size);
 	return byteBufferFromMmap(data, size);
 }
 
@@ -259,11 +294,11 @@ IOBuffer PosixIO::byteBufferFromMmap(void *data, size_t size)
 		{(uint8_t*)data, size}, {.mappedFile = true},
 		[](const uint8_t *ptr, size_t size)
 		{
-			logMsg("unmapping:%p (%zu bytes)", ptr, size);
+			log.info("unmapping:{} ({} bytes)", (void*)ptr, size);
 			if(munmap((void*)ptr, size) == -1)
 			{
 				if(Config::DEBUG_BUILD)
-					logErr("munmap(%p, %zu) error:%s", ptr, size, strerror(errno));
+					log.error("munmap({}, {}) error:{}", (void*)ptr, size, strerror(errno));
 			}
 		}
 	};

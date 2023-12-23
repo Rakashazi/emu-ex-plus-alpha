@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "VideoImageOverlay"
 #include <emuframework/VideoImageOverlay.hh>
 #include <emuframework/EmuSystem.hh>
 #include <imagine/gfx/Renderer.hh>
@@ -106,8 +105,7 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, ImageOverlayId id, Gfx::Colo
 		texture = {};
 		return;
 	}
-	quad.setTask(r.mainTask);
-	quad.reset({.size = 1});
+	quad = {r.mainTask, {.size = 1}};
 	multiplyBlend = isCrtOverlay(id);
 	auto desc = overlayDesc(id);
 	Gfx::TextureSamplerConfig samplerConf{ .mipFilter = Gfx::MipFilter::NEAREST };

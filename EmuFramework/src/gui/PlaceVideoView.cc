@@ -25,8 +25,8 @@ PlaceVideoView::PlaceVideoView(ViewAttachParams attach, EmuVideoLayer &layer, VC
 	View(attach),
 	layer{layer},
 	vController{vController},
-	exitText{"Exit", &defaultFace()},
-	resetText{"Reset", &defaultFace()},
+	exitText{attach.rendererTask, "Exit", &defaultFace()},
+	resetText{attach.rendererTask, "Reset", &defaultFace()},
 	quads{attach.rendererTask, {.size = 4}}
 {
 	app().applyOSNavStyle(appContext(), true);
@@ -44,8 +44,8 @@ void PlaceVideoView::place()
 	auto offsetLimit = viewRect().size() - layer.contentRect().size();
 	posOffsetLimit = viewRect().isLandscape() ? offsetLimit.x : offsetLimit.y;
 	dragState = {};
-	exitText.compile(renderer());
-	resetText.compile(renderer());
+	exitText.compile();
+	resetText.compile();
 	WRect btnBounds{{0, 0}, {viewRect().xSize(), exitText.nominalHeight() * 2}};
 	btnBounds.setPos(viewRect().pos(LB2DO), LB2DO);
 	exitBounds = btnBounds;
@@ -161,9 +161,9 @@ void PlaceVideoView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	auto &basicEffect = cmds.basicEffect();
 	basicEffect.disableTexture(cmds);
 	cmds.setVertexArray(quads);
-	cmds.drawQuads(quadIndices(), 0, 2); // centering lines
+	cmds.drawQuads(0, 2); // centering lines
 	cmds.setColor({.2, .2, .2, .5});
-	cmds.drawQuads(quadIndices(), 2, 2); // button bg
+	cmds.drawQuads(2, 2); // button bg
 	basicEffect.enableAlphaTexture(cmds);
 	cmds.setColor(ColorName::WHITE);
 	exitText.draw(cmds, exitBounds.pos(C2DO), C2DO);

@@ -38,7 +38,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 {
 	BoolMenuItem sixButtonPad
 	{
-		"6-button Gamepad", &defaultFace(),
+		"6-button Gamepad", attachParams(),
 		(bool)system().option6BtnPad,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -50,7 +50,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 
 	BoolMenuItem multitap
 	{
-		"4-Player Adapter", &defaultFace(),
+		"4-Player Adapter", attachParams(),
 		(bool)system().optionMultiTap,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -71,15 +71,17 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 
 	TextMenuItem inputPortsItem[4]
 	{
-		{"Auto",      &defaultFace(), setInputPortsDel(-1, -1), -1},
-		{"Gamepads",  &defaultFace(), setInputPortsDel(SYSTEM_MD_GAMEPAD, SYSTEM_MD_GAMEPAD), SYSTEM_MD_GAMEPAD},
-		{"Menacer",   &defaultFace(), setInputPortsDel(SYSTEM_MD_GAMEPAD, SYSTEM_MENACER),    SYSTEM_MENACER},
-		{"Justifier", &defaultFace(), setInputPortsDel(SYSTEM_MD_GAMEPAD, SYSTEM_JUSTIFIER),  SYSTEM_JUSTIFIER},
+		{"Auto",      attachParams(), setInputPortsDel(-1, -1), {.id = -1}},
+		{"Gamepads",  attachParams(), setInputPortsDel(SYSTEM_MD_GAMEPAD, SYSTEM_MD_GAMEPAD), {.id = SYSTEM_MD_GAMEPAD}},
+		{"Menacer",   attachParams(), setInputPortsDel(SYSTEM_MD_GAMEPAD, SYSTEM_MENACER),    {.id = SYSTEM_MENACER}},
+		{"Justifier", attachParams(), setInputPortsDel(SYSTEM_MD_GAMEPAD, SYSTEM_JUSTIFIER),  {.id = SYSTEM_JUSTIFIER}},
 	};
 
 	MultiChoiceMenuItem inputPorts
 	{
-		"Input Ports", &defaultFace(),
+		"Input Ports", attachParams(),
+		MenuId{system().mdInputPortDev[1]},
+		inputPortsItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -87,8 +89,6 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 				return true;
 			}
 		},
-		(MenuItem::Id)system().mdInputPortDev[1],
-		inputPortsItem
 	};
 
 	TextMenuItem::SelectDelegate setInputPortsDel(int8_t port1, int8_t port2)
@@ -104,14 +104,16 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 
 	TextMenuItem videoSystemItem[3]
 	{
-		{"Auto", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(0, e); }},
-		{"NTSC", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(1, e); }},
-		{"PAL", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(2, e); }},
+		{"Auto", attachParams(), [this](Input::Event e){ setVideoSystem(0, e); }},
+		{"NTSC", attachParams(), [this](Input::Event e){ setVideoSystem(1, e); }},
+		{"PAL", attachParams(),  [this](Input::Event e){ setVideoSystem(2, e); }},
 	};
 
 	MultiChoiceMenuItem videoSystem
 	{
-		"Video System", &defaultFace(),
+		"Video System", attachParams(),
+		system().optionVideoSystem.val,
+		videoSystemItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -123,8 +125,6 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 				return false;
 			}
 		},
-		system().optionVideoSystem.val,
-		videoSystemItem
 	};
 
 	void setVideoSystem(int val, Input::Event e)
@@ -136,15 +136,17 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 
 	TextMenuItem regionItem[4]
 	{
-		{"Auto", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e){ setRegion(0, e); }},
-		{"USA", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e){ setRegion(1, e); }},
-		{"Europe", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e){ setRegion(2, e); }},
-		{"Japan", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e){ setRegion(3, e); }},
+		{"Auto",   attachParams(), [this](Input::Event e){ setRegion(0, e); }},
+		{"USA",    attachParams(), [this](Input::Event e){ setRegion(1, e); }},
+		{"Europe", attachParams(), [this](Input::Event e){ setRegion(2, e); }},
+		{"Japan",  attachParams(), [this](Input::Event e){ setRegion(3, e); }},
 	};
 
 	MultiChoiceMenuItem region
 	{
-		"Game Region", &defaultFace(),
+		"Game Region", attachParams(),
+		std::min((int)config.region_detect, 4),
+		regionItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -164,9 +166,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 				}
 				return false;
 			}
-		},
-		std::min((int)config.region_detect, 4),
-		regionItem
+		}
 	};
 
 	void setRegion(int val, Input::Event e)
@@ -203,7 +203,7 @@ class CustomSystemActionsView : public SystemActionsView
 private:
 	TextMenuItem options
 	{
-		"Console Options", &defaultFace(),
+		"Console Options", attachParams(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			if(system().hasContent())
@@ -227,7 +227,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 
 	BoolMenuItem smsFM
 	{
-		"MarkIII FM Sound Unit", &defaultFace(),
+		"MarkIII FM Sound Unit", attachParams(),
 		(bool)system().optionSmsFM,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -251,7 +251,7 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 
 	BoolMenuItem bigEndianSram
 	{
-		"Use Big-Endian SRAM", &defaultFace(),
+		"Use Big-Endian SRAM", attachParams(),
 		(bool)system().optionBigEndianSram,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
@@ -278,7 +278,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	TextMenuItem cheatsPath
 	{
-		cheatsMenuName(appContext(), system().cheatsDir), &defaultFace(),
+		cheatsMenuName(appContext(), system().cheatsDir), attachParams(),
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeViewWithName<UserPathSelectView>("Cheats", system().userPath(system().cheatsDir),
@@ -286,7 +286,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					logMsg("set cheats path:%s", path.data());
 					system().cheatsDir = path;
-					cheatsPath.compile(cheatsMenuName(appContext(), path), renderer());
+					cheatsPath.compile(cheatsMenuName(appContext(), path));
 				}), e);
 		}
 	};
@@ -321,9 +321,9 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	TextMenuItem cdBiosPath[3]
 	{
-		{biosMenuEntryStr(REGION_USA, pathFromRegion(REGION_USA)), &defaultFace(), setCDBiosPathDel(REGION_USA)},
-		{biosMenuEntryStr(REGION_JAPAN_NTSC, pathFromRegion(REGION_JAPAN_NTSC)), &defaultFace(), setCDBiosPathDel(REGION_JAPAN_NTSC)},
-		{biosMenuEntryStr(REGION_EUROPE, pathFromRegion(REGION_EUROPE)), &defaultFace(), setCDBiosPathDel(REGION_EUROPE)}
+		{biosMenuEntryStr(REGION_USA, pathFromRegion(REGION_USA)),               attachParams(), setCDBiosPathDel(REGION_USA)},
+		{biosMenuEntryStr(REGION_JAPAN_NTSC, pathFromRegion(REGION_JAPAN_NTSC)), attachParams(), setCDBiosPathDel(REGION_JAPAN_NTSC)},
+		{biosMenuEntryStr(REGION_EUROPE, pathFromRegion(REGION_EUROPE)),         attachParams(), setCDBiosPathDel(REGION_EUROPE)}
 	};
 
 	std::string biosMenuEntryStr(uint8_t region, IG::CStringView path) const
@@ -343,7 +343,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 					auto idx = regionCodeToIdx(region);
 					pathFromRegion(region) = path;
 					logMsg("set bios:%d to path:%s", idx, pathFromRegion(region).data());
-					cdBiosPath[idx].compile(biosMenuEntryStr(region, path), renderer());
+					cdBiosPath[idx].compile(biosMenuEntryStr(region, path));
 					return true;
 				}, hasMDExtension), e);
 		};

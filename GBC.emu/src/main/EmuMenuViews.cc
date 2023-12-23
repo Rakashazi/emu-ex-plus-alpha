@@ -41,7 +41,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 
 	MultiChoiceMenuItem resampler
 	{
-		"Resampler", &defaultFace(),
+		"Resampler", attachParams(),
 		system().optionAudioResampler.val,
 		resamplerItem
 	};
@@ -56,7 +56,7 @@ public:
 		{
 			ResamplerInfo r = ResamplerInfo::get(i);
 			logMsg("%zu %s", i, r.desc);
-			resamplerItem.emplace_back(r.desc, &defaultFace(),
+			resamplerItem.emplace_back(r.desc, attachParams(),
 				[this, i]()
 				{
 					system().optionAudioResampler = i;
@@ -75,38 +75,38 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 	{
 		return [this](TextMenuItem &item)
 		{
-			system().optionGBPal = item.id();
+			system().optionGBPal = item.id;
 			system().applyGBPalette();
 		};
 	}
 
 	TextMenuItem gbPaletteItem[13]
 	{
-		{"Original",   &defaultFace(), setGbPaletteDel(), 0},
-		{"Brown",      &defaultFace(), setGbPaletteDel(), 1},
-		{"Red",        &defaultFace(), setGbPaletteDel(), 2},
-		{"Dark Brown", &defaultFace(), setGbPaletteDel(), 3},
-		{"Pastel",     &defaultFace(), setGbPaletteDel(), 4},
-		{"Orange",     &defaultFace(), setGbPaletteDel(), 5},
-		{"Yellow",     &defaultFace(), setGbPaletteDel(), 6},
-		{"Blue",       &defaultFace(), setGbPaletteDel(), 7},
-		{"Dark Blue",  &defaultFace(), setGbPaletteDel(), 8},
-		{"Gray",       &defaultFace(), setGbPaletteDel(), 9},
-		{"Green",      &defaultFace(), setGbPaletteDel(), 10},
-		{"Dark Green", &defaultFace(), setGbPaletteDel(), 11},
-		{"Reverse",    &defaultFace(), setGbPaletteDel(), 12},
+		{"Original",   attachParams(), setGbPaletteDel(), {.id = 0}},
+		{"Brown",      attachParams(), setGbPaletteDel(), {.id = 1}},
+		{"Red",        attachParams(), setGbPaletteDel(), {.id = 2}},
+		{"Dark Brown", attachParams(), setGbPaletteDel(), {.id = 3}},
+		{"Pastel",     attachParams(), setGbPaletteDel(), {.id = 4}},
+		{"Orange",     attachParams(), setGbPaletteDel(), {.id = 5}},
+		{"Yellow",     attachParams(), setGbPaletteDel(), {.id = 6}},
+		{"Blue",       attachParams(), setGbPaletteDel(), {.id = 7}},
+		{"Dark Blue",  attachParams(), setGbPaletteDel(), {.id = 8}},
+		{"Gray",       attachParams(), setGbPaletteDel(), {.id = 9}},
+		{"Green",      attachParams(), setGbPaletteDel(), {.id = 10}},
+		{"Dark Green", attachParams(), setGbPaletteDel(), {.id = 11}},
+		{"Reverse",    attachParams(), setGbPaletteDel(), {.id = 12}},
 	};
 
 	MultiChoiceMenuItem gbPalette
 	{
-		"GB Palette", &defaultFace(),
+		"GB Palette", attachParams(),
 		system().optionGBPal.val,
 		gbPaletteItem
 	};
 
 	BoolMenuItem fullSaturation
 	{
-		"Saturated GBC Colors", &defaultFace(),
+		"Saturated GBC Colors", attachParams(),
 		(bool)system().optionFullGbcSaturation,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -132,7 +132,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 {
 	BoolMenuItem useBuiltinGBPalette
 	{
-		"Use Built-in GB Palettes", &defaultFace(),
+		"Use Built-in GB Palettes", attachParams(),
 		(bool)system().optionUseBuiltinGBPalette,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -144,7 +144,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 
 	BoolMenuItem reportAsGba
 	{
-		"Report Hardware as GBA", &defaultFace(),
+		"Report Hardware as GBA", attachParams(),
 		(bool)system().optionReportAsGba,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -175,7 +175,7 @@ class CustomSystemActionsView : public SystemActionsView
 {
 	TextMenuItem options
 	{
-		"Console Options", &defaultFace(),
+		"Console Options", attachParams(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			if(system().hasContent())
@@ -199,7 +199,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	TextMenuItem cheatsPath
 	{
-		cheatsMenuName(appContext(), system().cheatsDir), &defaultFace(),
+		cheatsMenuName(appContext(), system().cheatsDir), attachParams(),
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeViewWithName<UserPathSelectView>("Cheats", system().userPath(system().cheatsDir),
@@ -207,7 +207,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					logMsg("set cheats path:%s", path.data());
 					system().cheatsDir = path;
-					cheatsPath.compile(cheatsMenuName(appContext(), path), renderer());
+					cheatsPath.compile(cheatsMenuName(appContext(), path));
 				}), e);
 		}
 	};

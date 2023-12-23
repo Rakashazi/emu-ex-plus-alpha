@@ -41,7 +41,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	TextMenuItem biosPath
 	{
-		biosMenuEntryStr(system().biosPath), &defaultFace(),
+		biosMenuEntryStr(system().biosPath), attachParams(),
 		[this](Input::Event e)
 		{
 			pushAndShow(makeViewWithName<DataFileSelectView<ArchivePathSelectMode::exclude>>("BIOS",
@@ -50,7 +50,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					system().biosPath = path;
 					logMsg("set BIOS:%s", system().biosPath.data());
-					biosPath.compile(biosMenuEntryStr(path), renderer());
+					biosPath.compile(biosMenuEntryStr(path));
 					return true;
 				}, hasBiosExtension), e);
 		}
@@ -72,21 +72,21 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 {
 	TextMenuItem::SelectDelegate setRotationDel()
 	{
-		return [this](TextMenuItem &item) { system().setRotation((LynxRotation)item.id()); };
+		return [this](TextMenuItem &item) { system().setRotation(LynxRotation(item.id.val)); };
 	}
 
 	TextMenuItem rotationItem[4]
 	{
-		{"Auto",           &defaultFace(), setRotationDel(), to_underlying(LynxRotation::Auto)},
-		{"Horizontal",     &defaultFace(), setRotationDel(), to_underlying(LynxRotation::Horizontal)},
-		{"Vertical Left",  &defaultFace(), setRotationDel(), to_underlying(LynxRotation::VerticalLeft)},
-		{"Vertical Right", &defaultFace(), setRotationDel(), to_underlying(LynxRotation::VerticalRight)},
+		{"Auto",           attachParams(), setRotationDel(), {.id = LynxRotation::Auto}},
+		{"Horizontal",     attachParams(), setRotationDel(), {.id = LynxRotation::Horizontal}},
+		{"Vertical Left",  attachParams(), setRotationDel(), {.id = LynxRotation::VerticalLeft}},
+		{"Vertical Right", attachParams(), setRotationDel(), {.id = LynxRotation::VerticalRight}},
 	};
 
 	MultiChoiceMenuItem rotation
 	{
-		"Handheld Rotation", &defaultFace(),
-		MenuItem::Id(system().rotation),
+		"Handheld Rotation", attachParams(),
+		MenuId{system().rotation},
 		rotationItem
 	};
 
@@ -110,7 +110,7 @@ class CustomSystemActionsView : public SystemActionsView
 private:
 	TextMenuItem options
 	{
-		"Console Options", &defaultFace(),
+		"Console Options", attachParams(),
 		[this](Input::Event e) { pushAndShow(makeView<ConsoleOptionView>(), e); }
 	};
 
@@ -129,7 +129,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 
 	BoolMenuItem lowpassFilter
 	{
-		"Low-pass Filter", &defaultFace(),
+		"Low-pass Filter", attachParams(),
 		system().lowpassFilter,
 		[this](BoolMenuItem &item) { system().setLowpassFilter(item.flipBoolValue(*this)); }
 	};

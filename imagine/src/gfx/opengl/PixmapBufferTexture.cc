@@ -19,7 +19,7 @@
 #include <imagine/base/Error.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/utility.h>
-#include <imagine/util/math/int.hh>
+#include <imagine/util/math.hh>
 #ifdef __ANDROID__
 #include <imagine/gfx/opengl/android/HardwareBufferStorage.hh>
 #include <imagine/gfx/opengl/android/SurfaceTextureStorage.hh>

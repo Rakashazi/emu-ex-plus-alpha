@@ -29,7 +29,7 @@ constexpr SystemLogger log;
 
 NavView::NavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face):
 	View{attach},
-	text{"", face} {}
+	text{attach.rendererTask, u"", face} {}
 
 void NavView::setOnPushLeftBtn(OnPushDelegate del)
 {
@@ -146,12 +146,12 @@ bool NavView::inputEvent(const Input::Event &e)
 
 void NavView::prepareDraw()
 {
-	text.makeGlyphs(renderer());
+	text.makeGlyphs();
 }
 
 void NavView::place()
 {
-	text.compile(renderer());
+	text.compile();
 	auto &textRect = control[1].rect;
 	textRect.setPosRel(viewRect().pos(LT2DO), viewRect().size(), LT2DO);
 	control[0].rect.setPosRel(viewRect().pos(LT2DO), viewRect().ySize(), LT2DO);
@@ -215,7 +215,7 @@ void BasicNavView::setBackgroundGradient(std::span<const Gfx::LGradientStopDesc>
 	if(!gradStops.size())
 	{
 		gradientStops = {};
-		bgVerts = {};
+		bgVerts.reset({.size = 0});
 		return;
 	}
 	gradientStops.resetForOverwrite(gradStops.size());

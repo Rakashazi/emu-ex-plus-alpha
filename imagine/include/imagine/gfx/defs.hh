@@ -53,6 +53,10 @@ enum class BufferType : uint8_t;
 template<class T, BufferType type>
 class Buffer;
 template<class T>
+class ObjectVertexBuffer;
+template<class T>
+class ObjectVertexArray;
+template<class T>
 class QuadIndexArray;
 
 using GCRect = CoordinateRect<float, true, true>;
@@ -206,7 +210,7 @@ constexpr Color4F::operator Color4B() const { return Color4B::format.build(r, g,
 using PackedColor = Color4B;
 using Color = Color4F;
 
-enum class AttribType
+enum class AttribType : uint8_t
 {
 	UByte = 1,
 	Short,
@@ -217,7 +221,7 @@ enum class AttribType
 struct AttribDesc
 {
 	size_t offset{};
-	size_t size{};
+	int size{};
 	AttribType type{};
 	bool normalize{};
 

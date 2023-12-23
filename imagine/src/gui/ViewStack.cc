@@ -61,7 +61,6 @@ void BasicViewController::dismissView(int idx, bool)
 	if(!view || idx != 0 || idx != -1)
 		return;
 	auto &win = view->window();
-	view->waitForDrawFinished();
 	view.reset();
 	if(removeViewDel)
 		removeViewDel();
@@ -79,7 +78,6 @@ void BasicViewController::place()
 	if(!view)
 		return;
 	assert(viewRect.xSize() && viewRect.ySize());
-	view->waitForDrawFinished();
 	view->setViewRect(viewRect);
 	view->place();
 }
@@ -101,8 +99,6 @@ ViewStack::ViewStack(ViewAttachParams attach):
 
 void ViewStack::setNavView(std::unique_ptr<NavView> navView)
 {
-	if(view.size())
-		top().waitForDrawFinished();
 	nav = std::move(navView);
 	if(nav)
 	{
@@ -127,7 +123,6 @@ void ViewStack::place()
 {
 	if(!view.size())
 		return;
-	top().waitForDrawFinished();
 	assert(viewRect.xSize() && viewRect.ySize());
 	customViewRect = viewRect;
 	customDisplayRect = displayRect;
@@ -248,7 +243,6 @@ void ViewStack::push(std::unique_ptr<View> v, const Input::Event &e)
 	assumeExpr(v);
 	if(view.size())
 	{
-		top().waitForDrawFinished();
 		top().onHide();
 	}
 	v->setController(this, e);
@@ -282,8 +276,7 @@ void ViewStack::pop()
 {
 	if(!view.size())
 		return;
-	top().waitForDrawFinished();
-	view.back().v->onDismiss();
+	view.back().ptr->onDismiss();
 	view.pop_back();
 	logMsg("pop view, %d in stack", (int)view.size());
 	if(nav)
@@ -355,20 +348,20 @@ void ViewStack::show()
 View &ViewStack::top() const
 {
 	assumeExpr(view.size());
-	return *view.back().v;
+	return *view.back().ptr;
 }
 
 View &ViewStack::viewAtIdx(int idx) const
 {
 	assumeExpr(size_t(idx) < view.size());
-	return *view[idx].v;
+	return *view[idx].ptr;
 }
 
 int ViewStack::viewIdx(View &v) const
 {
 	for(int i = 0; auto &viewEntry : view)
 	{
-		if(viewEntry.v.get() == &v)
+		if(viewEntry.ptr.get() == &v)
 			return i;
 		i++;
 	}
@@ -379,7 +372,7 @@ int ViewStack::viewIdx(std::u16string_view name) const
 {
 	for(int i = 0; auto &viewEntry : view)
 	{
-		if(viewEntry.v->name() == name)
+		if(viewEntry.ptr->name() == name)
 			return i;
 		i++;
 	}
@@ -445,7 +438,7 @@ void ViewStack::dismissView(int idx, bool refreshLayout)
 	else
 	{
 		logMsg("dismissing view at index:%d", idx);
-		view[idx].v->onDismiss();
+		view[idx].ptr->onDismiss();
 		view.erase(view.begin() + idx);
 	}
 }

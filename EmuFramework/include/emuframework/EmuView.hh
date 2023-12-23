@@ -33,7 +33,6 @@ struct FrameTimeStats;
 class EmuView : public View
 {
 public:
-	EmuView();
 	EmuView(ViewAttachParams, EmuVideoLayer *, EmuSystem &);
 	void place() final;
 	void prepareDraw() final;

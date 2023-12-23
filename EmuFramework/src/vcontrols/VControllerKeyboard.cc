@@ -13,16 +13,18 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "VControllerKeyboard"
 #include <emuframework/VController.hh>
 #include <emuframework/EmuApp.hh>
-#include <imagine/util/math/space.hh>
+#include <imagine/util/math.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/BasicEffect.hh>
 #include <imagine/gfx/Mat4.hh>
 #include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
+
+constexpr SystemLogger log{"VControllerKeyboard"};
 
 void VControllerKeyboard::updateImg()
 {
@@ -54,7 +56,7 @@ void VControllerKeyboard::place(int btnSize, int yOffset, WRect viewBounds)
 	bound = bounds;
 	keyXSize = std::max(bound.xSize() / VKEY_COLS, 1);
 	keyYSize = std::max(bound.ySize() / KEY_ROWS, 1);
-	logMsg("key size %dx%d", keyXSize, keyYSize);
+	log.info("key size {}x{}", keyXSize, keyYSize);
 	updateImg();
 }
 
@@ -99,7 +101,7 @@ int VControllerKeyboard::getInput(WPt c) const
 	int row = std::min(relY/keyYSize, 3);
 	int col = std::min(relX/keyXSize, 19);
 	int idx = col + (row * VKEY_COLS);
-	//logMsg("pointer %d,%d key @ %d,%d, idx %d", relX, relY, row, col, idx);
+	//log.debug("pointer {},{} key @ {},{}, idx {}", relX, relY, row, col, idx);
 	return idx;
 }
 
@@ -129,7 +131,7 @@ bool VControllerKeyboard::keyInput(VController &v, Gfx::Renderer &r, const Input
 		{
 			if(!e.pushed() || e.repeated())
 				return false;
-			logMsg("dismiss kb");
+			log.info("dismiss kb");
 			unselectKey();
 			v.toggleKeyboard();
 		}
@@ -137,7 +139,7 @@ bool VControllerKeyboard::keyInput(VController &v, Gfx::Renderer &r, const Input
 		{
 			if(!e.pushed() || e.repeated())
 				return false;
-			logMsg("switch kb mode");
+			log.info("switch kb mode");
 			cycleMode(v.system(), r);
 			v.resetInput();
 		}
@@ -182,7 +184,7 @@ WRect VControllerKeyboard::selectKey(int x, int y)
 {
 	if(x >= VKEY_COLS || y >= KEY_ROWS)
 	{
-		logErr("selected key:%dx%d out of range", x, y);
+		log.error("selected key:{}x{} out of range", x, y);
 		return {{-1, -1}, {-1, -1}};
 	}
 	return extendKeySelection({{x, y}, {x, y}});
@@ -208,7 +210,7 @@ void VControllerKeyboard::selectKeyRel(int x, int y)
 	selected = extendKeySelection(selected);
 	if(!currentKey(selected.x, selected.y))
 	{
-		logMsg("skipping blank key index");
+		log.info("skipping blank key index");
 		selectKeyRel(x, y);
 	}
 }
@@ -235,7 +237,7 @@ IG::WindowRect VControllerKeyboard::extendKeySelection(IG::WindowRect selected)
 		else
 			break;
 	}
-	logMsg("extended selection to:%d:%d", selected.x, selected.x2);
+	log.info("extended selection to:{}:{}", selected.x, selected.x2);
 	return selected;
 }
 
@@ -329,10 +331,10 @@ void VControllerKeyboard::applyMap(KbMap map)
 
 	/*iterateTimes(table.size(), i)
 	{
-		logMsg("row:%d", i);
+		log.debug("row:{}", i);
 		iterateTimes(table[0].size(), j)
 		{
-			logMsg("col:%d = %d", j, table[i][j]);
+			log.info("col:{} = {}", j, table[i][j]);
 		}
 	}*/
 }

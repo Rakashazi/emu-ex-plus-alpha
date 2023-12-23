@@ -18,6 +18,7 @@
 #include <imagine/fs/FSUtils.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include <vector>
 
@@ -26,13 +27,15 @@ namespace EmuEx
 
 using namespace IG;
 
+constexpr SystemLogger log{"PathUtils"};
+
 std::vector<FS::PathString> subDirectoryStrings(ApplicationContext ctx, CStringView path)
 {
 	std::vector<FS::PathString> subDirs{};
 	ctx.forEachInDirectoryUri(path,
 		[&](auto &entry)
 		{
-			//logMsg("entry:%s", entry.path().data());
+			//log.debug("entry:{}", entry.path());
 			if(entry.type() != FS::file_type::directory)
 				return true;
 			subDirs.emplace_back(entry.path());
@@ -52,7 +55,7 @@ void flattenSubDirectories(ApplicationContext ctx, const std::vector<FS::PathStr
 					return true;
 				if(!ctx.renameFileUri(entry.path(), FS::uriString(outPath, entry.name())))
 				{
-					logErr("error while moving %s from legacy save path", entry.path().data());
+					log.error("error while moving {} from legacy save path", entry.path());
 					return false;
 				}
 				return true;
@@ -70,7 +73,7 @@ void updateLegacySavePathOnStoragePath(ApplicationContext ctx, EmuSystem &sys)
 		auto oldSaveSubDirs = subDirectoryStrings(ctx, oldSavePath);
 		if(oldSaveSubDirs.empty())
 		{
-			logMsg("no legacy save folders in:%s", oldSavePath.data());
+			log.info("no legacy save folders in:{}", oldSavePath);
 			return;
 		}
 		auto newSavePath = FS::createDirectoryUriSegments(ctx, storagePath, "EmuEx", sys.shortSystemName(), "saves");

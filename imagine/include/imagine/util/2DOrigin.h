@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/utility.h>
-#include <imagine/util/math/math.hh>
+#include <imagine/util/math.hh>
 #include <imagine/util/enum.hh>
 #include <cassert>
 #include <cmath>

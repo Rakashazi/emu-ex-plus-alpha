@@ -31,13 +31,26 @@ const GLRendererWindowData &winData(const Window &win);
 extern bool checkGLErrors;
 extern bool checkGLErrorsVerbose;
 
-static constexpr bool defaultToFullErrorChecks = true;
-static constexpr GLuint VATTR_POS = 0, VATTR_TEX_UV = 1, VATTR_COLOR = 2;
+constexpr bool forceNoVAOs = false; // for testing non-VAO code paths
+constexpr bool defaultToFullErrorChecks = true;
+constexpr GLuint VATTR_POS = 0, VATTR_TEX_UV = 1, VATTR_COLOR = 2;
 
 static constexpr GL::API glAPI =
 	Config::Gfx::OPENGL_ES ? GL::API::OPENGL_ES : GL::API::OPENGL;
 
 float rotationRadians(Rotation o);
 int toSwapInterval(Window &win, PresentMode mode);
+
+constexpr GLenum asGLType(AttribType type)
+{
+	switch(type)
+	{
+		case AttribType::UByte: return GL_UNSIGNED_BYTE;
+		case AttribType::Short: return GL_SHORT;
+		case AttribType::UShort: return GL_UNSIGNED_SHORT;
+		case AttribType::Float: return GL_FLOAT;
+	}
+	bug_unreachable("invalid AttribType");
+}
 
 }

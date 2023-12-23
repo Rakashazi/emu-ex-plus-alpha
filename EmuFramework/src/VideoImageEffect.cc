@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "VideoImageEffect"
 #include <emuframework/VideoImageEffect.hh>
 #include <emuframework/EmuApp.hh>
 #include <imagine/io/FileIO.hh>
@@ -26,6 +25,8 @@
 
 namespace EmuEx
 {
+
+constexpr SystemLogger log{"VideoImageEffect"};
 
 constexpr VideoImageEffect::EffectDesc directDesc{"direct-v.txt", "direct-f.txt", {1, 1}};
 
@@ -105,7 +106,7 @@ VideoImageEffect::VideoImageEffect(Gfx::Renderer &r, Id effect, IG::PixelFormat 
 		inputImgSize{size}, format{effectFormat(fmt, colSpace)}, colorSpace{colSpace}
 {
 	quad.write(0, {.bounds = {{-1, -1}, {1, 1}}});
-	logMsg("compiling effect:%s", effectName(effect));
+	log.info("compiling effect:{}", effectName(effect));
 	compile(r, effectDesc(effect), samplerConf);
 }
 
@@ -132,7 +133,7 @@ void VideoImageEffect::compile(Gfx::Renderer &r, EffectDesc desc, Gfx::TextureSa
 		return; // already compiled
 	if(!desc.scale.x) [[unlikely]]
 	{
-		logErr("invalid effect descriptor");
+		log.error("invalid effect descriptor");
 		return;
 	}
 	renderTargetScale = desc.scale;
@@ -146,7 +147,7 @@ void VideoImageEffect::compile(Gfx::Renderer &r, EffectDesc desc, Gfx::TextureSa
 		try
 		{
 			compileEffect(r, desc, true);
-			logMsg("compiled fallback version of effect");
+			log.info("compiled fallback version of effect");
 		}
 		catch(std::exception &fallbackErr)
 		{

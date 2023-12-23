@@ -31,7 +31,7 @@ class TextEntry
 public:
 	Gfx::IQuads bgQuads;
 
-	TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face);
+	TextEntry(const char *initText, ViewAttachParams, Gfx::GlyphTextureSet *face);
 	void setAcceptingInput(bool on);
 	bool isAcceptingInput() const;
 	bool inputEvent(View &parentView, const Input::Event &);
@@ -69,9 +69,9 @@ public:
 protected:
 	struct CancelButton
 	{
-		WRect bounds;
+		WRect bounds{};
 		Gfx::ITexQuads quad;
-		Gfx::TextureSpan texture;
+		Gfx::TextureSpan texture{};
 	};
 	// TODO: cancel button doesn't work yet due to popup window not forwarding touch events to main window
 	IG_UseMemberIf(!Config::envIsAndroid, CancelButton, cancelButton);

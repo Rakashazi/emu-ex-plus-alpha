@@ -17,7 +17,6 @@
 
 #include <imagine/gui/viewDefs.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
-#include <imagine/gfx/Quads.hh>
 #include <imagine/util/used.hh>
 #include <optional>
 
@@ -40,7 +39,6 @@ public:
 	static constexpr bool needsBackControlDefault = ViewDefs::needsBackControlDefault;
 	static constexpr bool needsBackControlIsMutable = ViewDefs::needsBackControlIsMutable;
 
-	Gfx::QuadIndexArray<uint8_t> quadIndices;
 	Gfx::GlyphTextureSet defaultFace;
 	Gfx::GlyphTextureSet defaultBoldFace;
 	int tableXIndentPx{};

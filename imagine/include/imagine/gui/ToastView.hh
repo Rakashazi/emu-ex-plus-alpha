@@ -28,7 +28,6 @@ namespace IG
 class ToastView : public View
 {
 public:
-	ToastView() = default;
 	ToastView(ViewAttachParams attach);
 	void setFace(Gfx::GlyphTextureSet &face);
 	void clear();
@@ -49,7 +48,7 @@ public:
 	bool inputEvent(const Input::Event &) final;
 
 private:
-	Gfx::Text text{};
+	Gfx::Text text;
 	Timer unpostTimer{Timer::NullInit{}};
 	Gfx::IQuads msgFrameQuads;
 	WRect msgFrame{};

@@ -22,7 +22,7 @@
 #include <imagine/gfx/BasicEffect.hh>
 #include <imagine/input/Event.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/math/int.hh>
+#include <imagine/util/math.hh>
 
 namespace IG
 {
@@ -47,7 +47,7 @@ void BaseAlertView::place()
 {
 	using namespace IG::Gfx;
 	int xSize = viewRect().xSize() * .8;
-	text.compile(renderer(), {.maxLineSize = int(xSize * 0.95f)});
+	text.compile({.maxLineSize = int(xSize * 0.95f)});
 
 	int menuYSize = menu.cells() * text.face()->nominalHeight()*2;
 	int labelYSize = IG::makeEvenRoundedUp(text.fullHeight());
@@ -78,7 +78,7 @@ bool BaseAlertView::inputEvent(const Input::Event &e)
 
 void BaseAlertView::prepareDraw()
 {
-	text.makeGlyphs(renderer());
+	text.makeGlyphs();
 	menu.prepareDraw();
 }
 

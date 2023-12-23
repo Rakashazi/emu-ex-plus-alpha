@@ -28,6 +28,8 @@
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"FilePathOptionView"};
+
 static FS::FileString savePathStrToDisplayName(IG::ApplicationContext ctx, std::string_view savePathStr)
 {
 	if(savePathStr.size())
@@ -57,7 +59,7 @@ FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu)
 	TableView{"File Path Options", attach, item},
 	savePath
 	{
-		savesMenuName(appContext(), system().userSaveDirectory()), &defaultFace(),
+		savesMenuName(appContext(), system().userSaveDirectory()), attach,
 		[this](const Input::Event &e)
 		{
 			auto multiChoiceView = makeViewWithName<TextTableView>("Saves", 4);
@@ -139,15 +141,15 @@ FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu)
 	},
 	screenshotPath
 	{
-		screenshotsMenuName(appContext(), app().userScreenshotPath), &defaultFace(),
+		screenshotsMenuName(appContext(), app().userScreenshotPath), attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeViewWithName<UserPathSelectView>("Screenshots", app().screenshotDirectory(),
 				[this](CStringView path)
 				{
-					logMsg("set screenshots path:%s", path.data());
+					log.info("set screenshots path:{}", path);
 					app().userScreenshotPath = path;
-					screenshotPath.compile(screenshotsMenuName(appContext(), path), renderer());
+					screenshotPath.compile(screenshotsMenuName(appContext(), path));
 				}), e);
 		}
 	}
@@ -170,7 +172,7 @@ void FilePathOptionView::onSavePathChange(std::string_view path)
 	{
 		app().postMessage(4, false, std::format("App Folder:\n{}", system().fallbackSaveDirectory()));
 	}
-	savePath.compile(savesMenuName(appContext(), path), renderer());
+	savePath.compile(savesMenuName(appContext(), path));
 }
 
 }

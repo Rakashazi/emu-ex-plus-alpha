@@ -98,6 +98,10 @@ static void printFeatures(DrawContextSupport support)
 	{
 		featuresStr.append(" [Sampler Objects]");
 	}
+	if(Config::Gfx::OPENGL_ES >= 2 && support.hasVAOFuncs())
+	{
+		featuresStr.append(" [VAOs]");
+	}
 	if(support.hasPBOFuncs)
 	{
 		featuresStr.append(" [PBOs]");
@@ -270,6 +274,17 @@ bool DrawContextSupport::hasMemoryBarriers() const
 	#endif*/
 }
 
+bool DrawContextSupport::hasVAOFuncs() const
+{
+	if constexpr(Config::DEBUG_BUILD && forceNoVAOs)
+		return false;
+	#ifdef CONFIG_GFX_OPENGL_ES
+	return glBindVertexArray;
+	#else
+	return !useFixedFunctionPipeline;
+	#endif
+}
+
 void GLRenderer::setupUnmapBufferFunc()
 {
 	#ifdef CONFIG_GFX_OPENGL_ES
@@ -314,6 +329,26 @@ void GLRenderer::setupMemoryBarrier()
 	#else
 	support.hasMemoryBarrier = true;
 	#endif*/
+}
+
+void GLRenderer::setupVAOFuncs(bool oes)
+{
+	#ifdef CONFIG_GFX_OPENGL_ES
+	if(support.glBindVertexArray)
+		return;
+	if(oes)
+	{
+		support.glBindVertexArray = (typeof(support.glBindVertexArray))glManager.procAddress("glBindVertexArrayOES");
+		support.glGenVertexArrays = (typeof(support.glGenVertexArrays))glManager.procAddress("glGenVertexArraysOES");
+		support.glDeleteVertexArrays = (typeof(support.glDeleteVertexArrays))glManager.procAddress("glDeleteVertexArraysOES");
+	}
+	else
+	{
+		support.glBindVertexArray = (typeof(support.glBindVertexArray))glManager.procAddress("glBindVertexArray");
+		support.glGenVertexArrays = (typeof(support.glGenVertexArrays))glManager.procAddress("glGenVertexArrays");
+		support.glDeleteVertexArrays = (typeof(support.glDeleteVertexArrays))glManager.procAddress("glDeleteVertexArrays");
+	}
+	#endif
 }
 
 void GLRenderer::checkExtensionString(std::string_view extStr, bool &useFBOFuncs)
@@ -421,6 +456,10 @@ void GLRenderer::checkExtensionString(std::string_view extStr, bool &useFBOFuncs
 	{
 		support.hasSrgbWriteControl = true;
 	}
+	else if(Config::Gfx::OPENGL_ES >= 2 && extStr == "GL_OES_vertex_array_object")
+	{
+		setupVAOFuncs(true);
+	}
 	#endif
 	#ifndef CONFIG_GFX_OPENGL_ES
 	/*else if(string_equal(extStr, "GL_EXT_texture_filter_anisotropic"))
@@ -518,7 +557,7 @@ void Renderer::configureRenderer()
 			#ifdef CONFIG_BASE_GL_PLATFORM_EGL
 			if constexpr((bool)Config::Gfx::OPENGL_ES)
 			{
-				auto extStr = ctx.glDisplay().queryExtensions();
+				auto extStr = ctx.glDisplay.queryExtensions();
 				setupEglFenceSync(extStr);
 			}
 			#endif
@@ -544,8 +583,6 @@ void Renderer::configureRenderer()
 			{
 				if(!support.useFixedFunctionPipeline)
 				{
-					// must render via VAOs/VBOs in 3.1+ without compatibility context
-					//setupVAOFuncs();
 					setupTextureSwizzle();
 					setupRGFormats();
 					setupSamplerObjects();
@@ -607,6 +644,7 @@ void Renderer::configureRenderer()
 					setupRGFormats();
 					setupSamplerObjects();
 					setupPBO();
+					setupVAOFuncs();
 					if(!Config::GL_PLATFORM_EGL)
 						setupFenceSync();
 					if(!Config::envIsIOS)

@@ -42,26 +42,12 @@ struct GLTaskConfig
 class GLTask
 {
 public:
-	class TaskContext
-	{
-	public:
-		constexpr TaskContext(GLDisplay glDpy, std::binary_semaphore *semPtr, bool *semaphoreNeedsNotifyPtr):
-			glDpy{glDpy}, semPtr{semPtr}, semaphoreNeedsNotifyPtr{semaphoreNeedsNotifyPtr}
-		{}
-		void notifySemaphore();
-		void markSemaphoreNotified();
-		constexpr GLDisplay glDisplay() const { return glDpy; }
-		constexpr std::binary_semaphore *semaphorePtr() const { return semPtr; }
-
-	protected:
-		[[no_unique_address]] GLDisplay glDpy{};
-		std::binary_semaphore *semPtr{};
-		bool *semaphoreNeedsNotifyPtr{};
-	};
+	struct CommandMessage;
+	using CommandMessages = Messages<CommandMessage>;
 
 	// Align delegate data to 16 bytes in case we store SIMD types
 	static constexpr size_t FuncDelegateStorageSize = sizeof(uintptr_t)*2 + sizeof(int)*16;
-	using FuncDelegate = DelegateFuncA<FuncDelegateStorageSize, 16, void(GLDisplay glDpy, std::binary_semaphore *semPtr)>;
+	using FuncDelegate = DelegateFuncA<FuncDelegateStorageSize, 16, void(GLDisplay, std::binary_semaphore *, CommandMessages &)>;
 
 	struct CommandMessage
 	{
@@ -71,53 +57,77 @@ public:
 		void setReplySemaphore(std::binary_semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
 	};
 
+	using CommandMessagePort = MessagePort<CommandMessage>;
+
+	struct TaskContext
+	{
+		[[no_unique_address]] GLDisplay glDisplay{};
+		std::binary_semaphore *semaphorePtr{};
+		bool *semaphoreNeedsNotifyPtr{};
+		CommandMessages *msgsPtr;
+
+		void notifySemaphore();
+		void markSemaphoreNotified();
+	};
+
 	GLTask(ApplicationContext);
 	GLTask(ApplicationContext, const char *debugLabel);
 	~GLTask();
 	GLTask &operator=(GLTask &&) = delete;
 	bool makeGLContext(GLTaskConfig);
-	void runFunc(FuncDelegate del, bool awaitReply);
+	void runFunc(FuncDelegate del, std::span<const uint8_t> extBuff, MessageReplyMode);
 	GLBufferConfig glBufferConfig() const;
 	const GLContext &glContext() const;
 	ApplicationContext appContext() const;
 	explicit operator bool() const;
 
-	void run(std::invocable auto &&f, bool awaitReply = false)
+	void run(std::invocable auto &&f, MessageReplyMode mode = MessageReplyMode::none)
 	{
 		runFunc(
-			[=](GLDisplay, std::binary_semaphore *semPtr)
+			[=](GLDisplay, std::binary_semaphore *semPtr, CommandMessages &)
 			{
 				f();
 				if(semPtr)
 				{
 					semPtr->release();
 				}
-			}, awaitReply);
+			}, {}, mode);
 	}
 
-	void run(std::invocable<TaskContext> auto &&f, bool awaitReply = false)
+	template<class ExtraData>
+	void run(std::invocable<TaskContext> auto &&f, ExtraData &&extData, MessageReplyMode mode = MessageReplyMode::none)
 	{
+		std::span<const uint8_t> extBuff;
+		if constexpr(!std::is_null_pointer_v<ExtraData>)
+		{
+			extBuff = {reinterpret_cast<const uint8_t*>(&extData), sizeof(extData)};
+		}
 		runFunc(
-			[=](GLDisplay glDpy, std::binary_semaphore *semPtr)
+			[=](GLDisplay glDpy, std::binary_semaphore *semPtr, CommandMessages &msgs)
 			{
 				bool semaphoreNeedsNotify = semPtr;
-				TaskContext ctx{glDpy, semPtr, &semaphoreNeedsNotify};
+				TaskContext ctx{glDpy, semPtr, &semaphoreNeedsNotify, &msgs};
 				f(ctx);
 				if(semaphoreNeedsNotify) // semaphore wasn't already notified in the delegate
 				{
 					semPtr->release();
 				}
-			}, awaitReply);
+			}, extBuff, mode);
 	}
 
-	void runSync(auto &&f) { run(IG_forward(f), true); }
+	void run(std::invocable<TaskContext> auto &&f, MessageReplyMode mode = MessageReplyMode::none)
+	{
+		run(IG_forward(f), nullptr, mode);
+	}
+
+	void runSync(auto &&f) { run(IG_forward(f), MessageReplyMode::wait); }
 
 protected:
 	std::thread thread{};
 	GLContext context{};
 	GLBufferConfig bufferConfig{};
 	OnExit onExit;
-	MessagePort<CommandMessage> commandPort{MessagePort<CommandMessage>::NullInit{}};
+	CommandMessagePort commandPort{CommandMessagePort::NullInit{}};
 	ThreadId threadId_{};
 
 	GLContext makeGLContext(GLManager &, GLBufferConfig bufferConf);

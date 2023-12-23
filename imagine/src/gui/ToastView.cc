@@ -15,6 +15,7 @@
 
 #define LOGTAG "ToastView"
 #include <imagine/gui/ToastView.hh>
+#include <imagine/gui/ViewManager.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/BasicEffect.hh>
@@ -22,13 +23,14 @@
 #include <imagine/input/Event.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/ScopeGuard.hh>
-#include <imagine/util/math/int.hh>
+#include <imagine/util/math.hh>
 #include <string>
 
 namespace IG
 {
 
 ToastView::ToastView(ViewAttachParams attach): View{attach},
+	text{attach.rendererTask, &attach.viewManager.defaultFace},
 	unpostTimer
 	{
 		"ToastView::unpostTimer",
@@ -41,7 +43,6 @@ ToastView::ToastView(ViewAttachParams attach): View{attach},
 
 void ToastView::setFace(Gfx::GlyphTextureSet &face)
 {
-	waitForDrawFinished();
 	text.setFace(&face);
 }
 
@@ -50,14 +51,13 @@ void ToastView::clear()
 	if(text.stringSize())
 	{
 		unpostTimer.cancel();
-		waitForDrawFinished();
 		text.resetString();
 	}
 }
 
 void ToastView::place()
 {
-	text.compile(renderer(), {.maxLineSize = int(viewRect().xSize() * 0.95f), .maxLines = 6, .alignment = Gfx::TextAlignment::center});
+	text.compile({.maxLineSize = int(viewRect().xSize() * 0.95f), .maxLines = 6, .alignment = Gfx::TextAlignment::center});
 	int labelYSize = IG::makeEvenRoundedUp(text.fullHeight());
 	//logMsg("label y size:%d", labelYSize);
 	msgFrame.setPosRel(viewRect().pos(CB2DO),
@@ -68,7 +68,6 @@ void ToastView::place()
 void ToastView::unpost()
 {
 	logMsg("unposting");
-	waitForDrawFinished();
 	text.resetString();
 	postDraw();
 }
@@ -81,7 +80,7 @@ void ToastView::postContent(int secs)
 
 void ToastView::prepareDraw()
 {
-	text.makeGlyphs(renderer());
+	text.makeGlyphs();
 }
 
 void ToastView::draw(Gfx::RendererCommands &__restrict__ cmds)

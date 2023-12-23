@@ -41,13 +41,13 @@ static const char *confirmDeleteProfileStr = "Delete profile from the configurat
 
 IdentInputDeviceView::IdentInputDeviceView(ViewAttachParams attach):
 	View(attach),
-	text{"Push a key on any input device enter its configuration menu", &defaultFace()},
+	text{attach.rendererTask, "Push a key on any input device enter its configuration menu", &defaultFace()},
 	quads{attach.rendererTask, {.size = 1}} {}
 
 void IdentInputDeviceView::place()
 {
 	quads.write(0, {.bounds = displayRect().as<int16_t>()});
-	text.compile(renderer(), {.maxLineSize = int(viewRect().xSize() * 0.95f)});
+	text.compile({.maxLineSize = int(viewRect().xSize() * 0.95f)});
 }
 
 bool IdentInputDeviceView::inputEvent(const Input::Event &e)
@@ -95,7 +95,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 	inputManager{inputManager_},
 	deleteDeviceConfig
 	{
-		"Delete Saved Device Settings", &defaultFace(),
+		"Delete Saved Device Settings", attach,
 		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			auto &savedInputDevs = inputManager.savedInputDevs;
@@ -139,7 +139,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 	},
 	deleteProfile
 	{
-		"Delete Saved Key Profile", &defaultFace(),
+		"Delete Saved Key Profile", attach,
 		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			auto &customKeyConfigs = inputManager.customKeyConfigs;
@@ -171,7 +171,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 	},
 	rescanOSDevices
 	{
-		"Re-scan OS Input Devices", &defaultFace(),
+		"Re-scan OS Input Devices", attach,
 		[this](const Input::Event &e)
 		{
 			appContext().enumInputDevices();
@@ -187,7 +187,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 	},
 	identDevice
 	{
-		"Auto-detect Device To Setup", &defaultFace(),
+		"Auto-detect Device To Setup", attach,
 		[this](const Input::Event &e)
 		{
 			auto identView = makeView<IdentInputDeviceView>();
@@ -205,7 +205,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 	},
 	generalOptions
 	{
-		"General Options", &defaultFace(),
+		"General Options", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<InputManagerOptionsView>(&app().viewController().inputView), e);
@@ -213,7 +213,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 	},
 	deviceListHeading
 	{
-		"Individual Device Settings", &defaultBoldFace(),
+		"Individual Device Settings", attach,
 	}
 {
 	inputManager.onUpdateDevices = [this]()
@@ -254,7 +254,7 @@ void InputManagerView::loadItems()
 	inputDevName.reserve(ctx.inputDevices().size());
 	for(auto &devPtr : ctx.inputDevices())
 	{
-		auto &devItem = inputDevName.emplace_back(inputDevData(*devPtr).displayName, &defaultFace(),
+		auto &devItem = inputDevName.emplace_back(inputDevData(*devPtr).displayName, attachParams(),
 			[this, &dev = *devPtr](const Input::Event &e)
 			{
 				pushAndShowDeviceView(dev, e);
@@ -294,7 +294,7 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 	TableView{"General Input Options", attach, item},
 	mogaInputSystem
 	{
-		"MOGA Controller Support", &defaultFace(),
+		"MOGA Controller Support", attach,
 		app().mogaManagerIsActive(),
 		[this](BoolMenuItem &item)
 		{
@@ -309,7 +309,7 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 	},
 	notifyDeviceChange
 	{
-		"Notify If Devices Change", &defaultFace(),
+		"Notify If Devices Change", attach,
 		app().notifyOnInputDeviceChange,
 		[this](BoolMenuItem &item)
 		{
@@ -318,11 +318,11 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 	},
 	bluetoothHeading
 	{
-		"In-app Bluetooth Options", &defaultBoldFace(),
+		"In-app Bluetooth Options", attach,
 	},
 	keepBtActive
 	{
-		"Keep Connections In Background", &defaultFace(),
+		"Keep Connections In Background", attach,
 		app().keepBluetoothActive,
 		[this](BoolMenuItem &item)
 		{
@@ -333,35 +333,35 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 	btScanSecsItem
 	{
 		{
-			"2secs", &defaultFace(),
+			"2secs", attach,
 			[this]()
 			{
 				setBTScanSecs(2);
 			}
 		},
 		{
-			"4secs", &defaultFace(),
+			"4secs", attach,
 			[this]()
 			{
 				setBTScanSecs(4);
 			}
 		},
 		{
-			"6secs", &defaultFace(),
+			"6secs", attach,
 			[this]()
 			{
 				setBTScanSecs(6);
 			}
 		},
 		{
-			"8secs", &defaultFace(),
+			"8secs", attach,
 			[this]()
 			{
 				setBTScanSecs(8);
 			}
 		},
 		{
-			"10secs", &defaultFace(),
+			"10secs", attach,
 			[this]()
 			{
 				setBTScanSecs(10);
@@ -370,7 +370,7 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 	},
 	btScanSecs
 	{
-		"Scan Time", &defaultFace(),
+		"Scan Time", attach,
 		[]()
 		{
 			switch(BluetoothAdapter::scanSecs)
@@ -389,7 +389,7 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 	btScanCache
 	{
-		"Cache Scan Results", &defaultFace(),
+		"Cache Scan Results", attach,
 		BluetoothAdapter::scanCacheUsage(),
 		[this](BoolMenuItem &item)
 		{
@@ -399,7 +399,7 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 	#endif
 	altGamepadConfirm
 	{
-		"Swap Confirm/Cancel Keys", &defaultFace(),
+		"Swap Confirm/Cancel Keys", attach,
 		app().swappedConfirmKeys(),
 		[this](BoolMenuItem &item)
 		{
@@ -463,7 +463,7 @@ public:
 				{
 					activeItem = textItem.size();
 				}
-				textItem.emplace_back(conf.name, &defaultFace(),
+				textItem.emplace_back(conf.name, attach,
 					[this, &conf](const Input::Event &e)
 					{
 						auto del = onProfileChange;
@@ -478,7 +478,7 @@ public:
 				continue;
 			if(selectedName == conf.name)
 				activeItem = textItem.size();
-			textItem.emplace_back(conf.name, &defaultFace(),
+			textItem.emplace_back(conf.name, attach,
 				[this, &conf](const Input::Event &e)
 				{
 					auto del = onProfileChange;
@@ -501,20 +501,22 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 	rootIMView{rootIMView_},
 	playerItem
 	{
-		{"Multiple", &defaultFace(), InputDeviceConfig::PLAYER_MULTI},
-		{"1",        &defaultFace(), 0},
-		{"2",        &defaultFace(), 1},
-		{"3",        &defaultFace(), 2},
-		{"4",        &defaultFace(), 3},
-		{"5",        &defaultFace(), 4}
+		{"Multiple", attach, {.id = InputDeviceConfig::PLAYER_MULTI}},
+		{"1",        attach, {.id = 0}},
+		{"2",        attach, {.id = 1}},
+		{"3",        attach, {.id = 2}},
+		{"4",        attach, {.id = 3}},
+		{"5",        attach, {.id = 4}}
 	},
 	player
 	{
-		"Player", &defaultFace(),
+		"Player", attach,
+		MenuId{inputDevData(dev).devConf.player()},
+		std::span{playerItem, EmuSystem::maxPlayers + 1uz},
 		{
 			.defaultItemOnSelect = [this](TextMenuItem &item)
 			{
-				auto playerVal = item.id();
+				auto playerVal = item.id;
 				bool changingMultiplayer = (playerVal == InputDeviceConfig::PLAYER_MULTI && devConf.player() != InputDeviceConfig::PLAYER_MULTI) ||
 					(playerVal != InputDeviceConfig::PLAYER_MULTI && devConf.player() == InputDeviceConfig::PLAYER_MULTI);
 				devConf.setPlayer(inputManager, playerVal);
@@ -529,12 +531,10 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 					onShow();
 			}
 		},
-		MenuItem::Id(inputDevData(dev).devConf.player()),
-		std::span{playerItem, EmuSystem::maxPlayers + 1uz}
 	},
 	loadProfile
 	{
-		u"", &defaultFace(),
+		u"", attach,
 		[this](const Input::Event &e)
 		{
 			auto profileSelectMenu = makeView<ProfileSelectMenu>(devConf.device(),
@@ -551,7 +551,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 	},
 	renameProfile
 	{
-		"Rename Profile", &defaultFace(),
+		"Rename Profile", attach,
 		[this](const Input::Event &e)
 		{
 			if(!devConf.mutableKeyConf(inputManager))
@@ -577,7 +577,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 	},
 	newProfile
 	{
-		"New Profile", &defaultFace(),
+		"New Profile", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShowModal(makeView<YesNoAlertView>(
@@ -606,7 +606,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 	},
 	deleteProfile
 	{
-		"Delete Profile", &defaultFace(),
+		"Delete Profile", attach,
 		[this](const Input::Event &e)
 		{
 			if(!devConf.mutableKeyConf(inputManager))
@@ -632,7 +632,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 	},
 	iCadeMode
 	{
-		"iCade Mode", &defaultFace(),
+		"iCade Mode", attach,
 		inputDevData(dev).devConf.iCadeMode(),
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
@@ -655,7 +655,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 	},
 	joystickAxis1DPad
 	{
-		"Joystick X/Y Axis 1 as D-Pad", &defaultFace(),
+		"Joystick X/Y Axis 1 as D-Pad", attach,
 		inputDevData(dev).devConf.joystickAxesAsDpad(Input::AxisSetId::stick1),
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
@@ -665,7 +665,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 	},
 	joystickAxis2DPad
 	{
-		"Joystick X/Y Axis 2 as D-Pad", &defaultFace(),
+		"Joystick X/Y Axis 2 as D-Pad", attach,
 		inputDevData(dev).devConf.joystickAxesAsDpad(Input::AxisSetId::stick2),
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
@@ -675,7 +675,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 	},
 	joystickAxisHatDPad
 	{
-		"Joystick POV Hat as D-Pad", &defaultFace(),
+		"Joystick POV Hat as D-Pad", attach,
 		inputDevData(dev).devConf.joystickAxesAsDpad(Input::AxisSetId::hat),
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
@@ -685,7 +685,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 	},
 	consumeUnboundKeys
 	{
-		"Handle Unbound Keys", &defaultFace(),
+		"Handle Unbound Keys", attach,
 		inputDevData(dev).devConf.shouldHandleUnboundKeys,
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
@@ -693,8 +693,8 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 			devConf.save(inputManager);
 		}
 	},
-	categories{"Action Categories", &defaultBoldFace()},
-	options{"Options", &defaultBoldFace()},
+	categories{"Action Categories", attach},
+	options{"Options", attach},
 	devConf{inputDevData(dev).devConf}
 {
 	loadProfile.setName(std::format("Profile: {}", devConf.keyConf(inputManager).name));
@@ -705,7 +705,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 
 void InputManagerDeviceView::addCategoryItem(const KeyCategory &cat)
 {
-	auto &catItem = inputCategory.emplace_back(cat.name, &defaultFace(),
+	auto &catItem = inputCategory.emplace_back(cat.name, attachParams(),
 		[this, &cat](const Input::Event &e)
 		{
 			pushAndShow(makeView<ButtonConfigView>(rootIMView, cat, devConf), e);
@@ -763,7 +763,7 @@ void InputManagerDeviceView::loadItems()
 void InputManagerDeviceView::onShow()
 {
 	TableView::onShow();
-	loadProfile.compile(std::format("Profile: {}", devConf.keyConf(inputManager).name), renderer());
+	loadProfile.compile(std::format("Profile: {}", devConf.keyConf(inputManager).name));
 	bool keyConfIsMutable = devConf.mutableKeyConf(inputManager);
 	renameProfile.setActive(keyConfIsMutable);
 	deleteProfile.setActive(keyConfIsMutable);

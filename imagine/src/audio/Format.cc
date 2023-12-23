@@ -16,7 +16,7 @@
 #include <imagine/audio/Format.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/algorithm.h>
-#include <imagine/util/math/math.hh>
+#include <imagine/util/math.hh>
 #include <cmath>
 
 namespace IG::Audio

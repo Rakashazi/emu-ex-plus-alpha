@@ -127,6 +127,8 @@ void DrawContextSupport::setGLDebugOutput(bool on)
 					return;
 				}
 				logger_modulePrintfn(severityToLogger(severity), "%s: %s", debugTypeToStr(type), message);
+				if(severity == GL_DEBUG_SEVERITY_HIGH)
+					abort();
 			}, nullptr);
 		glEnable(DEBUG_OUTPUT);
 	}

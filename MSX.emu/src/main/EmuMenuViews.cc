@@ -119,7 +119,9 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 
 	MultiChoiceMenuItem msxMachine
 	{
-		"Default Machine Type", &defaultFace(),
+		"Default Machine Type", attachParams(),
+		0,
+		msxMachineItem,
 		{
 			.onSetDisplayString = [](auto idx, Gfx::Text &t)
 			{
@@ -140,8 +142,6 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 				item.defaultOnSelect(view, e);
 			}
 		},
-		0,
-		msxMachineItem
 	};
 
 	void reloadMachineItem()
@@ -150,7 +150,7 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 		msxMachineName = machinesNames(appContext(), machineBasePath(system()));
 		for(const auto &name : msxMachineName)
 		{
-			msxMachineItem.emplace_back(name, &defaultFace(),
+			msxMachineItem.emplace_back(name, attachParams(),
 			[this, name = name.data()](Input::Event)
 			{
 				system().setDefaultMachineName(name);
@@ -162,7 +162,7 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 
 	BoolMenuItem skipFdcAccess
 	{
-		"Fast-forward Disk IO", &defaultFace(),
+		"Fast-forward Disk IO", attachParams(),
 		(bool)optionSkipFdcAccess,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -193,7 +193,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	TextMenuItem machineFilePath
 	{
-		machinePathMenuEntryStr(system().firmwarePath), &defaultFace(),
+		machinePathMenuEntryStr(system().firmwarePath), attachParams(),
 		[this](Input::Event e)
 		{
 			pushAndShow(makeViewWithName<DataFolderSelectView>("BIOS",
@@ -206,7 +206,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 						return false;
 					}
 					system().firmwarePath = path;
-					machineFilePath.compile(machinePathMenuEntryStr(path), renderer());
+					machineFilePath.compile(machinePathMenuEntryStr(path));
 					if(type == FS::file_type::none)
 					{
 						app().postMessage(4, false, std::format("Using fallback path:\n{}", machineBasePath(system())));
@@ -267,7 +267,7 @@ public:
 	{
 		hdName[slot] = name;
 		updateHDText(slot);
-		hdSlot[slot].compile(renderer());
+		hdSlot[slot].compile();
 	}
 
 	void addHDFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
@@ -318,10 +318,10 @@ public:
 
 	TextMenuItem hdSlot[4]
 	{
-		{u"", &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 0); }},
-		{u"", &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 1); }},
-		{u"", &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 2); }},
-		{u"", &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 3); }}
+		{u"", attachParams(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 0); }},
+		{u"", attachParams(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 1); }},
+		{u"", attachParams(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 2); }},
+		{u"", attachParams(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 3); }}
 	};
 
 	static const char *romSlotPrefix[2];
@@ -335,7 +335,7 @@ public:
 	{
 		system().cartName[slot] = name;
 		updateROMText(slot);
-		romSlot[slot].compile(renderer());
+		romSlot[slot].compile();
 		updateHDStatusFromCartSlot(slot);
 	}
 
@@ -402,8 +402,8 @@ public:
 
 	TextMenuItem romSlot[2]
 	{
-		{u"", &defaultFace(), [this](Input::Event e) { onSelectROM(e, 0); }},
-		{u"", &defaultFace(), [this](Input::Event e) { onSelectROM(e, 1); }}
+		{u"", attachParams(), [this](Input::Event e) { onSelectROM(e, 0); }},
+		{u"", attachParams(), [this](Input::Event e) { onSelectROM(e, 1); }}
 	};
 
 	static const char *diskSlotPrefix[2];
@@ -417,7 +417,7 @@ public:
 	{
 		system().diskName[slot] = name;
 		updateDiskText(slot);
-		diskSlot[slot].compile(renderer());
+		diskSlot[slot].compile();
 	}
 
 	void addDiskFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
@@ -466,8 +466,8 @@ public:
 
 	TextMenuItem diskSlot[2]
 	{
-		{u"", &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 0); }},
-		{u"", &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 1); }}
+		{u"", attachParams(), [this](Input::Event e) { onSelectDisk(e, 0); }},
+		{u"", attachParams(), [this](Input::Event e) { onSelectDisk(e, 1); }}
 	};
 
 	StaticArrayList<MenuItem*, 9> item;
@@ -521,7 +521,7 @@ class CustomSystemActionsView : public SystemActionsView, public MainAppHelper<C
 private:
 	TextMenuItem msxIOControl
 	{
-		"ROM/Disk Control", &defaultFace(),
+		"ROM/Disk Control", attachParams(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(item.active())
@@ -540,7 +540,9 @@ private:
 
 	MultiChoiceMenuItem msxMachine
 	{
-		"Machine Type", &defaultFace(),
+		"Machine Type", attachParams(),
+		0,
+		msxMachineItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -560,8 +562,6 @@ private:
 				item.defaultOnSelect(view, e);
 			}
 		},
-		0,
-		msxMachineItem
 	};
 
 	void reloadMachineItem()
@@ -570,7 +570,7 @@ private:
 		msxMachineName = machinesNames(appContext(), machineBasePath(system()));
 		for(const auto &name : msxMachineName)
 		{
-			msxMachineItem.emplace_back(name, &defaultFace(),
+			msxMachineItem.emplace_back(name, attachParams(),
 			[this, name = name.data()](Input::Event e)
 			{
 				app().pushAndShowModalView(makeView<YesNoAlertView>("Change machine type and reset emulation?",
@@ -651,20 +651,20 @@ protected:
 
 	std::array<TextHeadingMenuItem, CHANNEL_TYPES> heading
 	{
-		TextHeadingMenuItem{"PSG", &defaultBoldFace()},
-		TextHeadingMenuItem{"SCC", &defaultBoldFace()},
-		TextHeadingMenuItem{"MSX-MUSIC", &defaultBoldFace()},
-		TextHeadingMenuItem{"MSX-AUDIO", &defaultBoldFace()},
-		TextHeadingMenuItem{"MoonSound", &defaultBoldFace()},
-		TextHeadingMenuItem{"Yamaha SFG", &defaultBoldFace()},
-		TextHeadingMenuItem{"PCM", &defaultBoldFace()}
+		TextHeadingMenuItem{"PSG", attachParams(),},
+		TextHeadingMenuItem{"SCC", attachParams(),},
+		TextHeadingMenuItem{"MSX-MUSIC", attachParams(),},
+		TextHeadingMenuItem{"MSX-AUDIO", attachParams(),},
+		TextHeadingMenuItem{"MoonSound", attachParams(),},
+		TextHeadingMenuItem{"Yamaha SFG", attachParams(),},
+		TextHeadingMenuItem{"PCM", attachParams(),}
 	};
 
 	BoolMenuItem makeEnableChannel(MixerAudioType type)
 	{
 		return
 		{
-			"Output", &defaultFace(),
+			"Output", attachParams(),
 			(bool)mixerEnableOption(type),
 			[this, type](BoolMenuItem &item, View &, Input::Event)
 			{
@@ -690,12 +690,12 @@ protected:
 	{
 		return
 		{
-			TextMenuItem{"Default Value", &defaultFace(),
+			TextMenuItem{"Default Value", attachParams(),
 				[this, type]()
 				{
 					setMixerVolumeOption(type, -1);
 				}},
-			TextMenuItem{"Custom Value", &defaultFace(),
+			TextMenuItem{"Custom Value", attachParams(),
 				[this, type = (uint8_t)type, idx](Input::Event e)
 				{
 					app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
@@ -735,7 +735,9 @@ protected:
 	{
 		return
 		{
-			"Volume", &defaultFace(),
+			"Volume", attachParams(),
+			1,
+			volumeLevelItem[idx],
 			{
 				.onSetDisplayString = [this, type](auto idx, Gfx::Text &t)
 				{
@@ -743,8 +745,6 @@ protected:
 					return true;
 				}
 			},
-			1,
-			volumeLevelItem[idx]
 		};
 	}
 
@@ -763,12 +763,12 @@ protected:
 	{
 		return
 		{
-			TextMenuItem{"Default Value", &defaultFace(),
+			TextMenuItem{"Default Value", attachParams(),
 				[this, type]()
 				{
 					setMixerPanOption(type, -1);
 				}},
-			TextMenuItem{"Custom Value", &defaultFace(),
+			TextMenuItem{"Custom Value", attachParams(),
 				[this, type = (uint8_t)type, idx](Input::Event e)
 				{
 					app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
@@ -808,7 +808,9 @@ protected:
 	{
 		return
 		{
-			"Pan", &defaultFace(),
+			"Pan", attachParams(),
+			1,
+			panLevelItem[idx],
 			{
 				.onSetDisplayString = [this, type](auto idx, Gfx::Text &t)
 				{
@@ -816,8 +818,6 @@ protected:
 					return true;
 				}
 			},
-			1,
-			panLevelItem[idx]
 		};
 	}
 
@@ -877,7 +877,7 @@ public:
 protected:
 	TextMenuItem mixer
 	{
-		"Sound Mixer", &defaultFace(),
+		"Sound Mixer", attachParams(),
 		[this](Input::Event e)
 		{
 			pushAndShow(makeView<SoundMixerView>(), e);

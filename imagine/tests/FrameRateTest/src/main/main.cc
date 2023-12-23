@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "main"
 #include <imagine/logger/logger.h>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/Renderer.hh>
@@ -35,6 +34,8 @@
 
 namespace FrameRateTest
 {
+
+constexpr SystemLogger log{"main"};
 
 static constexpr unsigned framesToRun = 60*60;
 
@@ -69,7 +70,6 @@ FrameRateTestApplication::FrameRateTestApplication(IG::ApplicationInitParams ini
 			defaultFace.precacheAlphaNum(renderer);
 			defaultFace.precache(renderer, ":.%()");
 			viewManager.defaultFace = std::move(defaultFace);
-			viewManager.quadIndices = {renderer.mainTask, 32};
 			auto &winData = win.makeAppData<WindowData>(IG::ViewAttachParams{viewManager, win, renderer.task()});
 			std::vector<TestDesc> testDesc;
 			testDesc.emplace_back(TEST_CLEAR, "Clear");
@@ -193,6 +193,7 @@ void FrameRateTestApplication::setActiveTestHandlers(IG::Window &win)
 		{
 			activeTest->started = true;
 		}
+		activeTest->presentTime = params.presentTime(1);
 		activeTest->lastFramePresentTime.timestamp = params.timestamp;
 		activeTest->lastFramePresentTime.atOnFrame = atOnFrame;
 		if(activeTest->frames == framesToRun || activeTest->shouldEndTest)
@@ -226,8 +227,7 @@ void FrameRateTestApplication::setActiveTestHandlers(IG::Window &win)
 					cmds.basicEffect().setModelViewProjection(cmds, Gfx::Mat4::ident(), winData.projM);
 					activeTest->draw(cmds, cmds.renderer().makeClipRect(win, rect), xIndent);
 					activeTest->lastFramePresentTime.atWinPresent = SteadyClock::now();
-					activeTest->presentFence = cmds.clientWaitSyncReset(activeTest->presentFence);
-					cmds.present();
+					cmds.present(activeTest->presentTime);
 				});
 			},
 			[&](Input::Event &e)
@@ -239,7 +239,7 @@ void FrameRateTestApplication::setActiveTestHandlers(IG::Window &win)
 					{
 						if(motionEv.pushed() && Config::envIsIOS)
 						{
-							logMsg("canceled activeTest from pointer input");
+							log.info("canceled activeTest from pointer input");
 							activeTest->shouldEndTest = true;
 							return true;
 						}
@@ -249,13 +249,13 @@ void FrameRateTestApplication::setActiveTestHandlers(IG::Window &win)
 					{
 						if(keyEv.pushed(Input::DefaultKey::CANCEL))
 						{
-							logMsg("canceled activeTest from key input");
+							log.info("canceled activeTest from key input");
 							activeTest->shouldEndTest = true;
 							return true;
 						}
 						else if(keyEv.pushed(IG::Input::Keycode::D))
 						{
-							logMsg("posting extra draw");
+							log.info("posting extra draw");
 							win.postDraw();
 							return true;
 						}
@@ -293,7 +293,7 @@ void FrameRateTestApplication::finishTest(Window &win, SteadyClockTimePoint fram
 	{
 		activeTest->finish(renderer.task(), frameTime);
 	}
-	renderer.task().awaitPending();
+	renderer.mainTask.awaitPending();
 	activeTest.reset();
 	deinitCPUFreqStatus();
 	deinitCPULoadStatus();
@@ -310,26 +310,25 @@ void FrameRateTestApplication::finishTest(Window &win, SteadyClockTimePoint fram
 
 TestFramework *FrameRateTestApplication::startTest(IG::Window &win, const TestParams &t)
 {
-	auto &face = viewManager.defaultFace;
-	auto app = win.appContext();
+	auto ctx = win.appContext();
 	#ifdef __ANDROID__
 	if(cpuFreq)
 		cpuFreq->setLowLatency();
-	app.setSustainedPerformanceMode(true);
+	ctx.setSustainedPerformanceMode(true);
 	#endif
+	ViewAttachParams attach{viewManager, win, renderer.task()};
 	auto &activeTest = windowData(win).activeTest;
 	activeTest = [&] -> std::unique_ptr<TestFramework>
 	{
 		switch(t.test)
 		{
-			case TEST_CLEAR: return std::make_unique<ClearTest>();
-			case TEST_DRAW: return std::make_unique<DrawTest>();
-			case TEST_WRITE: return std::make_unique<WriteTest>();
+			case TEST_CLEAR: return std::make_unique<ClearTest>(attach);
+			case TEST_DRAW: return std::make_unique<DrawTest>(ctx, attach, t.pixmapSize, t.bufferMode);
+			case TEST_WRITE: return std::make_unique<WriteTest>(ctx, attach, t.pixmapSize, t.bufferMode);
 		}
 		bug_unreachable("invalid TestID");
 	}();
-	activeTest->init(app, renderer, face, t.pixmapSize, t.bufferMode);
-	app.setIdleDisplayPowerSave(false);
+	ctx.setIdleDisplayPowerSave(false);
 	initCPUFreqStatus();
 	initCPULoadStatus();
 	placeElements(win);

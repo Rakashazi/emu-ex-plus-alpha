@@ -16,7 +16,9 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <unistd.h> // for SEEK_*
+#include <sys/uio.h>
 #include <cstdint>
+#include <span>
 
 namespace IG
 {
@@ -81,7 +83,7 @@ concept Readable =
 
 template <class T>
 concept Writable =
-	requires(T &i, void *buff, size_t bytes)
+	requires(T &i, const void *buff, size_t bytes)
 	{
 		i.write(buff, bytes);
 	};
@@ -93,7 +95,24 @@ concept Seekable =
 		i.seek(offset, mode);
 	};
 
+struct OutVector
+{
+	// should map exactly to iovec in <sys/uio.h>
+	const void *dataPtr{};
+	size_t bytes{};
+
+	constexpr OutVector() = default;
+	template<class T>
+	constexpr OutVector(std::span<const T> buff):
+		dataPtr{static_cast<const void*>(buff.data())},
+		bytes{buff.size_bytes()} {}
+	constexpr auto *data() const { return static_cast<const uint8_t*>(dataPtr); }
+	constexpr size_t size() const { return bytes; }
+	auto iovecPtr() const { return reinterpret_cast<const iovec*>(this); }
+};
+
 class AssetIO;
 class FileIO;
+class MapIO;
 
 }

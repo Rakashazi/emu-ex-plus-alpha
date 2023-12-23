@@ -15,6 +15,7 @@
 
 #define LOGTAG "test"
 #include <imagine/gui/TableView.hh>
+#include <imagine/gui/ViewManager.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/format.hh>
@@ -39,14 +40,10 @@ const char *testIDToStr(TestID id)
 	}
 }
 
-void TestFramework::init(ApplicationContext ctx, Gfx::Renderer &r,
-	Gfx::GlyphTextureSet &face, WSize pixmapSize, Gfx::TextureBufferMode bufferMode)
-{
-	cpuStatsText = {&face};
-	frameStatsText = {&face};
-	statsRectQuads = {r.mainTask, {.size = 2}};
-	initTest(ctx, r, pixmapSize, bufferMode);
-}
+TestFramework::TestFramework(ViewAttachParams attach):
+	statsRectQuads{attach.rendererTask, {.size = 2}},
+	cpuStatsText{attach.rendererTask, &attach.viewManager.defaultFace},
+	frameStatsText{attach.rendererTask, &attach.viewManager.defaultFace} {}
 
 void TestFramework::setCPUFreqText(std::string_view str)
 {
@@ -60,9 +57,9 @@ void TestFramework::setCPUUseText(std::string_view str)
 	cpuUseStr += str;
 }
 
-void TestFramework::placeCPUStatsText(Gfx::Renderer &r)
+void TestFramework::placeCPUStatsText()
 {
-	if(cpuStatsText.compile(r))
+	if(cpuStatsText.compile())
 	{
 		cpuStatsRect = viewBounds;
 		cpuStatsRect.y2 = (cpuStatsRect.y + cpuStatsText.nominalHeight() * cpuStatsText.currentLines())
@@ -71,9 +68,9 @@ void TestFramework::placeCPUStatsText(Gfx::Renderer &r)
 	}
 }
 
-void TestFramework::placeFrameStatsText(Gfx::Renderer &r)
+void TestFramework::placeFrameStatsText()
 {
-	if(frameStatsText.compile(r, {.maxLineSize = viewBounds.xSize()}))
+	if(frameStatsText.compile({.maxLineSize = viewBounds.xSize()}))
 	{
 		frameStatsRect = viewBounds;
 		frameStatsRect.y = (frameStatsRect.y2 - frameStatsText.nominalHeight() * frameStatsText.currentLines())
@@ -85,8 +82,8 @@ void TestFramework::placeFrameStatsText(Gfx::Renderer &r)
 void TestFramework::place(Gfx::Renderer &r, WRect viewBounds_, WRect testRect)
 {
 	viewBounds = viewBounds_;
-	placeCPUStatsText(r);
-	placeFrameStatsText(r);
+	placeCPUStatsText();
+	placeFrameStatsText();
 	placeTest(testRect);
 }
 
@@ -114,7 +111,7 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::F
 				str += '\n';
 			str += cpuFreqStr;
 			cpuStatsText.resetString(str);
-			placeCPUStatsText(rTask.renderer());
+			placeCPUStatsText();
 		}
 
 		// frame stats
@@ -157,7 +154,7 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::F
 				str += '\n';
 			str += statsStr;
 			frameStatsText.resetString(str);
-			placeFrameStatsText(rTask.renderer());
+			placeFrameStatsText();
 		}
 	}
 	// run frame
@@ -166,10 +163,10 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::F
 	continuousFrames++;
 }
 
-void TestFramework::prepareDraw(Gfx::Renderer &r)
+void TestFramework::prepareDraw()
 {
-	cpuStatsText.makeGlyphs(r);
-	frameStatsText.makeGlyphs(r);
+	cpuStatsText.makeGlyphs();
+	frameStatsText.makeGlyphs();
 }
 
 void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, int xIndent)
@@ -203,8 +200,6 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, int 
 void TestFramework::finish(Gfx::RendererTask &task, SteadyClockTimePoint frameTime)
 {
 	endTime = frameTime;
-	task.deleteSyncFence(presentFence);
-	presentFence = {};
 	if(onTestFinished)
 		onTestFinished(*this);
 }
@@ -233,23 +228,24 @@ void ClearTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect)
 	}
 }
 
-void DrawTest::initTest(IG::ApplicationContext app, Gfx::Renderer &r, WSize pixmapSize, Gfx::TextureBufferMode bufferMode)
+DrawTest::DrawTest(IG::ApplicationContext ctx, ViewAttachParams attach, WSize pixmapSize, Gfx::TextureBufferMode bufferMode):
+	TestFramework{attach},
+	quad{attach.rendererTask, {.size = 1}}
 {
 	using namespace IG::Gfx;
+	auto &r = attach.renderer();
 	IG::PixmapDesc pixmapDesc = {pixmapSize, IG::PIXEL_FMT_RGB565};
 	TextureConfig texConf{pixmapDesc, SamplerConfigs::noMipClamp};
-	const bool canSingleBuffer = r.maxSwapChainImages() < 3 || r.supportsSyncFences();
-	texture = r.makePixmapBufferTexture(texConf, bufferMode, canSingleBuffer);
+	texture = r.makePixmapBufferTexture(texConf, bufferMode);
 	if(!texture) [[unlikely]]
 	{
-		app.exitWithMessage(-1, "Can't init test texture");
+		ctx.exitWithMessage(-1, "Can't init test texture");
 		return;
 	}
 	auto lockedBuff = texture.lock();
 	assert(lockedBuff);
 	memset(lockedBuff.pixmap().data(), 0xFF, lockedBuff.pixmap().bytes());
 	texture.unlock(lockedBuff);
-	quad = {r.mainTask, {.size = 1}};
 }
 
 void DrawTest::placeTest(WRect rect)
@@ -286,7 +282,6 @@ void DrawTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Screen &screen, SteadyClockTimePoint frameTime)
 {
 	DrawTest::frameUpdateTest(rendererTask, screen, frameTime);
-	rendererTask.clientWaitSync(std::exchange(presentFence, {}));
 	auto lockedBuff = texture.lock();
 	auto pix = lockedBuff.pixmap();
 	if(flash)

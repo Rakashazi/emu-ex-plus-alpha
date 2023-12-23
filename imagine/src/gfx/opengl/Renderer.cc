@@ -95,6 +95,7 @@ void Renderer::initMainTask(Window *initialWindow, DrawableConfig drawableConfig
 	{
 		throw std::runtime_error("Renderer error creating basic shader program");
 	}
+	quadIndices = {mainTask, 32};
 }
 
 NativeWindowFormat GLRenderer::nativeWindowFormat(GLBufferConfig bufferConfig) const
@@ -518,5 +519,7 @@ void destroyGLBuffer(RendererTask &task, NativeBuffer buff)
 			glDeleteBuffers(1, &buff);
 		});
 }
+
+const IndexBuffer<uint8_t> &rendererQuadIndices(const RendererTask &rTask) { return rTask.renderer().quadIndices; }
 
 }

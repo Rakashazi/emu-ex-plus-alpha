@@ -15,12 +15,14 @@
 
 #include <emuframework/EmuTiming.hh>
 #include <imagine/util/utility.h>
-#include <imagine/util/math/int.hh>
+#include <imagine/util/math.hh>
 #include <imagine/logger/logger.h>
 #include <cmath>
 
 namespace EmuEx
 {
+
+constexpr SystemLogger log{"EmuTiming"};
 
 EmuFrameTimeInfo EmuTiming::advanceFramesWithTime(SteadyClockTimePoint time)
 {
@@ -45,7 +47,7 @@ void EmuTiming::setFrameTime(SteadyClockTime time)
 {
 	timePerVideoFrame = time;
 	updateScaledFrameTime();
-	logMsg("configured frame time:%lldns (%.2f fps)", (long long)timePerVideoFrame.count(), toHz(time));
+	log.info("configured frame time:{} ({:g} fps)", timePerVideoFrame, toHz(time));
 	reset();
 }
 

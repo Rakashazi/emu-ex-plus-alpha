@@ -20,7 +20,6 @@
 #include <imagine/time/Time.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/algorithm.h>
-#include <imagine/util/math/int.hh>
 
 namespace IG
 {

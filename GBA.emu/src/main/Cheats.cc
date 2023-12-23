@@ -63,7 +63,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 	{
 		"Code",
 		cheatsList[cheatIdx].codestring,
-		&defaultFace(),
+		attach,
 		[this](DualTextMenuItem &, View &, Input::Event)
 		{
 			app().postMessage("To change this cheat, please delete and re-add it");
@@ -90,7 +90,7 @@ void EmuEditCheatListView::loadCheatItems()
 	cheat.reserve(cheatsList.size());
 	for(auto &c : cheatsList)
 	{
-		cheat.emplace_back(c.desc, &defaultFace(),
+		cheat.emplace_back(c.desc, attachParams(),
 			[this, idx = std::distance(cheatsList.data(), &c)](Input::Event e)
 			{
 				pushAndShow(makeView<EmuEditCheatView>(idx, [this](){ onCheatListChanged(); }), e);
@@ -178,7 +178,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	},
 	addGS12CBCode
 	{
-		"Add Game Shark v1-2/Code Breaker Code", &defaultFace(),
+		"Add Game Shark v1-2/Code Breaker Code", attach,
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			addNewCheat(false);
@@ -186,7 +186,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	},
 	addGS3Code
 	{
-		"Add Game Shark v3 Code", &defaultFace(),
+		"Add Game Shark v3 Code", attach,
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			addNewCheat(true);
@@ -202,7 +202,7 @@ void EmuCheatsView::loadCheatItems()
 	cheat.reserve(cheatsList.size());
 	for(auto &c : cheatsList)
 	{
-		cheat.emplace_back(c.desc, &defaultFace(), c.enabled,
+		cheat.emplace_back(c.desc, attachParams(), c.enabled,
 			[this, idx = std::distance(cheatsList.data(), &c)](BoolMenuItem &item, Input::Event e)
 			{
 				bool on = item.flipBoolValue(*this);

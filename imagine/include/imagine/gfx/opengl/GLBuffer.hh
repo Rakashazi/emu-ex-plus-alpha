@@ -45,12 +45,11 @@ template<BufferType type>
 class GLBuffer
 {
 public:
-	constexpr GLBuffer() = default;
+	GLBuffer() = default;
 	GLBuffer(RendererTask &, ByteBufferConfig);
 	explicit operator bool() const { return bool(buffer); }
 	RendererTask *taskPtr() const { return buffer.get_deleter().rTaskPtr; }
 	RendererTask &task() const { return *taskPtr(); }
-	void setTask(RendererTask &task) { buffer.get_deleter().rTaskPtr = &task; }
 	GLBufferRef name() const { return buffer.get(); }
 	void reset(ByteBufferConfig);
 	size_t sizeBytes() const { return sizeBytes_; }
@@ -65,5 +64,50 @@ protected:
 
 template<BufferType type>
 using BufferImpl = GLBuffer<type>;
+
+using GLVertexArrayRef = GLuint;
+
+void destroyGLVertexArrayRef(RendererTask &, GLVertexArrayRef);
+
+struct GLVertexArrayRefDeleter
+{
+	RendererTask *rTaskPtr{};
+
+	void operator()(GLBufferRef s) const
+	{
+		destroyGLVertexArrayRef(*rTaskPtr, s);
+	}
+};
+using UniqueGLVertexArrayRef = UniqueResource<GLVertexArrayRef, GLVertexArrayRefDeleter>;
+
+class GLVertexArray
+{
+public:
+	GLVertexArray() = default;
+	template<class V>
+	GLVertexArray(RendererTask &rTask, const Buffer<V, BufferType::vertex> &buff, NativeBuffer idxs):
+		arr{GLVertexArrayRefDeleter{&rTask}}
+	{
+		reset(buff, idxs);
+	}
+
+	template<class V>
+	void reset(const Buffer<V, BufferType::vertex> &buff, NativeBuffer idxs)
+	{
+		initArray(buff.name(), idxs, sizeof(V), vertexLayoutEnableMask<V>(), vertexLayoutDesc<V>());
+	}
+
+	RendererTask *taskPtr() const { return arr.get_deleter().rTaskPtr; }
+	RendererTask &task() const { return *taskPtr(); }
+	GLBufferRef name() const { return arr.get(); }
+	explicit operator bool() const { return bool(arr); }
+
+protected:
+	UniqueGLVertexArrayRef arr;
+
+	void initArray(GLBufferRef vbo, GLBufferRef ibo, int stride, VertexLayoutFlags enabledLayout, VertexLayoutDesc layoutDesc);
+};
+
+using VertexArrayImpl = GLVertexArray;
 
 }

@@ -49,6 +49,7 @@ public:
 	int fd() const;
 	ssize_t read(void *buff, size_t bytes, std::optional<off_t> offset = {});
 	ssize_t write(const void *buff, size_t bytes, std::optional<off_t> offset = {});
+	ssize_t writeVector(std::span<const OutVector> buffs, std::optional<off_t> offset = {});
 	bool truncate(off_t offset);
 	off_t seek(off_t offset, SeekMode mode);
 	void sync();

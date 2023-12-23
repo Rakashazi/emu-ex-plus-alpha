@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "EmuAudio"
 #include "EmuOptions.hh"
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuSystem.hh>
@@ -24,6 +23,8 @@
 
 namespace EmuEx
 {
+
+constexpr SystemLogger log{"EmuAudio"};
 
 struct AudioStats
 {
@@ -107,7 +108,7 @@ static void simpleResample(T * __restrict__ dest, size_t destFrames, const T * _
 		size_t srcPos = std::floor((float)i * ratio);
 		if(srcPos >= srcFrames) [[unlikely]]
 		{
-			logMsg("resample pos %zu too high", srcPos);
+			log.info("resample pos {} too high", srcPos);
 			srcPos = srcFrames-1;
 		}
 		dest[i] = src[srcPos];
@@ -142,9 +143,9 @@ void EmuAudio::resizeAudioBuffer(size_t targetBufferFillBytes)
 	rBuff.setMinCapacity(targetBufferFillBytes + bufferIncrementBytes);
 	if(Config::DEBUG_BUILD && rBuff.capacity() != oldCapacity)
 	{
-		logMsg("created audio buffer:%zu frames (%.4fs), fill target:%zu frames (%.4fs)",
-			format().bytesToFrames(rBuff.freeSpace()), format().bytesToTime(rBuff.freeSpace()).count(),
-			format().bytesToFrames(targetBufferFillBytes), format().bytesToTime(targetBufferFillBytes).count());
+		log.info("created audio buffer:{} frames ({}), fill target:{} frames ({})",
+			format().bytesToFrames(rBuff.freeSpace()), format().bytesToTime(rBuff.freeSpace()),
+			format().bytesToFrames(targetBufferFillBytes), format().bytesToTime(targetBufferFillBytes));
 	}
 }
 
@@ -160,7 +161,7 @@ void EmuAudio::start(FloatSeconds bufferDuration)
 	FloatSeconds targetBufferFillDuration = soundBuffers * bufferDuration;
 	if(!audioStream)
 	{
-		logMsg("sound is disabled");
+		log.info("sound is disabled");
 		return;
 	}
 	lastUnderrunTime = {};
@@ -193,11 +194,11 @@ void EmuAudio::start(FloatSeconds bufferDuration)
 					{
 						auto padFrames = frames - framesToRead;
 						std::fill_n(frameEndAddr, outputFormat.framesToBytes(padFrames), 0);
-						//logMsg("underrun, %d bytes ready out of %d", bytesReady, bytes);
+						//log.info("underrun, {} bytes ready out of {}", bytesReady, bytes);
 						auto now = SteadyClock::now();
 						if(now - lastUnderrunTime < IG::Seconds(1))
 						{
-							//logWarn("multiple underruns within a short time");
+							//log.warn("multiple underruns within a short time");
 							audioWriteState = AudioWriteState::MULTI_UNDERRUN;
 						}
 						else
@@ -228,7 +229,7 @@ void EmuAudio::start(FloatSeconds bufferDuration)
 		if(shouldStartAudioWrites())
 		{
 			if(Config::DEBUG_BUILD)
-				logMsg("resuming audio writes with buffer fill %zu/%zu bytes", rBuff.size(), rBuff.capacity());
+				log.info("resuming audio writes with buffer fill {}/{} bytes", rBuff.size(), rBuff.capacity());
 			audioWriteState = AudioWriteState::ACTIVE;
 		}
 		else
@@ -278,7 +279,7 @@ void EmuAudio::writeFrames(const void *samples, size_t framesToWrite)
 			if(speedMultiplier == 1. && addSoundBuffersOnUnderrun &&
 				inputFormat.bytesToTime(rBuff.capacity()).count() <= 1.) // hard cap buffer increase to 1 sec
 			{
-				logWarn("increasing buffer size due to multiple underruns within a short time");
+				log.warn("increasing buffer size due to multiple underruns within a short time");
 				targetBufferFillBytes += bufferIncrementBytes;
 				resizeAudioBuffer(targetBufferFillBytes);
 			}
@@ -309,7 +310,7 @@ void EmuAudio::writeFrames(const void *samples, size_t framesToWrite)
 	}
 	else
 	{
-		logMsg("overrun, only %zu out of %zu bytes free", freeBytes, bytes);
+		log.info("overrun, only {} out of {} bytes free", freeBytes, bytes);
 		#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 		audioStats.overruns++;
 		#endif
@@ -323,8 +324,8 @@ void EmuAudio::writeFrames(const void *samples, size_t framesToWrite)
 		{
 			auto bytes = rBuff.size();
 			auto capacity = rBuff.capacity();
-			logMsg("starting audio writes with buffer fill %zu/%zu bytes %.2f/%.2f secs",
-				bytes, capacity, inputFormat.bytesToTime(bytes).count(), inputFormat.bytesToTime(capacity).count());
+			log.info("starting audio writes with buffer fill {}/{} bytes {}/{} secs",
+				bytes, capacity, inputFormat.bytesToTime(bytes), inputFormat.bytesToTime(capacity));
 		}
 		audioWriteState = AudioWriteState::ACTIVE;
 	}
@@ -338,9 +339,9 @@ void EmuAudio::setRate(int newRate)
 	if(rate_ == newRate)
 		return;
 	if(rate_)
-		logMsg("set rate:%u -> %u", rate_, newRate);
+		log.info("set rate:{} -> {}", rate_, newRate);
 	else
-		logMsg("set rate:%u", newRate);
+		log.info("set rate:{}", newRate);
 	rate_ = newRate;
 	stop();
 }
@@ -359,7 +360,7 @@ void EmuAudio::setSpeedMultiplier(double speed)
 	if(speedMultiplier == speed)
 		return;
 	speedMultiplier = speed;
-	logMsg("set speed multiplier:%f", speed);
+	log.info("set speed multiplier:{}", speed);
 	updateVolume();
 	updateAddBuffersOnUnderrun();
 

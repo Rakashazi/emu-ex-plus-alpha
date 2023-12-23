@@ -70,14 +70,14 @@ public:
 		},
 		name
 		{
-			IG_forward(cheatName), &defaultFace(),
+			IG_forward(cheatName), attach,
 			[this](const Input::Event &e)
 			{
 				app().template pushAndShowNewCollectValueInputView<const char*>(attachParams(), e,
 					"Input description", static_cast<CheatViewImpl*>(this)->cheatNameString(),
 					[this](EmuApp &, auto str)
 					{
-						name.compile(str, renderer());
+						name.compile(str);
 						static_cast<CheatViewImpl*>(this)->renamed(str);
 						onCheatListChanged();
 						postDraw();
@@ -87,7 +87,7 @@ public:
 		},
 		remove
 		{
-			"Delete Cheat", &defaultFace(),
+			"Delete Cheat", attach,
 			removed
 		},
 		onCheatListChanged_{onCheatListChanged_} {}

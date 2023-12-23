@@ -13,14 +13,14 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "VControllerButton"
 #include <emuframework/VController.hh>
-#include <emuframework/EmuApp.hh>
+#include <emuframework/EmuInput.hh>
 #include <imagine/base/Window.hh>
+#include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/BasicEffect.hh>
 #include <imagine/gui/View.hh>
-#include <imagine/util/math/int.hh>
+#include <imagine/util/math.hh>
 
 namespace EmuEx
 {
@@ -163,11 +163,11 @@ void VControllerButtonGroup::updateMeasurements(const Window &win)
 	setButtonSize(btnSize);
 }
 
-void VControllerButtonGroup::transposeKeysForPlayer(const EmuApp &app, int player)
+void VControllerButtonGroup::transposeKeysForPlayer(const InputManager &mgr, int player)
 {
 	for(auto &b : buttons)
 	{
-		b.key = app.inputManager.transpose(b.key, player);
+		b.key = mgr.transpose(b.key, player);
 	}
 }
 
@@ -197,10 +197,10 @@ void VControllerButtonGroup::drawBounds(Gfx::RendererCommands &__restrict__ cmds
 	if(!layout.showBoundingArea || !enabledBtns)
 		return;
 	cmds.basicEffect().disableTexture(cmds);
-	cmds.drawQuads<uint8_t>(boundQuads, 0, enabledBtns);
+	cmds.drawQuads(boundQuads, 0, enabledBtns);
 }
 
-static std::string namesString(auto &buttons, const EmuApp &app)
+static std::string namesString(auto &buttons, const InputManager &app)
 {
 	if(buttons.empty())
 		return "Empty Group";
@@ -213,7 +213,7 @@ static std::string namesString(auto &buttons, const EmuApp &app)
 	return s;
 }
 
-std::string VControllerButtonGroup::name(const EmuApp &app) const
+std::string VControllerButtonGroup::name(const InputManager &app) const
 {
 	return namesString(buttons, app);
 }
@@ -223,9 +223,9 @@ static bool isValidSpacing(int val) { return val >= 0 && val <= 8; }
 static bool isValidPadding(int val) { return val >= 0 && val <= 30; }
 static bool isValidStaggerType(int val) { return val >= 0 && val <= 5; }
 
-void VControllerButtonGroup::Config::validate(const EmuApp &app)
+void VControllerButtonGroup::Config::validate(const InputManager &mgr)
 {
-	for(auto &k : keys) { k =	app.inputManager.validateSystemKey(k, false); }
+	for(auto &k : keys) { k =	mgr.validateSystemKey(k, false); }
 	if(!isValidRowItemCount(layout.rowItems))
 		layout.rowItems = 2;
 	if(!isValidSpacing(layout.spacingMM))
@@ -296,14 +296,14 @@ int VControllerUIButtonGroup::rows() const
 	return divRoundUp(buttonsToLayout(buttons), layout.rowItems);
 }
 
-std::string VControllerUIButtonGroup::name(const EmuApp &app) const
+std::string VControllerUIButtonGroup::name(const InputManager &mgr) const
 {
-	return namesString(buttons, app);
+	return namesString(buttons, mgr);
 }
 
-void VControllerUIButtonGroup::Config::validate(const EmuApp &app)
+void VControllerUIButtonGroup::Config::validate(const InputManager &mgr)
 {
-	for(auto &k : keys) { k =	app.inputManager.validateSystemKey(k, true); }
+	for(auto &k : keys) { k =	mgr.validateSystemKey(k, true); }
 	if(!isValidRowItemCount(layout.rowItems))
 		layout.rowItems = 2;
 }
@@ -314,7 +314,7 @@ void BaseVControllerButtonGroup<Group>::drawButtons(Gfx::RendererCommands &__res
 	auto &g = static_cast<const Group&>(*this);
 	if(!g.enabledBtns)
 		return;
-	cmds.drawQuads<uint8_t>(g.quads, 0, g.enabledBtns);
+	cmds.drawQuads(g.quads, 0, g.enabledBtns);
 }
 
 template<class Group>

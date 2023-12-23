@@ -45,7 +45,7 @@ public:
 		slotName{slotName_},
 		rename
 		{
-			"Rename", &defaultFace(),
+			"Rename", attach,
 			[this](const Input::Event &e)
 			{
 				app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e,
@@ -70,7 +70,7 @@ public:
 		},
 		remove
 		{
-			"Delete", &defaultFace(),
+			"Delete", attach,
 			[this](const Input::Event &e)
 			{
 				if(slotName == app().autosaveManager().slotName())
@@ -104,14 +104,15 @@ private:
 ManageAutosavesView::ManageAutosavesView(ViewAttachParams attach, AutosaveSlotView &srcView,
 	const std::vector<SlotTextMenuItem> &items):
 	TableView{"Manage Save Slots", attach, extraSlotItems},
-	srcView{srcView}, extraSlotItems{items}
+	srcView{srcView}
 {
-	for(auto &i : extraSlotItems)
+	extraSlotItems.reserve(items.size());
+	for(auto &i : items)
 	{
-		i.onSelect = [this](TextMenuItem &item, const Input::Event &e)
+		extraSlotItems.emplace_back(i.slotName, i.text().stringView(), attach, [this](TextMenuItem &item, const Input::Event &e)
 		{
 			pushAndShow(makeView<EditAutosaveView>(*this, static_cast<SlotTextMenuItem&>(item).slotName), e);
-		};
+		});
 	}
 }
 
@@ -145,7 +146,7 @@ AutosaveSlotView::AutosaveSlotView(ViewAttachParams attach):
 	TableView{"Autosave Slot", attach, menuItems},
 	newSlot
 	{
-		"Create New Save Slot", &defaultFace(), [this](const Input::Event &e)
+		"Create New Save Slot", attach, [this](const Input::Event &e)
 		{
 			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e,
 				"Save Slot Name", "", [this](EmuApp &app, auto str_)
@@ -169,7 +170,7 @@ AutosaveSlotView::AutosaveSlotView(ViewAttachParams attach):
 	},
 	manageSlots
 	{
-		"Manage Save Slots", &defaultFace(), [this](const Input::Event &e)
+		"Manage Save Slots", attach, [this](const Input::Event &e)
 		{
 			if(extraSlotItems.empty())
 			{
@@ -179,7 +180,7 @@ AutosaveSlotView::AutosaveSlotView(ViewAttachParams attach):
 			pushAndShow(makeView<ManageAutosavesView>(*this, extraSlotItems), e);
 		}
 	},
-	actions{"Actions", &defaultBoldFace()}
+	actions{"Actions", attach}
 {
 	refreshSlots();
 	loadItems();
@@ -190,7 +191,7 @@ void AutosaveSlotView::refreshSlots()
 	mainSlot =
 	{
 		std::format("Main: {}", slotDescription(app(), "")),
-		&defaultFace(), [this]()
+		attachParams(), [this]()
 		{
 			if(app().autosaveManager().setSlot(""))
 			{
@@ -209,7 +210,7 @@ void AutosaveSlotView::refreshSlots()
 		if(e.type() != FS::file_type::directory)
 			return true;
 		auto &item = extraSlotItems.emplace_back(e.name(), std::format("{}: {}", e.name(), slotDescription(app(), e.name())),
-			&defaultFace(), [this](TextMenuItem &item)
+			attachParams(), [this](TextMenuItem &item)
 		{
 			if(app().autosaveManager().setSlot(static_cast<SlotTextMenuItem&>(item).slotName))
 			{
@@ -224,7 +225,7 @@ void AutosaveSlotView::refreshSlots()
 	noSaveSlot =
 	{
 		"No Save",
-		&defaultFace(), [this]()
+		attachParams(), [this]()
 		{
 			if(app().autosaveManager().setSlot(noAutosaveName))
 			{

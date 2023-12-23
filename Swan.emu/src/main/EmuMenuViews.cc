@@ -32,11 +32,11 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 	using MainAppHelper<CustomSystemOptionView>::system;
 	using MainAppHelper<CustomSystemOptionView>::app;
 
-	TextHeadingMenuItem userProfile{"WonderSwan User Profile", &defaultBoldFace()};
+	TextHeadingMenuItem userProfile{"WonderSwan User Profile", attachParams()};
 
 	BoolMenuItem language
 	{
-		"Language", &defaultFace(),
+		"Language", attachParams(),
 		(bool)system().userProfile.languageIsEnglish,
 		"Japanese", "English",
 		[this](BoolMenuItem &item)
@@ -47,7 +47,7 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 
 	DualTextMenuItem name
 	{
-		"Name", system().userName, &defaultFace(),
+		"Name", system().userName, attachParams(),
 		[this](const Input::Event &e)
 		{
 			app().pushAndShowNewCollectValueInputView<const char*, ScanValueMode::ALLOW_BLANK>(attachParams(), e,
@@ -69,7 +69,7 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 
 	DualTextMenuItem birthYear
 	{
-		"Birth Year", std::to_string(system().userProfile.birthYear), &defaultFace(),
+		"Birth Year", std::to_string(system().userProfile.birthYear), attachParams(),
 		[this](const Input::Event &e)
 		{
 			app().pushAndShowNewCollectValueRangeInputView<int, 1, 9999>(attachParams(), e,
@@ -85,7 +85,7 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 
 	DualTextMenuItem birthMonth
 	{
-		"Birth Month", std::to_string(system().userProfile.birthMonth), &defaultFace(),
+		"Birth Month", std::to_string(system().userProfile.birthMonth), attachParams(),
 		[this](const Input::Event &e)
 		{
 			app().pushAndShowNewCollectValueRangeInputView<int, 1, 12>(attachParams(), e,
@@ -101,7 +101,7 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 
 	DualTextMenuItem birthDay
 	{
-		"Birth Day", std::to_string(system().userProfile.birthDay), &defaultFace(),
+		"Birth Day", std::to_string(system().userProfile.birthDay), attachParams(),
 		[this](const Input::Event &e)
 		{
 			app().pushAndShowNewCollectValueRangeInputView<int, 1, 31>(attachParams(), e,
@@ -117,41 +117,41 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 
 	TextMenuItem::SelectDelegate setSexDel()
 	{
-		return [this](TextMenuItem &item) { system().userProfile.sex = item.id(); };
+		return [this](TextMenuItem &item) { system().userProfile.sex = item.id; };
 	}
 
 	TextMenuItem sexItem[3]
 	{
-		{"M", &defaultFace(), setSexDel(), WSWAN_SEX_MALE},
-		{"F", &defaultFace(), setSexDel(), WSWAN_SEX_FEMALE},
-		{"?", &defaultFace(), setSexDel(), 3},
+		{"M", attachParams(), setSexDel(), {.id = WSWAN_SEX_MALE}},
+		{"F", attachParams(), setSexDel(), {.id = WSWAN_SEX_FEMALE}},
+		{"?", attachParams(), setSexDel(), {.id = 3}},
 	};
 
 	MultiChoiceMenuItem sex
 	{
-		"Sex", &defaultFace(),
-		(MenuItem::Id)system().userProfile.sex,
+		"Sex", attachParams(),
+		MenuId{(unsigned)system().userProfile.sex},
 		sexItem
 	};
 
 	TextMenuItem::SelectDelegate setBloodTypeDel()
 	{
-		return [this](TextMenuItem &item) { system().userProfile.bloodType = item.id(); };
+		return [this](TextMenuItem &item) { system().userProfile.bloodType = item.id; };
 	}
 
 	TextMenuItem bloodTypeItem[5]
 	{
-		{"A",  &defaultFace(), setBloodTypeDel(), WSWAN_BLOOD_A},
-		{"B",  &defaultFace(), setBloodTypeDel(), WSWAN_BLOOD_B},
-		{"O",  &defaultFace(), setBloodTypeDel(), WSWAN_BLOOD_O},
-		{"AB", &defaultFace(), setBloodTypeDel(), WSWAN_BLOOD_AB},
-		{"?",  &defaultFace(), setBloodTypeDel(), 5},
+		{"A",  attachParams(), setBloodTypeDel(), {.id = WSWAN_BLOOD_A}},
+		{"B",  attachParams(), setBloodTypeDel(), {.id = WSWAN_BLOOD_B}},
+		{"O",  attachParams(), setBloodTypeDel(), {.id = WSWAN_BLOOD_O}},
+		{"AB", attachParams(), setBloodTypeDel(), {.id = WSWAN_BLOOD_AB}},
+		{"?",  attachParams(), setBloodTypeDel(), {.id = 5}},
 	};
 
 	MultiChoiceMenuItem bloodType
 	{
-		"Blood Type", &defaultFace(),
-		(MenuItem::Id)system().userProfile.bloodType,
+		"Blood Type", attachParams(),
+		MenuId{(unsigned)system().userProfile.bloodType},
 		bloodTypeItem
 	};
 
@@ -177,28 +177,28 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 {
 	TextMenuItem::SelectDelegate setRotationDel()
 	{
-		return [this](TextMenuItem &item) { system().setRotation((WsRotation)item.id()); };
+		return [this](TextMenuItem &item) { system().setRotation((WsRotation)item.id.val); };
 	}
 
 	TextMenuItem rotationItem[3]
 	{
-		{"Auto",       &defaultFace(), setRotationDel(), to_underlying(WsRotation::Auto)},
-		{"Horizontal", &defaultFace(), setRotationDel(), to_underlying(WsRotation::Horizontal)},
-		{"Vertical",   &defaultFace(), setRotationDel(), to_underlying(WsRotation::Vertical)},
+		{"Auto",       attachParams(), setRotationDel(), {.id = WsRotation::Auto}},
+		{"Horizontal", attachParams(), setRotationDel(), {.id = WsRotation::Horizontal}},
+		{"Vertical",   attachParams(), setRotationDel(), {.id = WsRotation::Vertical}},
 	};
 
 	MultiChoiceMenuItem rotation
 	{
-		"Handheld Rotation", &defaultFace(),
-		(MenuItem::Id)system().rotation,
+		"Handheld Rotation", attachParams(),
+		MenuId{system().rotation},
 		rotationItem
 	};
 
-	TextHeadingMenuItem vGamepad{"Virtual Gamepad", &defaultBoldFace()};
+	TextHeadingMenuItem vGamepad{"Virtual Gamepad", attachParams()};
 
 	BoolMenuItem showVGamepadButtons
 	{
-		system().isRotated() ? "Show A/B" : "Show Y1-4", &defaultFace(),
+		system().isRotated() ? "Show A/B" : "Show Y1-4", attachParams(),
 		system().isRotated() ? system().showVGamepadABWhenVertical : system().showVGamepadYWhenHorizonal,
 		[this](BoolMenuItem &item)
 		{
@@ -231,7 +231,7 @@ class CustomSystemActionsView : public SystemActionsView
 private:
 	TextMenuItem options
 	{
-		"Console Options", &defaultFace(),
+		"Console Options", attachParams(),
 		[this](Input::Event e) { pushAndShow(makeView<ConsoleOptionView>(), e); }
 	};
 

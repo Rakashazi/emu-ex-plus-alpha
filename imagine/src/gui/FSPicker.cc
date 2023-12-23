@@ -22,7 +22,7 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/BasicEffect.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/math/int.hh>
+#include <imagine/util/math.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
 #include <string>
@@ -38,7 +38,7 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::Textu
 	View{attach},
 	filter{filter},
 	controller{attach},
-	msgText{face_ ? face_ : &defaultFace()},
+	msgText{attach.rendererTask, face_ ? face_ : &defaultFace()},
 	mode_{mode}
 {
 	auto nav = makeView<BasicNavView>
@@ -83,7 +83,7 @@ void FSPicker::place()
 	controller.place(viewRect(), displayRect());
 	if(dirListThread.isWorking())
 		return;
-	msgText.compile(renderer());
+	msgText.compile();
 }
 
 void FSPicker::changeDirByInput(CStringView path, FS::RootPathInfo rootInfo, const Input::Event &e,
@@ -175,7 +175,7 @@ void FSPicker::prepareDraw()
 	controller.top().prepareDraw();
 	if(dirListThread.isWorking())
 		return;
-	msgText.makeGlyphs(renderer());
+	msgText.makeGlyphs();
 }
 
 void FSPicker::draw(Gfx::RendererCommands &__restrict__ cmds)
@@ -505,7 +505,7 @@ void FSPicker::listDirectory(CStringView path, ThreadStop &stop)
 				{
 					return true;
 				}
-				auto &item = dir.emplace_back(FileEntry{std::string{entry.path()}, {entry.name(), &face(), nullptr}});
+				auto &item = dir.emplace_back(attachParams(), std::string{entry.path()}, entry.name());
 				if(isDir)
 					item.text.flags.user |= FileEntry::isDirFlag;
 				if(mode_ == Mode::DIR && !isDir)
@@ -553,7 +553,7 @@ void FSPicker::listDirectory(CStringView path, ThreadStop &stop)
 		else // no entries, show a message instead
 		{
 			msgText.resetString("Empty Directory");
-			msgText.compile(renderer());
+			msgText.compile();
 		}
 	}
 	catch(std::system_error &err)
@@ -562,7 +562,7 @@ void FSPicker::listDirectory(CStringView path, ThreadStop &stop)
 		auto ec = err.code();
 		std::string_view extraMsg = mode_ == Mode::FILE_IN_DIR ? "" : "\nPick a path from the top bar";
 		msgText.resetString(std::format("Can't open directory:\n{}{}", ec.message(), extraMsg));
-		msgText.compile(renderer());
+		msgText.compile();
 	}
 }
 

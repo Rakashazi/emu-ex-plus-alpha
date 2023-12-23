@@ -25,7 +25,7 @@
 #include <imagine/base/Window.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/variant.hh>
-#include <imagine/util/math/int.hh>
+#include <imagine/util/math.hh>
 #include <imagine/logger/logger.h>
 
 namespace IG
@@ -60,10 +60,9 @@ void TableView::setAlign(_2DOrigin align)
 
 void TableView::prepareDraw()
 {
-	auto &r = renderer();
 	for(auto i : iotaCount(items(*this)))
 	{
-		item(*this, i).prepareDraw(r);
+		item(*this, i).prepareDraw();
 	}
 }
 
@@ -127,8 +126,9 @@ void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 			cmds.set(BlendMode::OFF);
 			cmds.setColor(ColorName::WHITE);
 			cmds.setVertexArray(separatorQuads);
+			cmds.setVertexBuffer(separatorQuads);
 			cmds.vertexBufferData(0, vRect.data(), vRect.size() * sizeof(IColQuad));
-			cmds.drawQuads(quadIndices(), 0, vRect.size());
+			cmds.drawQuads(0, vRect.size());
 		}
 	}
 
@@ -165,7 +165,7 @@ void TableView::place()
 	for(auto i : iotaCount(cells_))
 	{
 		//logMsg("compile item %d", i);
-		item(*this, i).compile(renderer());
+		item(*this, i).compile();
 	}
 	if(cells_)
 	{

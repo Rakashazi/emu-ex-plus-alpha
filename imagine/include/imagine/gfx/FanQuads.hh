@@ -93,7 +93,7 @@ public:
 
 using ILitTexFanQuad = BaseFanQuad<Vertex2ITexIColF>;
 
-using ILitTexFanQuads = ObjectVertexBuffer<ILitTexFanQuad>;
+using ILitTexFanQuads = ObjectVertexArray<ILitTexFanQuad>;
 
 template<class T>
 constexpr std::array<T, 12> mapFanQuadIndices(T baseIdx)

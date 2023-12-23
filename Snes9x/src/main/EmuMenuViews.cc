@@ -35,16 +35,16 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 
 	TextMenuItem dspInterpolationItem[5]
 	{
-		{"None", &defaultFace(), [this](){ setDSPInterpolation(0); }},
-		{"Linear", &defaultFace(), [this](){ setDSPInterpolation(1); }},
-		{"Gaussian", &defaultFace(), [this](){ setDSPInterpolation(2); }},
-		{"Cubic", &defaultFace(), [this](){ setDSPInterpolation(3); }},
-		{"Sinc", &defaultFace(), [this](){ setDSPInterpolation(4); }},
+		{"None",     attachParams(), [this](){ setDSPInterpolation(0); }},
+		{"Linear",   attachParams(), [this](){ setDSPInterpolation(1); }},
+		{"Gaussian", attachParams(), [this](){ setDSPInterpolation(2); }},
+		{"Cubic",    attachParams(), [this](){ setDSPInterpolation(3); }},
+		{"Sinc",     attachParams(), [this](){ setDSPInterpolation(4); }},
 	};
 
 	MultiChoiceMenuItem dspInterpolation
 	{
-		"DSP Interpolation", &defaultFace(),
+		"DSP Interpolation", attachParams(),
 		system().optionAudioDSPInterpolation.val,
 		dspInterpolationItem
 	};
@@ -62,7 +62,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 {
 	BoolMenuItem multitap
 	{
-		"5-Player Adapter", &defaultFace(),
+		"5-Player Adapter", attachParams(),
 		(bool)system().optionMultitap,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -75,18 +75,18 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	TextMenuItem inputPortsItem[HAS_NSRT ? 5 : 4]
 	{
 		#ifndef SNES9X_VERSION_1_4
-		{"Auto (NSRT)", &defaultFace(), setInputPortsDel(), SNES_AUTO_INPUT},
+		{"Auto (NSRT)", attachParams(), setInputPortsDel(), {.id = SNES_AUTO_INPUT}},
 		#endif
-		{"Gamepads",    &defaultFace(), setInputPortsDel(), SNES_JOYPAD},
-		{"Superscope",  &defaultFace(), setInputPortsDel(), SNES_SUPERSCOPE},
-		{"Justifier",   &defaultFace(), setInputPortsDel(), SNES_JUSTIFIER},
-		{"Mouse",       &defaultFace(), setInputPortsDel(), SNES_MOUSE_SWAPPED},
+		{"Gamepads",    attachParams(), setInputPortsDel(), {.id = SNES_JOYPAD}},
+		{"Superscope",  attachParams(), setInputPortsDel(), {.id = SNES_SUPERSCOPE}},
+		{"Justifier",   attachParams(), setInputPortsDel(), {.id = SNES_JUSTIFIER}},
+		{"Mouse",       attachParams(), setInputPortsDel(), {.id = SNES_MOUSE_SWAPPED}},
 	};
 
 	MultiChoiceMenuItem inputPorts
 	{
-		"Input Ports", &defaultFace(),
-		(MenuItem::Id)system().snesInputPort,
+		"Input Ports", attachParams(),
+		MenuId{system().snesInputPort},
 		inputPortsItem
 	};
 
@@ -95,23 +95,23 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		return [this](TextMenuItem &item)
 		{
 			system().sessionOptionSet();
-			system().optionInputPort = item.id();
-			system().snesInputPort = item.id();
+			system().optionInputPort = item.id;
+			system().snesInputPort = item.id;
 			system().setupSNESInput(app().defaultVController());
 		};
 	}
 
 	TextMenuItem videoSystemItem[4]
 	{
-		{"Auto", &defaultFace(), [this](Input::Event e){ setVideoSystem(0, e); }},
-		{"NTSC", &defaultFace(), [this](Input::Event e){ setVideoSystem(1, e); }},
-		{"PAL", &defaultFace(), [this](Input::Event e){ setVideoSystem(2, e); }},
-		{"NTSC + PAL Spoof", &defaultFace(), [this](Input::Event e){ setVideoSystem(3, e); }},
+		{"Auto",             attachParams(), [this](Input::Event e){ setVideoSystem(0, e); }},
+		{"NTSC",             attachParams(), [this](Input::Event e){ setVideoSystem(1, e); }},
+		{"PAL",              attachParams(), [this](Input::Event e){ setVideoSystem(2, e); }},
+		{"NTSC + PAL Spoof", attachParams(), [this](Input::Event e){ setVideoSystem(3, e); }},
 	};
 
 	MultiChoiceMenuItem videoSystem
 	{
-		"System", &defaultFace(),
+		"System", attachParams(),
 		system().optionVideoSystem.val,
 		videoSystemItem
 	};
@@ -123,11 +123,11 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		app().promptSystemReloadDueToSetOption(attachParams(), e);
 	}
 
-	TextHeadingMenuItem videoHeading{"Video", &defaultBoldFace()};
+	TextHeadingMenuItem videoHeading{"Video", attachParams()};
 
 	BoolMenuItem allowExtendedLines
 	{
-		"Allow Extended 239/478 Lines", &defaultFace(),
+		"Allow Extended 239/478 Lines", attachParams(),
 		(bool)system().optionAllowExtendedVideoLines,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -137,11 +137,11 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	};
 
 	#ifndef SNES9X_VERSION_1_4
-	TextHeadingMenuItem emulationHacks{"Emulation Hacks", &defaultBoldFace()};
+	TextHeadingMenuItem emulationHacks{"Emulation Hacks", attachParams()};
 
 	BoolMenuItem blockInvalidVRAMAccess
 	{
-		"Allow Invalid VRAM Access", &defaultFace(),
+		"Allow Invalid VRAM Access", attachParams(),
 		(bool)!system().optionBlockInvalidVRAMAccess,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -153,7 +153,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 
 	BoolMenuItem separateEchoBuffer
 	{
-		"Separate Echo Buffer From Ram", &defaultFace(),
+		"Separate Echo Buffer From Ram", attachParams(),
 		(bool)system().optionSeparateEchoBuffer,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -172,8 +172,8 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 
 	TextMenuItem superFXClockItem[2]
 	{
-		{"100%", &defaultFace(), [this]() { setSuperFXClock(100); }},
-		{"Custom Value", &defaultFace(),
+		{"100%", attachParams(), [this]() { setSuperFXClock(100); }},
+		{"Custom Value", attachParams(),
 			[this](Input::Event e)
 			{
 				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 5 to 250", "",
@@ -182,7 +182,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 						if(system().optionSuperFXClockMultiplier.isValidVal(val))
 						{
 							setSuperFXClock(val);
-							superFXClock.setSelected(std::size(superFXClockItem) - 1, *this);
+							superFXClock.setSelected(lastIndex(superFXClockItem), *this);
 							dismissPrevious();
 							return true;
 						}
@@ -199,14 +199,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 
 	MultiChoiceMenuItem superFXClock
 	{
-		"SuperFX Clock Multiplier", &defaultFace(),
-		{
-			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
-			{
-				t.resetString(std::format("{}%", system().optionSuperFXClockMultiplier.val));
-				return true;
-			}
-		},
+		"SuperFX Clock Multiplier", attachParams(),
 		[this]()
 		{
 			if(system().optionSuperFXClockMultiplier.val == 100)
@@ -214,7 +207,14 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 			else
 				return 1;
 		}(),
-		superFXClockItem
+		superFXClockItem,
+		{
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				t.resetString(std::format("{}%", system().optionSuperFXClockMultiplier.val));
+				return true;
+			}
+		},
 	};
 	#endif
 
@@ -249,7 +249,7 @@ class CustomSystemActionsView : public SystemActionsView
 private:
 	TextMenuItem options
 	{
-		"Console Options", &defaultFace(),
+		"Console Options", attachParams(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			if(system().hasContent())
@@ -274,7 +274,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	TextMenuItem cheatsPath
 	{
-		cheatsMenuName(appContext(), system().cheatsDir), &defaultFace(),
+		cheatsMenuName(appContext(), system().cheatsDir), attachParams(),
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeViewWithName<UserPathSelectView>("Cheats", system().userPath(system().cheatsDir),
@@ -282,14 +282,14 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					logMsg("set cheats path:%s", path.data());
 					system().cheatsDir = path;
-					cheatsPath.compile(cheatsMenuName(appContext(), path), renderer());
+					cheatsPath.compile(cheatsMenuName(appContext(), path));
 				}), e);
 		}
 	};
 
 	TextMenuItem patchesPath
 	{
-		patchesMenuName(appContext(), system().patchesDir), &defaultFace(),
+		patchesMenuName(appContext(), system().patchesDir), attachParams(),
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeViewWithName<UserPathSelectView>("Patches", system().userPath(system().patchesDir),
@@ -297,7 +297,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					logMsg("set patches path:%s", path.data());
 					system().patchesDir = path;
-					patchesPath.compile(patchesMenuName(appContext(), path), renderer());
+					patchesPath.compile(patchesMenuName(appContext(), path));
 				}), e);
 		}
 	};
@@ -309,7 +309,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	TextMenuItem satPath
 	{
-		satMenuName(appContext(), system().satDir), &defaultFace(),
+		satMenuName(appContext(), system().satDir), attachParams(),
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeViewWithName<UserPathSelectView>("Satellaview Files", system().userPath(system().satDir),
@@ -317,14 +317,14 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					logMsg("set satellaview files path:%s", path.data());
 					system().satDir = path;
-					satPath.compile(satMenuName(appContext(), path), renderer());
+					satPath.compile(satMenuName(appContext(), path));
 				}), e);
 		}
 	};
 
 	TextMenuItem bsxBios
 	{
-		bsxMenuName(system().bsxBiosPath), &defaultFace(),
+		bsxMenuName(system().bsxBiosPath), attachParams(),
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeViewWithName<DataFileSelectView<>>("BS-X BIOS",
@@ -333,7 +333,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					system().bsxBiosPath = path;
 					logMsg("set BS-X bios:%s", path.data());
-					bsxBios.compile(bsxMenuName(path), renderer());
+					bsxBios.compile(bsxMenuName(path));
 					return true;
 				}, Snes9xSystem::hasBiosExtension), e);
 		}
@@ -346,7 +346,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	TextMenuItem sufamiBios
 	{
-		sufamiMenuName(system().sufamiBiosPath), &defaultFace(),
+		sufamiMenuName(system().sufamiBiosPath), attachParams(),
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeViewWithName<DataFileSelectView<>>("Sufami Turbo BIOS",
@@ -355,7 +355,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					system().sufamiBiosPath = path;
 					logMsg("set Sufami Turbo bios:%s", path.data());
-					sufamiBios.compile(sufamiMenuName(path), renderer());
+					sufamiBios.compile(sufamiMenuName(path));
 					return true;
 				}, Snes9xSystem::hasBiosExtension), e);
 		}

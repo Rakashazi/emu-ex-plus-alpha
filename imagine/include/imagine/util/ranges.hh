@@ -27,4 +27,7 @@ constexpr auto iotaCount(T count) { return std::views::iota((T)0, count); }
 template<std::ranges::range T>
 constexpr auto enumerate(T &&rng) { return std::views::zip(std::views::iota(0), std::forward<T>(rng)); }
 
+template<std::ranges::range T>
+constexpr auto lastIndex(T &&rng) { return std::ranges::size(std::forward<T>(rng)) - 1; }
+
 }

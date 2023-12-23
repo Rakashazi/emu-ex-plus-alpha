@@ -45,7 +45,7 @@ Stream* ArchiveVFS::open(const std::string &path, const uint32 mode, const int d
 		if(name == filename)
 		{
 			auto stream = std::make_unique<MemoryStream>(entry.size(), true);
-			if(entry.read(stream->map(), entry.size()) != entry.size())
+			if(entry.read(stream->map(), entry.size()) != ssize_t(entry.size()))
 			{
 				throw MDFN_Error(0, "Error reading archive file:\n%s", filename.c_str());
 			}

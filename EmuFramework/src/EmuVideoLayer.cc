@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "VideoLayer"
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuInputView.hh>
 #include <emuframework/EmuVideo.hh>
@@ -21,6 +20,7 @@
 #include <emuframework/VController.hh>
 #include "EmuOptions.hh"
 #include <imagine/util/math/Point2D.hh>
+#include <imagine/util/format.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
@@ -32,6 +32,8 @@
 
 namespace EmuEx
 {
+
+constexpr SystemLogger log{"VideoLayer"};
 
 EmuVideoLayer::EmuVideoLayer(EmuVideo &video, float defaultAspectRatio):
 	video{video},
@@ -57,12 +59,12 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, E
 			auto multiresVideoBaseSize = sys.multiresVideoBaseSize();
 			if(multiresVideoBaseSize.x && x > multiresVideoBaseSize.x)
 			{
-				logMsg("halving X size for multires content");
+				log.info("halving X size for multires content");
 				x /= 2;
 			}
 			if(multiresVideoBaseSize.y && y > multiresVideoBaseSize.y)
 			{
-				logMsg("halving Y size for multires content");
+				log.info("halving Y size for multires content");
 				y /= 2;
 			}
 
@@ -71,13 +73,13 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, E
 			// avoid overly wide images (SNES, etc.) or tall images (2600, etc.)
 			if(aR >= 2.f)
 			{
-				logMsg("unscaled image too wide, doubling height to compensate");
+				log.info("unscaled image too wide, doubling height to compensate");
 				y *= 2;
 				aR = x / float(y);
 			}
 			else if(aR < 0.8f)
 			{
-				logMsg("unscaled image too tall, doubling width to compensate");
+				log.info("unscaled image too tall, doubling width to compensate");
 				x *= 2;
 				aR = x / float(y);
 			}
@@ -86,12 +88,12 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, E
 			if(aR > viewportAspectRatio)
 			{
 				scaleFactor = std::max(1, displayRect.xSize() / x);
-				logMsg("using x scale factor %d", scaleFactor);
+				log.info("using x scale factor:{}", scaleFactor);
 			}
 			else
 			{
 				scaleFactor = std::max(1, displayRect.ySize() / y);
-				logMsg("using y scale factor %d", scaleFactor);
+				log.info("using y scale factor:{}", scaleFactor);
 			}
 			contentRect_.x2 = x * scaleFactor;
 			contentRect_.y2 = y * scaleFactor;
@@ -139,7 +141,7 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, E
 		}
 		contentRect_.fitIn(displayRect);
 		quad.write(0, {.bounds = contentRect_.as<int16_t>(), .textureSpan = texture, .rotation = rotation});
-		logMsg("placed game rect, at pixels %d:%d:%d:%d",
+		log.info("placed game rect at pixels {}:{}:{}:{}",
 			contentRect_.x, contentRect_.y, contentRect_.x2, contentRect_.y2);
 	}
 	placeOverlay();
@@ -174,7 +176,6 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds)
 	if(srgbOutput)
 		cmds.setSrgbFramebufferWrite(true);
 	cmds.basicEffect().drawSprite(cmds, quad, 0, texture);
-	video.addFence(cmds);
 	vidImgOverlay.draw(cmds, c);
 	if(srgbOutput)
 		cmds.setSrgbFramebufferWrite(false);
@@ -236,7 +237,7 @@ void EmuVideoLayer::setEffect(EmuSystem &sys, ImageEffectId effect, IG::PixelFor
 	{
 		userEffect = {};
 		buildEffectChain();
-		logMsg("deleted user effect");
+		log.info("deleted user effect");
 		video.setRenderPixelFormat(sys, video.renderPixelFormat(), videoColorSpace(video.renderPixelFormat()));
 		updateConvertColorSpaceEffect();
 	}
@@ -324,14 +325,14 @@ bool EmuVideoLayer::updateConvertColorSpaceEffect()
 	if(needsConversion && !userEffect)
 	{
 		userEffect = {renderer(), ImageEffectId::DIRECT, IG::PIXEL_RGBA8888, Gfx::ColorSpace::SRGB, samplerConfig(), video.size()};
-		logMsg("made sRGB conversion effect");
+		log.info("made sRGB conversion effect");
 		buildEffectChain();
 		return true;
 	}
 	else if(!needsConversion && userEffect && userEffectId == ImageEffectId::DIRECT)
 	{
 		userEffect = {};
-		logMsg("deleted sRGB conversion effect");
+		log.info("deleted sRGB conversion effect");
 		buildEffectChain();
 		return true;
 	}
@@ -364,7 +365,7 @@ void EmuVideoLayer::logOutputFormat()
 			str += " -> effect:";
 			str += e.imageFormat().name();
 		}
-		logMsg("%s", str.data());
+		log.info("{}", str);
 	}
 }
 

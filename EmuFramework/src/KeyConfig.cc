@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "KeyConfig"
 #include <emuframework/EmuInput.hh>
 #include "EmuOptions.hh"
 #include <imagine/io/MapIO.hh>
@@ -22,6 +21,8 @@
 
 namespace EmuEx
 {
+
+constexpr SystemLogger log{"KeyConfig"};
 
 KeyConfig KeyConfig::readConfig(MapIO &io)
 {
@@ -47,12 +48,12 @@ KeyConfig KeyConfig::readConfig(MapIO &io)
 		{
 			if(k  >= keyMax)
 			{
-				logWarn("key code 0x%X out of range for map type %d", k, (int)keyConf.map);
+				log.warn("key code {:X} out of range for map type {}", k, (int)keyConf.map);
 				k = 0;
 			}
 		}
 	}
-	logMsg("read config:%s", keyConf.name.c_str());
+	log.info("read config:{}", keyConf.name);
 	return keyConf;
 }
 
@@ -66,7 +67,7 @@ void KeyConfig::writeConfig(FileIO &io) const
 	bytes += 1; // number of mappings present
 	bytes += keyMap.size() * keyMappingSize;
 	assert(bytes <= 0xFFFF);
-	logMsg("saving config:%s, %zu bytes", name.c_str(), bytes);
+	log.info("saving config:{}, {} bytes", name, bytes);
 	io.put(uint16_t(bytes));
 	io.put(uint16_t(CFGKEY_INPUT_KEY_CONFIGS_V2));
 	io.put(uint8_t(map));
@@ -91,12 +92,12 @@ void KeyConfig::set(KeyInfo key, MappedKeys mapKey)
 	if(auto it = find(key);
 		it != keyMap.end())
 	{
-		logMsg("changing key mapping from:0x%X to 0x%X", it->mapKey[0], mapKey[0]);
+		log.info("changing key mapping from:{:X} to {:X}", it->mapKey[0], mapKey[0]);
 		it->mapKey = mapKey;
 	}
 	else
 	{
-		logMsg("adding key mapping:0x%X", mapKey[0]);
+		log.info("adding key mapping:{:X}", mapKey[0]);
 		keyMap.emplace_back(key, mapKey);
 	}
 }

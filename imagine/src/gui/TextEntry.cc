@@ -25,12 +25,12 @@
 namespace IG
 {
 
-TextEntry::TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face):
-	bgQuads{r.mainTask, {.size = 1}},
-	t{initText, face},
+TextEntry::TextEntry(const char *initText, ViewAttachParams attach, Gfx::GlyphTextureSet *face):
+	bgQuads{attach.rendererTask, {.size = 1}},
+	t{attach.rendererTask, initText, face},
 	str{initText}
 {
-	t.compile(r);
+	t.compile();
 }
 
 void TextEntry::setAcceptingInput(bool on)
@@ -100,9 +100,8 @@ bool TextEntry::inputEvent(View &parentView, const Input::Event &e)
 				if(updateText)
 				{
 					{
-						parentView.waitForDrawFinished();
 						t.resetString(str);
-						t.compile(parentView.renderer());
+						t.compile();
 					}
 					parentView.postDraw();
 				}
@@ -115,7 +114,7 @@ bool TextEntry::inputEvent(View &parentView, const Input::Event &e)
 
 void TextEntry::prepareDraw(Gfx::Renderer &r)
 {
-	t.makeGlyphs(r);
+	t.makeGlyphs();
 }
 
 void TextEntry::draw(Gfx::RendererCommands &__restrict__ cmds)
@@ -127,7 +126,7 @@ void TextEntry::draw(Gfx::RendererCommands &__restrict__ cmds)
 
 void TextEntry::place(Gfx::Renderer &r)
 {
-	t.compile(r);
+	t.compile();
 }
 
 void TextEntry::place(Gfx::Renderer &r, WindowRect rect)
@@ -150,6 +149,19 @@ WindowRect TextEntry::bgRect() const
 CollectTextInputView::CollectTextInputView(ViewAttachParams attach, CStringView msgText, CStringView initialContent,
 	Gfx::TextureSpan closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face):
 	View{attach},
+	cancelButton
+	{
+		[&]
+		{
+			return doIfUsed(cancelButton, [&](auto &)
+			{
+				if(!attach.viewManager.needsBackControl && !closeRes)
+					return CancelButton{};
+				return CancelButton{.quad = {attach.rendererTask, {.size = 1}}, .texture = closeRes};
+			});
+		}()
+	},
+	message{attach.rendererTask, msgText, face ? face : &attach.viewManager.defaultFace},
 	textField
 	{
 		attach.appContext(),
@@ -173,22 +185,11 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, CStringView 
 	textEntry
 	{
 		initialContent,
-		attach.renderer(),
+		attach,
 		face ? face : &attach.viewManager.defaultFace
 	},
 	onTextD{onText}
 {
-	face = face ? face : &attach.viewManager.defaultFace;
-	doIfUsed(cancelButton,
-		[&](auto &cancelButton)
-		{
-			if(manager().needsBackControl && closeRes)
-			{
-				cancelButton.quad = {attach.rendererTask, {.size = 4}};
-				cancelButton.texture = closeRes;
-			}
-		});
-	message = {msgText, face};
 	doIfUsed(textEntry,
 		[](auto &textEntry)
 		{
@@ -209,7 +210,7 @@ void CollectTextInputView::place()
 				cancelButton.quad.write(0, {.bounds = cancelButton.bounds.template as<int16_t>(), .textureSpan = cancelButton.texture});
 			}
 		});
-	message.compile(renderer(), {.maxLineSize = int(viewRect().xSize() * 0.95f)});
+	message.compile({.maxLineSize = int(viewRect().xSize() * 0.95f)});
 	WindowRect textRect;
 	int xSize = viewRect().xSize() * 0.95f;
 	int ySize = face.nominalHeight();
@@ -266,7 +267,7 @@ bool CollectTextInputView::inputEvent(const Input::Event &e)
 
 void CollectTextInputView::prepareDraw()
 {
-	message.makeGlyphs(renderer());
+	message.makeGlyphs();
 	doIfUsed(textEntry,
 		[this](auto &textEntry)
 		{

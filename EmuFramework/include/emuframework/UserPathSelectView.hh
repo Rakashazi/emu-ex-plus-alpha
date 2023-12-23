@@ -34,7 +34,7 @@ public:
 		TableView{IG_forward(name), attach, item},
 		selectFolder
 		{
-			"Select Folder", &defaultFace(),
+			"Select Folder", attach,
 			[=](View &view, const Input::Event &e)
 			{
 				auto fPicker = view.makeView<FilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
@@ -52,7 +52,7 @@ public:
 		},
 		sameAsContent
 		{
-			"Same As Content", &defaultFace(),
+			"Same As Content", attach,
 			[=](View &view)
 			{
 				onPathChange(optionUserPathContentToken);
@@ -61,7 +61,7 @@ public:
 		},
 		sameAsSaves
 		{
-			"Same As Saves", &defaultFace(),
+			"Same As Saves", attach,
 			[=](View &view)
 			{
 				onPathChange("");

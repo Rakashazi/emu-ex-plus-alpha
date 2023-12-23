@@ -41,7 +41,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 {
 	BoolMenuItem sixButtonPad
 	{
-		"6-button Gamepad", &defaultFace(),
+		"6-button Gamepad", attachParams(),
 		(bool)system().option6BtnPad,
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
@@ -53,7 +53,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 
 	BoolMenuItem arcadeCard
 	{
-		"Arcade Card", &defaultFace(),
+		"Arcade Card", attachParams(),
 		(bool)system().optionArcadeCard,
 		[this](BoolMenuItem &item, const Input::Event &e)
 		{
@@ -63,20 +63,20 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		}
 	};
 
-	TextHeadingMenuItem videoHeading{"Video", &defaultBoldFace()};
+	TextHeadingMenuItem videoHeading{"Video", attachParams()};
 
 	TextMenuItem visibleVideoLinesItem[5]
 	{
-		{"11+224", &defaultFace(), setVisibleVideoLinesDel(11, 234)},
-		{"18+224", &defaultFace(), setVisibleVideoLinesDel(18, 241)},
-		{"4+232",  &defaultFace(), setVisibleVideoLinesDel(4, 235)},
-		{"3+239",  &defaultFace(), setVisibleVideoLinesDel(3, 241)},
-		{"0+242",  &defaultFace(), setVisibleVideoLinesDel(0, 241)},
+		{"11+224", attachParams(), setVisibleVideoLinesDel(11, 234)},
+		{"18+224", attachParams(), setVisibleVideoLinesDel(18, 241)},
+		{"4+232",  attachParams(), setVisibleVideoLinesDel(4, 235)},
+		{"3+239",  attachParams(), setVisibleVideoLinesDel(3, 241)},
+		{"0+242",  attachParams(), setVisibleVideoLinesDel(0, 241)},
 	};
 
 	MultiChoiceMenuItem visibleVideoLines
 	{
-		"Visible Lines", &defaultFace(),
+		"Visible Lines", attachParams(),
 		[this]()
 		{
 			switch(system().visibleLines.first)
@@ -98,14 +98,16 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 
 	TextMenuItem emuCoreItems[3]
 	{
-		{"Auto",      &defaultFace(), setEmuCoreDel(), to_underlying(EmuCore::Auto)},
-		{pceFastText, &defaultFace(), setEmuCoreDel(), to_underlying(EmuCore::Fast)},
-		{pceText,     &defaultFace(), setEmuCoreDel(), to_underlying(EmuCore::Accurate)},
+		{"Auto",      attachParams(), setEmuCoreDel(), {.id = EmuCore::Auto}},
+		{pceFastText, attachParams(), setEmuCoreDel(), {.id = EmuCore::Fast}},
+		{pceText,     attachParams(), setEmuCoreDel(), {.id = EmuCore::Accurate}},
 	};
 
 	MultiChoiceMenuItem emuCore
 	{
-		"Emulation Core", &defaultFace(),
+		"Emulation Core", attachParams(),
+		MenuId{system().core},
+		emuCoreItems,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -113,15 +115,13 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 				return true;
 			}
 		},
-		(MenuItem::Id)system().core,
-		emuCoreItems
 	};
 
 	TextMenuItem::SelectDelegate setEmuCoreDel()
 	{
 		return [this](TextMenuItem &item, const Input::Event &e)
 		{
-			auto c = EmuCore(item.id());
+			auto c = EmuCore(item.id.val);
 			if(c == system().core)
 				return true;
 			pushAndShowModal(makeView<YesNoAlertView>(changeEmuCoreText,
@@ -131,7 +131,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 					{
 						system().sessionOptionSet();
 						system().core = c;
-						emuCore.setSelected((MenuItem::Id)c);
+						emuCore.setSelected(MenuId{c});
 						dismissPrevious();
 						app().promptSystemReloadDueToSetOption(attachParams(), e);
 					}
@@ -165,7 +165,7 @@ class CustomSystemActionsView : public SystemActionsView
 private:
 	TextMenuItem options
 	{
-		"Console Options", &defaultFace(),
+		"Console Options", attachParams(),
 		[this](Input::Event e) { pushAndShow(makeView<ConsoleOptionView>(), e); }
 	};
 
@@ -184,7 +184,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	TextMenuItem sysCardPath
 	{
-		biosMenuEntryStr(system().sysCardPath), &defaultFace(),
+		biosMenuEntryStr(system().sysCardPath), attachParams(),
 		[this](Input::Event e)
 		{
 			pushAndShow(makeViewWithName<DataFileSelectView<>>("System Card",
@@ -193,7 +193,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					system().sysCardPath = path;
 					logMsg("set system card:%s", system().sysCardPath.data());
-					sysCardPath.compile(biosMenuEntryStr(path), renderer());
+					sysCardPath.compile(biosMenuEntryStr(path));
 					return true;
 				}, hasHuCardExtension), e);
 		}
@@ -219,23 +219,23 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 
 	BoolMenuItem spriteLimit
 	{
-		"Sprite Limit", &defaultFace(),
+		"Sprite Limit", attachParams(),
 		!system().noSpriteLimit,
 		[this](BoolMenuItem &item) { system().setNoSpriteLimit(!item.flipBoolValue(*this)); }
 	};
 
 	TextMenuItem visibleVideoLinesItem[5]
 	{
-		{"11+224", &defaultFace(), setVisibleVideoLinesDel(11, 234)},
-		{"18+224", &defaultFace(), setVisibleVideoLinesDel(18, 241)},
-		{"4+232",  &defaultFace(), setVisibleVideoLinesDel(4, 235)},
-		{"3+239",  &defaultFace(), setVisibleVideoLinesDel(3, 241)},
-		{"0+242",  &defaultFace(), setVisibleVideoLinesDel(0, 241)},
+		{"11+224", attachParams(), setVisibleVideoLinesDel(11, 234)},
+		{"18+224", attachParams(), setVisibleVideoLinesDel(18, 241)},
+		{"4+232",  attachParams(), setVisibleVideoLinesDel(4, 235)},
+		{"3+239",  attachParams(), setVisibleVideoLinesDel(3, 241)},
+		{"0+242",  attachParams(), setVisibleVideoLinesDel(0, 241)},
 	};
 
 	MultiChoiceMenuItem visibleVideoLines
 	{
-		"Default Visible Lines", &defaultFace(),
+		"Default Visible Lines", attachParams(),
 		[this]()
 		{
 			switch(system().defaultVisibleLines.first)
@@ -257,7 +257,7 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 
 	BoolMenuItem correctLineAspect
 	{
-		"Correct Line Aspect Ratio", &defaultFace(),
+		"Correct Line Aspect Ratio", attachParams(),
 		system().correctLineAspect,
 		[this](BoolMenuItem &item)
 		{
@@ -283,34 +283,36 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 
 	TextMenuItem cdSpeedItem[5]
 	{
-		{"1x", &defaultFace(), setCdSpeedDel(), 1},
-		{"2x", &defaultFace(), setCdSpeedDel(), 2},
-		{"4x", &defaultFace(), setCdSpeedDel(), 4},
-		{"8x", &defaultFace(), setCdSpeedDel(), 8},
+		{"1x", attachParams(), setCdSpeedDel(), {.id = 1}},
+		{"2x", attachParams(), setCdSpeedDel(), {.id = 2}},
+		{"4x", attachParams(), setCdSpeedDel(), {.id = 4}},
+		{"8x", attachParams(), setCdSpeedDel(), {.id = 8}},
 	};
 
 	MultiChoiceMenuItem cdSpeed
 	{
-		"CD Access Speed", &defaultFace(),
-		(MenuItem::Id)system().cdSpeed,
+		"CD Access Speed", attachParams(),
+		MenuId{system().cdSpeed},
 		cdSpeedItem
 	};
 
 	TextMenuItem::SelectDelegate setCdSpeedDel()
 	{
-		return [this](TextMenuItem &item) { system().setCdSpeed(item.id()); };
+		return [this](TextMenuItem &item) { system().setCdSpeed(item.id); };
 	}
 
 	TextMenuItem emuCoreItems[3]
 	{
-		{"Auto",      &defaultFace(), setEmuCoreDel(), to_underlying(EmuCore::Auto)},
-		{pceFastText, &defaultFace(), setEmuCoreDel(), to_underlying(EmuCore::Fast)},
-		{pceText,     &defaultFace(), setEmuCoreDel(), to_underlying(EmuCore::Accurate)},
+		{"Auto",      attachParams(), setEmuCoreDel(), {.id = EmuCore::Auto}},
+		{pceFastText, attachParams(), setEmuCoreDel(), {.id = EmuCore::Fast}},
+		{pceText,     attachParams(), setEmuCoreDel(), {.id = EmuCore::Accurate}},
 	};
 
 	MultiChoiceMenuItem emuCore
 	{
-		"Emulation Core", &defaultFace(),
+		"Emulation Core", attachParams(),
+		MenuId{system().defaultCore},
+		emuCoreItems,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -318,15 +320,13 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 				return true;
 			}
 		},
-		(MenuItem::Id)system().defaultCore,
-		emuCoreItems
 	};
 
 	TextMenuItem::SelectDelegate setEmuCoreDel()
 	{
 		return [this](TextMenuItem &item, const Input::Event &e)
 		{
-			auto c = EmuCore(item.id());
+			auto c = EmuCore(item.id.val);
 			if(c == system().defaultCore)
 				return true;
 			pushAndShowModal(makeView<YesNoAlertView>(changeEmuCoreText,
@@ -335,7 +335,7 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 					.onYes = [this, c]
 					{
 						system().defaultCore = c;
-						emuCore.setSelected((MenuItem::Id)c);
+						emuCore.setSelected(MenuId{c});
 						dismissPrevious();
 					}
 				}), e, false);
@@ -360,7 +360,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 	using MainAppHelper<CustomAudioOptionView>::system;
 	using MainAppHelper<CustomAudioOptionView>::app;
 
-	TextHeadingMenuItem mixer{"Mixer", &defaultBoldFace()};
+	TextHeadingMenuItem mixer{"Mixer", attachParams()};
 
 	struct VolumeTypeDesc
 	{
@@ -386,31 +386,31 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 		{
 			TextMenuItem
 			{
-				"Default", &defaultFace(),
+				"Default", attachParams(),
 				[=, this]() { system().setVolume(type, 100); },
-				100
+				{.id = 100}
 			},
 			TextMenuItem
 			{
-				"Off", &defaultFace(),
+				"Off", attachParams(),
 				[=, this]() { system().setVolume(type, 0); },
-				0
+				{.id = 0}
 			},
 			TextMenuItem
 			{
-				"Custom Value", &defaultFace(),
+				"Custom Value", attachParams(),
 				[=, this](Input::Event e)
 				{
 					app().pushAndShowNewCollectValueRangeInputView<int, 0, 200>(attachParams(), e, "Input 0 to 200", "",
 						[=, this](EmuApp &, auto val)
 						{
 							system().setVolume(type, val);
-							volumeLevel[desc(type).idx].setSelected((MenuItem::Id)val, *this);
+							volumeLevel[desc(type).idx].setSelected(MenuId{val}, *this);
 							dismissPrevious();
 							return true;
 						});
 					return false;
-				}, MenuItem::DEFAULT_ID
+				}, {.id = defaultMenuId}
 			}
 		};
 	}
@@ -425,7 +425,9 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 	{
 		return
 		{
-			desc(type).name, &defaultFace(),
+			desc(type).name, attachParams(),
+			MenuId{system().volume(type)},
+			volumeLevelItem[desc(type).idx],
 			{
 				.onSetDisplayString = [this, type](auto idx, Gfx::Text &t)
 				{
@@ -433,8 +435,6 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 					return true;
 				}
 			},
-			(MenuItem::Id)system().volume(type),
-			volumeLevelItem[desc(type).idx]
 		};
 	}
 
@@ -446,7 +446,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 
 	BoolMenuItem adpcmFilter
 	{
-		"ADPCM Low-pass Filter", &defaultFace(),
+		"ADPCM Low-pass Filter", attachParams(),
 		system().adpcmFilter,
 		[this](BoolMenuItem &item) { system().setAdpcmFilter(item.flipBoolValue(*this)); }
 	};

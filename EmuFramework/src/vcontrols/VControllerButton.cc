@@ -13,11 +13,9 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "VControllerButton"
 #include <emuframework/VController.hh>
-#include <emuframework/EmuApp.hh>
+#include <emuframework/EmuInput.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
@@ -42,9 +40,9 @@ void VControllerButton::setImage(Gfx::TextureSpan t, int aR)
 	aspectRatio = aR;
 }
 
-std::string VControllerButton::name(const EmuApp &app) const
+std::string VControllerButton::name(const InputManager &mgr) const
 {
-	return std::string{app.inputManager.toString(key)};
+	return std::string{mgr.toString(key)};
 }
 
 void VControllerButton::setAlpha(float alpha)

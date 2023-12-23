@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "EmuViewController"
 #include <emuframework/EmuViewController.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppHelper.hh>
@@ -37,6 +36,8 @@
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"EmuViewController"};
+
 EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 	VController &vCtrl, EmuVideoLayer &videoLayer, EmuSystem &sys):
 	emuView{viewAttach, &videoLayer, sys},
@@ -48,7 +49,6 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 	auto &win = viewAttach.window;
 	auto &face = viewAttach.viewManager.defaultFace;
 	auto &screen = *viewAttach.window.screen();
-	popup.setFace(face);
 	{
 		auto viewNav = std::make_unique<BasicNavView>
 		(
@@ -107,7 +107,7 @@ bool EmuMenuViewStack::inputEvent(const Input::Event &e)
 		{
 			if(size() == 1)
 			{
-				//logMsg("cancel button at view stack root");
+				//log.info("cancel button at view stack root");
 				if(keyEv.repeated())
 				{
 					return true;
@@ -261,7 +261,7 @@ void EmuViewController::placeEmuViews()
 
 void EmuViewController::placeElements()
 {
-	//logMsg("placing app elements");
+	//log.info("placing app elements");
 	{
 		auto &winData = windowData(popup.window());
 		winData.applyViewRect(popup);
@@ -288,7 +288,7 @@ void EmuViewController::updateMainWindowViewport(IG::Window &win, IG::Viewport v
 
 void EmuViewController::updateExtraWindowViewport(IG::Window &win, IG::Viewport viewport, Gfx::RendererTask &task)
 {
-	logMsg("view resize for extra window");
+	log.info("view resize for extra window");
 	task.setDefaultViewport(win, viewport);
 	auto &winData = windowData(win);
 	winData.updateWindowViewport(win, viewport, task.renderer());

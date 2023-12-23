@@ -528,7 +528,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_, Ref
 	{
 		"Code",
 		cheat_.code,
-		&defaultFace(),
+		attach,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, cheat->code,
@@ -545,7 +545,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_, Ref
 					updateCheats();
 					writeCheatFile(system());
 					code.set2ndName(str);
-					code.compile(renderer());
+					code.compile();
 					postDraw();
 					return true;
 				});
@@ -574,7 +574,7 @@ void EmuEditCheatListView::loadCheatItems()
 	for(auto c : iotaCount(cheats))
 	{
 		auto &thisCheat = *it;
-		cheat.emplace_back(thisCheat.name, &defaultFace(),
+		cheat.emplace_back(thisCheat.name, attachParams(),
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
 				pushAndShow(makeView<EmuEditCheatView>(cheatList[c], [this](){ onCheatListChanged(); }), e);
@@ -602,7 +602,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	},
 	addCode
 	{
-		"Add Game Genie / Action Replay Code", &defaultFace(),
+		"Add Game Genie / Action Replay Code", attach,
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			app().pushAndShowNewCollectTextInputView(attachParams(), e, emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, "",
@@ -677,7 +677,7 @@ void EmuCheatsView::loadCheatItems()
 	for(auto cIdx : iotaCount(cheats))
 	{
 		auto &thisCheat = *it;
-		cheat.emplace_back(thisCheat.name, &defaultFace(), thisCheat.isOn(),
+		cheat.emplace_back(thisCheat.name, attachParams(), thisCheat.isOn(),
 			[this, cIdx](BoolMenuItem &item, View &, Input::Event e)
 			{
 				item.flipBoolValue(*this);

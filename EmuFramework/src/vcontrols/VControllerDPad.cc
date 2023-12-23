@@ -15,8 +15,7 @@
 
 #include <emuframework/VController.hh>
 #include <emuframework/EmuSystem.hh>
-#include <emuframework/EmuApp.hh>
-#include <imagine/util/math/int.hh>
+#include <imagine/util/math.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
@@ -29,9 +28,9 @@ namespace EmuEx
 
 constexpr SystemLogger log{"VControllerGamepad"};
 
-void VControllerDPad::setImage(Gfx::RendererTask &task, Gfx::TextureSpan img)
+void VControllerDPad::setImage(Gfx::RendererTask &task, Gfx::TextureSpan img, const Gfx::IndexBuffer<uint8_t> &idxs)
 {
-	spriteQuads = {task, {.size = 2}};
+	spriteQuads = {task, {.size = 2}, idxs};
 	tex = img;
 }
 
@@ -127,11 +126,11 @@ void VControllerDPad::updateMeasurements(const Window &win)
 	deadzonePixels = win.widthMMInPixels(config.deadzoneMM100x / 100.f);
 }
 
-void VControllerDPad::transposeKeysForPlayer(const EmuApp &app, int player)
+void VControllerDPad::transposeKeysForPlayer(const InputManager &mgr, int player)
 {
 	for(auto &k : config.keys)
 	{
-		k = app.inputManager.transpose(k, player);
+		k = mgr.transpose(k, player);
 	}
 }
 
@@ -178,9 +177,9 @@ std::array<KeyInfo, 2> VControllerDPad::getInput(WPt c) const
 	return pad;
 }
 
-void VControllerDPad::Config::validate(const EmuApp &app)
+void VControllerDPad::Config::validate(const InputManager &mgr)
 {
-	for(auto &k : keys) { k = app.inputManager.validateSystemKey(k, false); }
+	for(auto &k : keys) { k = mgr.validateSystemKey(k, false); }
 	if(!isValidDiagonalSensitivity(diagonalSensitivity))
 		diagonalSensitivity = defaultDPadDiagonalSensitivity;
 	if(!isValidDeadzone(deadzoneMM100x))

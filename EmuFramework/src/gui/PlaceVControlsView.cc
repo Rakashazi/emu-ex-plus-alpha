@@ -27,11 +27,11 @@ constexpr std::array snapPxSizes{0, 2, 4, 8, 16, 32, 64};
 
 PlaceVControlsView::PlaceVControlsView(ViewAttachParams attach, VController &vController_):
 	View{attach},
-	exitText{"Exit", &defaultFace()},
-	snapText{"Snap: 0px", &defaultFace()},
+	exitText{attach.rendererTask, "Exit", &defaultFace()},
+	snapText{attach.rendererTask, "Snap: 0px", &defaultFace()},
 	vController{vController_},
-	quads{attach.rendererTask, {.size = 4}},
-	gridIdxs{attach.rendererTask, 2, 2}
+	gridIdxs{attach.rendererTask, 2, 2},
+	quads{attach.rendererTask, {.size = 4}, gridIdxs}
 {
 	app().applyOSNavStyle(appContext(), true);
 }
@@ -44,8 +44,8 @@ PlaceVControlsView::~PlaceVControlsView()
 void PlaceVControlsView::place()
 {
 	dragTracker.reset();
-	exitText.compile(renderer());
-	snapText.compile(renderer());
+	exitText.compile();
+	snapText.compile();
 	exitBtnRect = WRect{{}, exitText.pixelSize()} + (viewRect().pos(C2DO) - exitText.pixelSize() / 2) + WPt{0, exitText.height()};
 	snapBtnRect = WRect{{}, snapText.pixelSize()} + (viewRect().pos(C2DO) - snapText.pixelSize() / 2) - WPt{0, exitText.height()};
 	const int lineSize = 1;
@@ -79,7 +79,7 @@ void PlaceVControlsView::place()
 				{xPos + lineSize, viewRect().y2}}.as<int16_t>()}}.write(map, 2 + hLines + i);
 		}
 	}
-	gridIdxs.reset(hLines + vLines, 2);
+	gridIdxs.reset(2 + hLines + vLines);
 }
 
 bool PlaceVControlsView::inputEvent(const Input::Event &e)
@@ -179,11 +179,11 @@ void PlaceVControlsView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	cmds.setColor({.5, .5, .5});
 	auto &basicEffect = cmds.basicEffect();
 	basicEffect.disableTexture(cmds);
-	cmds.drawQuads(quads, gridIdxs, 0, quads.size() - 2); // grid
+	cmds.drawQuads<uint16_t>(quads, 2, quads.size() - 2); // grid
 	vController.draw(cmds, true);
 	cmds.setColor({0, 0, 0, .5});
 	basicEffect.disableTexture(cmds);
-	cmds.drawQuads(quads, quadIndices(), 0, 2); // button bg
+	cmds.drawQuads<uint16_t>(quads, 0, 2); // button bg
 	basicEffect.enableAlphaTexture(cmds);
 	exitText.draw(cmds, exitBtnRect.pos(C2DO), C2DO, ColorName::WHITE);
 	snapText.draw(cmds, snapBtnRect.pos(C2DO), C2DO, ColorName::WHITE);

@@ -14,7 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/bit.hh>
-#include <imagine/util/math/int.hh>
+#include <imagine/util/math.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/fs/FS.hh>
 #include <imagine/input/evdev/EvdevInputDevice.hh>

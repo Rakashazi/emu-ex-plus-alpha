@@ -174,7 +174,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 	{
 		"Code",
 		cheat_.code,
-		&defaultFace(),
+		attach,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e,
@@ -191,7 +191,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 					writeCheatFile(system());
 					static_cast<GbcSystem&>(app.system()).applyCheats();
 					ggCode.set2ndName(str);
-					ggCode.compile(renderer());
+					ggCode.compile();
 					postDraw();
 					return true;
 				});
@@ -230,7 +230,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	},
 	addGGGS
 	{
-		"Add Game Genie / GameShark Code", &defaultFace(),
+		"Add Game Genie / GameShark Code", attach,
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			app().pushAndShowNewCollectTextInputView(attachParams(), e,
@@ -296,7 +296,7 @@ void EmuEditCheatListView::loadCheatItems()
 	for(auto c : iotaCount(cheats))
 	{
 		auto &thisCheat = *it;
-		cheat.emplace_back(thisCheat.name, &defaultFace(),
+		cheat.emplace_back(thisCheat.name, attachParams(),
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
 				pushAndShow(makeView<EmuEditCheatView>(cheatList[c], [this](){ onCheatListChanged(); }), e);
@@ -319,7 +319,7 @@ void EmuCheatsView::loadCheatItems()
 	for(auto cIdx : iotaCount(cheats))
 	{
 		auto &thisCheat = *it;
-		cheat.emplace_back(thisCheat.name, &defaultFace(), thisCheat.isOn(),
+		cheat.emplace_back(thisCheat.name, attachParams(), thisCheat.isOn(),
 			[this, cIdx](BoolMenuItem &item, View &, Input::Event e)
 			{
 				item.flipBoolValue(*this);

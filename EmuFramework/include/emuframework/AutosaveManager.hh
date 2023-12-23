@@ -16,7 +16,6 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/config.hh>
-#include <emuframework/Option.hh>
 #include <imagine/base/PausableTimer.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/io/FileIO.hh>
@@ -25,14 +24,10 @@
 #include <string_view>
 #include <functional>
 
-namespace IG
-{
-class MapIO;
-class FileIO;
-}
-
 namespace EmuEx
 {
+
+using namespace IG;
 
 class EmuApp;
 class EmuSystem;

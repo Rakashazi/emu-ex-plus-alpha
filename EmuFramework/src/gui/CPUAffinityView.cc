@@ -15,7 +15,6 @@
 
 #include "CPUAffinityView.hh"
 #include <emuframework/EmuApp.hh>
-#include <imagine/logger/logger.h>
 #include <cstdio>
 #include <format>
 
@@ -26,25 +25,25 @@ CPUAffinityView::CPUAffinityView(ViewAttachParams attach, int cpuCount):
 	TableView{"Configure CPU Affinity", attach, menuItems},
 	affinityModeItems
 	{
-		{"Auto (Use only performance cores or hints for low latency)", &defaultFace(), to_underlying(CPUAffinityMode::Auto)},
-		{"Any (Use any core even if it increases latency)",            &defaultFace(), to_underlying(CPUAffinityMode::Any)},
-		{"Manual (Use cores set in previous menu)",                    &defaultFace(), to_underlying(CPUAffinityMode::Manual)},
+		{"Auto (Use only performance cores or hints for low latency)", attach, {.id = CPUAffinityMode::Auto}},
+		{"Any (Use any core even if it increases latency)",            attach, {.id = CPUAffinityMode::Any}},
+		{"Manual (Use cores set in previous menu)",                    attach, {.id = CPUAffinityMode::Manual}},
 	},
 	affinityMode
 	{
-		"CPU Affinity Mode", &defaultFace(),
+		"CPU Affinity Mode", attach,
+		MenuId{uint8_t(app().cpuAffinityMode)},
+		affinityModeItems,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(wise_enum::to_string(CPUAffinityMode(affinityModeItems[idx].id())));
+				t.resetString(wise_enum::to_string(CPUAffinityMode(affinityModeItems[idx].id.val)));
 				return true;
 			},
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().cpuAffinityMode = CPUAffinityMode(item.id()); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().cpuAffinityMode = CPUAffinityMode(item.id.val); }
 		},
-		MenuItem::Id(uint8_t(app().cpuAffinityMode)),
-		affinityModeItems
 	},
-	cpusHeading{"Manual CPU Affinity", &defaultBoldFace()}
+	cpusHeading{"Manual CPU Affinity", attach}
 {
 	menuItems.emplace_back(&affinityMode);
 	menuItems.emplace_back(&cpusHeading);
@@ -58,7 +57,7 @@ CPUAffinityView::CPUAffinityView(ViewAttachParams attach, int cpuCount):
 					return std::format("{} (Offline)", i);
 				return std::format("{} ({}MHz)", i, freq / 1000);
 			}(),
-			&defaultFace(), app().cpuAffinity(i),
+			attach, app().cpuAffinity(i),
 			[this, i](BoolMenuItem &item) { app().setCPUAffinity(i, item.flipBoolValue(*this)); });
 		menuItems.emplace_back(&item);
 	}

@@ -32,7 +32,7 @@ public:
 	BaseAlertView(ViewAttachParams attach, UTF16Convertible auto &&label, TableView::ItemsDelegate items, TableView::ItemDelegate item):
 		View{attach},
 		bgQuads{attach.rendererTask, {.size = 2}},
-		text{IG_forward(label), &defaultFace()},
+		text{attach.rendererTask, IG_forward(label), &defaultFace()},
 		menu
 		{
 			attach,
@@ -69,14 +69,9 @@ class AlertView : public BaseAlertView
 {
 public:
 	AlertView(ViewAttachParams attach, UTF16Convertible auto &&label, size_t menuItems):
-		BaseAlertView{attach, IG_forward(label), item},
-		item{menuItems} {}
-
-	void setItem(size_t idx, UTF16Convertible auto &&name, TextMenuItem::SelectDelegate del)
+		BaseAlertView{attach, IG_forward(label), item}
 	{
-		assert(idx < item.size());
-		item[idx].setName(IG_forward(name), &defaultFace());
-		item[idx].onSelect = del;
+		item.reserve(menuItems);
 	}
 
 protected:
@@ -98,8 +93,8 @@ public:
 		BaseAlertView(attach, IG_forward(label),
 			[](const TableView &) -> size_t { return 2; },
 			[this](const TableView &, size_t idx) -> MenuItem& { return idx == 0 ? yes : no; }),
-		yes{IG_forward(yesStr), &defaultFace(), delegates.onYes},
-		no{IG_forward(noStr), &defaultFace(), delegates.onNo} {}
+		yes{IG_forward(yesStr), attach, delegates.onYes},
+		no{IG_forward(noStr), attach,delegates.onNo} {}
 
 	YesNoAlertView(ViewAttachParams attach, UTF16Convertible auto &&label, Delegates delegates):
 		YesNoAlertView{attach, IG_forward(label), u"Yes", u"No", delegates} {}

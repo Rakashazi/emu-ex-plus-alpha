@@ -25,7 +25,7 @@
 #include <imagine/io/IO.hh>
 #include <imagine/input/DragTracker.hh>
 #include <imagine/util/utility.h>
-#include <imagine/util/math/int.hh>
+#include <imagine/util/math.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/string.h>
 #include <imagine/util/zlib.hh>

@@ -15,7 +15,7 @@
 
 #include <emuframework/LoadProgressView.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/util/math/math.hh>
+#include <imagine/util/math.hh>
 #include <imagine/logger/logger.h>
 
 namespace EmuEx
@@ -26,7 +26,7 @@ constexpr SystemLogger log{"LoadProgressView"};
 LoadProgressView::LoadProgressView(ViewAttachParams attach, const Input::Event &e, EmuApp::CreateSystemCompleteDelegate onComplete):
 	View{attach},
 	onComplete{onComplete},
-	text{"Loading...", &defaultFace()},
+	text{attach.rendererTask, "Loading...", &attach.viewManager.defaultFace},
 	progessBarQuads{attach.rendererTask, {.size = 1}},
 	originalEvent{e}
 {
@@ -123,7 +123,7 @@ void LoadProgressView::setPos(int val)
 
 void LoadProgressView::place()
 {
-	text.compile(renderer());
+	text.compile();
 	updateProgressRect();
 }
 

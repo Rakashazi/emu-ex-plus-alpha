@@ -66,7 +66,7 @@ public:
 	static bool frameTimeOptionIsValid(FrameTime time);
 	bool setFrameTimeOption(VideoSystem, FrameTime frameTime);
 	FrameTime frameTimeOption(VideoSystem vidSys) const { return frameTimeVar(vidSys); }
-	auto frameTimeOptionAsMenuId(VideoSystem vidSys) const { return MenuItem::Id(frameTimeVar(vidSys).count() > 0 ? 1 : frameTimeVar(vidSys).count()); }
+	auto frameTimeOptionAsMenuId(VideoSystem vidSys) const { return MenuId(frameTimeVar(vidSys).count() > 0 ? 1 : frameTimeVar(vidSys).count()); }
 
 private:
 	FrameTime frameTimeNative{};

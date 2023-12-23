@@ -23,7 +23,7 @@
 #undef Debugger
 #include "MainSystem.hh"
 #include "MainApp.hh"
-#include <imagine/util/math/space.hh>
+#include <imagine/util/math.hh>
 #include <imagine/util/container/array.hh>
 
 namespace EmuEx

@@ -20,6 +20,8 @@
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"OutputTimingManager"};
+
 bool OutputTimingManager::frameTimeOptionIsValid(FrameTime time)
 {
 	return time == OutputTimingManager::autoOption ||
@@ -38,7 +40,7 @@ static FrameTimeConfig bestOutputTimeForScreen(std::span<const FrameRate> suppor
 		static constexpr double stretchFrameRate = 4.; // accept rates +/- this value
 		do
 		{
-			logMsg("considering %.2fHz for target %.2fHz", rate, targetRate);
+			log.info("considering {:g}Hz for target {:g}Hz", rate, targetRate);
 			if(std::abs(rate - targetRate) <= stretchFrameRate)
 				return {rate, refreshMultiplier};
 			rate /= 2.; // try half the rate until it falls below the target

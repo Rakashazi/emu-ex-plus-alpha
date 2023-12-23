@@ -46,29 +46,15 @@ public:
 		cmds.drawQuad(startIdx);
 	}
 
-	template<class I>
-	void drawSprites(RendererCommands &cmds, const Buffer<I, BufferType::index> &idxs, ssize_t startIdx, size_t size, auto &&texture)
-	{
-		enableTexture(cmds, texture);
-		cmds.drawQuads(idxs, startIdx, size);
-	}
-
-	template<VertexLayout V>
-	void drawSprite(RendererCommands &cmds, const Buffer<V, BufferType::vertex> &verts, ssize_t startIdx, auto &&texture)
+	template<class V>
+	void drawSprite(RendererCommands &cmds, const ObjectVertexArray<V> &verts, ssize_t startIdx, auto &&texture)
 	{
 		enableTexture(cmds, texture);
 		cmds.drawQuad(verts, startIdx);
 	}
 
-	template<VertexLayout V, class I>
-	void drawSprites(RendererCommands &cmds, const Buffer<V, BufferType::vertex> &verts, const Buffer<I, BufferType::index> &idxs, ssize_t startIdx, size_t size, auto &&texture)
-	{
-		enableTexture(cmds, texture);
-		cmds.drawQuads(verts, idxs, startIdx, size);
-	}
-
-	template<class I, VertexLayout V>
-	void drawSprites(RendererCommands &cmds, const Buffer<V, BufferType::vertex> &verts, ssize_t startIdx, size_t size, auto &&texture)
+	template<class I, class V>
+	void drawSprites(RendererCommands &cmds, const ObjectVertexArray<V> &verts, ssize_t startIdx, size_t size, auto &&texture)
 	{
 		enableTexture(cmds, texture);
 		cmds.drawQuads<I>(verts, startIdx, size);

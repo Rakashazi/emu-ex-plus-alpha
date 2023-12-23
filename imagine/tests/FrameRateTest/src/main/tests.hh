@@ -81,23 +81,21 @@ public:
 	unsigned frames{};
 	unsigned droppedFrames{};
 	unsigned continuousFrames{};
+	SteadyClockTimePoint presentTime{};
 	SteadyClockTimePoint startTime{}, endTime{};
 	TestFinishedDelegate onTestFinished;
 	FramePresentTime lastFramePresentTime;
-	Gfx::SyncFence presentFence{};
 	Gfx::IQuads statsRectQuads;
 
-	TestFramework() {}
+	TestFramework(ViewAttachParams);
 	virtual ~TestFramework() {}
-	virtual void initTest(IG::ApplicationContext, Gfx::Renderer &, WSize pixmapSize, Gfx::TextureBufferMode) {}
 	virtual void placeTest(WRect testRect) {}
 	virtual void frameUpdateTest(Gfx::RendererTask &, Screen &, SteadyClockTimePoint) = 0;
 	virtual void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) = 0;
 	virtual void presentedTest(Gfx::RendererCommands &cmds) {}
-	void init(IG::ApplicationContext, Gfx::Renderer &, Gfx::GlyphTextureSet &face, WSize pixmapSize, Gfx::TextureBufferMode);
 	void place(Gfx::Renderer &r, WRect viewBounds, WRect testRect);
 	void frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::FrameParams frameParams);
-	void prepareDraw(Gfx::Renderer &r);
+	void prepareDraw();
 	void draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, int xIndent);
 	void finish(Gfx::RendererTask &, SteadyClockTimePoint);
 	void setCPUFreqText(std::string_view str);
@@ -106,17 +104,17 @@ public:
 protected:
 	Gfx::Text cpuStatsText;
 	Gfx::Text frameStatsText;
-	std::string cpuFreqStr{};
-	std::string cpuUseStr{};
-	std::string skippedFrameStr{};
-	std::string statsStr{};
+	std::string cpuFreqStr;
+	std::string cpuUseStr;
+	std::string skippedFrameStr;
+	std::string statsStr;
 	WRect viewBounds{};
 	WRect cpuStatsRect{};
 	WRect frameStatsRect{};
 	unsigned lostFrameProcessTime{};
 
-	void placeCPUStatsText(Gfx::Renderer &r);
-	void placeFrameStatsText(Gfx::Renderer &r);
+	void placeCPUStatsText();
+	void placeFrameStatsText();
 };
 
 class ClearTest : public TestFramework
@@ -125,6 +123,7 @@ protected:
 	bool flash{true};
 
 public:
+	using TestFramework::TestFramework;
 	void frameUpdateTest(Gfx::RendererTask &, Screen &, SteadyClockTimePoint) override;
 	void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) override;
 };
@@ -137,7 +136,7 @@ protected:
 	Gfx::PixmapBufferTexture texture;
 
 public:
-	void initTest(IG::ApplicationContext, Gfx::Renderer &, WSize pixmapSize, Gfx::TextureBufferMode) override;
+	DrawTest(IG::ApplicationContext, ViewAttachParams attach, WSize pixmapSize, Gfx::TextureBufferMode);
 	void placeTest(WRect testRect) override;
 	void frameUpdateTest(Gfx::RendererTask &, Screen &, SteadyClockTimePoint) override;
 	void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) override;
@@ -146,6 +145,7 @@ public:
 class WriteTest : public DrawTest
 {
 public:
+	using DrawTest::DrawTest;
 	void frameUpdateTest(Gfx::RendererTask &, Screen &, SteadyClockTimePoint) override;
 	void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) override;
 };

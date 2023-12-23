@@ -32,6 +32,8 @@
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"SystemActionsView"};
+
 static auto autoSaveName(EmuApp &app)
 {
 	return std::format("Autosave Slot ({})", app.autosaveManager().slotFullName());
@@ -50,7 +52,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 	TableView{"System Actions", attach, item},
 	cheats
 	{
-		"Cheats", &defaultFace(),
+		"Cheats", attach,
 		[this](const Input::Event &e)
 		{
 			if(system().hasContent())
@@ -61,7 +63,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 	},
 	reset
 	{
-		"Reset", &defaultFace(),
+		"Reset", attach,
 		[this](const Input::Event &e)
 		{
 			if(!system().hasContent())
@@ -71,12 +73,12 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 	},
 	autosaveSlot
 	{
-		autoSaveName(app()), &defaultFace(),
+		autoSaveName(app()), attach,
 		[this](const Input::Event &e) { pushAndShow(makeView<AutosaveSlotView>(), e); }
 	},
 	autosaveNow
 	{
-		saveAutosaveName(app()), &defaultFace(),
+		saveAutosaveName(app()), attach,
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			if(!item.active())
@@ -94,7 +96,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 	},
 	revertAutosave
 	{
-		"Load Autosave State", &defaultFace(),
+		"Load Autosave State", attach,
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			if(!item.active())
@@ -118,7 +120,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 	},
 	stateSlot
 	{
-		"Manual Save States", &defaultFace(),
+		"Manual Save States", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<StateSlotView>(), e);
@@ -126,7 +128,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 	},
 	addLauncherIcon
 	{
-		"Add Content Shortcut To Launcher", &defaultFace(),
+		"Add Content Shortcut To Launcher", attach,
 		[this](const Input::Event &e)
 		{
 			if(!system().hasContent())
@@ -147,7 +149,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 	},
 	screenshot
 	{
-		"Screenshot Next Frame", &defaultFace(),
+		"Screenshot Next Frame", attach,
 		[this](const Input::Event &e)
 		{
 			if(!system().hasContent())
@@ -171,7 +173,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 	},
 	resetSessionOptions
 	{
-		"Reset Saved Options", &defaultFace(),
+		"Reset Saved Options", attach,
 		[this](const Input::Event &e)
 		{
 			if(!app().hasSavedSessionOptions())
@@ -190,7 +192,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 	},
 	close
 	{
-		"Close Content", &defaultFace(),
+		"Close Content", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShowModal(makeView<YesNoAlertView>("Really close current content?",
@@ -212,10 +214,10 @@ void SystemActionsView::onShow()
 	if(app().viewController().isShowingEmulation())
 		return;
 	TableView::onShow();
-	logMsg("refreshing action menu state");
+	log.info("refreshing action menu state");
 	assert(system().hasContent());
-	autosaveSlot.compile(autoSaveName(app()), renderer());
-	autosaveNow.compile(saveAutosaveName(app()), renderer());
+	autosaveSlot.compile(autoSaveName(app()));
+	autosaveNow.compile(saveAutosaveName(app()));
 	autosaveNow.setActive(app().autosaveManager().slotName() != noAutosaveName);
 	revertAutosave.setActive(app().autosaveManager().slotName() != noAutosaveName);
 	resetSessionOptions.setActive(app().hasSavedSessionOptions());

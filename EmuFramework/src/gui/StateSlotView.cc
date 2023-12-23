@@ -23,6 +23,8 @@
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"StateSlotView"};
+
 static auto slotHeadingName(EmuSystem &sys)
 {
 	return std::format("Set State Slot ({})", sys.stateSlot());
@@ -32,7 +34,7 @@ StateSlotView::StateSlotView(ViewAttachParams attach):
 	TableView{"Save States", attach, menuItems},
 	load
 	{
-		"Load State", &defaultFace(),
+		"Load State", attach,
 		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			if(!item.active())
@@ -50,7 +52,7 @@ StateSlotView::StateSlotView(ViewAttachParams attach):
 	},
 	save
 	{
-		"Save State", &defaultFace(),
+		"Save State", attach,
 		[this](const Input::Event &e)
 		{
 			if(app().shouldOverwriteExistingState())
@@ -64,7 +66,7 @@ StateSlotView::StateSlotView(ViewAttachParams attach):
 			}
 		}
 	},
-	slotHeading{slotHeadingName(system()), &defaultBoldFace()},
+	slotHeading{slotHeadingName(system()), attach},
 	menuItems
 	{
 		&load, &save, &slotHeading,
@@ -96,21 +98,19 @@ void StateSlotView::refreshSlot(int slot)
 			return std::format("{}", sys.stateSlotName(slot));
 	};
 	auto &s = stateSlot[slot];
-	s = {str(), &defaultFace(), nullptr};
+	s = {str(), attachParams(), [this, slot](View &view)
+	{
+		auto &sys = system();
+		stateSlot[sys.stateSlot()].setHighlighted(false);
+		stateSlot[slot].setHighlighted(true);
+		sys.setStateSlot(slot);
+		log.info("set state slot:{}", sys.stateSlot());
+		slotHeading.compile(slotHeadingName(sys));
+		load.setActive(sys.stateExists(sys.stateSlot()));
+		postDraw();
+	}};
 	if(slot == sys.stateSlot())
 		load.setActive(fileExists);
-	s.onSelect =
-		[this, slot](View &view)
-		{
-			auto &sys = system();
-			stateSlot[sys.stateSlot()].setHighlighted(false);
-			stateSlot[slot].setHighlighted(true);
-			sys.setStateSlot(slot);
-			logMsg("set state slot:%d", sys.stateSlot());
-			slotHeading.compile(slotHeadingName(sys), renderer());
-			load.setActive(sys.stateExists(sys.stateSlot()));
-			postDraw();
-		};
 }
 
 void StateSlotView::refreshSlots()

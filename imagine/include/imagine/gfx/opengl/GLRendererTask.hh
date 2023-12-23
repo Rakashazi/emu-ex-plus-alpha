@@ -42,7 +42,6 @@ public:
 
 	GLRendererTask(ApplicationContext, Renderer &);
 	GLRendererTask(ApplicationContext, const char *debugLabel, Renderer &);
-	void initVAO();
 	void initDefaultFramebuffer();
 	GLuint defaultFBO() const { return defaultFB; }
 	GLuint bindFramebuffer(Texture &tex);
@@ -53,7 +52,9 @@ public:
 	RendererCommands makeRendererCommands(GLTask::TaskContext taskCtx, bool manageSemaphore,
 		bool notifyWindowAfterPresent, Window &win);
 
-	void run(std::invocable auto &&f, bool awaitReply = false) { GLTask::run(IG_forward(f), awaitReply); }
+	void run(std::invocable auto &&f, MessageReplyMode mode = MessageReplyMode::none) { GLTask::run(IG_forward(f), mode); }
+
+	void run(std::invocable<TaskContext> auto &&f, auto &&extData, MessageReplyMode mode = MessageReplyMode::none) { GLTask::run(IG_forward(f), IG_forward(extData), mode); }
 
 	bool draw(Window &win, WindowDrawParams winParams, DrawParams params,
 		std::invocable<Window &, RendererCommands &> auto &&f)
@@ -62,12 +63,12 @@ public:
 		assert(params.asyncMode != DrawAsyncMode::AUTO); // doPreDraw() should set mode
 		bool manageSemaphore = params.asyncMode == DrawAsyncMode::PRESENT;
 		bool notifyWindowAfterPresent = params.asyncMode != DrawAsyncMode::NONE;
-		bool awaitReply = params.asyncMode != DrawAsyncMode::FULL;
+		MessageReplyMode replyMode = params.asyncMode != DrawAsyncMode::FULL ? MessageReplyMode::wait : MessageReplyMode::none;
 		GLTask::run([=, this, &win](TaskContext ctx)
 			{
 				auto cmds = makeRendererCommands(ctx, manageSemaphore, notifyWindowAfterPresent, win);
 				f(win, cmds);
-			}, awaitReply);
+			}, replyMode);
 		return params.asyncMode != DrawAsyncMode::NONE;
 	}
 
@@ -78,9 +79,6 @@ public:
 
 protected:
 	Renderer *r{};
-	#ifndef CONFIG_GFX_OPENGL_ES
-	GLuint streamVAO = 0;
-	#endif
 	IG_UseMemberIf(Config::Gfx::GLDRAWABLE_NEEDS_FRAMEBUFFER, GLuint, defaultFB){};
 	GLuint fbo = 0;
 	IG_UseMemberIf(Config::Gfx::OPENGL_DEBUG_CONTEXT, bool, debugEnabled){};

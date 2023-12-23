@@ -217,7 +217,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 	{
 		"Address",
 		u"",
-		&defaultFace(),
+		attach,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 6-digit hex", addrStr.data(),
@@ -243,7 +243,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 					}
 					writeCheatsFile(system());
 					addr.set2ndName(addrStr);
-					addr.compile(renderer());
+					addr.compile();
 					postDraw();
 					return true;
 				});
@@ -253,7 +253,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 	{
 		"Value",
 		u"",
-		&defaultFace(),
+		attach,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 2-digit hex", valueStr.data(),
@@ -278,7 +278,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 					}
 					writeCheatsFile(system());
 					value.set2ndName(valueStr);
-					value.compile(renderer());
+					value.compile();
 					postDraw();
 					return true;
 				});
@@ -292,7 +292,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 		"Saved Value",
 		#endif
 		u"",
-		&defaultFace(),
+		attach,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			app().pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex or blank", savedStr.data(),
@@ -334,7 +334,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 						}
 						writeCheatsFile(system());
 						saved.set2ndName(savedStr);
-						saved.compile(renderer());
+						saved.compile();
 						postDraw();
 					}
 					view.dismiss();
@@ -379,7 +379,7 @@ void EmuEditCheatListView::loadCheatItems()
 	cheat.reserve(cheats);
 	for(auto c : iotaCount(cheats))
 	{
-		cheat.emplace_back(cheatName(c), &defaultFace(),
+		cheat.emplace_back(cheatName(c), attachParams(),
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
 				pushAndShow(makeView<EmuEditCheatView>(c, [this](){ onCheatListChanged(); }), e);
@@ -406,7 +406,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	},
 	addCode
 	{
-		"Add Game Genie/Action Replay/Gold Finger Code", &defaultFace(),
+		"Add Game Genie/Action Replay/Gold Finger Code", attach,
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(numCheats() == EmuCheats::MAX)
@@ -472,7 +472,7 @@ void EmuCheatsView::loadCheatItems()
 	cheat.reserve(cheats);
 	for(auto c : iotaCount(cheats))
 	{
-		cheat.emplace_back(cheatName(c), &defaultFace(), cheatIsEnabled(c),
+		cheat.emplace_back(cheatName(c), attachParams(), cheatIsEnabled(c),
 			[this, c](BoolMenuItem &item, View &, Input::Event e)
 			{
 				bool on = item.flipBoolValue(*this);

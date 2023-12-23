@@ -17,7 +17,7 @@
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/Mat4.hh>
-#include <imagine/util/math/int.hh>
+#include <imagine/util/math.hh>
 #include <imagine/util/ctype.hh>
 #include <imagine/logger/logger.h>
 #include <algorithm>
@@ -26,21 +26,7 @@
 namespace IG::Gfx
 {
 
-Text::Text(const Text &t) noexcept
-{
-	*this = t;
-}
-
-Text &Text::operator=(const Text &t) noexcept
-{
-	textStr = t.textStr;
-	face_ = t.face_;
-	sizeBeforeLineSpans = t.sizeBeforeLineSpans;
-	xSize = t.xSize;
-	ySize = t.ySize;
-	metrics = t.metrics;
-	return *this;
-}
+constexpr SystemLogger log{"GfxText"};
 
 static int xSizeOfChar(Renderer &r, GlyphTextureSet *face_, int c, int spaceX)
 {
@@ -56,13 +42,13 @@ static int xSizeOfChar(Renderer &r, GlyphTextureSet *face_, int c, int spaceX)
 		return 0;
 }
 
-void Text::makeGlyphs(Renderer &r)
+void Text::makeGlyphs()
 {
 	if(!hasText()) [[unlikely]]
 		return;
 	for(auto c : textStr)
 	{
-		face_->glyphEntry(r, c);
+		face_->glyphEntry(renderer(), c);
 	}
 }
 
@@ -77,7 +63,7 @@ auto writeSpan(Renderer &r, auto quadsIt, WPt pos, std::u16string_view strView, 
 		auto gly = face_->glyphEntry(r, c, false);
 		if(!gly)
 		{
-			//logMsg("no glyph for %X", c);
+			//log.info("no glyph for:{:X}", c);
 			pos.x += spaceSize;
 			continue;
 		}
@@ -93,11 +79,16 @@ auto writeSpan(Renderer &r, auto quadsIt, WPt pos, std::u16string_view strView, 
 	return quadsIt;
 }
 
-bool Text::compile(Renderer &r, TextLayoutConfig conf)
+bool Text::compile(TextLayoutConfig conf)
 {
 	if(!hasText()) [[unlikely]]
+	{
+		if(!face_)
+			log.warn("called compile() before setting face");
 		return false;
-	//logMsg("compiling text %s", str);
+	}
+	assert(quads.hasTask());
+	auto &r = renderer();
 	if(sizeBeforeLineSpans)
 	{
 		textStr.resize(stringSize());
@@ -135,7 +126,7 @@ bool Text::compile(Renderer &r, TextLayoutConfig conf)
 			{
 				wentToNextLine = true;
 				// Don't break text
-				//logMsg("new line %d without text break @ char %d, %d chars in line", lines+1, charIdx, charsInLine);
+				//log.info("new line {} without text break @ char {}, {} chars in line", lines+1, charIdx, charsInLine);
 				lineInfo.emplace_back(xLineSize, charsInLine);
 				maxXLineSize = std::max(xLineSize, maxXLineSize);
 				xLineSize = 0;
@@ -145,14 +136,14 @@ bool Text::compile(Renderer &r, TextLayoutConfig conf)
 			{
 				wentToNextLine = true;
 				// Line has more than 1 block and is too big, needs text break
-				//logMsg("new line %d with text break @ char %d, %d chars in line", lines+1, charIdx, charsInLine);
+				//log.info("new line {} with text break @ char {}, {} chars in line", lines+1, charIdx, charsInLine);
 				xLineSize -= textBlockSize;
 				int charsInNextLine = (charIdx - textBlockIdx) + 1;
 				lineInfo.emplace_back(xLineSize, charsInLine - charsInNextLine);
 				maxXLineSize = std::max(xLineSize, maxXLineSize);
 				xLineSize = textBlockSize;
 				charsInLine = charsInNextLine;
-				//logMsg("break @ char %d with line starting @ %d, %d chars moved to next line, leaving %d", textBlockIdx, currLineIdx, charsInNextLine, lineInfo[lines-1].chars);
+				//log.info("break @ char {} with line starting @ {}, {} chars moved to next line, leaving {}", textBlockIdx, currLineIdx, charsInNextLine, lineInfo[lines-1].chars);
 			}
 			if(wentToNextLine)
 			{
@@ -179,7 +170,6 @@ bool Text::compile(Renderer &r, TextLayoutConfig conf)
 
 	// write vertex data
 	WPt pos{0, nominalHeight - yLineStart};
-	quads.setTask(r.task());
 	quads.reset({.size = size_t(charIdx)});
 	auto mappedVerts = quads.map();
 	if(lines > 1)
@@ -202,7 +192,7 @@ bool Text::compile(Renderer &r, TextLayoutConfig conf)
 			auto [xLineSize, charsToDraw] = LineSpan::decode({spansPtr, LineSpan::encodedChar16Size});
 			spansPtr += LineSpan::encodedChar16Size;
 			pos.x = startingXPos(xLineSize);
-			//logMsg("line:%d chars:%d ", i, charsToDraw);
+			//log.info("line:{} chars:{} ", i, charsToDraw);
 			vertsIt = writeSpan(r, vertsIt, pos, std::u16string_view{s, charsToDraw}, face_, spaceSize);
 			s += charsToDraw;
 			pos.y += nominalHeight;
@@ -228,7 +218,7 @@ static int drawSpan(RendererCommands &cmds, std::u16string_view strView, int spr
 		auto gly = face_->glyphEntry(renderer, c, false);
 		if(!gly)
 		{
-			//logMsg("no glyph for %X", c);
+			//log.info("no glyph for {:X}", c);
 			continue;
 		}
 		auto &[glyph, metrics] = *gly;
@@ -253,7 +243,7 @@ void Text::draw(RendererCommands &cmds, WPt pos, _2DOrigin o) const
 		pos.y -= ySize;
 	else if(o.onYCenter())
 		pos.y -= ySize / 2;
-	//logMsg("drawing text @ %d,%d, size:%d,%d", xPos, yPos, xSize, ySize);
+	//log.info("drawing text @ {},{}, size:{},{}", xPos, yPos, xSize, ySize);
 	cmds.basicEffect().setModelView(cmds, Mat4::makeTranslate({pos.x, pos.y, 0}));
 	cmds.setVertexArray(quads);
 	auto lines = currentLines();
@@ -266,7 +256,7 @@ void Text::draw(RendererCommands &cmds, WPt pos, _2DOrigin o) const
 		{
 			auto [xLineSize, charsToDraw] = LineSpan::decode({spansPtr, LineSpan::encodedChar16Size});
 			spansPtr += LineSpan::encodedChar16Size;
-			//logMsg("line:%d chars:%d ", i, charsToDraw);
+			//log.info("line:{} chars:{}", i, charsToDraw);
 			spriteOffset = drawSpan(cmds, std::u16string_view{s, charsToDraw}, spriteOffset, face_);
 			s += charsToDraw;
 		}
@@ -317,6 +307,8 @@ std::u16string Text::string() const
 {
 	return std::u16string{stringView()};
 }
+
+Renderer &Text::renderer() { return quads.renderer(); }
 
 bool Text::hasText() const
 {

@@ -217,15 +217,29 @@ using IColQuad = BaseQuad<Vertex2IColI>;
 using IColTexQuad = BaseQuad<Vertex2ITexIColI>;
 using ILitTexQuad = BaseQuad<Vertex2ITexIColF>;
 
-using Quads = ObjectVertexBuffer<Quad>;
-using TexQuads = ObjectVertexBuffer<TexQuad>;
-using ColQuads = ObjectVertexBuffer<ColQuad>;
-using ColTexQuads = ObjectVertexBuffer<ColTexQuad>;
-using IQuads = ObjectVertexBuffer<IQuad>;
-using ITexQuads = ObjectVertexBuffer<ITexQuad>;
-using IColQuads = ObjectVertexBuffer<IColQuad>;
-using IColTexQuads = ObjectVertexBuffer<IColTexQuad>;
-using ILitTexQuads = ObjectVertexBuffer<ILitTexQuad>;
+const IndexBuffer<uint8_t> &rendererQuadIndices(const RendererTask &rTask);
+
+template<class T>
+class QuadVertexArray : public ObjectVertexArray<T>
+{
+public:
+	using Base = ObjectVertexArray<T>;
+	using Vertex = Base::Vertex;
+	using Base::Base;
+
+	QuadVertexArray(RendererTask &rTask, Base::Config config):
+		Base{rTask, config, rendererQuadIndices(rTask)} {}
+};
+
+using Quads = QuadVertexArray<Quad>;
+using TexQuads = QuadVertexArray<TexQuad>;
+using ColQuads = QuadVertexArray<ColQuad>;
+using ColTexQuads = QuadVertexArray<ColTexQuad>;
+using IQuads = QuadVertexArray<IQuad>;
+using ITexQuads = QuadVertexArray<ITexQuad>;
+using IColQuads = QuadVertexArray<IColQuad>;
+using IColTexQuads = QuadVertexArray<IColTexQuad>;
+using ILitTexQuads = QuadVertexArray<ILitTexQuad>;
 
 template<class T>
 constexpr std::array<T, 6> mapQuadIndices(T baseIdx)
@@ -248,6 +262,7 @@ class QuadIndexArray : public IndexBuffer<T>
 {
 public:
 	using BaseBuffer = IndexBuffer<T>;
+	using Type = T;
 
 	constexpr QuadIndexArray() = default;
 

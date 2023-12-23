@@ -144,7 +144,6 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	optionViewportZoom(CFGKEY_VIEWPORT_ZOOM, 100, 0, optionIsValidWithMinMax<50, 100>),
 	optionShowOnSecondScreen{CFGKEY_SHOW_ON_2ND_SCREEN, 0},
 	optionTextureBufferMode{CFGKEY_TEXTURE_BUFFER_MODE, 0},
-	optionVideoImageBuffers{CFGKEY_VIDEO_IMAGE_BUFFERS, 0, 0, optionIsValidWithMax<2>},
 	layoutBehindSystemUI{ctx.hasTranslucentSysUI()}
 {
 	if(ctx.registerInstance(initParams))
@@ -181,15 +180,11 @@ public:
 			hasEmuContent ? 3u : 2u
 		}
 	{
-		setItem(0, "Yes", [this](){ appContext().exit(); });
-		setItem(1, "No", [](){});
-		if(item.size() == 3)
+		item.emplace_back("Yes", attach, [this](){ appContext().exit(); });
+		item.emplace_back("No", attach, [](){});
+		if(hasEmuContent)
 		{
-			setItem(2, "Close Menu",
-				[&]()
-				{
-					app().showEmulation();
-				});
+			item.emplace_back("Close Menu", attach, [this](){ app().showEmulation(); });
 		}
 	}
 
@@ -398,11 +393,6 @@ void EmuApp::renderSystemFramebuffer(EmuVideo &video)
 	system().renderFramebuffer(video);
 }
 
-static bool supportsVideoImageBuffersOption(const Gfx::Renderer &r)
-{
-	return r.supportsSyncFences() && r.maxSwapChainImages() > 2;
-}
-
 void EmuApp::startAudio()
 {
 	audio().start(system().frameTime());
@@ -506,8 +496,6 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 		[this, appConfig](IG::ApplicationContext ctx, IG::Window &win)
 		{
 			renderer.initMainTask(&win, windowDrawableConfig());
-			if(!supportsVideoImageBuffersOption(renderer))
-				optionVideoImageBuffers.resetToConst();
 			if(optionTextureBufferMode.val)
 			{
 				auto mode = (Gfx::TextureBufferMode)optionTextureBufferMode.val;
@@ -517,7 +505,6 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					optionTextureBufferMode.reset();
 				}
 			}
-			viewManager.quadIndices = {renderer.mainTask, 32};
 			viewManager.defaultFace = {renderer, fontManager.makeSystem(), fontSettings(win)};
 			viewManager.defaultBoldFace = {renderer, fontManager.makeBoldSystem(), fontSettings(win)};
 			ViewAttachParams viewAttach{viewManager, win, renderer.task()};
@@ -527,7 +514,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			win.setAcceptDnd(true);
 			renderer.setWindowValidOrientations(win, menuOrientation());
 			inputManager.updateInputDevices(ctx);
-			vController.configure(win, renderer, viewManager.defaultFace, viewManager.quadIndices);
+			vController.configure(win, renderer, viewManager.defaultFace);
 			if(EmuSystem::inputHasKeyboard)
 			{
 				vController.setKeyboardImage(asset(AssetID::keyboardOverlay));
@@ -553,7 +540,6 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 				});
 			emuVideo.setRendererTask(renderer.task());
 			emuVideo.setTextureBufferMode(system(), (Gfx::TextureBufferMode)optionTextureBufferMode.val);
-			emuVideo.setImageBuffers(optionVideoImageBuffers);
 			emuVideoLayer.setRendererTask(renderer.task());
 			emuVideoLayer.setLinearFilter(optionImgFilter); // init the texture sampler before setting format
 			applyRenderPixelFormat();
@@ -623,8 +609,11 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					emuSystemTask.runFrame(videoPtr, audioPtr, frameInfo.advanced, skipForward, altSpeed);
 					if(videoPtr)
 					{
-						if(usePresentationTime)
+						if(presentationTimeMode == PresentationTimeMode::full ||
+							(presentationTimeMode == PresentationTimeMode::basic && interval > 1))
+						{
 							viewController.presentTime = params.presentTime(interval);
+						}
 						doIfUsed(frameStartTimePoint, [&](auto &tp)
 						{
 							if(!hasTime(tp))
@@ -1034,7 +1023,7 @@ void EmuApp::promptSystemReloadDueToSetOption(ViewAttachParams attach, const Inp
 		return;
 	viewController().pushAndShowModal(std::make_unique<YesNoAlertView>(attach,
 		"This option takes effect next time the system starts. Restart it now?",
-		YesNoAlertView::Delegates{ .onYes = [this, params] { reloadSystem(params); } }), e, false);
+		YesNoAlertView::Delegates{ .onYes = [this, params] { reloadSystem(params); return false; } }), e, false);
 }
 
 void EmuApp::unpostMessage()

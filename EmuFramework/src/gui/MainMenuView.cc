@@ -34,6 +34,8 @@
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"AppMenus"};
+
 class OptionCategoryView : public TableView, public EmuAppHelper<OptionCategoryView>
 {
 public:
@@ -65,7 +67,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	TableView{EmuApp::mainViewName(), attach, item},
 	loadGame
 	{
-		"Open Content", &defaultFace(),
+		"Open Content", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(FilePicker::forLoading(attachParams(), e), e, false);
@@ -73,7 +75,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	systemActions
 	{
-		"System Actions", &defaultFace(),
+		"System Actions", attach,
 		[this](const Input::Event &e)
 		{
 			if(!system().hasContent())
@@ -83,7 +85,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	recentGames
 	{
-		"Recent Content", &defaultFace(),
+		"Recent Content", attach,
 		[this](const Input::Event &e)
 		{
 			if(app().recentContent.size())
@@ -94,7 +96,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	bundledGames
 	{
-		"Bundled Content", &defaultFace(),
+		"Bundled Content", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<BundledGamesView>(), e);
@@ -102,7 +104,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	options
 	{
-		"Options", &defaultFace(),
+		"Options", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<OptionCategoryView>(*audio, *videoLayer), e);
@@ -110,7 +112,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	onScreenInputManager
 	{
-		"On-screen Input Setup", &defaultFace(),
+		"On-screen Input Setup", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<TouchConfigView>(app().defaultVController()), e);
@@ -118,7 +120,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	inputManager
 	{
-		"Key/Gamepad Input Setup", &defaultFace(),
+		"Key/Gamepad Input Setup", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<InputManagerView>(app().inputManager), e);
@@ -126,7 +128,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	benchmark
 	{
-		"Benchmark Content", &defaultFace(),
+		"Benchmark Content", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(FilePicker::forBenchmarking(attachParams(), e), e, false);
@@ -134,7 +136,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	scanWiimotes
 	{
-		"Scan for Wiimotes/iCP/JS1", &defaultFace(),
+		"Scan for Wiimotes/iCP/JS1", attach,
 		[this](const Input::Event &e)
 		{
 			if(app().bluetoothAdapter())
@@ -161,7 +163,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	bluetoothDisconnect
 	{
-		"Disconnect Bluetooth", &defaultFace(),
+		"Disconnect Bluetooth", attach,
 		[this](const Input::Event &e)
 		{
 			auto devConnected = Bluetooth::devsConnected(appContext());
@@ -175,7 +177,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	acceptPS3ControllerConnection
 	{
-		"Scan for PS3 Controller", &defaultFace(),
+		"Scan for PS3 Controller", attach,
 		[this](const Input::Event &e)
 		{
 			if(app().bluetoothAdapter())
@@ -217,7 +219,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	#endif
 	about
 	{
-		"About", &defaultFace(),
+		"About", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<CreditsView>(EmuSystem::creditsViewStr), e);
@@ -225,7 +227,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	exitApp
 	{
-		"Exit", &defaultFace(),
+		"Exit", attach,
 		[this]()
 		{
 			appContext().exit();
@@ -294,7 +296,7 @@ static void onScanStatus(EmuApp &app, unsigned status, int arg)
 void MainMenuView::onShow()
 {
 	TableView::onShow();
-	logMsg("refreshing main menu state");
+	log.info("refreshing main menu state");
 	recentGames.setActive(app().recentContent.size());
 	systemActions.setActive(system().hasContent());
 	bluetoothDisconnect.setActive(Bluetooth::devsConnected(appContext()));
@@ -353,7 +355,7 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio,
 	subConfig
 	{
 		{
-			"Video", &defaultFace(),
+			"Video", attach,
 			[this, &videoLayer](const Input::Event &e)
 			{
 				auto view = EmuApp::makeView(attachParams(), EmuApp::ViewID::VIDEO_OPTIONS);
@@ -362,35 +364,35 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio,
 			}
 		},
 		{
-			"Audio", &defaultFace(),
+			"Audio", attach,
 			[this, &audio](const Input::Event &e)
 			{
 				pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::AUDIO_OPTIONS), e);
 			}
 		},
 		{
-			"System", &defaultFace(),
+			"System", attach,
 			[this](const Input::Event &e)
 			{
 				pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::SYSTEM_OPTIONS), e);
 			}
 		},
 		{
-			"File Paths", &defaultFace(),
+			"File Paths", attach,
 			[this](const Input::Event &e)
 			{
 				pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::FILE_PATH_OPTIONS), e);
 			}
 		},
 		{
-			"GUI", &defaultFace(),
+			"GUI", attach,
 			[this](const Input::Event &e)
 			{
 				pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::GUI_OPTIONS), e);
 			}
 		},
 		{
-			"Online Documentation", &defaultFace(),
+			"Online Documentation", attach,
 			[this]
 			{
 				appContext().openURL("https://www.explusalpha.com/contents/emuex/documentation");
@@ -400,9 +402,9 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio,
 {
 	if(EmuApp::hasGooglePlayStoreFeatures())
 	{
-		subConfig[std::size(subConfig)-1] =
+		subConfig[lastIndex(subConfig)] =
 		{
-			"Beta Testing Opt-in/out", &defaultFace(),
+			"Beta Testing Opt-in/out", attach,
 			[this]()
 			{
 				appContext().openURL(std::format("https://play.google.com/apps/testing/{}", appContext().applicationId));

@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "GLTask"
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/opengl/GLRendererTask.hh>
 #include <imagine/thread/Thread.hh>
@@ -25,57 +24,45 @@
 namespace IG::Gfx
 {
 
+constexpr SystemLogger log{"GLTask"};
+
 GLTask::GLTask(ApplicationContext ctx):
-	GLTask{ctx, nullptr}
-{}
+	GLTask{ctx, nullptr} {}
 
 GLTask::GLTask(ApplicationContext ctx, const char *debugLabel):
 	onExit{ctx},
-	commandPort{debugLabel}
-{}
+	commandPort{debugLabel} {}
 
 bool GLTask::makeGLContext(GLTaskConfig config)
 {
 	deinit();
-	thread = IG::makeThreadSync(
-		[this, &config](auto &sem)
+	thread = makeThreadSync([this, &config](auto &sem)
+	{
+		threadId_ = thisThreadId();
+		auto &glManager = *config.glManagerPtr;
+		glManager.bindAPI(glAPI);
+		context = makeGLContext(glManager, config.bufferConfig);
+		if(!context) [[unlikely]]
 		{
-			threadId_ = thisThreadId();
-			auto &glManager = *config.glManagerPtr;
-			glManager.bindAPI(glAPI);
-			context = makeGLContext(glManager, config.bufferConfig);
-			if(!context) [[unlikely]]
-			{
-				sem.release();
-				return;
-			}
-			context.setCurrentContext(config.initialDrawable);
-			auto eventLoop = EventLoop::makeForThread();
-			commandPort.attach(eventLoop,
-				[this, glDpy = context.display()](auto msgs)
-				{
-					for(auto msg : msgs)
-					{
-						if(msg.func) [[likely]]
-						{
-							msg.func(glDpy, msg.semPtr);
-						}
-						else
-						{
-							glDpy.resetCurrentContext();
-							logMsg("exiting GL context:%p thread", (NativeGLContext)context);
-							context = {};
-							EventLoop::forThread().stop();
-							return false;
-						}
-					}
-					return true;
-				});
-			logMsg("starting GL context:%p thread event loop", (NativeGLContext)context);
 			sem.release();
-			eventLoop.run(context);
-			commandPort.detach();
-		});
+			return;
+		}
+		context.setCurrentContext(config.initialDrawable);
+		log.info("starting GL context:{} thread message loop", (NativeGLContext)context);
+		sem.release();
+		auto msgs = commandPort.messages();
+		auto glDpy = context.display();
+		for(auto msg : msgs)
+		{
+			if(msg.func) [[likely]]
+				msg.func(glDpy, msg.semPtr, msgs);
+			else
+				break;
+		}
+		glDpy.resetCurrentContext();
+		log.info("exiting GL context:{} thread", (NativeGLContext)context);
+		context = {};
+	});
 	if(!context) [[unlikely]]
 	{
 		return false;
@@ -87,14 +74,14 @@ bool GLTask::makeGLContext(GLTaskConfig config)
 			{
 				if(backgrounded)
 				{
-					run(
+					runSync(
 						[&glContext = context](TaskContext ctx)
 						{
 							// unset the drawable and finish all commands before entering background
 							if(GLManager::hasCurrentDrawable())
 								glContext.setCurrentDrawable({});
 							glFinish();
-						}, true);
+						});
 				}
 				return true;
 			}, appContext(), RENDERER_TASK_ON_EXIT_PRIORITY
@@ -107,10 +94,18 @@ GLTask::~GLTask()
 	deinit();
 }
 
-void GLTask::runFunc(FuncDelegate del, bool awaitReply)
+void GLTask::runFunc(FuncDelegate del, std::span<const uint8_t> extBuff, MessageReplyMode mode)
 {
 	assert(context);
-	commandPort.send({.func = del}, awaitReply);
+	if(extBuff.size())
+	{
+		assert(mode == MessageReplyMode::none);
+		commandPort.sendWithExtraData({.func = del}, extBuff);
+	}
+	else
+	{
+		commandPort.send({.func = del}, mode);
+	}
 }
 
 GLBufferConfig GLTask::glBufferConfig() const
@@ -144,9 +139,9 @@ void GLTask::deinit()
 
 void GLTask::TaskContext::notifySemaphore()
 {
-	assumeExpr(semPtr);
+	assumeExpr(semaphorePtr);
 	assumeExpr(semaphoreNeedsNotifyPtr);
-	semPtr->release();
+	semaphorePtr->release();
 	markSemaphoreNotified();
 }
 

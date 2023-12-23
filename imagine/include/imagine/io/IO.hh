@@ -66,6 +66,7 @@ public:
 	explicit operator bool() const;
 
 	// optional API
+	ssize_t writeVector(std::span<const OutVector> buffs, std::optional<off_t> offset = {});
 	bool truncate(off_t offset);
 	std::span<uint8_t> map();
 	void sync();

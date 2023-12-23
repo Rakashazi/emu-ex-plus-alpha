@@ -56,17 +56,17 @@ template<class T, BufferType type>
 class Buffer: public BufferImpl<type>
 {
 public:
+	using Config = BufferConfig<T>;
 	using BaseBuffer = BufferImpl<type>;
 	using Type = T;
 	static constexpr size_t elemSize = sizeof(T);
 
-	constexpr Buffer() = default;
+	Buffer() = default;
 	Buffer(RendererTask &rTask, BufferConfig<T> config): BaseBuffer(rTask, config.toByteConfig()) {}
 	explicit operator bool() const { return BaseBuffer::operator bool(); }
 	Renderer &renderer() const { return task().renderer(); }
 	RendererTask &task() const { return *BaseBuffer::taskPtr(); }
 	bool hasTask() const { return BaseBuffer::taskPtr(); }
-	void setTask(RendererTask &task) { return BaseBuffer::setTask(task); }
 	void reset(BufferConfig<T> config) { BaseBuffer::reset(config.toByteConfig()); }
 	size_t size() const { return BaseBuffer::sizeBytes() / elemSize; }
 	MappedBuffer<T> map(ssize_t offset, size_t size) { return {BaseBuffer::map(offset * elemSize, size * elemSize)}; }
@@ -102,16 +102,55 @@ class ObjectVertexBuffer : public VertexBuffer<typename T::Vertex>
 public:
 	using Type = T;
 	using Vertex = T::Vertex;
+	using Config = ObjectBufferConfig<T>;
 	using BaseBuffer = VertexBuffer<Vertex>;
 	using BaseBuffer::map;
 
-	constexpr ObjectVertexBuffer() = default;
+	ObjectVertexBuffer() = default;
 	ObjectVertexBuffer(RendererTask &rTask, ObjectBufferConfig<T> config): VertexBuffer<Vertex>{rTask, config.toBufferConfig()} {}
 	void reset(ObjectBufferConfig<T> config) { VertexBuffer<Vertex>::reset(config.toBufferConfig()); }
 	size_t size() const { return BaseBuffer::size() / T::vertexCount; }
 	MappedBuffer<Vertex> map(ssize_t offset, size_t size) { return BaseBuffer::map(offset * T::vertexCount, size * T::vertexCount); }
 	void write(ssize_t offset, T obj) { obj.write(*this, offset); }
 	void write(ssize_t offset, T::InitParams params) { write(offset, T{params}); }
+};
+
+class VertexArray: public VertexArrayImpl
+{
+public:
+	VertexArray() = default;
+	template<class V>
+	VertexArray(RendererTask &rTask, const VertexBuffer<V> &buff, NativeBuffer idxs): VertexArrayImpl(rTask, buff, idxs) {}
+};
+
+template<class T>
+struct VertexOf { using type = typename T::Vertex; };
+
+template<VertexLayout T>
+struct VertexOf<T> { using type = T; };
+
+template<class T>
+class ObjectVertexArray : public std::conditional_t<VertexLayout<T>, Buffer<T, BufferType::vertex>, ObjectVertexBuffer<T>>
+{
+public:
+	using Base = std::conditional_t<VertexLayout<T>, Buffer<T, BufferType::vertex>, ObjectVertexBuffer<T>>;
+	using Vertex = VertexOf<T>::type;
+
+	ObjectVertexArray() = default;
+
+	ObjectVertexArray(RendererTask &rTask, Base::Config config, NativeBuffer idxsRef = {}):
+		Base{rTask, config},
+		vao{rTask, *this, idxsRef} {}
+
+	template<class I>
+	ObjectVertexArray(RendererTask &rTask, Base::Config config, const IndexBuffer<I> &idxs):
+		ObjectVertexArray{rTask, config, idxs.name()} {}
+
+	const VertexArray &array() const { return vao; }
+	operator const VertexArray&() const { return vao; }
+
+private:
+	VertexArray vao;
 };
 
 }

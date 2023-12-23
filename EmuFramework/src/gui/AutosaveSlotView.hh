@@ -32,8 +32,10 @@ public:
 	class SlotTextMenuItem : public TextMenuItem
 	{
 	public:
-		SlotTextMenuItem(std::string_view slotName, UTF16Convertible auto &&name, Gfx::GlyphTextureSet *face, SelectDelegate selectDel):
-			TextMenuItem{IG_forward(name), face, selectDel},
+		SlotTextMenuItem() = default;
+
+		SlotTextMenuItem(std::string_view slotName, UTF16Convertible auto &&name, ViewAttachParams attach, SelectDelegate selectDel):
+			TextMenuItem{IG_forward(name), attach, selectDel},
 			slotName{slotName} {}
 
 		std::string slotName;

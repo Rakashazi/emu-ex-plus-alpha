@@ -52,9 +52,9 @@ public:
 	explicit operator bool() const;
 
 	// Run a delegate on the renderer thread
-	void run(std::invocable auto &&f, bool awaitReply = false)
+	void run(std::invocable auto &&f, MessageReplyMode mode = MessageReplyMode::none)
 	{
-		RendererTaskImpl::run(IG_forward(f), awaitReply);
+		RendererTaskImpl::run(IG_forward(f), mode);
 	}
 
 	// Run a delegate for drawing on the renderer thread
@@ -79,15 +79,19 @@ public:
 	{
 		if constexpr(sizeof(&buff) + sizeof(offset) + sizeof(data) <= FuncDelegateStorageSize)
 		{
-			run([&buff, offset, data]()
+			RendererTaskImpl::run([&buff, offset, data]()
 			{
-				buff.writeSubData(offset * buff.elemSize, std::size(data) * buff.elemSize, std::data(data));
+				buff.writeSubData(offset * buff.elemSize, sizeof(data), &data);
 			});
 		}
 		else
 		{
-			auto map = buff.map(offset, std::size(data));
-			std::ranges::copy(data, map.begin());
+			RendererTaskImpl::run([&buff, offset](TaskContext ctx)
+			{
+				std::remove_cvref_t<decltype(data)> data;
+				ctx.msgsPtr->readExtraData(std::span{&data, 1});
+				buff.writeSubData(offset * buff.elemSize, sizeof(data), &data);
+			}, IG_forward(data));
 		}
 	}
 };

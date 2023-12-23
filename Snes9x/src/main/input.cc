@@ -3,7 +3,7 @@
 #include <emuframework/EmuInput.hh>
 #include <emuframework/keyRemappingUtils.hh>
 #include <imagine/input/DragTracker.hh>
-#include <imagine/util/math/math.hh>
+#include <imagine/util/math.hh>
 #include <imagine/base/Window.hh>
 #include "MainSystem.hh"
 #include "MainApp.hh"

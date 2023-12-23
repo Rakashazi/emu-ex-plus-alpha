@@ -18,7 +18,7 @@
 #include <emuframework/AppKeyCode.hh>
 #include "../EmuOptions.hh"
 #include "../WindowData.hh"
-#include <imagine/util/math/int.hh>
+#include <imagine/util/math.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/base/Window.hh>
@@ -60,11 +60,11 @@ int VController::yMMSizeToPixel(const IG::Window &win, float mm) const
 	return win.heightMMInPixels(mm);
 }
 
-static void updateTexture(const EmuApp &app, VControllerElement &e, Gfx::RendererTask &task)
+static void updateTexture(const EmuApp &app, VControllerElement &e, Gfx::RendererTask &task, const Gfx::IndexBuffer<uint8_t> &fanQuadIdxs)
 {
 	visit(overloaded
 	{
-		[&](VControllerDPad &dpad){ dpad.setImage(task, app.asset(app.vControllerAssetDesc(0))); },
+		[&](VControllerDPad &dpad){ dpad.setImage(task, app.asset(app.vControllerAssetDesc(0)), fanQuadIdxs); },
 		[&](VControllerButtonGroup &grp)
 		{
 			for(auto &btn : grp.buttons)
@@ -112,8 +112,8 @@ static void updateTexture(const EmuApp &app, VControllerElement &e, Gfx::Rendere
 
 void VController::updateTextures()
 {
-	for(auto &e : gpElements) { updateTexture(app(), e, renderer().mainTask); }
-	for(auto &e : uiElements) { updateTexture(app(), e, renderer().mainTask); }
+	for(auto &e : gpElements) { updateTexture(app(), e, renderer().mainTask, fanQuadIdxs); }
+	for(auto &e : uiElements) { updateTexture(app(), e, renderer().mainTask, fanQuadIdxs); }
 }
 
 static void setSize(VControllerElement &elem, int sizePx, Gfx::Renderer &r)
@@ -365,7 +365,6 @@ void VController::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden
 	cmds.set(Gfx::BlendMode::PREMULT_ALPHA);
 	if(isInKeyboardMode())
 	{
-		cmds.setIndexArray(*quadIdxsPtr);
 		cmds.setColor(Gfx::Color{alphaF});
 		kb.draw(cmds);
 	}
@@ -379,12 +378,10 @@ void VController::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden
 		auto activeElements = gpElements | std::views::filter(elementIsEnabled);
 		if(!activeElements.empty())
 		{
-			cmds.setIndexArray(*quadIdxsPtr);
 			for(const auto &e : activeElements) { e.drawBounds(cmds, showHidden); }
 			cmds.basicEffect().enableTexture(cmds, gamepadTex);
 			for(const auto &e : activeElements)
 			{
-				setIndexArray(cmds, e);
 				e.drawButtons(cmds, showHidden);
 			}
 		}
@@ -392,7 +389,6 @@ void VController::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden
 	if(uiElements.size())
 	{
 		cmds.basicEffect().enableTexture(cmds, uiTex);
-		cmds.setIndexArray(*quadIdxsPtr); // all UI elements use quad indices
 		for(auto &e : uiElements)
 		{
 			e.drawButtons(cmds, showHidden);
@@ -403,15 +399,9 @@ void VController::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden
 void VController::draw(Gfx::RendererCommands &__restrict__ cmds, const VControllerElement &elem, bool showHidden) const
 {
 	cmds.set(Gfx::BlendMode::PREMULT_ALPHA);
-	setIndexArray(cmds, elem);
 	elem.drawBounds(cmds, showHidden);
 	cmds.basicEffect().enableTexture(cmds, elem.uiButtonGroup() ? uiTex : gamepadTex);
 	elem.drawButtons(cmds, showHidden);
-}
-
-void VController::setIndexArray(Gfx::RendererCommands &__restrict__ cmds, const VControllerElement &elem) const
-{
-	cmds.setIndexArray(elem.dPad() ? fanQuadIdxs : *quadIdxsPtr);
 }
 
 bool VController::isInKeyboardMode() const
@@ -424,7 +414,7 @@ void VController::setInputPlayer(int8_t player)
 	inputPlayer_ = player;
 	for(auto &e : gpElements)
 	{
-		e.transposeKeysForPlayer(app(), player);
+		e.transposeKeysForPlayer(app().inputManager, player);
 	}
 }
 
@@ -594,7 +584,7 @@ bool VController::updateAutoOnScreenControlVisible()
 	return false;
 }
 
-static bool readVControllerElement(EmuApp &app, MapIO &io, std::vector<VControllerElement> &elems, bool readingUIElems)
+static bool readVControllerElement(InputManager &mgr, MapIO &io, std::vector<VControllerElement> &elems, bool readingUIElems)
 {
 	auto elemType = io.get<uint8_t>();
 	if(elemType == 0)
@@ -606,7 +596,7 @@ static bool readVControllerElement(EmuApp &app, MapIO &io, std::vector<VControll
 			config.layout.origin = _2DOrigin::unpack(io.get<_2DOrigin::PackedType>());
 			auto keys = io.get<uint8_t>();
 			io.readSized(config.keys, keys);
-			config.validate(app);
+			config.validate(mgr);
 			elems.emplace_back(std::in_place_type<VControllerUIButtonGroup>, std::move(config));
 		}
 		else
@@ -621,7 +611,7 @@ static bool readVControllerElement(EmuApp &app, MapIO &io, std::vector<VControll
 			io.read(config.layout.showBoundingArea);
 			auto keys = io.get<uint8_t>();
 			io.readSized(config.keys, keys);
-			config.validate(app);
+			config.validate(mgr);
 			elems.emplace_back(std::in_place_type<VControllerButtonGroup>, std::move(config));
 		}
 	}
@@ -632,7 +622,7 @@ static bool readVControllerElement(EmuApp &app, MapIO &io, std::vector<VControll
 		io.read(config.diagonalSensitivity);
 		io.read(config.deadzoneMM100x);
 		io.read(config.visualizeBounds);
-		config.validate(app);
+		config.validate(mgr);
 		elems.emplace_back(std::in_place_type<VControllerDPad>, std::move(config));
 	}
 	else
@@ -684,7 +674,7 @@ bool VController::readConfig(EmuApp &app, MapIO &io, unsigned key, size_t size)
 			log.info("read emu device button data ({} bytes) with {} element(s)", size, elements);
 			for(auto i : iotaCount(elements))
 			{
-				if(!readVControllerElement(app, io, gpElements, false))
+				if(!readVControllerElement(app.inputManager, io, gpElements, false))
 					return false;
 			}
 			return true;
@@ -697,7 +687,7 @@ bool VController::readConfig(EmuApp &app, MapIO &io, unsigned key, size_t size)
 			log.info("read UI button data ({} bytes) with {} element(s)", size, elements);
 			for(auto i : iotaCount(elements))
 			{
-				if(!readVControllerElement(app, io, uiElements, true))
+				if(!readVControllerElement(app.inputManager, io, uiElements, true))
 					return false;
 			}
 			return true;
@@ -816,12 +806,11 @@ void VController::writeConfig(FileIO &io) const
 	writeUIButtonsConfig(io);
 }
 
-void VController::configure(IG::Window &win, Gfx::Renderer &renderer, const Gfx::GlyphTextureSet &face, const Gfx::IndexBuffer<uint8_t> &quadIdxs)
+void VController::configure(IG::Window &win, Gfx::Renderer &renderer, const Gfx::GlyphTextureSet &face)
 {
 	setWindow(win);
 	setRenderer(renderer);
 	setFace(face);
-	quadIdxsPtr = &quadIdxs; // common index buffer from view manager class
 	fanQuadIdxs = {renderer.mainTask, {.size = 24}}; // for rendering DPads with FanQuads
 	{
 		auto indices = fanQuadIdxs.map();
@@ -1049,7 +1038,7 @@ void VController::update(VControllerElement &elem) const
 {
 	if(!hasWindow())
 		return;
-	updateTexture(app(), elem, renderer_->mainTask);
+	updateTexture(app(), elem, renderer_->mainTask, fanQuadIdxs);
 	setSize(elem, elem.uiButtonGroup() ? uiButtonPixelSize() : emulatedDeviceButtonPixelSize(), *renderer_);
 	elem.updateMeasurements(window());
 }

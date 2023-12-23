@@ -126,6 +126,10 @@ enum class AltSpeedMode
 	fast, slow
 };
 
+WISE_ENUM_CLASS((PresentationTimeMode, uint8_t),
+	off, basic, full
+);
+
 WISE_ENUM_CLASS((CPUAffinityMode, uint8_t),
 	Auto, Any, Manual
 );
@@ -300,7 +304,6 @@ public:
 	uint8_t viewportZoom() { return optionViewportZoom; }
 	auto &showOnSecondScreenOption() { return optionShowOnSecondScreen; }
 	auto &textureBufferModeOption() { return optionTextureBufferMode; }
-	auto &videoImageBuffersOption() { return optionVideoImageBuffers; }
 	void setContentRotation(IG::Rotation);
 	IG::Rotation contentRotation() const { return contentRotation_; }
 	void updateContentRotation();
@@ -546,7 +549,6 @@ protected:
 	Byte1Option optionViewportZoom;
 	Byte1Option optionShowOnSecondScreen;
 	Byte1Option optionTextureBufferMode;
-	Byte1Option optionVideoImageBuffers;
 	Gfx::DrawableConfig windowDrawableConf;
 	IG::PixelFormat renderPixelFmt;
 	IG::Rotation contentRotation_{IG::Rotation::ANY};
@@ -566,7 +568,7 @@ public:
 	IG_UseMemberIf(Config::envIsAndroid && Config::DEBUG_BUILD, bool, useNoopThread){};
 	IG_UseMemberIf(enableFrameTimeStats, bool, showFrameTimeStats){};
 	IG_UseMemberIf(Gfx::supportsPresentModes, Gfx::PresentMode, presentMode){};
-	IG_UseMemberIf(Gfx::supportsPresentationTime, bool, usePresentationTime){true};
+	IG_UseMemberIf(Gfx::supportsPresentationTime, PresentationTimeMode, presentationTimeMode){PresentationTimeMode::basic};
 	bool allowBlankFrameInsertion{};
 	bool enableBlankFrameInsertion{};
 

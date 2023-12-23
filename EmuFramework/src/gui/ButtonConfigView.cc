@@ -28,7 +28,7 @@
 namespace EmuEx
 {
 
-constexpr SystemLogger log;
+constexpr SystemLogger log{"ButtonConfigView"};
 constexpr int resetItemsSize = 2;
 
 static std::string keyNames(MappedKeys keys, const Input::Device &dev)
@@ -65,7 +65,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 	rootIMView{rootIMView_},
 	reset
 	{
-		"Unbind All", &defaultFace(),
+		"Unbind All", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShowModal(makeView<YesNoAlertView>("Really unbind all keys in this category?",
@@ -85,7 +85,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 	},
 	resetDefaults
 	{
-		"Reset Defaults", &defaultFace(),
+		"Reset Defaults", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShowModal(makeView<YesNoAlertView>("Really reset all keys in this category to defaults?",
@@ -115,7 +115,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 		{
 			app().inputManager.toString(key),
 			keyNames(keyConfig.get(key), devConf_.device()),
-			&defaultFace(),
+			attach,
 			[this, keyIdxToSet = i](const Input::Event &e)
 			{
 				auto btnSetView = makeView<ButtonConfigSetView>(rootIMView,
@@ -138,7 +138,7 @@ void ButtonConfigView::onSet(int catIdx, MappedKeys mapKey)
 	devConf.buildKeyMap(app().inputManager);
 	auto &b = btn[catIdx];
 	b.set2ndName(keyNames(mapKey, devConf.device()));
-	b.compile2nd(renderer());
+	b.compile2nd();
 }
 
 bool ButtonConfigView::inputEvent(const Input::Event &e)
@@ -168,7 +168,7 @@ void ButtonConfigView::updateKeyNames(const KeyConfig &conf)
 	for(auto &&[i, key]: enumerate(cat.keys))
 	{
 		btn[i].set2ndName(keyNames(conf.get(key), devConf.device()));
-		btn[i].compile2nd(renderer());
+		btn[i].compile2nd();
 	}
 }
 
@@ -176,7 +176,7 @@ ButtonConfigSetView::ButtonConfigSetView(ViewAttachParams attach,
 	InputManagerView &rootIMView, Input::Device &dev, std::string_view actionName,
 	SetDelegate onSet):
 		View{attach},
-		text{&defaultFace()},
+		text{attach.rendererTask, &defaultFace()},
 		quads{attach.rendererTask, {.size = 3}},
 		onSetD{onSet},
 		dev{dev},
@@ -193,21 +193,21 @@ void ButtonConfigSetView::initPointerUI()
 	if(pointerUIIsInit())
 		return;
 	log.info("init pointer UI elements");
-	unbind = {"Unbind", &defaultFace()};
-	cancel = {"Cancel", &defaultFace()};
+	unbind = {renderer().mainTask, "Unbind", &defaultFace()};
+	cancel = {renderer().mainTask, "Cancel", &defaultFace()};
 	unbindB.x2 = 1;
 }
 
 void ButtonConfigSetView::place()
 {
-	text.compile(renderer(), {.alignment = Gfx::TextAlignment::center});
+	text.compile({.alignment = Gfx::TextAlignment::center});
 	using Quad = decltype(quads)::Type;
 	auto map = quads.map();
 	Quad{{.bounds = viewRect().as<int16_t>()}}.write(map, 0);
 	if(pointerUIIsInit())
 	{
-		unbind.compile(renderer());
-		cancel.compile(renderer());
+		unbind.compile();
+		cancel.compile();
 		WRect btnFrame;
 		btnFrame.setPosRel(viewRect().pos(LB2DO), unbind.nominalHeight() * 2, LB2DO);
 		unbindB = btnFrame;
@@ -320,7 +320,7 @@ void ButtonConfigSetView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	if(pointerUIIsInit())
 	{
 		cmds.setColor({.2, .2, .2});
-		cmds.drawQuads(quadIndices(), 1, 2); // button bg
+		cmds.drawQuads(1, 2); // button bg
 	}
 	basicEffect.enableAlphaTexture(cmds);
 	if(pointerUIIsInit())

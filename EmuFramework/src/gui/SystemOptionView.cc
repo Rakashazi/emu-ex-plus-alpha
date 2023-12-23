@@ -29,39 +29,39 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	TableView{"System Options", attach, item},
 	autosaveTimerItem
 	{
-		{"Off",    &defaultFace(), 0},
-		{"5mins",  &defaultFace(), 5},
-		{"10mins", &defaultFace(), 10},
-		{"15mins", &defaultFace(), 15},
+		{"Off",    attach, {.id = 0}},
+		{"5mins",  attach, {.id = 5}},
+		{"10mins", attach, {.id = 10}},
+		{"15mins", attach, {.id = 15}},
 	},
 	autosaveTimer
 	{
-		"Autosave Timer", &defaultFace(),
+		"Autosave Timer", attach,
+		MenuId{app().autosaveManager().saveTimer.frequency.count()},
+		autosaveTimerItem,
 		{
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().autosaveManager().saveTimer.frequency = IG::Minutes{item.id()}; }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().autosaveManager().saveTimer.frequency = IG::Minutes{item.id}; }
 		},
-		MenuItem::Id(app().autosaveManager().saveTimer.frequency.count()),
-		autosaveTimerItem
 	},
 	autosaveLaunchItem
 	{
-		{"Main Slot",            &defaultFace(), to_underlying(AutosaveLaunchMode::Load)},
-		{"Main Slot (No State)", &defaultFace(), to_underlying(AutosaveLaunchMode::LoadNoState)},
-		{"No Save Slot",         &defaultFace(), to_underlying(AutosaveLaunchMode::NoSave)},
-		{"Select Slot",          &defaultFace(), to_underlying(AutosaveLaunchMode::Ask)},
+		{"Main Slot",            attach, {.id = AutosaveLaunchMode::Load}},
+		{"Main Slot (No State)", attach, {.id = AutosaveLaunchMode::LoadNoState}},
+		{"No Save Slot",         attach, {.id = AutosaveLaunchMode::NoSave}},
+		{"Select Slot",          attach, {.id = AutosaveLaunchMode::Ask}},
 	},
 	autosaveLaunch
 	{
-		"Autosave Launch Mode", &defaultFace(),
+		"Autosave Launch Mode", attach,
+		MenuId{app().autosaveManager().autosaveLaunchMode},
+		autosaveLaunchItem,
 		{
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().autosaveManager().autosaveLaunchMode = AutosaveLaunchMode(item.id()); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().autosaveManager().autosaveLaunchMode = AutosaveLaunchMode(item.id.val); }
 		},
-		(MenuItem::Id)app().autosaveManager().autosaveLaunchMode,
-		autosaveLaunchItem
 	},
 	autosaveContent
 	{
-		"Autosave Content", &defaultFace(),
+		"Autosave Content", attach,
 		app().autosaveManager().saveOnlyBackupMemory,
 		"State & Backup RAM", "Only Backup RAM",
 		[this](BoolMenuItem &item)
@@ -71,7 +71,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	confirmOverwriteState
 	{
-		"Confirm Overwrite State", &defaultFace(),
+		"Confirm Overwrite State", attach,
 		app().confirmOverwriteState,
 		[this](BoolMenuItem &item)
 		{
@@ -80,12 +80,12 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	fastModeSpeedItem
 	{
-		{"1.5x",  &defaultFace(), 150},
-		{"2x",    &defaultFace(), 200},
-		{"4x",    &defaultFace(), 400},
-		{"8x",    &defaultFace(), 800},
-		{"16x",   &defaultFace(), 1600},
-		{"Custom Value", &defaultFace(),
+		{"1.5x",  attach, {.id = 150}},
+		{"2x",    attach, {.id = 200}},
+		{"4x",    attach, {.id = 400}},
+		{"8x",    attach, {.id = 800}},
+		{"16x",   attach, {.id = 1600}},
+		{"Custom Value", attach,
 			[this](const Input::Event &e)
 			{
 				app().pushAndShowNewCollectValueInputView<float>(attachParams(), e, "Input above 1.0 to 20.0", "",
@@ -94,7 +94,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 						auto valAsInt = std::round(val * 100.f);
 						if(app.setAltSpeed(AltSpeedMode::fast, valAsInt))
 						{
-							fastModeSpeed.setSelected((MenuItem::Id)valAsInt, *this);
+							fastModeSpeed.setSelected(MenuId{valAsInt}, *this);
 							dismissPrevious();
 							return true;
 						}
@@ -105,28 +105,28 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 						}
 					});
 				return false;
-			}, MenuItem::DEFAULT_ID
+			}, {.id = defaultMenuId}
 		},
 	},
 	fastModeSpeed
 	{
-		"Fast-forward Speed", &defaultFace(),
+		"Fast-forward Speed", attach,
+		MenuId{app().altSpeed(AltSpeedMode::fast)},
+		fastModeSpeedItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
 				t.resetString(std::format("{:g}x", app().altSpeedAsDouble(AltSpeedMode::fast)));
 				return true;
 			},
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setAltSpeed(AltSpeedMode::fast, item.id()); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setAltSpeed(AltSpeedMode::fast, item.id); }
 		},
-		(MenuItem::Id)app().altSpeed(AltSpeedMode::fast),
-		fastModeSpeedItem
 	},
 	slowModeSpeedItem
 	{
-		{"0.25x", &defaultFace(), 25},
-		{"0.50x", &defaultFace(), 50},
-		{"Custom Value", &defaultFace(),
+		{"0.25x", attach, {.id = 25}},
+		{"0.50x", attach, {.id = 50}},
+		{"Custom Value", attach,
 			[this](const Input::Event &e)
 			{
 				app().pushAndShowNewCollectValueInputView<float>(attachParams(), e, "Input 0.05 up to 1.0", "",
@@ -135,7 +135,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 						auto valAsInt = std::round(val * 100.f);
 						if(app.setAltSpeed(AltSpeedMode::slow, valAsInt))
 						{
-							slowModeSpeed.setSelected((MenuItem::Id)valAsInt, *this);
+							slowModeSpeed.setSelected(MenuId{valAsInt}, *this);
 							dismissPrevious();
 							return true;
 						}
@@ -146,29 +146,29 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 						}
 					});
 				return false;
-			}, MenuItem::DEFAULT_ID
+			}, {.id = defaultMenuId}
 		},
 	},
 	slowModeSpeed
 	{
-		"Slow-motion Speed", &defaultFace(),
+		"Slow-motion Speed", attach,
+		MenuId{app().altSpeed(AltSpeedMode::slow)},
+		slowModeSpeedItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
 				t.resetString(std::format("{:g}x", app().altSpeedAsDouble(AltSpeedMode::slow)));
 				return true;
 			},
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setAltSpeed(AltSpeedMode::slow, item.id()); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setAltSpeed(AltSpeedMode::slow, item.id); }
 		},
-		(MenuItem::Id)app().altSpeed(AltSpeedMode::slow),
-		slowModeSpeedItem
 	},
 	rewindStatesItem
 	{
-		{"0", &defaultFace(), 0},
-		{"30", &defaultFace(), 30},
-		{"60", &defaultFace(), 60},
-		{"Custom Value", &defaultFace(), [this](const Input::Event &e)
+		{"0",  attach, {.id = 0}},
+		{"30", attach, {.id = 30}},
+		{"60", attach, {.id = 60}},
+		{"Custom Value", attach, [this](const Input::Event &e)
 			{
 				app().pushAndShowNewCollectValueRangeInputView<int, 0, 50000>(attachParams(), e,
 					"Input 0 to 50000", std::to_string(app().rewindManager.maxStates),
@@ -180,26 +180,26 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 						return true;
 					});
 				return false;
-			}, MenuItem::DEFAULT_ID
+			}, {.id = defaultMenuId}
 		},
 	},
 	rewindStates
 	{
-		"Rewind States", &defaultFace(),
+		"Rewind States", attach,
+		MenuId{app().rewindManager.maxStates},
+		rewindStatesItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
 				t.resetString(std::format("{}", app().rewindManager.maxStates));
 				return true;
 			},
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().rewindManager.updateMaxStates(item.id()); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().rewindManager.updateMaxStates(item.id); }
 		},
-		MenuItem::Id(app().rewindManager.maxStates),
-		rewindStatesItem
 	},
 	rewindTimeInterval
 	{
-		"Rewind State Interval (Seconds)", std::to_string(app().rewindManager.saveTimer.frequency.count()), &defaultFace(),
+		"Rewind State Interval (Seconds)", std::to_string(app().rewindManager.saveTimer.frequency.count()), attach,
 		[this](const Input::Event &e)
 		{
 			app().pushAndShowNewCollectValueRangeInputView<int, 1, 60>(attachParams(), e,
@@ -214,7 +214,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	performanceMode
 	{
-		"Performance Mode", &defaultFace(),
+		"Performance Mode", attach,
 		app().useSustainedPerformanceMode,
 		"Normal", "Sustained",
 		[this](BoolMenuItem &item)
@@ -224,7 +224,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	noopThread
 	{
-		"No-op Thread (Experimental)", &defaultFace(),
+		"No-op Thread (Experimental)", attach,
 		(bool)app().useNoopThread,
 		[this](BoolMenuItem &item)
 		{
@@ -233,7 +233,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	cpuAffinity
 	{
-		"Configure CPU Affinity", &defaultFace(),
+		"Configure CPU Affinity", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<CPUAffinityView>(appContext().cpuCount()), e);

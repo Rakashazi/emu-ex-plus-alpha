@@ -93,9 +93,7 @@ public:
 protected:
 	struct ViewEntry
 	{
-		ViewEntry(std::unique_ptr<View> v, bool needsNavView):
-			v{std::move(v)}, needsNavView{needsNavView} {}
-		std::unique_ptr<View> v;
+		std::unique_ptr<View> ptr;
 		bool needsNavView{};
 		bool isModal{};
 	};

@@ -20,7 +20,7 @@
 #include <vbam/Util.h>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
-#include <imagine/util/math/math.hh>
+#include <imagine/util/math.hh>
 #include "MainSystem.hh"
 
 struct GameSettings

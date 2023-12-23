@@ -37,14 +37,16 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 {
 	TextMenuItem rtcItem[3]
 	{
-		{"Auto", &defaultFace(), [this](){ setRTCEmulation(RtcMode::AUTO); }},
-		{"Off",  &defaultFace(), [this](){ setRTCEmulation(RtcMode::OFF); }},
-		{"On",   &defaultFace(), [this](){ setRTCEmulation(RtcMode::ON); }},
+		{"Auto", attachParams(), [this](){ setRTCEmulation(RtcMode::AUTO); }},
+		{"Off",  attachParams(), [this](){ setRTCEmulation(RtcMode::OFF); }},
+		{"On",   attachParams(), [this](){ setRTCEmulation(RtcMode::ON); }},
 	};
 
 	MultiChoiceMenuItem rtc
 	{
-		"RTC Emulation", &defaultFace(),
+		"RTC Emulation", attachParams(),
+		system().optionRtcEmulation.val,
+		rtcItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -55,9 +57,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 				}
 				return false;
 			}
-		},
-		system().optionRtcEmulation.val,
-		rtcItem
+		}
 	};
 
 	void setRTCEmulation(RtcMode val)
@@ -69,18 +69,20 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 
 	TextMenuItem saveTypeItem[7]
 	{
-		{"Auto",            &defaultFace(), setSaveTypeDel(), packSaveTypeOverride(GBA_SAVE_AUTO)},
-		{"EEPROM",          &defaultFace(), setSaveTypeDel(), packSaveTypeOverride(GBA_SAVE_EEPROM)},
-		{"SRAM",            &defaultFace(), setSaveTypeDel(), packSaveTypeOverride(GBA_SAVE_SRAM)},
-		{"Flash (64K)",     &defaultFace(), setSaveTypeDel(), packSaveTypeOverride(GBA_SAVE_FLASH, SIZE_FLASH512)},
-		{"Flash (128K)",    &defaultFace(), setSaveTypeDel(), packSaveTypeOverride(GBA_SAVE_FLASH, SIZE_FLASH1M)},
-		{"EEPROM + Sensor", &defaultFace(), setSaveTypeDel(), packSaveTypeOverride(GBA_SAVE_EEPROM_SENSOR)},
-		{"None",            &defaultFace(), setSaveTypeDel(), packSaveTypeOverride(GBA_SAVE_NONE)},
+		{"Auto",            attachParams(), setSaveTypeDel(), {.id = packSaveTypeOverride(GBA_SAVE_AUTO)}},
+		{"EEPROM",          attachParams(), setSaveTypeDel(), {.id = packSaveTypeOverride(GBA_SAVE_EEPROM)}},
+		{"SRAM",            attachParams(), setSaveTypeDel(), {.id = packSaveTypeOverride(GBA_SAVE_SRAM)}},
+		{"Flash (64K)",     attachParams(), setSaveTypeDel(), {.id = packSaveTypeOverride(GBA_SAVE_FLASH, SIZE_FLASH512)}},
+		{"Flash (128K)",    attachParams(), setSaveTypeDel(), {.id = packSaveTypeOverride(GBA_SAVE_FLASH, SIZE_FLASH1M)}},
+		{"EEPROM + Sensor", attachParams(), setSaveTypeDel(), {.id = packSaveTypeOverride(GBA_SAVE_EEPROM_SENSOR)}},
+		{"None",            attachParams(), setSaveTypeDel(), {.id = packSaveTypeOverride(GBA_SAVE_NONE)}},
 	};
 
 	MultiChoiceMenuItem saveType
 	{
-		"Save Type", &defaultFace(),
+		"Save Type", attachParams(),
+		MenuId{system().optionSaveTypeOverride.val},
+		saveTypeItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -91,16 +93,14 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 				}
 				return false;
 			}
-		},
-		(MenuItem::Id)system().optionSaveTypeOverride.val,
-		saveTypeItem
+		}
 	};
 
 	TextMenuItem::SelectDelegate setSaveTypeDel()
 	{
 		return [this](TextMenuItem &item, const Input::Event &e)
 		{
-			if(system().optionSaveTypeOverride == (uint32_t)item.id())
+			if(system().optionSaveTypeOverride == (uint32_t)item.id)
 				return true;
 			static auto setSaveTypeOption = [](GbaApp &app, uint32_t optVal, ViewAttachParams attach, const Input::Event &e)
 			{
@@ -113,7 +113,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 				pushAndShowModal(makeView<YesNoAlertView>("Really change save type? Existing data in .sav file may be lost so please make a backup before proceeding.",
 					YesNoAlertView::Delegates
 					{
-						.onYes = [this, optVal = item.id()](const Input::Event &e)
+						.onYes = [this, optVal = item.id](const Input::Event &e)
 						{
 							setSaveTypeOption(app(), optVal, attachParams(), e);
 						}
@@ -122,7 +122,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 			}
 			else
 			{
-				setSaveTypeOption(app(), item.id(), attachParams(), e);
+				setSaveTypeOption(app(), item.id, attachParams(), e);
 				return true;
 			}
 		};
@@ -131,16 +131,18 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	#ifdef IG_CONFIG_SENSORS
 	TextMenuItem hardwareSensorItem[5]
 	{
-		{"Auto",          &defaultFace(), setHardwareSensorDel(), to_underlying(GbaSensorType::Auto)},
-		{"None",          &defaultFace(), setHardwareSensorDel(), to_underlying(GbaSensorType::None)},
-		{"Accelerometer", &defaultFace(), setHardwareSensorDel(), to_underlying(GbaSensorType::Accelerometer)},
-		{"Gyroscope",     &defaultFace(), setHardwareSensorDel(), to_underlying(GbaSensorType::Gyroscope)},
-		{"Light",         &defaultFace(), setHardwareSensorDel(), to_underlying(GbaSensorType::Light)},
+		{"Auto",          attachParams(), setHardwareSensorDel(), {.id = GbaSensorType::Auto}},
+		{"None",          attachParams(), setHardwareSensorDel(), {.id = GbaSensorType::None}},
+		{"Accelerometer", attachParams(), setHardwareSensorDel(), {.id = GbaSensorType::Accelerometer}},
+		{"Gyroscope",     attachParams(), setHardwareSensorDel(), {.id = GbaSensorType::Gyroscope}},
+		{"Light",         attachParams(), setHardwareSensorDel(), {.id = GbaSensorType::Light}},
 	};
 
 	MultiChoiceMenuItem hardwareSensor
 	{
-		"Hardware Sensor", &defaultFace(),
+		"Hardware Sensor", attachParams(),
+		MenuId{system().sensorType},
+		hardwareSensorItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -152,13 +154,11 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 				return false;
 			}
 		},
-		(MenuItem::Id)system().sensorType,
-		hardwareSensorItem
 	};
 
 	TextMenuItem::SelectDelegate setHardwareSensorDel()
 	{
-		return [this](TextMenuItem &item) { system().setSensorType((GbaSensorType)item.id()); };
+		return [this](TextMenuItem &item) { system().setSensorType(GbaSensorType(item.id.val)); };
 	}
 	#endif
 
@@ -186,7 +186,7 @@ class CustomSystemActionsView : public SystemActionsView
 {
 	TextMenuItem options
 	{
-		"Console Options", &defaultFace(),
+		"Console Options", attachParams(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			if(system().hasContent())
@@ -209,7 +209,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 	using MainAppHelper<CustomAudioOptionView>::system;
 	using MainAppHelper<CustomAudioOptionView>::app;
 
-	TextHeadingMenuItem mixer{"Mixer", &defaultBoldFace()};
+	TextHeadingMenuItem mixer{"Mixer", attachParams()};
 
 	using VolumeChoiceItemArr = std::array<TextMenuItem, 3>;
 
@@ -219,19 +219,19 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 		{
 			TextMenuItem
 			{
-				"Default", &defaultFace(),
+				"Default", attachParams(),
 				[this, gbVol]() { soundSetVolume(gGba, 1.f, gbVol); },
-				100
+				{.id = 100}
 			},
 			TextMenuItem
 			{
-				"Off", &defaultFace(),
+				"Off", attachParams(),
 				[this, gbVol]() { soundSetVolume(gGba, 0, gbVol); },
-				0
+				{.id = 0}
 			},
 			TextMenuItem
 			{
-				"Custom Value", &defaultFace(),
+				"Custom Value", attachParams(),
 				[this, gbVol](Input::Event e)
 				{
 					app().pushAndShowNewCollectValueRangeInputView<int, 0, 100>(attachParams(), e, "Input 0 to 100", "",
@@ -239,12 +239,12 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 						{
 							soundSetVolume(gGba, val / 100.f, gbVol);
 							size_t idx = gbVol ? 1 : 0;
-							volumeLevel[idx].setSelected((MenuItem::Id)val, *this);
+							volumeLevel[idx].setSelected(MenuId{val}, *this);
 							dismissPrevious();
 							return true;
 						});
 					return false;
-				}, MenuItem::DEFAULT_ID
+				}, {.id = defaultMenuId}
 			}
 		};
 	}
@@ -259,7 +259,9 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 	{
 		return
 		{
-			gbVol ? "GB APU Volume" : "PCM Volume", &defaultFace(),
+			gbVol ? "GB APU Volume" : "PCM Volume", attachParams(),
+			MenuId{soundVolumeAsInt(gGba, gbVol)},
+			volumeLevelItem[gbVol ? 1 : 0],
 			{
 				.onSetDisplayString = [this, gbVol](auto idx, Gfx::Text &t)
 				{
@@ -267,8 +269,6 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 					return true;
 				}
 			},
-			(MenuItem::Id)soundVolumeAsInt(gGba, gbVol),
-			volumeLevelItem[gbVol ? 1 : 0]
 		};
 	}
 
@@ -282,7 +282,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 	{
 		return
 		{
-			IG_forward(name), &defaultFace(),
+			IG_forward(name), attachParams(),
 			bool(soundGetEnable(gGba) & mask),
 			[this, mask](BoolMenuItem &item)
 			{
@@ -305,31 +305,33 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 	{
 		TextMenuItem
 		{
-			"Default", &defaultFace(),
+			"Default", attachParams(),
 			[this]() { soundSetFiltering(gGba, .5f); },
-			50
+			{.id = 50}
 		},
 		TextMenuItem
 		{
-			"Custom Value", &defaultFace(),
+			"Custom Value", attachParams(),
 			[this](Input::Event e)
 			{
 				app().pushAndShowNewCollectValueRangeInputView<int, 0, 100>(attachParams(), e, "Input 0 to 100", "",
 					[this](EmuApp &app, auto val)
 					{
 						soundSetFiltering(gGba, val / 100.f);
-						filteringLevel.setSelected((MenuItem::Id)val, *this);
+						filteringLevel.setSelected(MenuId{val}, *this);
 						dismissPrevious();
 						return true;
 					});
 				return false;
-			}, MenuItem::DEFAULT_ID
+			}, {.id = defaultMenuId}
 		}
 	};
 
 	MultiChoiceMenuItem filteringLevel
 	{
-		"Filtering Level", &defaultFace(),
+		"Filtering Level", attachParams(),
+		MenuId{soundFilteringAsInt(gGba)},
+		filteringLevelItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -337,13 +339,11 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 				return true;
 			}
 		},
-		(MenuItem::Id)soundFilteringAsInt(gGba),
-		filteringLevelItem
 	};
 
 	BoolMenuItem filtering
 	{
-		"Filtering", &defaultFace(),
+		"Filtering", attachParams(),
 		soundGetInterpolation(gGba),
 		[this](BoolMenuItem &item)
 		{
@@ -377,29 +377,31 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 	#ifdef IG_CONFIG_SENSORS
 	TextMenuItem lightSensorScaleItem[5]
 	{
-		{"Darkness",      &defaultFace(), setLightSensorScaleDel(), 0},
-		{"Indoor Light",  &defaultFace(), setLightSensorScaleDel(), 100},
-		{"Overcast Day",  &defaultFace(), setLightSensorScaleDel(), 1000},
-		{"Sunny Day",     &defaultFace(), setLightSensorScaleDel(), 10000},
-		{"Custom Value",  &defaultFace(),
+		{"Darkness",      attachParams(), setLightSensorScaleDel(), {.id = 0}},
+		{"Indoor Light",  attachParams(), setLightSensorScaleDel(), {.id = 100}},
+		{"Overcast Day",  attachParams(), setLightSensorScaleDel(), {.id = 1000}},
+		{"Sunny Day",     attachParams(), setLightSensorScaleDel(), {.id = 10000}},
+		{"Custom Value",  attachParams(),
 			[this](Input::Event e)
 			{
 				app().pushAndShowNewCollectValueRangeInputView<int, 0, 50000>(attachParams(), e, "Input 0 to 50000", "",
 					[this](EmuApp &app, auto val)
 					{
 						system().lightSensorScaleLux = val;
-						lightSensorScale.setSelected((MenuItem::Id)val, *this);
+						lightSensorScale.setSelected(MenuId{val}, *this);
 						dismissPrevious();
 						return true;
 					});
 				return false;
-			}, MenuItem::DEFAULT_ID
+			}, {.id = defaultMenuId}
 		}
 	};
 
 	MultiChoiceMenuItem lightSensorScale
 	{
-		"Light Sensor Scale", &defaultFace(),
+		"Light Sensor Scale", attachParams(),
+		MenuId{system().lightSensorScaleLux},
+		lightSensorScaleItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -407,13 +409,11 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 				return true;
 			}
 		},
-		(MenuItem::Id)system().lightSensorScaleLux,
-		lightSensorScaleItem
 	};
 
 	TextMenuItem::SelectDelegate setLightSensorScaleDel()
 	{
-		return [this](TextMenuItem &item) { system().lightSensorScaleLux = item.id(); };
+		return [this](TextMenuItem &item) { system().lightSensorScaleLux = item.id; };
 	}
 	#endif
 
@@ -433,7 +433,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	TextMenuItem cheatsPath
 	{
-		cheatsMenuName(appContext(), system().cheatsDir), &defaultFace(),
+		cheatsMenuName(appContext(), system().cheatsDir), attachParams(),
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeViewWithName<UserPathSelectView>("Cheats", system().userPath(system().cheatsDir),
@@ -441,14 +441,14 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					logMsg("set cheats path:%s", path.data());
 					system().cheatsDir = path;
-					cheatsPath.compile(cheatsMenuName(appContext(), path), renderer());
+					cheatsPath.compile(cheatsMenuName(appContext(), path));
 				}), e);
 		}
 	};
 
 	TextMenuItem patchesPath
 	{
-		patchesMenuName(appContext(), system().patchesDir), &defaultFace(),
+		patchesMenuName(appContext(), system().patchesDir), attachParams(),
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeViewWithName<UserPathSelectView>("Patches", system().userPath(system().patchesDir),
@@ -456,7 +456,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				{
 					logMsg("set patches path:%s", path.data());
 					system().patchesDir = path;
-					patchesPath.compile(patchesMenuName(appContext(), path), renderer());
+					patchesPath.compile(patchesMenuName(appContext(), path));
 				}), e);
 		}
 	};

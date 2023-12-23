@@ -25,6 +25,8 @@
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"ConfigFile"};
+
 bool isValidAspectRatio(float val);
 bool isValidFastSpeed(int16_t);
 bool isValidSlowSpeed(int16_t);
@@ -54,7 +56,7 @@ void EmuApp::saveConfigFile(FileIO &io)
 {
 	if(!io)
 	{
-		logMsg("not writing config file");
+		log.info("not writing config file");
 		return;
 	}
 	writeConfigHeader(io);
@@ -69,7 +71,6 @@ void EmuApp::saveConfigFile(FileIO &io)
 		optionImgFilter,
 		optionImgEffect,
 		optionImageEffectPixelFormat,
-		optionVideoImageBuffers,
 		optionOverlayEffect,
 		optionOverlayEffectLevel,
 		optionFontSize,
@@ -149,8 +150,8 @@ void EmuApp::saveConfigFile(FileIO &io)
 		writeOptionValueIfNotDefault(io, CFGKEY_CPU_AFFINITY_MODE, cpuAffinityMode, CPUAffinityMode::Auto);
 	if(used(presentMode) && supportsPresentModes())
 		writeOptionValueIfNotDefault(io, CFGKEY_RENDERER_PRESENT_MODE, presentMode, Gfx::PresentMode::Auto);
-	if(used(usePresentationTime) && renderer.supportsPresentationTime())
-		writeOptionValueIfNotDefault(io, CFGKEY_RENDERER_PRESENTATION_TIME, usePresentationTime, true);
+	if(used(presentationTimeMode) && renderer.supportsPresentationTime())
+		writeOptionValueIfNotDefault(io, CFGKEY_RENDERER_PRESENTATION_TIME, presentationTimeMode, PresentationTimeMode::basic);
 	writeStringOptionValue(io, CFGKEY_LAST_DIR, contentSearchPath());
 	writeStringOptionValue(io, CFGKEY_SAVE_PATH, system().userSaveDirectory());
 	writeStringOptionValue(io, CFGKEY_SCREENSHOTS_PATH, userScreenshotPath);
@@ -168,7 +169,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 		auto oldConfigFilePath = FS::pathString(ctx.assetPath(), "config");
 		if(FS::exists(oldConfigFilePath))
 		{
-			logMsg("moving config file from app path to support path");
+			log.info("moving config file from app path to support path");
 			FS::rename(oldConfigFilePath, configFilePath);
 		}
 	}
@@ -179,12 +180,12 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 		auto oldConfigFilePath = FS::pathString(oldConfigDir, EmuSystem::configFilename);
 		if(FS::exists(oldConfigFilePath))
 		{
-			logMsg("moving config file from prefs path to support path");
+			log.info("moving config file from prefs path to support path");
 			FS::rename(oldConfigFilePath, configFilePath);
 		}
 		if(!FS::directoryItems(oldConfigDir))
 		{
-			logMsg("removing old empty config directory");
+			log.info("removing old empty config directory");
 			FS::remove(oldConfigDir);
 		}
 	}
@@ -210,7 +211,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 						return true;
 					if(recentContent.readConfig(io, key, size, system()))
 						return true;
-					logMsg("skipping key %u", (unsigned)key);
+					log.info("skipping key:{}", key);
 					return false;
 				}
 				case CFGKEY_FRAME_INTERVAL: return optionFrameInterval.readFromIO(io, size);;
@@ -232,7 +233,6 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_RENDER_PIXEL_FORMAT:
 					setRenderPixelFormat(readOptionValue<IG::PixelFormat>(io, size, renderPixelFormatIsValid));
 					return true;
-				case CFGKEY_VIDEO_IMAGE_BUFFERS: return optionVideoImageBuffers.readFromIO(io, size);
 				case CFGKEY_OVERLAY_EFFECT: return optionOverlayEffect.readFromIO(io, size);
 				case CFGKEY_OVERLAY_EFFECT_LEVEL: return optionOverlayEffectLevel.readFromIO(io, size);
 				case CFGKEY_RECENT_CONTENT: return recentContent.readLegacyConfig(io, system());
@@ -278,7 +278,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_RENDERER_PRESENT_MODE:
 					return used(presentMode) && supportsPresentModes() ? readOptionValue(io, size, presentMode, [](auto m){return m <= lastEnum<Gfx::PresentMode>;}) : false;
 				case CFGKEY_RENDERER_PRESENTATION_TIME:
-					return used(usePresentationTime) ? readOptionValue(io, size, usePresentationTime) : false;
+					return used(presentationTimeMode) ? readOptionValue(io, size, presentationTimeMode, [](auto m){return m <= lastEnum<PresentationTimeMode>;}) : false;
 				case CFGKEY_AUDIO_SOLO_MIX:
 					audioManager().setSoloMix(readOptionValue<bool>(io, size));
 					return true;
@@ -324,7 +324,7 @@ void EmuApp::saveConfigFile(IG::ApplicationContext ctx)
 	}
 	catch(...)
 	{
-		logErr("error writing config file");
+		log.error("error writing config file");
 	}
 }
 

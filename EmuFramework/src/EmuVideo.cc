@@ -71,7 +71,7 @@ bool EmuVideo::setFormat(IG::PixmapDesc desc, EmuSystemTaskContext taskCtx)
 	{
 		Gfx::TextureConfig conf{desc, samplerConfig()};
 		conf.colorSpace = colSpace;
-		vidImg = renderer().makePixmapBufferTexture(conf, bufferMode, singleBuffer);
+		vidImg = renderer().makePixmapBufferTexture(conf, bufferMode);
 	}
 	else
 	{
@@ -94,15 +94,9 @@ void EmuVideo::dispatchFormatChanged()
 	onFormatChanged(*this);
 }
 
-void EmuVideo::syncImageAccess()
-{
-	rTask->clientWaitSync(std::exchange(fence, {}));
-}
-
 EmuVideoImage EmuVideo::startFrame(EmuSystemTaskContext taskCtx)
 {
 	auto lockedTex = vidImg.lock();
-	syncImageAccess();
 	return {taskCtx, *this, lockedTex};
 }
 
@@ -179,17 +173,8 @@ void EmuVideo::finishFrame(EmuSystemTaskContext taskCtx, IG::PixmapView pix)
 		doScreenshot(taskCtx, pix);
 	}
 	app().record(FrameTimeStatEvent::aboutToSubmitFrame);
-	syncImageAccess();
 	vidImg.write(pix, {.async = true});
 	postFrameFinished(taskCtx);
-}
-
-bool EmuVideo::addFence(Gfx::RendererCommands &cmds)
-{
-	if(!needsFence)
-		return false;
-	fence = cmds.clientWaitSyncReset(fence);
-	return true;
 }
 
 void EmuVideo::clear()
@@ -283,12 +268,6 @@ void EmuVideo::setOnFormatChanged(FormatChangedDelegate del)
 	onFormatChanged = del;
 }
 
-void EmuVideo::updateNeedsFence()
-{
-	needsFence = singleBuffer && renderer().maxSwapChainImages() > 2;
-	log.info("{} fence for synchronization", needsFence ? "using" : "not using");
-}
-
 void EmuVideo::setTextureBufferMode(EmuSystem &sys, Gfx::TextureBufferMode mode)
 {
 	mode = renderer().makeValidTextureBufferMode(mode);
@@ -301,27 +280,6 @@ void EmuVideo::setTextureBufferMode(EmuSystem &sys, Gfx::TextureBufferMode mode)
 			return;
 	}
 	resetImage(renderFmt);
-}
-
-void EmuVideo::setImageBuffers(int num)
-{
-	assumeExpr(num < 3);
-	if(!num)
-	{
-		num = renderer().maxSwapChainImages() < 3 || renderer().supportsSyncFences() ? 1 : 2;
-	}
-	bool useSingleBuffer = num == 1;
-	bool modeChanged = singleBuffer != useSingleBuffer;
-	singleBuffer = useSingleBuffer;
-	updateNeedsFence();
-	//log.debug("image buffer count:{} fences:{}", num, needsFence ? "yes" : "no");
-	if(modeChanged && vidImg)
-		resetImage();
-}
-
-int EmuVideo::imageBuffers() const
-{
-	return singleBuffer ? 1 : 2;
 }
 
 void EmuVideo::setSampler(Gfx::TextureSamplerConfig samplerConf)

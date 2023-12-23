@@ -16,7 +16,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
 #include <emuframework/keyRemappingUtils.hh>
-#include <imagine/util/math/math.hh>
+#include <imagine/util/math.hh>
 #include "MainSystem.hh"
 #include "MainApp.hh"
 #include <fceu/fceu.h>

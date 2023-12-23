@@ -46,9 +46,9 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 {
 	TextMenuItem timerItem[3]
 	{
-		{"Off",  &defaultFace(), setTimerIntDel(), 0},
-		{"On",   &defaultFace(), setTimerIntDel(), 1},
-		{"Auto", &defaultFace(), setTimerIntDel(), 2},
+		{"Off",  attachParams(), setTimerIntDel(), {.id = 0}},
+		{"On",   attachParams(), setTimerIntDel(), {.id = 1}},
+		{"Auto", attachParams(), setTimerIntDel(), {.id = 2}},
 	};
 
 	TextMenuItem::SelectDelegate setTimerIntDel()
@@ -56,14 +56,16 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		return [this](TextMenuItem &item)
 		{
 			system().sessionOptionSet();
-			system().optionTimerInt = item.id();
+			system().optionTimerInt = item.id;
 			system().setTimerIntOption();
 		};
 	}
 
 	MultiChoiceMenuItem timer
 	{
-		"Emulate Timer", &defaultFace(),
+		"Emulate Timer", attachParams(),
+		std::min((int)system().optionTimerInt, 2),
+		timerItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -76,8 +78,6 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 					return false;
 			}
 		},
-		std::min((int)system().optionTimerInt, 2),
-		timerItem
 	};
 
 	std::array<MenuItem*, 1> menuItem
@@ -104,22 +104,22 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 	{
 		return [this](TextMenuItem &item)
 		{
-			conf.country = (COUNTRY)item.id();
+			conf.country = (COUNTRY)item.id.val;
 			system().optionMVSCountry = conf.country;
 		};
 	}
 
 	TextMenuItem regionItem[4]
 	{
-		{"Japan",  &defaultFace(), setRegionDel(), CTY_JAPAN},
-		{"Europe", &defaultFace(), setRegionDel(), CTY_EUROPE},
-		{"USA",    &defaultFace(), setRegionDel(), CTY_USA},
-		{"Asia",   &defaultFace(), setRegionDel(), CTY_ASIA},
+		{"Japan",  attachParams(), setRegionDel(), {.id = CTY_JAPAN}},
+		{"Europe", attachParams(), setRegionDel(), {.id = CTY_EUROPE}},
+		{"USA",    attachParams(), setRegionDel(), {.id = CTY_USA}},
+		{"Asia",   attachParams(), setRegionDel(), {.id = CTY_ASIA}},
 	};
 
 	MultiChoiceMenuItem region
 	{
-		"MVS Region", &defaultFace(),
+		"MVS Region", attachParams(),
 		std::min((int)conf.country, 3),
 		regionItem
 	};
@@ -128,32 +128,32 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 	{
 		return [this](TextMenuItem &item)
 		{
-			conf.system = (SYSTEM)item.id();
+			conf.system = (SYSTEM)item.id.val;
 			system().optionBIOSType = conf.system;
 		};
 	}
 
 	TextMenuItem biosItem[7]
 	{
-		{"Unibios 2.3", &defaultFace(), setBiosDel(), SYS_UNIBIOS},
-		{"Unibios 3.0", &defaultFace(), setBiosDel(), SYS_UNIBIOS_3_0},
-		{"Unibios 3.1", &defaultFace(), setBiosDel(), SYS_UNIBIOS_3_1},
-		{"Unibios 3.2", &defaultFace(), setBiosDel(), SYS_UNIBIOS_3_2},
-		{"Unibios 3.3", &defaultFace(), setBiosDel(), SYS_UNIBIOS_3_3},
-		{"Unibios 4.0", &defaultFace(), setBiosDel(), SYS_UNIBIOS_4_0},
-		{"MVS",         &defaultFace(), setBiosDel(), SYS_ARCADE},
+		{"Unibios 2.3", attachParams(), setBiosDel(), {.id = SYS_UNIBIOS}},
+		{"Unibios 3.0", attachParams(), setBiosDel(), {.id = SYS_UNIBIOS_3_0}},
+		{"Unibios 3.1", attachParams(), setBiosDel(), {.id = SYS_UNIBIOS_3_1}},
+		{"Unibios 3.2", attachParams(), setBiosDel(), {.id = SYS_UNIBIOS_3_2}},
+		{"Unibios 3.3", attachParams(), setBiosDel(), {.id = SYS_UNIBIOS_3_3}},
+		{"Unibios 4.0", attachParams(), setBiosDel(), {.id = SYS_UNIBIOS_4_0}},
+		{"MVS",         attachParams(), setBiosDel(), {.id = SYS_ARCADE}},
 	};
 
 	MultiChoiceMenuItem bios
 	{
-		"BIOS Type", &defaultFace(),
-		(MenuItem::Id)conf.system,
+		"BIOS Type", attachParams(),
+		MenuId{conf.system},
 		biosItem
 	};
 
 	BoolMenuItem createAndUseCache
 	{
-		"Make/Use Cache Files", &defaultFace(),
+		"Make/Use Cache Files", attachParams(),
 		(bool)system().optionCreateAndUseCache,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -163,7 +163,7 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 
 	BoolMenuItem strictROMChecking
 	{
-		"Strict ROM Checking", &defaultFace(),
+		"Strict ROM Checking", attachParams(),
 		(bool)system().optionStrictROMChecking,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -188,7 +188,7 @@ class EmuGUIOptionView : public GUIOptionView, public MainAppHelper<EmuGUIOption
 
 	BoolMenuItem listAll
 	{
-		"List All Games", &defaultFace(),
+		"List All Games", attachParams(),
 		(bool)system().optionListAllGames,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -533,7 +533,7 @@ public:
 			{
 				continue;
 			}
-			item.emplace_back(drv->longname, &defaultFace(),
+			item.emplace_back(drv->longname, attachParams(),
 				[this, &entry](TextMenuItem &item, View &, Input::Event e)
 				{
 					if(item.active())
@@ -569,21 +569,21 @@ class UnibiosSwitchesView : public TableView
 {
 	TextMenuItem regionItem[3]
 	{
-		{"Japan", &defaultFace(), [](){ setRegion(0); }},
-		{"USA", &defaultFace(), [](){ setRegion(1); }},
-		{"Europe", &defaultFace(), [](){ setRegion(2); }},
+		{"Japan", attachParams(), [](){ setRegion(0); }},
+		{"USA", attachParams(), [](){ setRegion(1); }},
+		{"Europe", attachParams(), [](){ setRegion(2); }},
 	};
 
 	MultiChoiceMenuItem region
 	{
-		"Region", &defaultFace(),
+		"Region", attachParams(),
 		(int)memory.memcard[3] & 0x3,
 		regionItem
 	};
 
 	BoolMenuItem system
 	{
-		"Mode", &defaultFace(),
+		"Mode", attachParams(),
 		bool(memory.memcard[2] & 0x80),
 		"Console (AES)", "Arcade (MVS)",
 		[this](BoolMenuItem &item, View &, Input::Event e)
@@ -632,7 +632,7 @@ class CustomSystemActionsView : public SystemActionsView
 private:
 	TextMenuItem unibiosSwitches
 	{
-		"Unibios Switches", &defaultFace(),
+		"Unibios Switches", attachParams(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(system().hasContent())
@@ -651,7 +651,7 @@ private:
 
 	TextMenuItem options
 	{
-		"Console Options", &defaultFace(),
+		"Console Options", attachParams(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			if(system().hasContent())
@@ -682,7 +682,7 @@ class CustomMainMenuView : public MainMenuView
 private:
 	TextMenuItem gameList
 	{
-		"Open Content From List", &defaultFace(),
+		"Open Content From List", attachParams(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto gameListMenu = makeView<GameListView>();

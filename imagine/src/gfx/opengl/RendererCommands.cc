@@ -46,6 +46,15 @@ GLRendererCommands::GLRendererCommands(RendererTask &rTask, Window *winPtr, Draw
 	}
 }
 
+void GLRendererCommands::bindGLVertexArray(GLuint vao)
+{
+	assert(hasVAOFuncs());
+	if(currVertexArrayName == vao)
+		return;
+	currVertexArrayName = vao;
+	r->support.glBindVertexArray(vao);
+}
+
 void GLRendererCommands::bindGLArrayBuffer(GLuint vbo)
 {
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -53,6 +62,7 @@ void GLRendererCommands::bindGLArrayBuffer(GLuint vbo)
 
 void GLRendererCommands::bindGLIndexBuffer(GLuint ibo)
 {
+	assert(!hasVAOFuncs());
 	if(currIndexBufferName == ibo)
 		return;
 	currIndexBufferName = ibo;
@@ -434,18 +444,6 @@ void RendererCommands::vertexBufferData(ssize_t offset, const void *data, size_t
 	glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
 }
 
-constexpr GLenum asGLType(AttribType type)
-{
-	switch(type)
-	{
-		case AttribType::UByte: return GL_UNSIGNED_BYTE;
-		case AttribType::Short: return GL_SHORT;
-		case AttribType::UShort: return GL_UNSIGNED_SHORT;
-		case AttribType::Float: return GL_FLOAT;
-	}
-	bug_unreachable("invalid AttribType");
-}
-
 constexpr bool shouldNormalize(AttribType type, bool normalize) { return type != AttribType::Float && normalize; }
 
 void RendererCommands::drawPrimitives(Primitive mode, int start, int count)
@@ -465,6 +463,8 @@ void RendererCommands::drawPrimitiveElements(Primitive mode, int start, int coun
 }
 
 bool GLRendererCommands::useFixedFunctionPipeline() const { return r->support.useFixedFunctionPipeline; }
+
+bool GLRendererCommands::hasVAOFuncs() const { return r->support.hasVAOFuncs(); }
 
 #ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 void GLRendererCommands::setupVertexArrayPointers(int stride,
@@ -493,6 +493,7 @@ void GLRendererCommands::setupVertexArrayPointers(int stride,
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 void GLRendererCommands::setupShaderVertexArrayPointers(int stride, VertexLayoutFlags enabledLayout, VertexLayoutDesc layoutDesc)
 {
+	assert(!hasVAOFuncs());
 	if(currentEnabledVertexLayout != enabledLayout)
 	{
 		if(layoutDesc.texCoord.size)

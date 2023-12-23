@@ -30,80 +30,84 @@ template <class MsgType>
 concept ReplySemaphoreSettableMessage =
 	requires (MsgType msg, std::binary_semaphore *sem){ msg.setReplySemaphore(sem); };
 
+enum class MessageReplyMode
+{
+	none, wait
+};
+
+template<class MsgType>
+class PipeMessages
+{
+public:
+	struct Sentinel {};
+
+	class Iterator
+	{
+	public:
+		constexpr Iterator(PosixIO &io): io{&io}
+		{
+			this->operator++();
+		}
+
+		Iterator operator++()
+		{
+			if(!io) [[unlikely]]
+				return *this;
+			if(io->read(msg).bytes != sizeof(MsgType))
+			{
+				// end of messages
+				io = nullptr;
+			}
+			return *this;
+		}
+
+		bool operator==(Sentinel) const
+		{
+			return !io;
+		}
+
+		const MsgType &operator*() const
+		{
+			return msg;
+		}
+
+	private:
+		PosixIO *io{};
+		MsgType msg;
+	};
+
+	constexpr PipeMessages(PosixIO &io): io{io} {}
+	auto begin() const { return Iterator{io}; }
+	auto end() const { return Sentinel{}; }
+
+	template <class T>
+	T getExtraData()
+	{
+		return io.get<T>();
+	}
+
+	template <class T>
+	auto readExtraData(std::span<T> span)
+	{
+		return io.read(span);
+	}
+
+protected:
+	PosixIO &io;
+};
+
 template<class MsgType>
 class PipeMessagePort
 {
 public:
-	class Messages
-	{
-	public:
-		struct Sentinel {};
-
-		class Iterator
-		{
-		public:
-			constexpr Iterator(PosixIO &io): io{&io}
-			{
-				this->operator++();
-			}
-
-			Iterator operator++()
-			{
-				if(!io) [[unlikely]]
-					return *this;
-				if(io->read(msg).bytes != sizeof(MsgType))
-				{
-					// end of messages
-					io = nullptr;
-				}
-				return *this;
-			}
-
-			bool operator==(Sentinel) const
-			{
-				return !io;
-			}
-
-			const MsgType &operator*() const
-			{
-				return msg;
-			}
-
-		private:
-			PosixIO *io{};
-			MsgType msg;
-		};
-
-		constexpr Messages(PosixIO &io): io{io} {}
-		auto begin() const { return Iterator{io}; }
-		auto end() const { return Sentinel{}; }
-
-		template <class T>
-		T getExtraData()
-		{
-			return io.get<T>();
-		}
-
-		template <class T>
-		auto readExtraData(std::span<T> span)
-		{
-			return io.read(span);
-		}
-
-	protected:
-		PosixIO &io;
-	};
-
+	using Messages = PipeMessages<MsgType>;
 	static constexpr size_t MSG_SIZE = sizeof(MsgType);
 	static_assert(MSG_SIZE < PIPE_BUF, "size of message too big for atomic writes");
 
 	struct NullInit{};
 
 	PipeMessagePort(const char *debugLabel = nullptr, int capacity = 8):
-		pipe{debugLabel, (int)MSG_SIZE * capacity}
-	{
-		pipe.setReadNonBlocking(true);
-	}
+		pipe{debugLabel, (int)MSG_SIZE * capacity} {}
 
 	explicit constexpr PipeMessagePort(NullInit) {}
 
@@ -114,6 +118,7 @@ public:
 
 	void attach(EventLoop loop, Callable<void, Messages> auto &&f)
 	{
+		pipe.setReadNonBlocking(true);
 		pipe.attach(loop,
 			[=](auto &io) -> bool
 			{
@@ -125,6 +130,7 @@ public:
 
 	void attach(EventLoop loop, Callable<bool, Messages> auto &&f)
 	{
+		pipe.setReadNonBlocking(true);
 		pipe.attach(loop,
 			[=](auto &io) -> bool
 			{
@@ -143,9 +149,9 @@ public:
 		return pipe.sink().put(msg) != -1;
 	}
 
-	bool send(MsgType msg, bool awaitReply)
+	bool send(MsgType msg, MessageReplyMode mode)
 	{
-		if(awaitReply)
+		if(mode == MessageReplyMode::wait)
 		{
 			std::binary_semaphore replySemaphore{0};
 			return send(msg, &replySemaphore);
@@ -177,20 +183,18 @@ public:
 	bool sendWithExtraData(MsgType msg, auto &&obj)
 	{
 		static_assert(MSG_SIZE + sizeof(obj) < PIPE_BUF, "size of data too big for atomic writes");
-		return sendWithExtraData(msg, std::span<std::remove_reference_t<decltype(obj)>>{&obj, 1});
+		return sendWithExtraData(msg, std::span<const std::remove_reference_t<decltype(obj)>>{&obj, 1});
 	}
 
 	template <class T>
-	bool sendWithExtraData(MsgType msg, std::span<T> span)
+	bool sendWithExtraData(MsgType msg, std::span<const T> span)
 	{
 		if(span.empty())
 			return send(msg);
 		const auto bufferSize = MSG_SIZE + span.size_bytes();
-		assumeExpr(bufferSize < PIPE_BUF);
-		char buffer[PIPE_BUF];
-		memcpy(buffer, &msg, MSG_SIZE);
-		memcpy(buffer + MSG_SIZE, span.data(), span.size_bytes());
-		return pipe.sink().write(buffer, bufferSize) != -1;
+		assert(bufferSize < PIPE_BUF);
+		OutVector buffs[2]{std::span<const MsgType>{&msg, 1}, span};
+		return pipe.sink().writeVector(buffs) != -1;
 	}
 
 	void clear()
@@ -204,6 +208,8 @@ public:
 		pipe.dispatchSourceEvents();
 	}
 
+	Messages messages() { return Messages{pipe.source()}; }
+
 	explicit operator bool() const { return (bool)pipe; }
 
 protected:
@@ -212,5 +218,8 @@ protected:
 
 template<class MsgType>
 using MessagePort = PipeMessagePort<MsgType>;
+
+template<class MsgType>
+using Messages = PipeMessages<MsgType>;
 
 }

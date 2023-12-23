@@ -38,7 +38,7 @@ void TestPicker::setTests(const TestDesc *testDesc, unsigned tests)
 	testParam.reserve(tests);
 	for(auto i : iotaCount(tests))
 	{
-		testEntry.emplace_back(testDesc[i].name, u"", &defaultFace(),
+		testEntry.emplace_back(testDesc[i].name, u"", attachParams(),
 			[this, i](IG::DualTextMenuItem &, IG::View &, IG::Input::Event e)
 			{
 				auto &app = mainApp(appContext());

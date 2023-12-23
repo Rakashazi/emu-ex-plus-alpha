@@ -19,7 +19,7 @@
 #include <imagine/util/AssignmentArithmetics.hh>
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/concepts.hh>
-#include <imagine/util/math/math.hh>
+#include <imagine/util/math.hh>
 #include <algorithm>
 
 namespace IG

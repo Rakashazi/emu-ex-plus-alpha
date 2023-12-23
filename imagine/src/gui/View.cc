@@ -20,12 +20,13 @@
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/input/Event.hh>
-#include <imagine/util/math/space.hh>
-#include <imagine/util/math/int.hh>
+#include <imagine/util/math.hh>
 #include <imagine/logger/logger.h>
 
 namespace IG
 {
+
+constexpr SystemLogger log{"View"};
 
 Gfx::Renderer &ViewAttachParams::renderer() const
 {
@@ -60,7 +61,7 @@ void ViewController::popAndShow()
 
 void ViewController::popTo(View &v)
 {
-	logErr("popTo() not implemented for this controller");
+	log.error("popTo() not implemented for this controller");
 }
 
 bool ViewController::inputEvent(const Input::Event &)
@@ -85,7 +86,7 @@ void ViewManager::setTableXIndentMM(float indentMM, const Window &win)
 	auto oldIndent = std::exchange(tableXIndentPx, win.widthMMInPixels(indentMM));
 	if(tableXIndentPx != oldIndent)
 	{
-		logDMsg("setting X indent:%.2fmm (%d as pixels)", indentMM, tableXIndentPx);
+		//log.debug("setting X indent:{}mm ({} as pixels)", indentMM, tableXIndentPx);
 	}
 }
 
@@ -128,7 +129,7 @@ void View::dismiss(bool refreshLayout)
 	}
 	else
 	{
-		logWarn("called dismiss with no controller");
+		log.warn("called dismiss with no controller");
 	}
 }
 
@@ -140,11 +141,9 @@ void View::dismissPrevious()
 	}
 	else
 	{
-		logWarn("called dismissPrevious with no controller");
+		log.warn("called dismissPrevious with no controller");
 	}
 }
-
-Gfx::QuadIndexArray<uint8_t> &View::quadIndices() { return manager().quadIndices; }
 
 Gfx::GlyphTextureSet &View::defaultFace() { return manager().defaultFace; }
 
@@ -241,7 +240,6 @@ void View::show()
 {
 	prepareDraw();
 	onShow();
-	//logMsg("showed view");
 	postDraw();
 }
 
@@ -298,13 +296,6 @@ WindowRect View::displayInsetRect(Direction d, WindowRect viewRect, WindowRect d
 bool View::pointIsInView(WPt pos)
 {
 	return viewRect().overlaps(pos);
-}
-
-void View::waitForDrawFinished()
-{
-	// currently a no-op due to RendererTask only running present() async
-	/*assumeExpr(rendererTask_);
-	rendererTask_->waitForDrawFinished();*/
 }
 
 }

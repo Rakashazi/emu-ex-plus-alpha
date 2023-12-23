@@ -25,8 +25,7 @@ namespace EmuEx
 RecentContentView::RecentContentView(ViewAttachParams attach, RecentContent &recentContent_):
 	TableView
 	{
-		"Recent Content",
-		attach,
+		"Recent Content", attach,
 		[this](const TableView &)
 		{
 			return 1 + recentItems.size();
@@ -38,7 +37,7 @@ RecentContentView::RecentContentView(ViewAttachParams attach, RecentContent &rec
 	},
 	clear
 	{
-		"Clear List", &defaultFace(),
+		"Clear List", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShowModal(makeView<YesNoAlertView>("Really clear the list?",
@@ -57,7 +56,7 @@ RecentContentView::RecentContentView(ViewAttachParams attach, RecentContent &rec
 	recentItems.reserve(recentContent_.size());
 	for(auto &entry : recentContent_)
 	{
-		auto &recentItem = recentItems.emplace_back(entry.name, &defaultFace(),
+		auto &recentItem = recentItems.emplace_back(entry.name, attach,
 			[this, &entry](const Input::Event &e)
 			{
 				app().createSystemWithMedia({}, entry.path, appContext().fileUriDisplayName(entry.path), e, {}, attachParams(),

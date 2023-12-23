@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "FilePicker"
 #include <emuframework/FilePicker.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuApp.hh>
@@ -21,7 +20,6 @@
 #include <imagine/gui/FSPicker.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/io/IO.hh>
-#include <imagine/logger/logger.h>
 #include <string>
 
 namespace EmuEx

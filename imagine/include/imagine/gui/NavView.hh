@@ -58,7 +58,7 @@ protected:
 	static constexpr int controls = 3;
 	std::array<Control, controls> control{};
 	int selected = -1;
-	Gfx::Text text{};
+	Gfx::Text text;
 
 	bool selectNextLeftButton();
 	bool selectNextRightButton();
@@ -80,7 +80,7 @@ public:
 protected:
 	DynArray<Gfx::LGradientStopDesc> gradientStops;
 	Gfx::IQuads selectQuad;
-	Gfx::VertexBuffer<Gfx::Vertex2IColI> bgVerts;
+	Gfx::ObjectVertexArray<Gfx::Vertex2IColI> bgVerts;
 	Gfx::ITexQuads buttonQuads;
 	Gfx::TextureSpan leftTex, rightTex;
 	bool centerTitle = true;

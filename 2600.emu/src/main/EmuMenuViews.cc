@@ -28,6 +28,8 @@
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"2600Menus"};
+
 template <class T>
 using MainAppHelper = EmuAppHelper<T, MainApp>;
 
@@ -39,23 +41,23 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 	{
 		return [this](TextMenuItem &item)
 		{
-			logMsg("set resampling quality:%d", item.id());
-			system().optionAudioResampleQuality = item.id();
-			system().osystem.soundEmuEx().setResampleQuality((AudioSettings::ResamplingQuality)item.id());
+			log.info("set resampling quality:{}", item.id.val);
+			system().optionAudioResampleQuality = item.id;
+			system().osystem.soundEmuEx().setResampleQuality((AudioSettings::ResamplingQuality)item.id.val);
 		};
 	}
 
 	TextMenuItem resampleQualityItem[3]
 	{
-		{"Low",   &defaultFace(), setResampleQualityDel(), (int)AudioSettings::ResamplingQuality::nearestNeightbour},
-		{"High",  &defaultFace(), setResampleQualityDel(), (int)AudioSettings::ResamplingQuality::lanczos_2},
-		{"Ultra", &defaultFace(), setResampleQualityDel(), (int)AudioSettings::ResamplingQuality::lanczos_3},
+		{"Low",   attachParams(), setResampleQualityDel(), {.id = AudioSettings::ResamplingQuality::nearestNeightbour}},
+		{"High",  attachParams(), setResampleQualityDel(), {.id = AudioSettings::ResamplingQuality::lanczos_2}},
+		{"Ultra", attachParams(), setResampleQualityDel(), {.id = AudioSettings::ResamplingQuality::lanczos_3}},
 	};
 
 	MultiChoiceMenuItem resampleQuality
 	{
-		"Resampling Quality", &defaultFace(),
-		(MenuItem::Id)system().optionAudioResampleQuality.val,
+		"Resampling Quality", attachParams(),
+		MenuId{system().optionAudioResampleQuality.val},
 		resampleQualityItem
 	};
 
@@ -73,16 +75,16 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 
 	TextMenuItem tvPhosphorBlendItem[4]
 	{
-		{"70%",  &defaultFace(), setTVPhosphorBlendDel(), 70},
-		{"80%",  &defaultFace(), setTVPhosphorBlendDel(), 80},
-		{"90%",  &defaultFace(), setTVPhosphorBlendDel(), 90},
-		{"100%", &defaultFace(), setTVPhosphorBlendDel(), 100},
+		{"70%",  attachParams(), setTVPhosphorBlendDel(), {.id = 70}},
+		{"80%",  attachParams(), setTVPhosphorBlendDel(), {.id = 80}},
+		{"90%",  attachParams(), setTVPhosphorBlendDel(), {.id = 90}},
+		{"100%", attachParams(), setTVPhosphorBlendDel(), {.id = 100}},
 	};
 
 	MultiChoiceMenuItem tvPhosphorBlend
 	{
-		"TV Phosphor Blending", &defaultFace(),
-		(MenuItem::Id)system().optionTVPhosphorBlend.val,
+		"TV Phosphor Blending", attachParams(),
+		MenuId{system().optionTVPhosphorBlend.val},
 		tvPhosphorBlendItem
 	};
 
@@ -90,8 +92,8 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 	{
 		return [this](TextMenuItem &item)
 		{
-			system().optionTVPhosphorBlend = item.id();
-			system().setRuntimeTVPhosphor(system().optionTVPhosphor, item.id());
+			system().optionTVPhosphorBlend = item.id;
+			system().setRuntimeTVPhosphor(system().optionTVPhosphor, item.id);
 		};
 	}
 
@@ -108,14 +110,16 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 {
 	TextMenuItem tvPhosphorItem[3]
 	{
-		{"Off",  &defaultFace(), setTVPhosphorDel(), 0},
-		{"On",   &defaultFace(), setTVPhosphorDel(), 1},
-		{"Auto", &defaultFace(), setTVPhosphorDel(), TV_PHOSPHOR_AUTO},
+		{"Off",  attachParams(), setTVPhosphorDel(), {.id = 0}},
+		{"On",   attachParams(), setTVPhosphorDel(), {.id = 1}},
+		{"Auto", attachParams(), setTVPhosphorDel(), {.id = TV_PHOSPHOR_AUTO}},
 	};
 
 	MultiChoiceMenuItem tvPhosphor
 	{
-		"Simulate TV Phosphor", &defaultFace(),
+		"Simulate TV Phosphor", attachParams(),
+		MenuId{system().optionTVPhosphor.val},
+		tvPhosphorItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -129,24 +133,24 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 					return false;
 			}
 		},
-		(MenuItem::Id)system().optionTVPhosphor.val,
-		tvPhosphorItem
 	};
 
 	TextMenuItem videoSystemItem[7]
 	{
-		{"Auto",     &defaultFace(), setVideoSystemDel(), 0},
-		{"NTSC",     &defaultFace(), setVideoSystemDel(), 1},
-		{"PAL",      &defaultFace(), setVideoSystemDel(), 2},
-		{"SECAM",    &defaultFace(), setVideoSystemDel(), 3},
-		{"NTSC 50",  &defaultFace(), setVideoSystemDel(), 4},
-		{"PAL 60",   &defaultFace(), setVideoSystemDel(), 5},
-		{"SECAM 60", &defaultFace(), setVideoSystemDel(), 6},
+		{"Auto",     attachParams(), setVideoSystemDel(), {.id = 0}},
+		{"NTSC",     attachParams(), setVideoSystemDel(), {.id = 1}},
+		{"PAL",      attachParams(), setVideoSystemDel(), {.id = 2}},
+		{"SECAM",    attachParams(), setVideoSystemDel(), {.id = 3}},
+		{"NTSC 50",  attachParams(), setVideoSystemDel(), {.id = 4}},
+		{"PAL 60",   attachParams(), setVideoSystemDel(), {.id = 5}},
+		{"SECAM 60", attachParams(), setVideoSystemDel(), {.id = 6}},
 	};
 
 	MultiChoiceMenuItem videoSystem
 	{
-		"Video System", &defaultFace(),
+		"Video System", attachParams(),
+		MenuId{system().optionVideoSystem.val},
+		videoSystemItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -159,8 +163,6 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 					return false;
 			}
 		},
-		(MenuItem::Id)system().optionVideoSystem.val,
-		videoSystemItem
 	};
 
 	TextMenuItem::SelectDelegate setTVPhosphorDel()
@@ -168,8 +170,8 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		return [this](TextMenuItem &item)
 		{
 			system().sessionOptionSet();
-			system().optionTVPhosphor = item.id();
-			system().setRuntimeTVPhosphor(item.id(), system().optionTVPhosphorBlend);
+			system().optionTVPhosphor = item.id;
+			system().setRuntimeTVPhosphor(item.id, system().optionTVPhosphorBlend);
 		};
 	}
 
@@ -178,23 +180,25 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		return [this](TextMenuItem &item, const Input::Event &e)
 		{
 			system().sessionOptionSet();
-			system().optionVideoSystem = item.id();
+			system().optionVideoSystem = item.id;
 			app().promptSystemReloadDueToSetOption(attachParams(), e);
 		};
 	}
 
 	TextMenuItem inputPortsItem[5]
 	{
-		{"Auto",            &defaultFace(), setInputPortsDel(), to_underlying(Controller::Type::Unknown)},
-		{"Joystick",        &defaultFace(), setInputPortsDel(), to_underlying(Controller::Type::Joystick)},
-		{"Paddles",         &defaultFace(), setInputPortsDel(), to_underlying(Controller::Type::Paddles)},
-		{"Genesis Gamepad", &defaultFace(), setInputPortsDel(), to_underlying(Controller::Type::Genesis)},
-		{"Booster Grip",    &defaultFace(), setInputPortsDel(), to_underlying(Controller::Type::BoosterGrip)},
+		{"Auto",            attachParams(), setInputPortsDel(), {.id = Controller::Type::Unknown}},
+		{"Joystick",        attachParams(), setInputPortsDel(), {.id = Controller::Type::Joystick}},
+		{"Paddles",         attachParams(), setInputPortsDel(), {.id = Controller::Type::Paddles}},
+		{"Genesis Gamepad", attachParams(), setInputPortsDel(), {.id = Controller::Type::Genesis}},
+		{"Booster Grip",    attachParams(), setInputPortsDel(), {.id = Controller::Type::BoosterGrip}},
 	};
 
 	MultiChoiceMenuItem inputPorts
 	{
-		"Input Ports", &defaultFace(),
+		"Input Ports", attachParams(),
+		MenuId{system().optionInputPort1.val},
+		inputPortsItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -207,8 +211,6 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 					return false;
 			}
 		},
-		MenuItem::Id(system().optionInputPort1.val),
-		inputPortsItem
 	};
 
 	TextMenuItem::SelectDelegate setInputPortsDel()
@@ -216,26 +218,26 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		return [this](TextMenuItem &item)
 		{
 			system().sessionOptionSet();
-			system().optionInputPort1 = item.id();
+			system().optionInputPort1 = item.id;
 			if(system().osystem.hasConsole())
 			{
-				system().setControllerType(app(), system().osystem.console(), Controller::Type(item.id()));
+				system().setControllerType(app(), system().osystem.console(), Controller::Type(item.id.val));
 			}
 		};
 	}
 
 	TextMenuItem aPaddleRegionItem[4]
 	{
-		{"Off",        &defaultFace(), setAPaddleRegionDel(), (int)PaddleRegionMode::OFF},
-		{"Left Half",  &defaultFace(), setAPaddleRegionDel(), (int)PaddleRegionMode::LEFT},
-		{"Right Half", &defaultFace(), setAPaddleRegionDel(), (int)PaddleRegionMode::RIGHT},
-		{"Full",       &defaultFace(), setAPaddleRegionDel(), (int)PaddleRegionMode::FULL},
+		{"Off",        attachParams(), setAPaddleRegionDel(), {.id = PaddleRegionMode::OFF}},
+		{"Left Half",  attachParams(), setAPaddleRegionDel(), {.id = PaddleRegionMode::LEFT}},
+		{"Right Half", attachParams(), setAPaddleRegionDel(), {.id = PaddleRegionMode::RIGHT}},
+		{"Full",       attachParams(), setAPaddleRegionDel(), {.id = PaddleRegionMode::FULL}},
 	};
 
 	MultiChoiceMenuItem aPaddleRegion
 	{
-		"Analog Paddle Region", &defaultFace(),
-		(MenuItem::Id)system().optionPaddleAnalogRegion.val,
+		"Analog Paddle Region", attachParams(),
+		MenuId{system().optionPaddleAnalogRegion.val},
 		aPaddleRegionItem
 	};
 
@@ -244,14 +246,14 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		return [this](TextMenuItem &item)
 		{
 			system().sessionOptionSet();
-			system().updatePaddlesRegionMode(app(), (PaddleRegionMode)item.id());
+			system().updatePaddlesRegionMode(app(), (PaddleRegionMode)item.id.val);
 		};
 	}
 
 	TextMenuItem dPaddleSensitivityItem[2]
 	{
-		{"Default", &defaultFace(), [this]() { setDPaddleSensitivity(1); }, 1},
-		{"Custom Value", &defaultFace(),
+		{"Default", attachParams(), [this]() { setDPaddleSensitivity(1); }, {.id = 1}},
+		{"Custom Value", attachParams(),
 			[this](const Input::Event &e)
 			{
 				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 1 to 20", "",
@@ -260,7 +262,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 						if(system().optionPaddleDigitalSensitivity.isValidVal(val))
 						{
 							setDPaddleSensitivity(val);
-							dPaddleSensitivity.setSelected(std::size(dPaddleSensitivityItem) - 1, *this);
+							dPaddleSensitivity.setSelected(lastIndex(dPaddleSensitivityItem), *this);
 							dismissPrevious();
 							return true;
 						}
@@ -271,13 +273,15 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 						}
 					});
 				return false;
-			}
+			}, {.id = defaultMenuId}
 		}
 	};
 
 	MultiChoiceMenuItem dPaddleSensitivity
 	{
-		"Digital Paddle Sensitivity", &defaultFace(),
+		"Digital Paddle Sensitivity", attachParams(),
+		MenuId{system().optionPaddleDigitalSensitivity.val},
+		dPaddleSensitivityItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -285,8 +289,6 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 				return true;
 			}
 		},
-		(MenuItem::Id)system().optionPaddleDigitalSensitivity.val,
-		dPaddleSensitivityItem
 	};
 
 	void setDPaddleSensitivity(uint8_t val)
@@ -320,7 +322,7 @@ class VCSSwitchesView : public TableView, public MainAppHelper<VCSSwitchesView>
 {
 	BoolMenuItem diff1
 	{
-		"Left (P1) Difficulty", &defaultFace(),
+		"Left (P1) Difficulty", attachParams(),
 		system().p1DiffB,
 		"A", "B",
 		[this](BoolMenuItem &item)
@@ -331,7 +333,7 @@ class VCSSwitchesView : public TableView, public MainAppHelper<VCSSwitchesView>
 
 	BoolMenuItem diff2
 	{
-		"Right (P2) Difficulty", &defaultFace(),
+		"Right (P2) Difficulty", attachParams(),
 		system().p2DiffB,
 		"A", "B",
 		[this](BoolMenuItem &item)
@@ -342,7 +344,7 @@ class VCSSwitchesView : public TableView, public MainAppHelper<VCSSwitchesView>
 
 	BoolMenuItem color
 	{
-		"Color", &defaultFace(),
+		"Color", attachParams(),
 		system().vcsColor,
 		[this](BoolMenuItem &item)
 		{
@@ -381,7 +383,7 @@ class CustomSystemActionsView : public SystemActionsView
 private:
 	TextMenuItem switches
 	{
-		"Console Switches", &defaultFace(),
+		"Console Switches", attachParams(),
 		[this](const Input::Event &e)
 		{
 			if(system().hasContent())
@@ -393,7 +395,7 @@ private:
 
 	TextMenuItem options
 	{
-		"Console Options", &defaultFace(),
+		"Console Options", attachParams(),
 		[this](const Input::Event &e)
 		{
 			if(system().hasContent())

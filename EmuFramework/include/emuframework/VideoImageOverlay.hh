@@ -18,7 +18,6 @@
 #include <imagine/gfx/Texture.hh>
 #include <imagine/gfx/Quads.hh>
 #include <imagine/util/enum.hh>
-#include <array>
 
 namespace EmuEx
 {
@@ -50,7 +49,7 @@ private:
 		glm::vec2 texCoord;
 	};
 	using Quad = Gfx::BaseQuad<Vertex>;
-	using Quads = Gfx::ObjectVertexBuffer<Quad>;
+	using Quads = Gfx::ObjectVertexArray<Quad>;
 
 	Quads quad;
 	Gfx::Texture texture;

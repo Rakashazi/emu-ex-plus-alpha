@@ -38,6 +38,7 @@ public:
 	constexpr GLRendererCommands() = default;
 	GLRendererCommands(RendererTask &rTask, Window *winPtr, Drawable drawable, Rect2<int> viewport,
 		GLDisplay glDpy, const GLContext &glCtx, std::binary_semaphore *drawCompleteSemPtr);
+	void bindGLVertexArray(GLuint vao);
 	void bindGLArrayBuffer(GLuint vbo);
 	void bindGLIndexBuffer(GLuint ibo);
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
@@ -66,6 +67,7 @@ protected:
 	void notifyPresentComplete();
 	const GLContext &glContext() const;
 	bool useFixedFunctionPipeline() const;
+	bool hasVAOFuncs() const;
 
 	template<VertexLayout V>
 	void setupVertexArrayPointers()
@@ -95,11 +97,26 @@ protected:
 		#endif
 	}
 
-	template<VertexLayout V>
-	void setVertexBuffer(const Buffer<V, BufferType::vertex> &verts) { bindGLArrayBuffer(verts.name()); }
+	template<class V>
+	void setVertexArray(const ObjectVertexArray<V> &verts)
+	{
+		if(hasVAOFuncs())
+		{
+			bindGLVertexArray(verts.array().name());
+		}
+		else
+		{
+			bindGLArrayBuffer(verts.name());
+			bindGLIndexBuffer(verts.array().name()); // index buffer name is stored in place of array name
+			setVertexAttribs<typename ObjectVertexArray<V>::Vertex>();
+		}
+	}
 
-	template<class I>
-	void setIndexBuffer(const Buffer<I, BufferType::index> &idxs) { bindGLIndexBuffer(idxs.name()); }
+	template<class V>
+	void setVertexBuffer(const Buffer<V, BufferType::vertex> &verts)
+	{
+		bindGLArrayBuffer(verts.name());
+	}
 
 	RendererTask *rTask{};
 	Renderer *r{};
@@ -110,6 +127,7 @@ protected:
 	Drawable drawable{};
 	Rect2<int> winViewport{};
 	GLuint currSamplerName{};
+	GLuint currVertexArrayName{};
 	GLuint currIndexBufferName{};
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	NativeProgram currProgram{};

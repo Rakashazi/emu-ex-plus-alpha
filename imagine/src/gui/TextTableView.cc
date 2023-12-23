@@ -14,7 +14,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/TextTableView.hh>
-#include <imagine/util/math/int.hh>
+#include <imagine/util/math.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 #include <algorithm>
@@ -26,11 +26,6 @@ TextMenuItem &TextTableView::item(size_t idx)
 {
 	assert(idx < textItem.size());
 	return textItem[idx];
-}
-
-void TextTableView::setItems(size_t items)
-{
-	textItem.resize(items);
 }
 
 void TextTableView::onAddedToController(ViewController *c, const Input::Event &e)

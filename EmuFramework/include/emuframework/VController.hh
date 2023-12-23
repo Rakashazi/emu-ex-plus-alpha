@@ -40,6 +40,7 @@ namespace EmuEx
 
 using namespace IG;
 class VController;
+class InputManager;
 class EmuApp;
 class EmuViewController;
 struct SystemInputDeviceDesc;
@@ -80,14 +81,14 @@ public:
 		int16_t deadzoneMM100x{defaultDPadDeadzoneMM100x};
 		bool visualizeBounds{};
 
-		void validate(const EmuApp &);
+		void validate(const InputManager &);
 	};
 
 	constexpr VControllerDPad() = default;
 	constexpr VControllerDPad(std::span<const KeyInfo, 4> keys):
 		config{.keys{keys[0], keys[1], keys[2], keys[3]}} {}
 	constexpr VControllerDPad(const Config &config): config{config} {}
-	void setImage(Gfx::RendererTask &, Gfx::TextureSpan);
+	void setImage(Gfx::RendererTask &, Gfx::TextureSpan, const Gfx::IndexBuffer<uint8_t> &idxs);
 	void drawButtons(Gfx::RendererCommands &__restrict__) const;
 	void drawBounds(Gfx::RendererCommands &__restrict__) const;
 	void setShowBounds(Gfx::Renderer &r, bool on);
@@ -101,9 +102,9 @@ public:
 	auto deadzone() const { return config.deadzoneMM100x; }
 	bool setDiagonalSensitivity(Gfx::Renderer &, float newDiagonalSensitivity);
 	auto diagonalSensitivity() const { return config.diagonalSensitivity; }
-	std::string name(const EmuApp &) const { return "D-Pad"; }
+	std::string name(const InputManager &) const { return "D-Pad"; }
 	void updateMeasurements(const Window &win);
-	void transposeKeysForPlayer(const EmuApp &, int player);
+	void transposeKeysForPlayer(const InputManager &, int player);
 	void setAlpha(float alpha);
 
 	static size_t configSize()
@@ -191,7 +192,7 @@ public:
 	void setImage(Gfx::TextureSpan, int aR = 1);
 	WRect bounds() const { return bounds_; }
 	WRect realBounds() const { return extendedBounds_; }
-	std::string name(const EmuApp &) const;
+	std::string name(const InputManager &) const;
 	bool overlaps(WPt windowPos) const { return enabled && realBounds().overlaps(windowPos); }
 	void setAlpha(float alpha);
 
@@ -265,7 +266,7 @@ public:
 		std::vector<KeyInfo> keys{};
 		LayoutConfig layout{};
 
-		void validate(const EmuApp &);
+		void validate(const InputManager &);
 	};
 
 	constexpr VControllerButtonGroup() = default;
@@ -287,10 +288,10 @@ public:
 	int rows() const;
 	std::array<KeyInfo, 2> findButtonIndices(WPt windowPos) const;
 	void drawBounds(Gfx::RendererCommands &__restrict__) const;
-	std::string name(const EmuApp &) const;
+	std::string name(const InputManager &) const;
 	void updateMeasurements(const Window &win);
-	void transposeKeysForPlayer(const EmuApp &, int player);
-	void setTask(Gfx::RendererTask &task) { quads.setTask(task); boundQuads.setTask(task); }
+	void transposeKeysForPlayer(const InputManager &, int player);
+	void setTask(Gfx::RendererTask &task) { quads = {task, {.size = buttons.size()}}; boundQuads = {task, {.size = 0}}; }
 
 	static size_t layoutConfigSize()
 	{
@@ -338,7 +339,7 @@ public:
 		std::vector<KeyInfo> keys{};
 		LayoutConfig layout{};
 
-		void validate(const EmuApp &);
+		void validate(const InputManager &);
 	};
 
 	constexpr VControllerUIButtonGroup() = default;
@@ -350,8 +351,8 @@ public:
 	auto bounds() const { return bounds_; }
 	WRect realBounds() const { return bounds(); }
 	int rows() const;
-	std::string name(const EmuApp &) const;
-	void setTask(Gfx::RendererTask &task) { quads.setTask(task); }
+	std::string name(const InputManager &) const;
+	void setTask(Gfx::RendererTask &task) { quads = {task, {.size = buttons.size()}}; }
 
 	static size_t layoutConfigSize()
 	{
@@ -453,9 +454,9 @@ public:
 		}, *this);
 	}
 
-	std::string name(const EmuApp &app) const
+	std::string name(const InputManager &mgr) const
 	{
-		return visit([&](auto &e){ return e.name(app); }, *this);
+		return visit([&](auto &e){ return e.name(mgr); }, *this);
 	}
 
 	void updateMeasurements(const Window &win)
@@ -469,13 +470,13 @@ public:
 		}, *this);
 	}
 
-	void transposeKeysForPlayer(const EmuApp &app, int player)
+	void transposeKeysForPlayer(const InputManager &mgr, int player)
 	{
 		visit([&](auto &e)
 		{
-			if constexpr(requires {e.transposeKeysForPlayer(app, player);})
+			if constexpr(requires {e.transposeKeysForPlayer(mgr, player);})
 			{
-				e.transposeKeysForPlayer(app, player);
+				e.transposeKeysForPlayer(mgr, player);
 			}
 		}, *this);
 	}
@@ -616,7 +617,7 @@ public:
 	bool updateAutoOnScreenControlVisible();
 	bool readConfig(EmuApp &, MapIO &, unsigned key, size_t size);
 	void writeConfig(FileIO &) const;
-	void configure(Window &, Gfx::Renderer &, const Gfx::GlyphTextureSet &face, const Gfx::IndexBuffer<uint8_t> &quadIdxs);
+	void configure(Window &, Gfx::Renderer &, const Gfx::GlyphTextureSet &face);
 	void resetEmulatedDevicePositions();
 	void resetEmulatedDeviceGroups();
 	void resetUIPositions();
@@ -646,7 +647,6 @@ private:
 	const Window *win{};
 	const WindowData *winData{};
 	const Gfx::GlyphTextureSet *facePtr{};
-	const Gfx::IndexBuffer<uint8_t> *quadIdxsPtr{};
 	Gfx::IndexBuffer<uint8_t> fanQuadIdxs;
 	Gfx::TextureBinding gamepadTex, uiTex;
 	VControllerKeyboard kb;
@@ -685,7 +685,6 @@ private:
 	int uiButtonPixelSize() const;
 	void writeDeviceButtonsConfig(FileIO &) const;
 	void writeUIButtonsConfig(FileIO &) const;
-	void setIndexArray(Gfx::RendererCommands &__restrict__, const VControllerElement &) const;
 };
 
 }

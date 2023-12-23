@@ -95,7 +95,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	{
 		"Address",
 		u"",
-		&defaultFace(),
+		attachParams(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 4-digit hex", addrStr,
@@ -112,7 +112,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 					addrStr = a ? str : "0";
 					syncCheat();
 					addr.set2ndName(addrStr);
-					addr.compile(renderer());
+					addr.compile();
 					postDraw();
 					return true;
 				});
@@ -122,7 +122,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	{
 		"Value",
 		u"",
-		&defaultFace(),
+		attachParams(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 2-digit hex", valueStr,
@@ -139,7 +139,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 					valueStr = a ? str : "0";
 					syncCheat();
 					value.set2ndName(valueStr);
-					value.compile(renderer());
+					value.compile();
 					postDraw();
 					return true;
 				});
@@ -149,7 +149,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	{
 		"Compare",
 		u"",
-		&defaultFace(),
+		attachParams(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			app().pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex or blank", compStr.data(),
@@ -175,7 +175,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 							comp.set2ndName();
 						}
 						syncCheat();
-						comp.compile(renderer());
+						comp.compile();
 						postDraw();
 					}
 					view.dismiss();
@@ -187,7 +187,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	{
 		"GG Code",
 		u"",
-		&defaultFace(),
+		attachParams(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input Game Genie code", ggCodeStr,
@@ -201,7 +201,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 					ggCodeStr = str;
 					syncCheat();
 					ggCode.set2ndName(str);
-					ggCode.compile(renderer());
+					ggCode.compile();
 					postDraw();
 					return true;
 				});
@@ -294,7 +294,7 @@ void EmuEditCheatListView::loadCheatItems()
 	cheat.reserve(cheats);
 	for(auto c : iotaCount(cheats))
 	{
-		cheat.emplace_back(cheatName(c), &defaultFace(),
+		cheat.emplace_back(cheatName(c), attachParams(),
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
 				pushAndShow(makeView<EmuEditCheatView>(c, [this](){ onCheatListChanged(); }), e);
@@ -322,7 +322,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	},
 	addGG
 	{
-		"Add Game Genie Code", &defaultFace(),
+		"Add Game Genie Code", attachParams(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			app().pushAndShowNewCollectTextInputView(attachParams(), e, "Input Game Genie code", "",
@@ -381,7 +381,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	},
 	addRAM
 	{
-		"Add RAM Patch", &defaultFace(),
+		"Add RAM Patch", attachParams(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			app().pushAndShowNewCollectTextInputView(attachParams(), e, "Input description", "",
@@ -434,7 +434,7 @@ void EmuCheatsView::loadCheatItems()
 		{
 			name = "Corrupt Cheat";
 		}
-		cheat.emplace_back(std::move(name), &defaultFace(), status,
+		cheat.emplace_back(std::move(name), attachParams(), status,
 			[this, c](BoolMenuItem &item)
 			{
 				uint32 a;

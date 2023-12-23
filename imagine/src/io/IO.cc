@@ -51,6 +51,29 @@ std::span<uint8_t> IO::map()
 	}, *this);
 };
 
+ssize_t IO::writeVector(std::span<const OutVector> buffs, std::optional<off_t> offset)
+{
+	return visit([&](auto &io) -> ssize_t
+	{
+		if constexpr(requires {io.writeVector(buffs, offset);})
+			return io.writeVector(buffs, offset);
+		else
+		{
+			ssize_t totalSize{};
+			for(auto buff : buffs)
+			{
+				auto written = write(buff.data(), buff.size(), offset);
+				if(written == -1)
+					return -1;
+				totalSize += written;
+				if(offset)
+					*offset += written;
+			}
+			return totalSize;
+		}
+	}, *this);
+}
+
 bool IO::truncate(off_t offset)
 {
 	return visit([&](auto &io)

@@ -13,12 +13,11 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "CreditsView"
 #include <emuframework/CreditsView.hh>
 #include <emuframework/EmuApp.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/util/math/int.hh>
+#include <imagine/util/math.hh>
 #include <imagine/util/variant.hh>
 
 namespace EmuEx
@@ -26,7 +25,7 @@ namespace EmuEx
 
 CreditsView::CreditsView(ViewAttachParams attach, UTF16String str):
 	View{attach},
-	text{std::move(str), &defaultFace()},
+	text{attach.rendererTask, std::move(str), &defaultFace()},
 	animate
 	{
 		[this](IG::FrameParams params)
@@ -43,7 +42,7 @@ CreditsView::CreditsView(ViewAttachParams attach, UTF16String str):
 
 void CreditsView::prepareDraw()
 {
-	text.makeGlyphs(renderer());
+	text.makeGlyphs();
 }
 
 void CreditsView::draw(Gfx::RendererCommands &__restrict__ cmds)
@@ -55,7 +54,7 @@ void CreditsView::draw(Gfx::RendererCommands &__restrict__ cmds)
 
 void CreditsView::place()
 {
-	text.compile(renderer(), {.alignment = Gfx::TextAlignment::center});
+	text.compile({.alignment = Gfx::TextAlignment::center});
 }
 
 bool CreditsView::inputEvent(const Input::Event &e)

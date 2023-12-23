@@ -45,15 +45,10 @@ struct TextLayoutConfig
 class Text
 {
 public:
-	constexpr Text() = default;
-
-	Text(GlyphTextureSet *face): Text{UTF16String{}, face} {}
-	Text(UTF16Convertible auto &&str, GlyphTextureSet *face = nullptr):
-		textStr{IG_forward(str)}, face_{face} {}
-	Text(const Text &) noexcept;
-	Text &operator=(const Text &) noexcept;
-	Text(Text &&) = default;
-	Text &operator=(Text &&) = default;
+	Text() = default;
+	Text(RendererTask &task, GlyphTextureSet *face): Text{task, UTF16String{}, face} {}
+	Text(RendererTask &task, UTF16Convertible auto &&str, GlyphTextureSet *face = nullptr):
+		textStr{IG_forward(str)}, face_{face}, quads{task, {.size = 1}} {}
 
 	void resetString(UTF16Convertible auto &&str)
 	{
@@ -64,8 +59,8 @@ public:
 	void resetString() { resetString(UTF16String{}); }
 	void setFace(GlyphTextureSet *face) { face_ = face; }
 	GlyphTextureSet *face() const { return face_; }
-	void makeGlyphs(Renderer &);
-	bool compile(Renderer &, TextLayoutConfig conf = {});
+	void makeGlyphs();
+	bool compile(TextLayoutConfig conf = {});
 	void draw(RendererCommands &, WPt pos, _2DOrigin, Color) const;
 	void draw(RendererCommands &, WPt pos, _2DOrigin) const;
 	WSize pixelSize() const { return {xSize, ySize}; }
@@ -79,6 +74,7 @@ public:
 	bool isVisible() const;
 	std::u16string_view stringView() const;
 	std::u16string string() const;
+	Renderer &renderer();
 
 protected:
 	struct LineSpan

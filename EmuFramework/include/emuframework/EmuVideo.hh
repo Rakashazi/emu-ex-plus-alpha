@@ -66,7 +66,6 @@ public:
 	void finishFrame(EmuSystemTaskContext, Gfx::LockedTextureBuffer texBuff);
 	void finishFrame(EmuSystemTaskContext, IG::PixmapView pix);
 	void dispatchFrameFinished();
-	bool addFence(Gfx::RendererCommands &cmds);
 	void clear();
 	void takeGameScreenshot();
 	bool isExternalTexture() const;
@@ -78,33 +77,26 @@ public:
 	void setOnFrameFinished(FrameFinishedDelegate del);
 	void setOnFormatChanged(FormatChangedDelegate del);
 	void setTextureBufferMode(EmuSystem &, Gfx::TextureBufferMode mode);
-	void setImageBuffers(int num);
-	int imageBuffers() const;
 	void setSampler(Gfx::TextureSamplerConfig);
 	constexpr auto colorSpace() const { return colSpace; }
 	bool setRenderPixelFormat(EmuSystem &, IG::PixelFormat, Gfx::ColorSpace);
 	IG::PixelFormat renderPixelFormat() const;
 	IG::PixelFormat internalRenderPixelFormat() const;
 	static Gfx::TextureSamplerConfig samplerConfigForLinearFilter(bool useLinearFilter);
-	void updateNeedsFence();
 
 protected:
 	Gfx::RendererTask *rTask{};
-	Gfx::SyncFence fence;
 	Gfx::PixmapBufferTexture vidImg;
 	FrameFinishedDelegate onFrameFinished;
 	FormatChangedDelegate onFormatChanged;
 	IG::PixelFormat renderFmt;
 	Gfx::TextureBufferMode bufferMode{};
 	bool screenshotNextFrame{};
-	bool singleBuffer{};
-	bool needsFence{};
 	Gfx::ColorSpace colSpace{Gfx::ColorSpace::LINEAR};
 	bool useLinearFilter{true};
 
 	void doScreenshot(EmuSystemTaskContext, IG::PixmapView pix);
 	void postFrameFinished(EmuSystemTaskContext);
-	void syncImageAccess();
 	Gfx::TextureSamplerConfig samplerConfig() const { return samplerConfigForLinearFilter(useLinearFilter); }
 };
 

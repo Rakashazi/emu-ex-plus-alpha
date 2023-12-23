@@ -20,7 +20,6 @@
 #include <imagine/time/Time.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/util/math/Point2D.hh>
-#include <imagine/util/math/int.hh>
 #include <imagine/util/ranges.hh>
 #include <imagine/logger/logger.h>
 #include <cstdlib>
@@ -109,7 +108,7 @@ void GLManager::resetCurrentContext() const
 
 SteadyClockTimePoint FrameParams::presentTime(int frames) const
 {
-	if(frames <= 1)
+	if(frames <= 0)
 		return {};
 	return frameTime * frames + timestamp;
 }

@@ -56,7 +56,7 @@ public:
 		TableView{IG_forward(name), attach, item},
 		selectFolder
 		{
-			"Select Folder", &defaultFace(),
+			"Select Folder", attach,
 			[=](View &view, const Input::Event &e)
 			{
 				auto fPicker = view.makeView<FilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
@@ -75,7 +75,7 @@ public:
 		},
 		selectFile
 		{
-			mode == DataPathSelectMode::File ? "Select File" : "Select Archive File", &defaultFace(),
+			mode == DataPathSelectMode::File ? "Select File" : "Select Archive File", attach,
 			[=](View &view, const Input::Event &e)
 			{
 				auto &thisView = asThis(view);
@@ -101,7 +101,7 @@ public:
 		},
 		unset
 		{
-			"Unset", &defaultFace(),
+			"Unset", attach,
 			[=](View &view)
 			{
 				onFileChange("", FS::file_type::none);

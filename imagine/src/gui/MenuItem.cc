@@ -23,9 +23,9 @@
 namespace IG
 {
 
-void MenuItem::prepareDraw(Gfx::Renderer &r)
+void MenuItem::prepareDraw()
 {
-	t.makeGlyphs(r);
+	t.makeGlyphs();
 }
 
 void MenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPos, int yPos, int xSize, int ySize,
@@ -46,14 +46,14 @@ void MenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPos, int yPos
 	t.draw(cmds, {xPos, yPos}, align,color);
 }
 
-void MenuItem::compile(Gfx::Renderer &r)
+void MenuItem::compile()
 {
-	t.compile(r);
+	t.compile();
 }
 
 int MenuItem::ySize() const
 {
-	return t.face()->nominalHeight();
+	return t.face() ? t.face()->nominalHeight() : 0;
 }
 
 int MenuItem::xSize() const
@@ -66,21 +66,21 @@ const Gfx::Text &MenuItem::text() const
 	return t;
 }
 
-void BaseDualTextMenuItem::compile(Gfx::Renderer &r)
+void BaseDualTextMenuItem::compile()
 {
-	MenuItem::compile(r);
-	compile2nd(r);
+	MenuItem::compile();
+	compile2nd();
 }
 
-void BaseDualTextMenuItem::compile2nd(Gfx::Renderer &r)
+void BaseDualTextMenuItem::compile2nd()
 {
-	t2.compile(r);
+	t2.compile();
 }
 
-void BaseDualTextMenuItem::prepareDraw(Gfx::Renderer &r)
+void BaseDualTextMenuItem::prepareDraw()
 {
-	MenuItem::prepareDraw(r);
-	t2.makeGlyphs(r);
+	MenuItem::prepareDraw();
+	t2.makeGlyphs();
 }
 
 void BaseDualTextMenuItem::draw2ndText(Gfx::RendererCommands &cmds, int xPos, int yPos, int xSize, int ySize,
@@ -123,7 +123,7 @@ bool BoolMenuItem::setBoolValue(bool val, View &view)
 	if(val != boolValue())
 	{
 		setBoolValue(val);
-		t2.compile(view.renderer());
+		t2.compile();
 		view.postDraw();
 		return true;
 	}
@@ -215,10 +215,10 @@ void MultiChoiceMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPo
 	BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, color2);
 }
 
-void MultiChoiceMenuItem::compile(Gfx::Renderer &r)
+void MultiChoiceMenuItem::compile()
 {
 	setDisplayString(selected_);
-	BaseDualTextMenuItem::compile(r);
+	BaseDualTextMenuItem::compile();
 }
 
 int MultiChoiceMenuItem::selected() const
@@ -234,7 +234,7 @@ size_t MultiChoiceMenuItem::items() const
 bool MultiChoiceMenuItem::setSelected(int idx, View &view)
 {
 	bool selectChanged = setSelected(idx);
-	t2.compile(view.renderer());
+	t2.compile();
 	view.postDraw();
 	return selectChanged;
 }
@@ -247,12 +247,12 @@ bool MultiChoiceMenuItem::setSelected(int idx)
 	return selectChanged;
 }
 
-bool MultiChoiceMenuItem::setSelected(Id id, View &view)
+bool MultiChoiceMenuItem::setSelected(MenuId id, View &view)
 {
 	return setSelected(idxOfId(id), view);
 }
 
-bool MultiChoiceMenuItem::setSelected(Id id)
+bool MultiChoiceMenuItem::setSelected(MenuId id)
 {
 	return setSelected(idxOfId(id));
 }
@@ -321,18 +321,18 @@ void MultiChoiceMenuItem::updateDisplayString()
 	setDisplayString(selected_);
 }
 
-int MultiChoiceMenuItem::idxOfId(IdInt id)
+int MultiChoiceMenuItem::idxOfId(MenuId id)
 {
 	auto items = items_(*this);
 	auto item = item_;
-	Id lastId{};
+	MenuId lastId{};
 	for(auto i : iotaCount(items))
 	{
-		lastId = item(*this, i).id();
+		lastId = item(*this, i).id;
 		if(lastId == id)
 			return (int)i;
 	}
-	if(lastId == DEFAULT_ID) // special case to simplify uses where the last menu item represents a custom value
+	if(lastId == defaultMenuId) // special case to simplify uses where the last menu item represents a custom value
 		return items - 1;
 	else
 		return -1;

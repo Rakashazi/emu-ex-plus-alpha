@@ -18,7 +18,7 @@
 #include <imagine/base/Error.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/utility.h>
-#include <imagine/util/math/int.hh>
+#include <imagine/util/math.hh>
 #include <imagine/util/bit.hh>
 #include <imagine/data-type/image/PixmapSource.hh>
 #include "utils.hh"
@@ -385,7 +385,7 @@ ErrorCode Texture::setFormat(PixmapDesc desc, int levels, ColorSpace colorSpace,
 				setSwizzleForFormatInGL(r, desc.format, texName);
 				if(remakeTexName)
 					setSamplerParamsInGL(r, samplerParams);
-			}, remakeTexName);
+			}, remakeTexName ? MessageReplyMode::wait : MessageReplyMode::none);
 	}
 	updateFormatInfo(desc, levels);
 	return {};
@@ -433,7 +433,7 @@ void Texture::writeAligned(int level, PixmapView pixmap, WPt destPos, int assume
 					log.info("generating mipmaps for texture:0x{:X}", texName);
 					r.support.generateMipmaps(GL_TEXTURE_2D);
 				}
-			}, !writeFlags.async);
+			}, writeFlags.async ? MessageReplyMode::none : MessageReplyMode::wait);
 		if(makeMipmaps)
 		{
 			updateLevelsForMipmapGeneration();

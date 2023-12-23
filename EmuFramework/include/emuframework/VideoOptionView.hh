@@ -82,7 +82,8 @@ protected:
 	MultiChoiceMenuItem renderPixelFormat;
 	IG_UseMemberIf(Config::multipleScreenFrameRates, std::vector<TextMenuItem>, screenFrameRateItems);
 	IG_UseMemberIf(Config::multipleScreenFrameRates, MultiChoiceMenuItem, screenFrameRate);
-	IG_UseMemberIf(Gfx::supportsPresentationTime, BoolMenuItem, presentationTime);
+	IG_UseMemberIf(Gfx::supportsPresentationTime, TextMenuItem, presentationTimeItems[3]);
+	IG_UseMemberIf(Gfx::supportsPresentationTime, MultiChoiceMenuItem, presentationTime);
 	BoolMenuItem blankFrameInsertion;
 	TextMenuItem brightnessItem[2];
 	TextMenuItem redItem[2];
@@ -101,7 +102,7 @@ protected:
 
 	bool onFrameTimeChange(VideoSystem vidSys, SteadyClockTime time);
 	TextMenuItem::SelectDelegate setVideoBrightnessCustomDel(ImageChannel);
-	void setAllColorLevelsSelected(MenuItem::Id);
+	void setAllColorLevelsSelected(MenuId);
 	EmuVideo &emuVideo() const;
 };
 

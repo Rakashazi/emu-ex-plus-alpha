@@ -104,7 +104,6 @@ public:
 	ApplicationContext appContext() const;
 	template<class T> T &applicationAs() const { return appContext().applicationAs<T>(); }
 	static std::u16string nameString(const MenuItem &item);
-	Gfx::QuadIndexArray<uint8_t> &quadIndices();
 	Gfx::GlyphTextureSet &defaultFace();
 	Gfx::GlyphTextureSet &defaultBoldFace();
 	static Gfx::Color menuTextColor(bool isSelected);
@@ -126,7 +125,6 @@ public:
 	WindowRect displayInsetRect(Direction) const;
 	static WindowRect displayInsetRect(Direction, WindowRect viewRect, WindowRect displayRect);
 	bool pointIsInView(WPt pos);
-	void waitForDrawFinished();
 
 	template<class T>
 	std::unique_ptr<T> makeView(auto &&...args)

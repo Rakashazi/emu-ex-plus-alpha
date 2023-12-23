@@ -23,6 +23,8 @@
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"BundledGamesView"};
+
 BundledGamesView::BundledGamesView(ViewAttachParams attach):
 	TableView
 	{
@@ -33,14 +35,14 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 	game
 	{
 		{
-			system().bundledGameInfo(0).displayName, &defaultFace(),
+			system().bundledGameInfo(0).displayName, attach,
 			[this](const Input::Event &e)
 			{
 				auto &info = system().bundledGameInfo(0);
 				auto file = appContext().openAsset(info.assetName, IOAccessHint::All, {.test = true});
 				if(!file)
 				{
-					logErr("error opening bundled game asset: %s", info.assetName);
+					log.error("error opening bundled game asset:{}", info.assetName);
 					return;
 				}
 				app().createSystemWithMedia(std::move(file), info.assetName, info.assetName, e, {}, attachParams(),
