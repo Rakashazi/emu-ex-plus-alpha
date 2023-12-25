@@ -35,10 +35,10 @@ endif
 
 ifdef RELEASE
  CFLAGS_OPTIMIZE ?= $(CFLAGS_OPTIMIZE_RELEASE_DEFAULT)
- CPPFLAGS += -DNDEBUG
- CFLAGS_WARN += -Wdisabled-optimization
 else
  CFLAGS_OPTIMIZE ?= $(CFLAGS_OPTIMIZE_DEBUG_DEFAULT)
+ CPPFLAGS += -DNDEBUG
+ CFLAGS_WARN += -Wdisabled-optimization
 endif
 
 compileAction := -c
