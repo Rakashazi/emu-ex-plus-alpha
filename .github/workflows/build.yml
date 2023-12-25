@@ -12,7 +12,7 @@ jobs:
 
     steps:
     - name: Checkout emu-ex-plus-alpha repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -28,18 +28,17 @@ jobs:
           base64 --decode debug.keystore.base64 > debug.keystore
           sudo cp -f debug.keystore /root/.android/.
         fi
-        
+
     - name: Install build dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends autoconf automake autopoint bash binutils-arm-linux-gnueabi clang cmake file gawk gettext git libtool libtool-bin llvm make nasm pkg-config unzip wget
 
-    - uses: actions/checkout@v3
-    - name: Set up JDK 17
-      uses: actions/setup-java@v3
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '17'
+        java-version: '21'
 
     - name: Set up environment
       run: |
@@ -51,14 +50,14 @@ jobs:
         echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
         echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
-        
+
     - name: Run script
       run: |
         cd imagine/bundle/all
         chmod +x ./makeAll-android.sh
         ./makeAll-android.sh install
       shell: bash
-          
+
     - name: Build environment
       run: |
         make -f $IMAGINE_PATH/android-release.mk install V=1 -j2
@@ -79,13 +78,13 @@ jobs:
     - name: Upload 2600.emu artifact
       uses: actions/upload-artifact@v3
       if: ${{ matrix.image == '2600.emu' }}
-      with: 
+      with:
         name: 2600emu
         path: ${{ github.workspace }}/2600.emu/target/android-release/build/outputs/apk/release/2600Emu-release.apk
-        
+
     - name: Build C64.emu
       if: ${{ matrix.image == 'C64.emu' }}
-      run: |        
+      run: |
         cd C64.emu
         make -f android-release.mk android-apk V=1 -j2
 
@@ -93,17 +92,17 @@ jobs:
       if: ${{ matrix.image == 'C64.emu' }}
       run: |
         cp C64.emu/target/android-release/build/outputs/apk/release/C64Emu-release.apk EX-Emulators/C64Emu-release.apk
-    
+
     - name: Upload C64.emu artifact
       uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'C64.emu' }}
-      with: 
+      with:
         name: C64emu
         path: ${{ github.workspace }}/C64.emu/target/android-release/build/outputs/apk/release/C64Emu-release.apk
 
     - name: Build GBA.emu
       if: ${{ matrix.image == 'GBA.emu' }}
-      run: |        
+      run: |
         cd GBA.emu
         make -f android-release.mk android-apk V=1 -j2
 
@@ -115,13 +114,13 @@ jobs:
     - name: Upload GBA.emu artifact
       uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'GBA.emu' }}
-      with: 
+      with:
         name: GBAemu
         path: ${{ github.workspace }}/GBA.emu/target/android-release/build/outputs/apk/release/GbaEmu-release.apk
 
     - name: Build GBC.emu
       if: ${{ matrix.image == 'GBC.emu' }}
-      run: |        
+      run: |
         cd GBC.emu
         make -f android-release.mk android-apk V=1 -j2
 
@@ -129,11 +128,11 @@ jobs:
       if: ${{ matrix.image == 'GBC.emu' }}
       run: |
         cp GBC.emu/target/android-release/build/outputs/apk/release/GbcEmu-release.apk EX-Emulators/GbcEmu-release.apk
-  
+
     - name: Upload GBC.emu artifact
       uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'GBC.emu' }}
-      with: 
+      with:
         name: GBCemu
         path: ${{ github.workspace }}/GBC.emu/target/android-release/build/outputs/apk/release/GbcEmu-release.apk
 
@@ -157,7 +156,7 @@ jobs:
 
     - name: Build MD.emu
       if: ${{ matrix.image == 'MD.emu' }}
-      run: |        
+      run: |
         cd MD.emu
         make -f android-release.mk android-apk V=1 -j2
 
@@ -165,17 +164,17 @@ jobs:
       if: ${{ matrix.image == 'MD.emu' }}
       run: |
         cp MD.emu/target/android-release/build/outputs/apk/release/MdEmu-release.apk EX-Emulators/MdEmu-release.apk
-        
+
     - name: Upload MD.emu artifact
       uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'MD.emu' }}
-      with: 
+      with:
         name: MDemu
         path: ${{ github.workspace }}/MD.emu/target/android-release/build/outputs/apk/release/MdEmu-release.apk
 
     - name: Build MSX.emu
       if: ${{ matrix.image == 'MSX.emu' }}
-      run: |        
+      run: |
         cd MSX.emu
         make -f android-release.mk android-apk V=1 -j2
 
@@ -187,13 +186,13 @@ jobs:
     - name: Upload MSX.emu artifact
       uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'MSX.emu' }}
-      with: 
+      with:
         name: MSXemu
         path: ${{ github.workspace }}/MSX.emu/target/android-release/build/outputs/apk/release/MsxEmu-release.apk
 
     - name: Build NEO.emu
       if: ${{ matrix.image == 'NEO.emu' }}
-      run: |        
+      run: |
         cd NEO.emu
         make -f android-release.mk android-apk V=1 -j2
 
@@ -205,13 +204,13 @@ jobs:
     - name: Upload NEO.emu artifact
       uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'NEO.emu' }}
-      with: 
+      with:
         name: NEOemu
         path: ${{ github.workspace }}/NEO.emu/target/android-release/build/outputs/apk/release/NeoEmu-release.apk
 
     - name: Build NES.emu
       if: ${{ matrix.image == 'NES.emu' }}
-      run: |        
+      run: |
         cd NES.emu
         make -f android-release.mk android-apk V=1 -j2
 
@@ -223,13 +222,13 @@ jobs:
     - name: Upload NES.emu artifact
       uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'NES.emu' }}
-      with: 
+      with:
         name: NESemu
-        path: ${{ github.workspace }}/NES.emu/target/android-release/build/outputs/apk/release/NesEmu-release.apk 
+        path: ${{ github.workspace }}/NES.emu/target/android-release/build/outputs/apk/release/NesEmu-release.apk
 
     - name: Build NGP.emu
       if: ${{ matrix.image == 'NGP.emu' }}
-      run: |        
+      run: |
         cd NGP.emu
         make -f android-release.mk android-apk V=1 -j2
 
@@ -241,13 +240,13 @@ jobs:
     - name: Upload NGP.emu artifact
       uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'NGP.emu' }}
-      with: 
+      with:
         name: NGPemu
-        path: ${{ github.workspace }}/NGP.emu/target/android-release/build/outputs/apk/release/NgpEmu-release.apk 
+        path: ${{ github.workspace }}/NGP.emu/target/android-release/build/outputs/apk/release/NgpEmu-release.apk
 
     - name: Build PCE.emu
       if: ${{ matrix.image == 'PCE.emu' }}
-      run: |        
+      run: |
         cd PCE.emu
         make -f android-release.mk android-apk V=1 -j2
 
@@ -259,13 +258,13 @@ jobs:
     - name: Upload PCE.emu artifact
       uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'PCE.emu' }}
-      with: 
+      with:
         name: PCEemu
         path: ${{ github.workspace }}/PCE.emu/target/android-release/build/outputs/apk/release/PceEmu-release.apk
 
     - name: Build Snes9x
       if: ${{ matrix.image == 'Snes9x' }}
-      run: |        
+      run: |
         cd Snes9x
         make -f android-release.mk android-apk V=1 -j2
 
@@ -277,7 +276,7 @@ jobs:
     - name: Upload Snes9x artifact
       uses: actions/upload-artifact@v3
       if: ${{ matrix.image == 'Snes9x' }}
-      with: 
+      with:
         name: Snes9x
         path: ${{ github.workspace }}/Snes9x/target/android-release/build/outputs/apk/release/Snes9xEXPlus-release.apk
 
@@ -301,7 +300,7 @@ jobs:
 
     - name: Upload EX-Emulators artifacts
       uses: actions/upload-artifact@v3
-      with: 
+      with:
         name: EX-Emulators
         path: EX-Emulators/
 
@@ -313,10 +312,10 @@ jobs:
 
     steps:
     - name: Checkout emu-ex-plus-alpha repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        
+
     - name: Download Artifacts
       uses: actions/download-artifact@v3
       with:
@@ -326,7 +325,7 @@ jobs:
       run: |
         cd dist
         for artifact in *
-        do 
+        do
           echo "-> Creating ${artifact}.zip"
           pushd "$artifact"
           zip -r "../${artifact}.zip" *
@@ -337,7 +336,7 @@ jobs:
       run: |
         git tag -f Pre-release
         git push -f origin Pre-release
-    
+
     - name: Create Release
       uses: ncipollo/release-action@v1
       with:

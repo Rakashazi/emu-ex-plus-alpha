@@ -18,11 +18,11 @@ allprojects {
 apply plugin: 'android-library'
 
 android {
-    compileSdk 30
+    compileSdk 34
 
     defaultConfig {
         minSdkVersion 9
-        targetSdkVersion 33
+        targetSdkVersion 34
     }
 
     buildTypes {
@@ -40,6 +40,6 @@ android {
 }
 
 dependencies {
-    implementation "com.android.support:support-v4:23.3.+"
+    implementation "com.android.support:support-v4:28.0.+"
 }
 
