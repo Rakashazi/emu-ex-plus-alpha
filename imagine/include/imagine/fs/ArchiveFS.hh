@@ -22,6 +22,7 @@
 #include <memory>
 #include <iterator>
 #include <string_view>
+#include <concepts>
 
 namespace IG
 {
@@ -44,6 +45,7 @@ public:
 	constexpr ArchiveIterator() = default;
 	ArchiveIterator(CStringView path);
 	ArchiveIterator(IO);
+	ArchiveIterator(FileIO);
 	ArchiveIterator(ArchiveIO);
 	ArchiveIterator(const ArchiveIterator&) = default;
 	ArchiveIterator(ArchiveIterator&&) = default;
@@ -70,8 +72,51 @@ static auto end(const ArchiveIterator &)
 	return ArchiveIterator::Sentinel{};
 }
 
-ArchiveIO fileFromArchive(CStringView archivePath, std::string_view filePath);
-ArchiveIO fileFromArchive(IO archiveIO, std::string_view filePath);
+inline bool seekInArchive(ArchiveIterator &it, std::predicate<const ArchiveIO &> auto &&pred)
+{
+	for(ArchiveIO &entry : it)
+	{
+		if(pred(entry))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+inline ArchiveIO findInArchive(ArchiveIterator it, std::predicate<const ArchiveIO &> auto &&pred)
+{
+	if(seekInArchive(it, pred))
+		return std::move(*it);
+	else
+		return {};
+}
+
+inline ArchiveIO findFileInArchive(ArchiveIterator it, std::predicate<const ArchiveIO &> auto &&pred)
+{
+	return findInArchive(it, [&](const ArchiveIO &entry){ return entry.type() == file_type::regular && pred(entry); });
+}
+
+inline ArchiveIO findFileInArchive(ArchiveIterator it, std::string_view path)
+{
+	return findFileInArchive(it, [&](const ArchiveIO &entry){ return entry.name() == path; });
+}
+
+inline ArchiveIO findDirectoryInArchive(ArchiveIterator it, std::predicate<const ArchiveIO &> auto &&pred)
+{
+	return findInArchive(it, [&](const ArchiveIO &entry){ return entry.type() == file_type::directory && pred(entry); });
+}
+
+inline bool seekFileInArchive(ArchiveIterator &it, std::predicate<const ArchiveIO &> auto &&pred)
+{
+	return seekInArchive(it, [&](const ArchiveIO &entry){ return entry.type() == file_type::regular && pred(entry); });
+}
+
+inline bool seekFileInArchive(ArchiveIterator &it, std::string_view path)
+{
+	return seekFileInArchive(it, [&](const ArchiveIO &entry){ return entry.name() == path; });
+}
+
 bool hasArchiveExtension(std::string_view name);
 
 };

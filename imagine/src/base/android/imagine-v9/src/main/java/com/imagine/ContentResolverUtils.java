@@ -206,8 +206,7 @@ final class ContentResolverUtils
 	static boolean listUriFiles(ContentResolver resolver, long nativeUserData, String uriStr)
 	{
 		final Uri uri = Uri.parse(uriStr);
-		final Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(uri, DocumentsContract.getDocumentId(uri));
-		try(final Cursor c = resolver.query(childrenUri,
+		try(final Cursor c = resolver.query(DocumentsContract.buildChildDocumentsUriUsingTree(uri, DocumentsContract.getDocumentId(uri)),
 			new String[] {DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME, DocumentsContract.Document.COLUMN_MIME_TYPE},
 			null, null, null);)
 		{

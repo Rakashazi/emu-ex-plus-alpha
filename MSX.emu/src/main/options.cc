@@ -14,9 +14,13 @@
 	along with MSX.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include "MainSystem.hh"
+#include <imagine/fs/ArchiveFS.hh>
+#include <imagine/util/format.hh>
 
 namespace EmuEx
 {
+
+constexpr SystemLogger log{"MSXOpt"};
 
 enum
 {
@@ -32,6 +36,7 @@ enum
 	CFGKEY_MIXER_PCM_VOLUME = 274, CFGKEY_MIXER_PCM_PAN = 275,
 	CFGKEY_MIXER_IO_VOLUME = 276, CFGKEY_MIXER_IO_PAN = 277,
 	CFGKEY_MIXER_MIDI_VOLUME = 278, CFGKEY_MIXER_MIDI_PAN = 279,
+	CFGKEY_DEFAULT_COLECO_MACHINE_NAME = 280
 };
 
 // volume options use top bit as enable switch, lower 7 bits as volume value
@@ -171,8 +176,9 @@ bool MsxSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 		switch(key)
 		{
 			case CFGKEY_DEFAULT_MACHINE_NAME: return readStringOptionValue(io, readSize, optionDefaultMachineNameStr);
+			case CFGKEY_DEFAULT_COLECO_MACHINE_NAME: return readStringOptionValue(io, readSize, optionDefaultColecoMachineNameStr);
 			case CFGKEY_SKIP_FDC_ACCESS: return optionSkipFdcAccess.readFromIO(io, readSize);
-			case CFGKEY_MACHINE_FILE_PATH: return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &&path){firmwarePath = IG_forward(path);});
+			case CFGKEY_MACHINE_FILE_PATH: return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &&path){firmwarePath_ = IG_forward(path);});
 			case CFGKEY_MIXER_PSG_VOLUME: return optionMixerPSGVolume.readFromIO(io, readSize);
 			case CFGKEY_MIXER_SCC_VOLUME: return optionMixerSCCVolume.readFromIO(io, readSize);
 			case CFGKEY_MIXER_MSX_MUSIC_VOLUME: return optionMixerMSXMUSICVolume.readFromIO(io, readSize);
@@ -207,8 +213,12 @@ void MsxSystem::writeConfig(ConfigType type, FileIO &io)
 		{
 			writeStringOptionValue(io, CFGKEY_DEFAULT_MACHINE_NAME, optionDefaultMachineNameStr);
 		}
+		if(optionDefaultColecoMachineNameStr != optionColecoMachineNameDefault)
+		{
+			writeStringOptionValue(io, CFGKEY_DEFAULT_COLECO_MACHINE_NAME, optionDefaultColecoMachineNameStr);
+		}
 		optionSkipFdcAccess.writeWithKeyIfNotDefault(io);
-		writeStringOptionValue(io, CFGKEY_MACHINE_FILE_PATH, firmwarePath);
+		writeStringOptionValue(io, CFGKEY_MACHINE_FILE_PATH, firmwarePath_);
 
 		optionMixerPSGVolume.writeWithKeyIfNotDefault(io);
 		optionMixerSCCVolume.writeWithKeyIfNotDefault(io);
@@ -267,8 +277,51 @@ bool MsxSystem::setDefaultMachineName(std::string_view name)
 {
 	if(name == optionDefaultMachineNameStr)
 		return false;
+	log.info("set default MSX machine:{}", name);
 	optionDefaultMachineNameStr = name;
 	return true;
+}
+
+bool MsxSystem::setDefaultColecoMachineName(std::string_view name)
+{
+	if(name == optionDefaultColecoMachineNameStr)
+		return false;
+	log.info("set default Coleco machine:{}", name);
+	optionDefaultColecoMachineNameStr = name;
+	return true;
+}
+
+static bool archiveHasMachinesDirectory(ApplicationContext ctx, CStringView path)
+{
+	return bool(FS::findDirectoryInArchive(ctx.openFileUri(path), [&](auto &entry){ return entry.name().ends_with("Machines/"); }));
+}
+
+void MsxSystem::setFirmwarePath(CStringView path, FS::file_type type)
+{
+	auto ctx = appContext();
+	log.info("set firmware path:{}", path);
+	if((type == FS::file_type::directory && !ctx.fileUriExists(FS::uriString(path, "Machines")))
+		|| (FS::hasArchiveExtension(path) && !archiveHasMachinesDirectory(ctx, path)))
+	{
+		throw std::runtime_error{"Path is missing Machines folder"};
+	}
+	firmwarePath_ = path;
+	firmwareArchiveIt = {};
+}
+
+FS::PathString MsxSystem::firmwarePath() const
+{
+	if(firmwarePath_.empty())
+	{
+		if constexpr(Config::envIsLinux && !Config::MACHINE_IS_PANDORA)
+			return appContext().assetPath();
+		else
+			return appContext().storagePath();
+	}
+	else
+	{
+		return firmwarePath_;
+	}
 }
 
 }

@@ -329,14 +329,14 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 					const auto &sysFilePath = system().sysFilePath;
 					if(type == FS::file_type::none && sysFilePath.size() > 1)
 					{
-						system().setSystemFilesPath(appContext(), path, type);
+						system().setSystemFilesPath(path, type);
 						app().postMessage(5, false, std::format("Using fallback paths:\n{}\n{}", sysFilePath[1], sysFilePath[2]));
 					}
 					else
 					{
 						try
 						{
-							system().setSystemFilesPath(appContext(), path, type);
+							system().setSystemFilesPath(path, type);
 						}
 						catch(std::exception &err)
 						{

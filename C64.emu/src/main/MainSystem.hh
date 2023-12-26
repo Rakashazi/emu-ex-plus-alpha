@@ -92,7 +92,7 @@ public:
 	struct video_canvas_s *activeCanvas{};
 	const char *sysFileDir{};
 	VicePlugin plugin{};
-	mutable FS::ArchiveIterator viceSysFilesArchiveIt;
+	mutable FS::ArchiveIterator firmwareArchiveIt;
 	std::string defaultPaletteName{};
 	std::string lastMissingSysFile;
 	IG::PixmapView canvasSrcPix{};
@@ -184,8 +184,8 @@ public:
 	bool currSystemIsC64Or128() const;
 	void setRuntimeReuSize(int size);
 	void resetCanvasSourcePixmap(struct video_canvas_s *c);
-	FS::ArchiveIterator &systemFilesArchiveIterator(ApplicationContext, std::string_view path) const;
-	void setSystemFilesPath(ApplicationContext, CStringView path, FS::file_type);
+	FS::ArchiveIterator &firmwareArchiveIterator(CStringView path) const;
+	void setSystemFilesPath(CStringView path, FS::file_type);
 	void execC64Frame();
 
 	// required API functions
