@@ -70,25 +70,16 @@ static FS::FileString tapeName{};
 static EmuSystemTaskContext emuSysTask{};
 static EmuVideo *emuVideo{};
 static const char saveStateVersion[] = "blueMSX - state  v 8";
+constexpr SystemLogger log{"MSXApp"};
 
 CLINK Int16 *mixerGetBuffer(Mixer* mixer, UInt32 *samplesOut);
 
 MsxApp::MsxApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	EmuApp{initParams, ctx}, msxSystem{ctx} {}
 
-FS::PathString machineBasePath(MsxSystem &sys)
+bool hasColecoROMExtension(std::string_view name)
 {
-	if(sys.firmwarePath.empty())
-	{
-		if constexpr(Config::envIsLinux && !Config::MACHINE_IS_PANDORA)
-			return sys.appContext().assetPath();
-		else
-			return IG::format<FS::PathString>("{}/MSX.emu", sys.appContext().storagePath());
-	}
-	else
-	{
-		return sys.firmwarePath;
-	}
+	return IG::endsWithAnyCaseless(name, ".col");
 }
 
 bool hasMSXTapeExtension(std::string_view name)
@@ -130,15 +121,15 @@ void MsxSystem::insertMedia(EmuApp &app)
 		switch(currentRomType[i])
 		{
 			case ROM_SCC:
-				logMsg("loading SCC");
+				log.info("loading SCC");
 				boardChangeCartridge(i, ROM_SCC, "", 0);
 				break;
 			case ROM_SCCPLUS:
-				logMsg("loading SCC+");
+				log.info("loading SCC+");
 				boardChangeCartridge(i, ROM_SCCPLUS, "", 0);
 				break;
 			case ROM_SUNRISEIDE:
-				logMsg("loading Sunrise IDE");
+				log.info("loading Sunrise IDE");
 				if(!boardChangeCartridge(i, ROM_SUNRISEIDE, "Sunrise IDE", 0))
 				{
 					throw std::runtime_error("Error loading Sunrise IDE device");
@@ -148,7 +139,7 @@ void MsxSystem::insertMedia(EmuApp &app)
 			{
 				if(cartName[i].empty())
 					continue;
-				logMsg("loading ROM %s", cartName[i].data());
+				log.info("loading ROM:{}", cartName[i]);
 				if(!insertROM(app, cartName[i].data(), i))
 				{
 					throw std::runtime_error(std::format("Error loading ROM{}:\n{}", i, cartName[i]));
@@ -161,7 +152,7 @@ void MsxSystem::insertMedia(EmuApp &app)
 	{
 		if(diskName[i].empty())
 			continue;
-		logMsg("loading Disk %s", diskName[i].data());
+		log.info("loading Disk:{}", diskName[i]);
 		if(!insertDisk(app, diskName[i].data(), i))
 		{
 			throw std::runtime_error(std::format("Error loading Disk{}:\n{}", i, diskName[i]));
@@ -172,7 +163,7 @@ void MsxSystem::insertMedia(EmuApp &app)
 	{
 		if(hdName[i].empty())
 			continue;
-		logMsg("loading HD %s", hdName[i].data());
+		log.info("loading HD:{}", hdName[i]);
 		if(!insertDisk(app, hdName[i].data(), diskGetHdDriveId(i / 2, i % 2)))
 		{
 			throw std::runtime_error(std::format("Error loading HD{}:\n{}", i, hdName[i]));
@@ -214,7 +205,7 @@ void MsxSystem::destroyBoard(bool clearMediaNames)
 {
 	if(!machine)
 		return;
-	logMsg("destroying board");
+	log.info("destroying board");
 	fdcActive = 0;
 	if(msxIsInit())
 	{
@@ -256,21 +247,21 @@ bool MsxSystem::createBoard(EmuApp &app)
 		case BOARD_MSX_T9769B:
 		case BOARD_MSX_T9769C:
 		case BOARD_MSX_FORTE_II:
-			logMsg("creating MSX");
+			log.info("creating MSX");
 			joystickPortSetType(0, JOYSTICK_PORT_JOYSTICK);
 			joystickPortSetType(1, JOYSTICK_PORT_JOYSTICK);
 			activeBoardType = BOARD_MSX;
 			setupVKeyboardMap(app, BOARD_MSX);
 			return msxCreate(machine, VDP_SYNC_60HZ, &boardInfo);
 		case BOARD_COLECO:
-			logMsg("creating Coleco");
+			log.info("creating Coleco");
 			joystickPortSetType(0, JOYSTICK_PORT_COLECOJOYSTICK);
 			joystickPortSetType(1, JOYSTICK_PORT_COLECOJOYSTICK);
 			activeBoardType = BOARD_COLECO;
 			setupVKeyboardMap(app, BOARD_COLECO);
 			return colecoCreate(machine, VDP_SYNC_60HZ, &boardInfo);
 		default:
-			logErr("error: unknown board type 0x%X", machine->board.type);
+			log.error("error: unknown board type:{}", (int)machine->board.type);
 			return 0;
 	}
 }
@@ -283,8 +274,8 @@ bool MsxSystem::createBoardFromLoadGame(EmuApp &app)
 		boardInfo = {};
 		return false;
 	}
-	//logMsg("z80 freq %d, r800 %d", ((R800*)boardInfo.cpuRef)->frequencyZ80, ((R800*)boardInfo.cpuRef)->frequencyR800);
-	logMsg("max carts %d, disks %d, tapes %d", boardInfo.cartridgeCount, boardInfo.diskdriveCount, boardInfo.casetteCount);
+	//log.debug("z80 freq {}, r800 {}", ((R800*)boardInfo.cpuRef)->frequencyZ80, ((R800*)boardInfo.cpuRef)->frequencyR800);
+	log.info("max carts:{}, disks:{}, tapes:{}", boardInfo.cartridgeCount, boardInfo.diskdriveCount, boardInfo.casetteCount);
 	return true;
 }
 
@@ -300,7 +291,7 @@ static bool initMachine(std::string_view machineName)
 	{
 		return true;
 	}
-	logMsg("loading machine %s", machineName.data());
+	log.info("loading machine:{}", machineName);
 	if(machine)
 		machineDestroy(machine);
 	machine = machineCreate(machineName.data());
@@ -332,7 +323,7 @@ void MsxSystem::setCurrentMachineName(EmuApp &app, std::string_view machineName,
 {
 	if(machine && machine->name == machineName)
 	{
-		logMsg("keeping current machine:%s", machine->name);
+		log.info("keeping current machine:{}", machine->name);
 		return;
 	}
 	if(!initMachine(machineName))
@@ -347,49 +338,37 @@ void MsxSystem::setCurrentMachineName(EmuApp &app, std::string_view machineName,
 		insertMedia(app);
 }
 
-static FS::FileString getFirstFilenameInArchive(IG::ApplicationContext ctx, IG::CStringView zipPath, auto nameMatch)
+static ArchiveIO getFirstFileInArchive(IG::ApplicationContext ctx, IG::CStringView zipPath, auto nameMatch)
 {
 	try
 	{
-		for(auto &entry : FS::ArchiveIterator{ctx.openFileUri(zipPath)})
-		{
-			if(entry.type() == FS::file_type::directory)
-			{
-				continue;
-			}
-			auto name = entry.name();
-			logMsg("archive file entry:%s", entry.name().data());
-			if(nameMatch(name))
-			{
-				return FS::FileString{name};
-			}
-		}
+		return FS::findFileInArchive(ctx.openFileUri(zipPath), [&](auto &entry){ return nameMatch(entry.name()); });
 	}
 	catch(...)
 	{
-		logErr("error opening archive:%s", zipPath.data());
+		log.error("error opening archive:{}", zipPath);
 	}
 	return {};
 }
 
-static FS::FileString getFirstROMFilenameInArchive(IG::ApplicationContext ctx, IG::CStringView zipPath)
+static ArchiveIO getFirstROMFileInArchive(IG::ApplicationContext ctx, IG::CStringView zipPath)
 {
-	return getFirstFilenameInArchive(ctx, zipPath, hasMSXROMExtension);
+	return getFirstFileInArchive(ctx, zipPath, hasMSXROMExtension);
 }
 
-static FS::FileString getFirstDiskFilenameInArchive(IG::ApplicationContext ctx, IG::CStringView zipPath)
+static ArchiveIO getFirstDiskFileInArchive(IG::ApplicationContext ctx, IG::CStringView zipPath)
 {
-	return getFirstFilenameInArchive(ctx, zipPath, hasMSXDiskExtension);
+	return getFirstFileInArchive(ctx, zipPath, hasMSXDiskExtension);
 }
 
-static FS::FileString getFirstTapeFilenameInArchive(IG::ApplicationContext ctx, IG::CStringView zipPath)
+static ArchiveIO getFirstTapeFileInArchive(IG::ApplicationContext ctx, IG::CStringView zipPath)
 {
-	return getFirstFilenameInArchive(ctx, zipPath, hasMSXTapeExtension);
+	return getFirstFileInArchive(ctx, zipPath, hasMSXTapeExtension);
 }
 
-static FS::FileString getFirstMediaFilenameInArchive(IG::ApplicationContext ctx, IG::CStringView zipPath)
+static ArchiveIO getFirstMediaFileInArchive(IG::ApplicationContext ctx, IG::CStringView zipPath)
 {
-	return getFirstFilenameInArchive(ctx, zipPath, hasMSXExtension);
+	return getFirstFileInArchive(ctx, zipPath, hasMSXExtension);
 }
 
 bool insertROM(EmuApp &app, const char *name, unsigned slot)
@@ -399,13 +378,13 @@ bool insertROM(EmuApp &app, const char *name, unsigned slot)
 	FS::FileString fileInZipName{};
 	if(EmuApp::hasArchiveExtension(path))
 	{
-		fileInZipName = getFirstROMFilenameInArchive(app.appContext(), path);
+		fileInZipName = getFirstROMFileInArchive(app.appContext(), path).name();
 		if(fileInZipName.empty())
 		{
 			app.postMessage(true, "No ROM found in archive:%s", path);
 			return false;
 		}
-		logMsg("found:%s in archive:%s", fileInZipName.data(), path.data());
+		log.info("found:{} in archive:{}", fileInZipName, path);
 	}
 	if(!boardChangeCartridge(slot, ROM_UNKNOWN, path.data(), fileInZipName.size() ? fileInZipName.data() : nullptr))
 	{
@@ -422,13 +401,13 @@ bool insertDisk(EmuApp &app, const char *name, unsigned slot)
 	FS::FileString fileInZipName{};
 	if(EmuApp::hasArchiveExtension(path))
 	{
-		fileInZipName = getFirstDiskFilenameInArchive(app.appContext(), path);
+		fileInZipName = getFirstDiskFileInArchive(app.appContext(), path).name();
 		if(fileInZipName.empty())
 		{
 			app.postMessage(true, "No disk found in archive:%s", path);
 			return false;
 		}
-		logMsg("found:%s in archive:%s", fileInZipName.data(), path.data());
+		log.info("found:{} in archive:{}", fileInZipName, path);
 	}
 	if(!diskChange(slot, path.data(), fileInZipName.size() ? fileInZipName.data() : nullptr))
 	{
@@ -474,7 +453,7 @@ void MsxSystem::saveBlueMSXState(const char *filename)
 {
 	if(!zipStartWrite(filename))
 	{
-		logErr("error creating zip:%s", filename);
+		log.error("error creating zip:{}", filename);
 		EmuSystem::throwFileWriteError();
 	}
 	saveStateCreateForWrite(filename);
@@ -483,7 +462,7 @@ void MsxSystem::saveBlueMSXState(const char *filename)
 	{
 		saveStateDestroy();
 		zipEndWrite();
-		logErr("error writing to zip:%s", filename);
+		log.error("error writing to zip:{}", filename);
 		EmuSystem::throwFileWriteError();
 	}
 
@@ -531,7 +510,7 @@ static FS::FileString saveStateGetFileString(SaveState* state, const char* tagNa
 
 void MsxSystem::loadBlueMSXState(EmuApp &app, const char *filename)
 {
-	logMsg("loading state %s", filename);
+	log.info("loading state:{}", filename);
 	assert(machine);
 	saveStateCreateForRead(filename);
 	auto destroySaveState = IG::scopeGuard([](){ saveStateDestroy(); });
@@ -584,7 +563,7 @@ void MsxSystem::loadBlueMSXState(EmuApp &app, const char *filename)
 	}
 
 	boardInfo.loadState();
-	logMsg("state loaded with machine:%s", machine->name);
+	log.info("state loaded with machine:{}", machine->name);
 }
 
 void MsxSystem::readState(EmuApp &app, std::span<uint8_t> buff)
@@ -618,29 +597,34 @@ void MsxSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 	FS::FileString fileInZipName{};
 	const char *fileInZipNamePtr{};
 	const char *mediaNamePtr = mediaFilename.data();
-	bool loadDiskAsHD = false;
+	bool loadDiskAsHD{};
+	bool isColecoRom = hasColecoROMExtension(mediaFilename);
 	auto ctx = appContext();
 	if(EmuApp::hasArchiveExtension(mediaFilename))
 	{
-		fileInZipName = getFirstMediaFilenameInArchive(ctx, mediaPath);
-		if(fileInZipName.empty())
+		auto fileInZip = getFirstMediaFileInArchive(ctx, mediaPath);
+		if(!fileInZip)
 		{
 			throw std::runtime_error("No media in archive");
 		}
-		logMsg("found:%s in archive:%s", fileInZipName.data(), mediaPath.data());
+		fileInZipName = fileInZip.name();
+		log.info("found:{} in archive:{}", fileInZipName, mediaPath);
 		fileInZipNamePtr = fileInZipName.data();
 		mediaNamePtr = fileInZipNamePtr;
 		if(hasMSXDiskExtension(fileInZipName))
 		{
-			auto fileInZip = FS::fileFromArchive(ctx.openFileUri(mediaPath), fileInZipName);
 			loadDiskAsHD = fileInZip.size() >= 1024 * 1024;
+		}
+		else
+		{
+			isColecoRom = hasColecoROMExtension(fileInZipName);
 		}
 	}
 	else if(hasMSXDiskExtension(mediaFilename))
 	{
 		loadDiskAsHD = ctx.openFileUri(mediaPath).size() >= 1024 * 1024;
 		if(loadDiskAsHD)
-			logMsg("loading disk image as HD");
+			log.info("loading disk image as HD");
 	}
 
 	// create machine
@@ -652,7 +636,11 @@ void MsxSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 	}
 	if(!strlen(currentMachineName()))
 	{
-		setCurrentMachineName(app, optionDefaultMachineNameStr, false);
+		if(isColecoRom)
+			setCurrentMachineName(app, optionDefaultColecoMachineNameStr, false);
+		else
+			setCurrentMachineName(app, optionDefaultMachineNameStr, false);
+		log.info("using default machine:{}", currentMachineName());
 	}
 
 	// load media
@@ -702,7 +690,7 @@ void MsxSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
 	UInt32 mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
 	if(mixerGetSampleRate(mixer) == mixRate)
 		return;
-	logMsg("set sound mix rate:%d", (int)mixRate);
+	log.info("set sound mix rate:{}", mixRate);
 	mixerSetSampleRate(mixer, mixRate);
 }
 
@@ -760,7 +748,7 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 void RefreshScreen(int screenMode)
 {
 	using namespace EmuEx;
-	//logMsg("called RefreshScreen");
+	//log.debug("called RefreshScreen");
 	if(emuVideo) [[likely]]
 	{
 		emuVideo->startFrameWithFormat(emuSysTask, frameBufferPixmap());

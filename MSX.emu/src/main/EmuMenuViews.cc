@@ -23,6 +23,7 @@
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/fs/AssetFS.hh>
+#include <imagine/fs/ArchiveFS.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
 #include "MainApp.hh"
@@ -38,90 +39,88 @@ namespace EmuEx
 template <class T>
 using MainAppHelper = EmuAppHelper<T, MainApp>;
 
-static std::vector<FS::FileString> machinesNames(IG::ApplicationContext ctx, std::string_view basePath)
+constexpr SystemLogger log{"MsxMenus"};
+
+static std::vector<FS::FileString> readMachinesNames(IG::ApplicationContext ctx, std::string_view firmwarePath)
 {
-	std::vector<FS::FileString> machineName{};
-	auto machinePath = FS::uriString(basePath, "Machines");
+	std::vector<FS::FileString> machineNames;
 	try
 	{
-		ctx.forEachInDirectoryUri(machinePath,
-			[&machineName, &machinePath, ctx](auto &entry)
-			{
-				auto configPath = FS::uriString(machinePath, entry.name(), "config.ini");
-				if(!ctx.fileUriExists(configPath))
-				{
-					//logMsg("%s doesn't exist", configPath.data());
-					return true;
-				}
-				machineName.emplace_back(entry.name());
-				logMsg("found machine:%s", entry.name().data());
-				return true;
-			});
-	}
-	catch(...)
-	{
-		logWarn("no machines in:%s", machinePath.data());
-	}
-	try
-	{
-		if constexpr(Config::envIsAndroid)
+		if(EmuApp::hasArchiveExtension(firmwarePath))
 		{
-			// asset directory implementation skips directories, manually add bundled machines
-			machineName.emplace_back("MSX - C-BIOS");
-			machineName.emplace_back("MSX2 - C-BIOS");
-			machineName.emplace_back("MSX2+ - C-BIOS");
+			for(auto &entry : FS::ArchiveIterator{ctx.openFileUri(firmwarePath)})
+			{
+				if(entry.type() == FS::file_type::regular && entry.name().ends_with("/config.ini"))
+				{
+					auto name = FS::basename(FS::dirname(entry.name()));
+					machineNames.emplace_back(name);
+					log.info("found machine:{}", name);
+				}
+			}
 		}
 		else
 		{
-			for(auto &entry : ctx.openAssetDirectory("Machines"))
+			auto machinesPath = FS::uriString(firmwarePath, "Machines");
+			ctx.forEachInDirectoryUri(machinesPath, [&machineNames, &machinesPath, ctx](auto &entry)
 			{
-				machineName.emplace_back(entry.name());
-				logMsg("add asset path machine:%s", entry.name().data());
-			}
+				auto configPath = FS::uriString(machinesPath, entry.name(), "config.ini");
+				if(!ctx.fileUriExists(configPath))
+				{
+					//log.debug("{} doesn't exist", configPath);
+					return true;
+				}
+				machineNames.emplace_back(entry.name());
+				log.info("found machine:{}", entry.name());
+				return true;
+			});
 		}
 	}
 	catch(...)
 	{
-		logWarn("no machines in assets");
+		log.warn("no machines in:{}", firmwarePath);
 	}
-	std::sort(machineName.begin(), machineName.end(),
-		[](const FS::FileString &n1, const FS::FileString &n2)
-		{
-			return IG::caselessLexCompare(n1, n2);
-		});
-	// remove any duplicates
-	auto dupeEraseIt = std::unique(machineName.begin(), machineName.end());
-	machineName.erase(dupeEraseIt, machineName.end());
-	return machineName;
-}
-
-static int machineIndex(std::vector<FS::FileString> &name, FS::FileString searchName)
-{
-	int currentMachineIdx =
-		std::find(name.begin(), name.end(), searchName) - name.begin();
-	if(currentMachineIdx != (int)name.size())
+	if constexpr(Config::envIsAndroid)
 	{
-		//logMsg("current machine is idx %d", currentMachineIdx);
-		return(currentMachineIdx);
+		// asset directory implementation skips directories, manually add bundled machines
+		machineNames.emplace_back("MSX - C-BIOS");
+		machineNames.emplace_back("MSX2 - C-BIOS");
+		machineNames.emplace_back("MSX2+ - C-BIOS");
 	}
 	else
 	{
-		return -1;
+		try
+		{
+			for(auto &entry : ctx.openAssetDirectory("Machines"))
+			{
+				machineNames.emplace_back(entry.name());
+				log.info("added asset path machine:{}", entry.name());
+			}
+		}
+		catch(...)
+		{
+			log.error("error opening asset directory");
+		}
 	}
+	std::ranges::sort(machineNames, caselessLexCompare);
+	// remove any duplicates
+	const auto [firstDupe, lastDupe] = std::ranges::unique(machineNames);
+	machineNames.erase(firstDupe, lastDupe);
+	return machineNames;
 }
 
 class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<CustomSystemOptionView>
 {
 	using MainAppHelper<CustomSystemOptionView>::system;
 
-	std::vector<FS::FileString> msxMachineName{};
-	std::vector<TextMenuItem> msxMachineItem{};
+	std::vector<FS::FileString> machineNames{};
+	std::vector<TextMenuItem> machineItems{};
 
-	MultiChoiceMenuItem msxMachine
+	enum class MachineType {msx, coleco};
+
+	template<MachineType type>
+	MultiChoiceMenuItem::Config machineItemConfig()
 	{
-		"Default Machine Type", attachParams(),
-		0,
-		msxMachineItem,
+		return
 		{
 			.onSetDisplayString = [](auto idx, Gfx::Text &t)
 			{
@@ -134,30 +133,50 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 			},
 			.onSelect = [this](MultiChoiceMenuItem &item, View &view, Input::Event e)
 			{
-				if(!msxMachineItem.size())
+				if(!machineItems.size())
 				{
-					logErr("no machines definitions are present");
+					log.error("no machine definitions are present");
 					return;
+				}
+				for(auto &&[idx, i] : enumerate(machineItems))
+				{
+					i.onSelect = [this, name = machineNames[idx].data()](Input::Event)
+					{
+						if(type == MachineType::coleco)
+							system().setDefaultColecoMachineName(name);
+						else
+							system().setDefaultMachineName(name);
+					};
 				}
 				item.defaultOnSelect(view, e);
 			}
-		},
+		};
+	}
+
+	MultiChoiceMenuItem msxMachine
+	{
+		"Default MSX Machine", attachParams(), 0,
+		machineItems,
+		machineItemConfig<MachineType::msx>()
+	};
+
+	MultiChoiceMenuItem colecoMachine
+	{
+		"Default Coleco Machine", attachParams(), 0,
+		machineItems,
+		machineItemConfig<MachineType::coleco>()
 	};
 
 	void reloadMachineItem()
 	{
-		msxMachineItem.clear();
-		msxMachineName = machinesNames(appContext(), machineBasePath(system()));
-		for(const auto &name : msxMachineName)
+		machineItems.clear();
+		machineNames = readMachinesNames(appContext(), system().firmwarePath());
+		for(const auto &name : machineNames)
 		{
-			msxMachineItem.emplace_back(name, attachParams(),
-			[this, name = name.data()](Input::Event)
-			{
-				system().setDefaultMachineName(name);
-				logMsg("set machine type: %s", name);
-			});
+			machineItems.emplace_back(name, attachParams(), nullptr);
 		}
-		msxMachine.setSelected(machineIndex(msxMachineName, system().optionDefaultMachineNameStr));
+		msxMachine.setSelected(findIndex(machineNames, std::string_view{system().optionDefaultMachineNameStr}));
+		colecoMachine.setSelected(findIndex(machineNames, std::string_view{system().optionDefaultColecoMachineNameStr}));
 	}
 
 	BoolMenuItem skipFdcAccess
@@ -177,6 +196,7 @@ public:
 		reloadMachineItem();
 		item.emplace_back(&skipFdcAccess);
 		item.emplace_back(&msxMachine);
+		item.emplace_back(&colecoMachine);
 	}
 };
 
@@ -193,24 +213,30 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 
 	TextMenuItem machineFilePath
 	{
-		machinePathMenuEntryStr(system().firmwarePath), attachParams(),
+		machinePathMenuEntryStr(system().firmwarePath_), attachParams(),
 		[this](Input::Event e)
 		{
 			pushAndShow(makeViewWithName<DataFolderSelectView>("BIOS",
-				app().validSearchPath(system().firmwarePath),
+				app().validSearchPath(system().firmwarePath_),
 				[this](CStringView path, FS::file_type type)
 				{
-					if(type == FS::file_type::directory && !appContext().fileUriExists(FS::uriString(path, "Machines")))
-					{
-						app().postErrorMessage("Path is missing Machines folder");
-						return false;
-					}
-					system().firmwarePath = path;
-					machineFilePath.compile(machinePathMenuEntryStr(path));
 					if(type == FS::file_type::none)
 					{
-						app().postMessage(4, false, std::format("Using fallback path:\n{}", machineBasePath(system())));
+						system().setFirmwarePath(path, type);
 					}
+					else
+					{
+						try
+						{
+							system().setFirmwarePath(path, type);
+						}
+						catch(std::exception &err)
+						{
+							app().postErrorMessage(err.what());
+							return false;
+						}
+					}
+					machineFilePath.compile(machinePathMenuEntryStr(path));
 					return true;
 				}), e);
 			postDraw();
@@ -277,7 +303,7 @@ public:
 			[this, slot, dismissPreviousView](FSPicker &picker, std::string_view path, std::string_view name, Input::Event e)
 			{
 				auto id = diskGetHdDriveId(slot / 2, slot % 2);
-				logMsg("inserting hard drive id %d", id);
+				log.info("inserting hard drive id:{}", id);
 				if(insertDisk(app(), name.data(), id))
 				{
 					onHDMediaChange(name.data(), slot);
@@ -426,7 +452,7 @@ public:
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK),
 			[this, slot, dismissPreviousView](FSPicker &picker, std::string_view path, std::string_view name, Input::Event e)
 			{
-				logMsg("inserting disk in slot %d", slot);
+				log.info("inserting disk in slot:{}", slot);
 				if(insertDisk(app(), name.data(), slot))
 				{
 					onDiskMediaChange(name.data(), slot);
@@ -535,14 +561,14 @@ private:
 		}
 	};
 
-	std::vector<FS::FileString> msxMachineName{};
-	std::vector<TextMenuItem> msxMachineItem{};
+	std::vector<FS::FileString> machineNames{};
+	std::vector<TextMenuItem> machineItems{};
 
 	MultiChoiceMenuItem msxMachine
 	{
 		"Machine Type", attachParams(),
 		0,
-		msxMachineItem,
+		machineItems,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
@@ -555,7 +581,7 @@ private:
 			},
 			.onSelect = [this](MultiChoiceMenuItem &item, View &view, Input::Event e)
 			{
-				if(!msxMachineItem.size())
+				if(!machineItems.size())
 				{
 					return;
 				}
@@ -566,11 +592,11 @@ private:
 
 	void reloadMachineItem()
 	{
-		msxMachineItem.clear();
-		msxMachineName = machinesNames(appContext(), machineBasePath(system()));
-		for(const auto &name : msxMachineName)
+		machineItems.clear();
+		machineNames = readMachinesNames(appContext(), system().firmwarePath());
+		for(const auto &name : machineNames)
 		{
-			msxMachineItem.emplace_back(name, attachParams(),
+			machineItems.emplace_back(name, attachParams(),
 			[this, name = name.data()](Input::Event e)
 			{
 				app().pushAndShowModalView(makeView<YesNoAlertView>("Change machine type and reset emulation?",
@@ -589,7 +615,7 @@ private:
 							}
 							auto machineName = currentMachineName();
 							system().optionSessionMachineNameStr = machineName;
-							msxMachine.setSelected(machineIndex(msxMachineName, machineName));
+							msxMachine.setSelected(findIndex(machineNames, machineName));
 							system().sessionOptionSet();
 							dismissPrevious();
 						}
@@ -597,7 +623,7 @@ private:
 				return false;
 			});
 		}
-		msxMachine.setSelected(machineIndex(msxMachineName, currentMachineName()));
+		msxMachine.setSelected(findIndex(machineNames, currentMachineName()));
 	}
 
 	void reloadItems()
@@ -619,7 +645,7 @@ public:
 	{
 		SystemActionsView::onShow();
 		msxIOControl.setActive(system().hasContent() && system().activeBoardType == BOARD_MSX);
-		msxMachine.setSelected(machineIndex(msxMachineName, currentMachineName()));
+		msxMachine.setSelected(findIndex(machineNames, currentMachineName()), *this);
 	}
 };
 

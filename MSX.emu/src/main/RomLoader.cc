@@ -17,7 +17,9 @@
 #include "ziphelper.h"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/io/FileIO.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include <string.h>
 #include "MainSystem.hh"
@@ -29,9 +31,28 @@ extern "C"
 
 namespace EmuEx
 {
+
 IG::ApplicationContext gAppContext();
+
+constexpr SystemLogger log{"RomLoader"};
+
+FS::ArchiveIterator &MsxSystem::firmwareArchiveIterator(CStringView path) const
+{
+	if(!firmwareArchiveIt.hasArchive())
+	{
+		log.info("{} not cached, opening archive", path);
+		firmwareArchiveIt = {appContext().openFileUri(path)};
+	}
+	else
+	{
+		firmwareArchiveIt.rewind();
+	}
+	return firmwareArchiveIt;
 }
 
+}
+
+using namespace IG;
 using namespace EmuEx;
 
 static UInt8 *fileToMallocBuffer(Readable auto &file, int *size)
@@ -43,17 +64,54 @@ static UInt8 *fileToMallocBuffer(Readable auto &file, int *size)
 	return buff;
 }
 
+static IO fileFromFirmwarePath(CStringView path)
+{
+	auto &sys = static_cast<MsxSystem&>(gSystem());
+	auto appCtx = sys.appContext();
+	auto firmwarePath = sys.firmwarePath();
+	if(firmwarePath.size())
+	{
+		try
+		{
+			if(FS::hasArchiveExtension(firmwarePath))
+			{
+				auto &it = sys.firmwareArchiveIterator(firmwarePath);
+				if(FS::seekFileInArchive(it, [&](auto &entry){ return entry.name().ends_with(path.data()); }))
+				{
+					return MapIO{*it};
+				}
+			}
+			else
+			{
+				return appCtx.openFileUri(FS::uriString(firmwarePath, path), IOAccessHint::All);
+			}
+		}
+		catch(...)
+		{
+			EmuEx::log.error("error opening path:{}", path);
+		}
+	}
+	// fall back to asset path
+	auto assetFile = appCtx.openAsset(path, IOAccessHint::All, {.test = true});
+	if(assetFile)
+	{
+		return assetFile;
+	}
+	EmuEx::log.error("{} not found in firmware path", path);
+	return {};
+}
+
 UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 {
 	if(!filename || !strlen(filename))
 		return nullptr;
-	logMsg("loading ROM file:%s:%s", filename, filenameInArchive);
+	EmuEx::log.info("loading ROM file:{}:{}", filename, filenameInArchive);
 	if(filenameInArchive && strlen(filenameInArchive))
 	{
 		auto buff = (UInt8*)zipLoadFile(filename, filenameInArchive, size);
 		if(buff)
 			return buff;
-		logErr("can't load ROM from zip");
+		EmuEx::log.error("can't load ROM from zip");
 		return nullptr;
 	}
 	else
@@ -67,44 +125,29 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 			{
 				return fileToMallocBuffer(file, size);
 			}
-			logErr("can't load ROM from absolute path");
+			EmuEx::log.error("can't load ROM from absolute path");
 			return nullptr;
 		}
 		// relative path, try firmware directory
 		{
-			auto file = appCtx.openFileUri(FS::uriString(machineBasePath(sys), filename), IOAccessHint::All, {.test = true});
+			auto file = fileFromFirmwarePath(filename);
 			if(file)
 			{
 				return fileToMallocBuffer(file, size);
 			}
 		}
-		// fallback to app assets
-		{
-			auto file = appCtx.openAsset(filename, IOAccessHint::All, {.test = true});
-			if(file)
-			{
-				return fileToMallocBuffer(file, size);
-			}
-		}
-		logErr("can't load ROM from relative path");
+		EmuEx::log.error("can't load ROM from relative path");
 		return nullptr;
 	}
 }
 
-CLINK FILE *openMachineIni(const char *path, const char *mode)
+CLINK FILE *openMachineIni(const char *filename, const char *mode)
 {
-	auto &sys = static_cast<MsxSystem&>(gSystem());
-	auto appCtx = sys.appContext();
-	auto filePathInFirmwarePath = FS::uriString(machineBasePath(sys), path);
-	auto file = appCtx.openFileUri(filePathInFirmwarePath, IOAccessHint::All, {.test = true});
+	EmuEx::log.info("loading machine ini:{}", filename);
+	auto file = fileFromFirmwarePath(filename);
 	if(file)
 	{
-		return file.toFileStream(mode);
-	}
-	auto assetFile = appCtx.openAsset(path, IOAccessHint::All, {.test = true});
-	if(assetFile)
-	{
-		return assetFile.toFileStream(mode);
+		return MapIO{std::move(file)}.toFileStream(mode);
 	}
 	return {};
 }

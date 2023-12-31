@@ -16,6 +16,7 @@
 #define LOGTAG "ArchFS"
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/io/IO.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/string.h>
 
@@ -43,6 +44,9 @@ ArchiveIterator::ArchiveIterator(CStringView path):
 ArchiveIterator::ArchiveIterator(IO io):
 	impl{makeArchiveEntryPtr(std::move(io))} {}
 
+ArchiveIterator::ArchiveIterator(FileIO io):
+	impl{makeArchiveEntryPtr(std::move(io))} {}
+
 ArchiveIterator::ArchiveIterator(ArchiveIO entry):
 	impl{entry.hasEntry() ? std::make_shared<ArchiveIO>(std::move(entry)) : std::shared_ptr<ArchiveIO>{}} {}
 
@@ -65,32 +69,6 @@ void ArchiveIterator::operator++()
 void ArchiveIterator::rewind()
 {
 	impl->rewind();
-}
-
-static ArchiveIO fileFromArchiveGeneric(auto &&init, std::string_view filePath)
-{
-	for(auto &entry : FS::ArchiveIterator{std::forward<decltype(init)>(init)})
-	{
-		if(entry.type() == FS::file_type::directory)
-		{
-			continue;
-		}
-		if(entry.name() == filePath)
-		{
-			return std::move(entry);
-		}
-	}
-	return {};
-}
-
-ArchiveIO fileFromArchive(CStringView archivePath, std::string_view filePath)
-{
-	return fileFromArchiveGeneric(archivePath, filePath);
-}
-
-ArchiveIO fileFromArchive(IO io, std::string_view filePath)
-{
-	return fileFromArchiveGeneric(std::move(io), filePath);
 }
 
 bool hasArchiveExtension(std::string_view name)

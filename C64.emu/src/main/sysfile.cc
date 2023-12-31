@@ -83,7 +83,7 @@ static ArchiveIO *archiveIOForSysFile(C64System &system, IG::CStringView archive
 	auto sysFilePath = FS::pathString(subPath, sysFileName);
 	try
 	{
-		for(auto &entry : system.systemFilesArchiveIterator(gAppContext(), archivePath))
+		for(auto &entry : system.firmwareArchiveIterator(archivePath))
 		{
 			if(entry.type() == FS::file_type::directory)
 			{
@@ -123,49 +123,41 @@ static AssetIO assetIOForSysFile(IG::ApplicationContext ctx, std::string_view sy
 	return file;
 }
 
-FS::ArchiveIterator &C64System::systemFilesArchiveIterator(ApplicationContext ctx, std::string_view path) const
+FS::ArchiveIterator &C64System::firmwareArchiveIterator(CStringView path) const
 {
-	if(!viceSysFilesArchiveIt.hasArchive())
+	if(!firmwareArchiveIt.hasArchive())
 	{
 		log.info("{} not cached, opening archive", path);
-		viceSysFilesArchiveIt = {ctx.openFileUri(path)};
+		firmwareArchiveIt = {appContext().openFileUri(path)};
 	}
 	else
 	{
-		viceSysFilesArchiveIt.rewind();
+		firmwareArchiveIt.rewind();
 	}
-	return viceSysFilesArchiveIt;
+	return firmwareArchiveIt;
 }
 
-static bool archiveHasDirectory(ApplicationContext ctx, CStringView path, std::string_view dirName)
+static bool archiveHasDrivesDirectory(ApplicationContext ctx, CStringView path)
 {
-	for(auto &entry : FS::ArchiveIterator{ctx.openFileUri(path)})
-	{
-		if(entry.type() == FS::file_type::directory &&
-			entry.name().ends_with(dirName))
-		{
-			return true;
-		}
-	}
-	return false;
+	return bool(FS::findDirectoryInArchive(ctx.openFileUri(path), [&](auto &entry){ return entry.name().ends_with("DRIVES/"); }));
 }
 
-void C64System::setSystemFilesPath(ApplicationContext ctx, CStringView path, FS::file_type type)
+void C64System::setSystemFilesPath(CStringView path, FS::file_type type)
 {
+	auto ctx = appContext();
 	log.info("set firmware path:{}", path);
 	if((type == FS::file_type::directory && !ctx.fileUriExists(FS::uriString(path, "DRIVES")))
-		|| (EmuApp::hasArchiveExtension(path) && !archiveHasDirectory(ctx, path, "DRIVES/")))
+		|| (FS::hasArchiveExtension(path) && !archiveHasDrivesDirectory(ctx, path)))
 	{
 		throw std::runtime_error{"Path is missing DRIVES folder"};
 	}
 	sysFilePath[0] = path;
-	viceSysFilesArchiveIt = {};
+	firmwareArchiveIt = {};
 }
 
 std::vector<std::string> C64System::systemFilesWithExtension(const char *ext) const
 {
 	logMsg("looking for system files with extension:%s", ext);
-	auto appContext = gAppContext();
 	std::vector<std::string> filenames{};
 	try
 	{
@@ -173,12 +165,12 @@ std::vector<std::string> C64System::systemFilesWithExtension(const char *ext) co
 		{
 			if(basePath.empty())
 				continue;
-			auto displayName = appContext.fileUriDisplayName(basePath);
+			auto displayName = appContext().fileUriDisplayName(basePath);
 			if(displayName.empty())
 				continue;
 			if(EmuApp::hasArchiveExtension(displayName))
 			{
-				for(auto &entry : systemFilesArchiveIterator(appContext, basePath))
+				for(auto &entry : firmwareArchiveIterator(basePath))
 				{
 					if(entry.type() == FS::file_type::directory)
 					{
@@ -196,7 +188,7 @@ std::vector<std::string> C64System::systemFilesWithExtension(const char *ext) co
 			}
 			else
 			{
-				appContext.forEachInDirectoryUri(FS::uriString(basePath, sysFileDir),
+				appContext().forEachInDirectoryUri(FS::uriString(basePath, sysFileDir),
 					[&filenames, ext](auto &entry)
 					{
 						auto name = entry.name();

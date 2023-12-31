@@ -1,9 +1,25 @@
 #pragma once
 
+/*  This file is part of MSX.emu.
+
+	MSX.emu is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	MSX.emu is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with MSX.emu.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/fs/ArchiveFS.hh>
 
 extern "C"
 {
@@ -34,6 +50,7 @@ extern BoardInfo boardInfo;
 extern bool fdcActive;
 extern Mixer *mixer;
 constexpr std::string_view optionMachineNameDefault{"MSX2"};
+constexpr std::string_view optionColecoMachineNameDefault{"COL - ColecoVision"};
 
 class MsxSystem final: public EmuSystem
 {
@@ -41,9 +58,11 @@ public:
 	unsigned activeBoardType = BOARD_MSX;
 	FS::FileString cartName[2];
 	FS::FileString diskName[2];
-	IG::StaticString<128> optionDefaultMachineNameStr{optionMachineNameDefault};
-	IG::StaticString<128> optionSessionMachineNameStr;
-	FS::PathString firmwarePath;
+	std::string optionDefaultMachineNameStr{optionMachineNameDefault};
+	std::string optionDefaultColecoMachineNameStr{optionColecoMachineNameDefault};
+	std::string optionSessionMachineNameStr;
+	FS::PathString firmwarePath_;
+	mutable FS::ArchiveIterator firmwareArchiveIt;
 
 	MsxSystem(ApplicationContext ctx):
 		EmuSystem{ctx}
@@ -71,12 +90,16 @@ public:
 		mixerSetBoardFrequencyFixed(frequency);
 	}
 	bool setDefaultMachineName(std::string_view name);
+	bool setDefaultColecoMachineName(std::string_view name);
 	void setCurrentMachineName(EmuApp &, std::string_view machineName, bool insertMediaFiles = true);
 	void clearAllMediaNames();
 	bool createBoard(EmuApp &app);
 	void destroyBoard(bool clearMediaNames = true);
 	bool createBoardFromLoadGame(EmuApp &app);
 	void destroyMachine(bool clearMediaNames = true);
+	void setFirmwarePath(CStringView path, FS::file_type);
+	FS::PathString firmwarePath() const;
+	FS::ArchiveIterator &firmwareArchiveIterator(CStringView path) const;
 
 	// required API functions
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
@@ -112,13 +135,11 @@ private:
 
 using MainSystem = MsxSystem;
 
-FS::PathString makeMachineBasePath(IG::ApplicationContext, FS::PathString customPath);
 bool hasMSXTapeExtension(std::string_view name);
 bool hasMSXDiskExtension(std::string_view name);
 bool hasMSXROMExtension(std::string_view name);
 bool insertROM(EmuApp &, const char *name, unsigned slot = 0);
 bool insertDisk(EmuApp &, const char *name, unsigned slot = 0);
-FS::PathString machineBasePath(MsxSystem &);
 void setupVKeyboardMap(EmuApp &, unsigned boardType);
 const char *currentMachineName();
 bool mixerEnableOption(MixerAudioType type);

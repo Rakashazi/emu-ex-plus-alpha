@@ -268,7 +268,8 @@ static auto openGngeoDataIO(IG::ApplicationContext ctx, IG::CStringView filename
 	#ifdef __ANDROID__
 	return ctx.openAsset(filename, IO::AccessHint::All);
 	#else
-	return FS::fileFromArchive(static_cast<NeoApp&>(ctx.application()).system().datafilePath, filename);
+	auto &datafilePath = static_cast<NeoApp&>(ctx.application()).system().datafilePath;
+	return FS::findFileInArchive(FileIO{datafilePath}, filename);
 	#endif
 }
 
