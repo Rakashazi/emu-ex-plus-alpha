@@ -17,6 +17,7 @@
 #include <imagine/bluetooth/Wiimote.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/base/Error.hh>
+#include <imagine/input/bluetoothInputDefs.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
 #include <imagine/util/bit.hh>
@@ -33,74 +34,74 @@ static constexpr char proDataBytes = 10;
 namespace Input
 {
 
-static const PackedInputAccess wiimoteDataAccess[] =
+constexpr PackedInputAccess wiimoteDataAccess[] =
 {
-	{ 0, bit(0), WiimoteKey::DOWN, Keycode::DOWN }, // map to sideways control
-	{ 0, bit(1), WiimoteKey::UP, Keycode::UP },
-	{ 0, bit(2), WiimoteKey::RIGHT, Keycode::RIGHT },
-	{ 0, bit(3), WiimoteKey::LEFT, Keycode::LEFT },
-	{ 0, bit(4), WiimoteKey::PLUS, Keycode::GAME_START },
+	{ 0, bit(0), WiimoteKey::DOWN }, // map to sideways control
+	{ 0, bit(1), WiimoteKey::UP },
+	{ 0, bit(2), WiimoteKey::RIGHT },
+	{ 0, bit(3), WiimoteKey::LEFT },
+	{ 0, bit(4), WiimoteKey::PLUS },
 
-	{ 1, bit(0), WiimoteKey::_2, Keycode::GAME_B },
-	{ 1, bit(1), WiimoteKey::_1, Keycode::GAME_A },
-	{ 1, bit(2), WiimoteKey::B, Keycode::GAME_X },
-	{ 1, bit(3), WiimoteKey::A, Keycode::GAME_C },
-	{ 1, bit(4), WiimoteKey::MINUS, Keycode::GAME_SELECT },
-	{ 1, bit(7), WiimoteKey::HOME, Keycode::MENU },
+	{ 1, bit(0), WiimoteKey::_2 },
+	{ 1, bit(1), WiimoteKey::_1 },
+	{ 1, bit(2), WiimoteKey::B },
+	{ 1, bit(3), WiimoteKey::A },
+	{ 1, bit(4), WiimoteKey::MINUS },
+	{ 1, bit(7), WiimoteKey::HOME },
 };
 
-static const PackedInputAccess wiimoteCCDataAccess[] =
+constexpr PackedInputAccess wiimoteCCDataAccess[] =
 {
-	{ 4, bit(7), WiiCCKey::RIGHT, Keycode::RIGHT },
-	{ 4, bit(6), WiiCCKey::DOWN, Keycode::DOWN },
-	{ 4, bit(5), WiiCCKey::L, Keycode::GAME_L1 },
-	{ 4, bit(4), WiiCCKey::MINUS, Keycode::GAME_SELECT },
-	{ 4, bit(3), WiiCCKey::HOME, Keycode::MENU },
-	{ 4, bit(2), WiiCCKey::PLUS, Keycode::GAME_START },
-	{ 4, bit(1), WiiCCKey::R, Keycode::GAME_R1 },
+	{ 4, bit(7), WiiCCKey::RIGHT },
+	{ 4, bit(6), WiiCCKey::DOWN },
+	{ 4, bit(5), WiiCCKey::L },
+	{ 4, bit(4), WiiCCKey::MINUS },
+	{ 4, bit(3), WiiCCKey::HOME },
+	{ 4, bit(2), WiiCCKey::PLUS },
+	{ 4, bit(1), WiiCCKey::R },
 
-	{ 5, bit(7), WiiCCKey::ZL, Keycode::GAME_L2 },
-	{ 5, bit(6), WiiCCKey::B, Keycode::GAME_A },
-	{ 5, bit(5), WiiCCKey::Y, Keycode::GAME_X },
-	{ 5, bit(4), WiiCCKey::A, Keycode::GAME_B },
-	{ 5, bit(3), WiiCCKey::X, Keycode::GAME_Y },
-	{ 5, bit(2), WiiCCKey::ZR, Keycode::GAME_R2 },
-	{ 5, bit(1), WiiCCKey::LEFT, Keycode::LEFT },
-	{ 5, bit(0), WiiCCKey::UP, Keycode::UP },
+	{ 5, bit(7), WiiCCKey::ZL },
+	{ 5, bit(6), WiiCCKey::B },
+	{ 5, bit(5), WiiCCKey::Y },
+	{ 5, bit(4), WiiCCKey::A },
+	{ 5, bit(3), WiiCCKey::X },
+	{ 5, bit(2), WiiCCKey::ZR },
+	{ 5, bit(1), WiiCCKey::LEFT },
+	{ 5, bit(0), WiiCCKey::UP },
 };
 
-static const PackedInputAccess wiimoteProDataAccess[] =
+constexpr PackedInputAccess wiimoteProDataAccess[] =
 {
-	{ 8, bit(7), WiiCCKey::RIGHT, Keycode::RIGHT },
-	{ 8, bit(6), WiiCCKey::DOWN, Keycode::DOWN },
-	{ 8, bit(5), WiiCCKey::L, Keycode::GAME_L1 },
-	{ 8, bit(4), WiiCCKey::MINUS, Keycode::GAME_SELECT },
-	{ 8, bit(3), WiiCCKey::HOME, Keycode::MENU },
-	{ 8, bit(2), WiiCCKey::PLUS, Keycode::GAME_START },
-	{ 8, bit(1), WiiCCKey::R, Keycode::GAME_R1 },
+	{ 8, bit(7), WiiCCKey::RIGHT },
+	{ 8, bit(6), WiiCCKey::DOWN },
+	{ 8, bit(5), WiiCCKey::L },
+	{ 8, bit(4), WiiCCKey::MINUS },
+	{ 8, bit(3), WiiCCKey::HOME },
+	{ 8, bit(2), WiiCCKey::PLUS },
+	{ 8, bit(1), WiiCCKey::R },
 
-	{ 9, bit(7), WiiCCKey::ZL, Keycode::GAME_L2 },
-	{ 9, bit(6), WiiCCKey::B, Keycode::GAME_A },
-	{ 9, bit(5), WiiCCKey::Y, Keycode::GAME_X },
-	{ 9, bit(4), WiiCCKey::A, Keycode::GAME_B },
-	{ 9, bit(3), WiiCCKey::X, Keycode::GAME_Y },
-	{ 9, bit(2), WiiCCKey::ZR, Keycode::GAME_R2 },
-	{ 9, bit(1), WiiCCKey::LEFT, Keycode::LEFT },
-	{ 9, bit(0), WiiCCKey::UP, Keycode::UP },
+	{ 9, bit(7), WiiCCKey::ZL },
+	{ 9, bit(6), WiiCCKey::B },
+	{ 9, bit(5), WiiCCKey::Y },
+	{ 9, bit(4), WiiCCKey::A },
+	{ 9, bit(3), WiiCCKey::X },
+	{ 9, bit(2), WiiCCKey::ZR },
+	{ 9, bit(1), WiiCCKey::LEFT },
+	{ 9, bit(0), WiiCCKey::UP },
 
-	{ 10, bit(1), WiiCCKey::LH, Keycode::GAME_LEFT_THUMB },
-	{ 10, bit(0), WiiCCKey::RH, Keycode::GAME_RIGHT_THUMB },
+	{ 10, bit(1), WiiCCKey::LH },
+	{ 10, bit(0), WiiCCKey::RH },
 };
 
-static const PackedInputAccess wiimoteNunchukDataAccess[] =
+constexpr PackedInputAccess wiimoteNunchukDataAccess[] =
 {
-	{ 5, bit(1), WiimoteKey::NUN_C, Keycode::GAME_Y },
-	{ 5, bit(0), WiimoteKey::NUN_Z, Keycode::GAME_Z },
+	{ 5, bit(1), WiimoteKey::NUN_C },
+	{ 5, bit(0), WiimoteKey::NUN_Z },
 };
 
 }
 
-static const char *wiimoteButtonName(Input::Key k)
+constexpr const char *wiimoteButtonName(Input::Key k)
 {
 	switch(k)
 	{
@@ -126,7 +127,7 @@ static const char *wiimoteButtonName(Input::Key k)
 	return "";
 }
 
-static const char *wiiCCButtonName(Input::Key k)
+constexpr const char *wiiCCButtonName(Input::Key k)
 {
 	using namespace IG::Input;
 	switch(k)
@@ -161,7 +162,7 @@ static const char *wiiCCButtonName(Input::Key k)
 	return "";
 }
 
-static const char *wiiKeyName(Input::Key k, Input::Map map)
+constexpr const char *wiiKeyName(Input::Key k, Input::Map map)
 {
 	switch(map)
 	{
@@ -173,8 +174,7 @@ static const char *wiiKeyName(Input::Key k, Input::Map map)
 Wiimote::Wiimote(ApplicationContext ctx, BluetoothAddr addr):
 	BluetoothInputDevice{ctx, Input::Map::WIIMOTE, {.gamepad = true}, "Wiimote"},
 	ctlSock{ctx}, intSock{ctx},
-	addr{addr}
-{}
+	addr{addr} {}
 
 const char *Wiimote::keyName(Input::Key k) const
 {
@@ -509,7 +509,7 @@ void Wiimote::processCoreButtons(Input::Device &dev, const uint8_t *packet, Stea
 		{
 			//logMsg("%s %s @ wiimote %d", buttonName(Map::WIIMOTE, e.keyEvent), newState ? "pushed" : "released", player);
 			ctx.endIdleByUserActivity();
-			KeyEvent event{Map::WIIMOTE, e.keyEvent, e.sysKey, newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev};
+			KeyEvent event{Map::WIIMOTE, e.key, newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev};
 			ctx.application().dispatchRepeatableKeyInputEvent(event);
 		}
 	}
@@ -535,7 +535,7 @@ void Wiimote::processClassicButtons(Input::Device &dev, const uint8_t *packet, S
 			// note: buttons are 0 when pushed
 			//logMsg("%s %s @ wiimote cc", buttonName(Map::WIIMOTE, e.keyEvent), !newState ? "pushed" : "released");
 			ctx.endIdleByUserActivity();
-			KeyEvent event{Map::WII_CC, e.keyEvent, e.sysKey, !newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, extDevicePtr};
+			KeyEvent event{Map::WII_CC, e.key, !newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, extDevicePtr};
 			ctx.application().dispatchRepeatableKeyInputEvent(event);
 		}
 	}
@@ -561,7 +561,7 @@ void Wiimote::processProButtons(Input::Device &dev, const uint8_t *packet, Stead
 			// note: buttons are 0 when pushed
 			//logMsg("%s %s @ wii u pro", buttonName(Map::WIIMOTE, e.keyEvent), !newState ? "pushed" : "released");
 			ctx.endIdleByUserActivity();
-			KeyEvent event{Map::WII_CC, e.keyEvent, e.sysKey, !newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev};
+			KeyEvent event{Map::WII_CC, e.key, !newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev};
 			ctx.application().dispatchRepeatableKeyInputEvent(event);
 		}
 	}
@@ -584,7 +584,7 @@ void Wiimote::processNunchukButtons(Input::Device &dev, const uint8_t *packet, S
 		{
 			//logMsg("%s %s @ wiimote nunchuk",buttonName(Map::WIIMOTE, e.keyEvent), !newState ? "pushed" : "released");
 			ctx.endIdleByUserActivity();
-			KeyEvent event{Map::WIIMOTE, e.keyEvent, e.sysKey, !newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev};
+			KeyEvent event{Map::WIIMOTE, e.key, !newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev};
 			ctx.application().dispatchRepeatableKeyInputEvent(event);
 		}
 	}
@@ -603,30 +603,6 @@ void Wiimote::removeExtendedDevice()
 	if(extDevicePtr)
 	{
 		ctx.application().removeInputDevice(ctx, *std::exchange(extDevicePtr, {}));
-	}
-}
-
-std::pair<Input::Key, Input::Key> Wiimote::joystickKeys(Input::Map map, Input::AxisId axisId)
-{
-	if(map == Input::Map::WII_CC)
-	{
-		switch(axisId)
-		{
-			case Input::AxisId::X: return {Input::WiiCCKey::LSTICK_LEFT, Input::WiiCCKey::LSTICK_RIGHT};
-			case Input::AxisId::Y: return {Input::WiiCCKey::LSTICK_DOWN, Input::WiiCCKey::LSTICK_UP};
-			case Input::AxisId::Z: return {Input::WiiCCKey::RSTICK_LEFT, Input::WiiCCKey::RSTICK_RIGHT};
-			case Input::AxisId::RZ: return {Input::WiiCCKey::RSTICK_DOWN, Input::WiiCCKey::RSTICK_UP};
-			default: return {};
-		}
-	}
-	else
-	{
-		switch(axisId)
-		{
-			case Input::AxisId::X: return {Input::WiimoteKey::NUN_STICK_LEFT, Input::WiimoteKey::NUN_STICK_RIGHT};
-			case Input::AxisId::Y: return {Input::WiimoteKey::NUN_STICK_DOWN, Input::WiimoteKey::NUN_STICK_UP};
-			default: return {};
-		}
 	}
 }
 

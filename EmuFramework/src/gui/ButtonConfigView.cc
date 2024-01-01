@@ -278,17 +278,17 @@ bool ButtonConfigSetView::inputEvent(const Input::Event &e)
 					}
 					return true;
 				}
-				if(contains(pushedKeys, keyEv.mapKey()))
+				if(contains(pushedKeys, keyEv.key()))
 				{
 					return true;
 				}
 				if((contains(pushedKeys, Input::Keycode::GAME_L2) || contains(pushedKeys, Input::Keycode::GAME_R2)) &&
-					(keyEv.mapKey() == Input::Keycode::JS_LTRIGGER_AXIS || keyEv.mapKey() == Input::Keycode::JS_RTRIGGER_AXIS))
+					(keyEv.key() == Input::Keycode::JS_LTRIGGER_AXIS || keyEv.key() == Input::Keycode::JS_RTRIGGER_AXIS))
 				{
 					log.info("ignoring trigger axis to avoid duplicate events since L2/R2 keys are pushed");
 					return true;
 				}
-				pushedKeys.tryPushBack(keyEv.mapKey());
+				pushedKeys.tryPushBack(keyEv.key());
 			}
 			else if(keyEv.released())
 			{

@@ -57,52 +57,52 @@ void AppleGameDevice::setGamepadBlocks(Device &dev, GCController *controller, T 
 	gamepad.buttonA.valueChangedHandler =
 		^(GCControllerButtonInput *button, float value, BOOL pressed)
 		{
-			this->handleKey(dev, AppleGC::A, Keycode::GAME_A, value != 0.f);
+			this->handleKey(dev, AppleGC::A, value != 0.f);
 		};
 	gamepad.buttonB.valueChangedHandler =
 		^(GCControllerButtonInput *button, float value, BOOL pressed)
 		{
-			this->handleKey(dev, AppleGC::B, Keycode::GAME_B, value != 0.f);
+			this->handleKey(dev, AppleGC::B, value != 0.f);
 		};
 	gamepad.buttonX.valueChangedHandler =
 		^(GCControllerButtonInput *button, float value, BOOL pressed)
 		{
-			this->handleKey(dev, AppleGC::X, Keycode::GAME_X, value != 0.f);
+			this->handleKey(dev, AppleGC::X, value != 0.f);
 		};
 	gamepad.buttonY.valueChangedHandler =
 		^(GCControllerButtonInput *button, float value, BOOL pressed)
 		{
-			this->handleKey(dev, AppleGC::Y, Keycode::GAME_Y, value != 0.f);
+			this->handleKey(dev, AppleGC::Y, value != 0.f);
 		};
 	gamepad.leftShoulder.valueChangedHandler =
 		^(GCControllerButtonInput *button, float value, BOOL pressed)
 		{
-			this->handleKey(dev, AppleGC::L1, Keycode::GAME_L1, value != 0.f);
+			this->handleKey(dev, AppleGC::L1, value != 0.f);
 		};
 	gamepad.rightShoulder.valueChangedHandler =
 		^(GCControllerButtonInput *button, float value, BOOL pressed)
 		{
-			this->handleKey(dev, AppleGC::R1, Keycode::GAME_R1, value != 0.f);
+			this->handleKey(dev, AppleGC::R1, value != 0.f);
 		};
 	gamepad.dpad.up.valueChangedHandler =
 		^(GCControllerButtonInput *button, float value, BOOL pressed)
 		{
-			this->handleKey(dev, AppleGC::UP, Keycode::UP, pressed);
+			this->handleKey(dev, AppleGC::UP, pressed);
 		};
 	gamepad.dpad.down.valueChangedHandler =
 		^(GCControllerButtonInput *button, float value, BOOL pressed)
 		{
-			this->handleKey(dev, AppleGC::DOWN, Keycode::DOWN, pressed);
+			this->handleKey(dev, AppleGC::DOWN, pressed);
 		};
 	gamepad.dpad.left.valueChangedHandler =
 		^(GCControllerButtonInput *button, float value, BOOL pressed)
 		{
-			this->handleKey(dev, AppleGC::LEFT, Keycode::LEFT, pressed);
+			this->handleKey(dev, AppleGC::LEFT, pressed);
 		};
 	gamepad.dpad.right.valueChangedHandler =
 		^(GCControllerButtonInput *button, float value, BOOL pressed)
 		{
-			this->handleKey(dev, AppleGC::RIGHT, Keycode::RIGHT, pressed);
+			this->handleKey(dev, AppleGC::RIGHT, pressed);
 		};
 }
 
@@ -111,12 +111,12 @@ void AppleGameDevice::setExtendedGamepadBlocks(Device &dev, GCController *contro
 	extGamepad.leftTrigger.valueChangedHandler =
 		^(GCControllerButtonInput *button, float value, BOOL pressed)
 		{
-			this->handleKey(dev, AppleGC::L2, Keycode::GAME_L2, pressed);
+			this->handleKey(dev, AppleGC::L2, pressed);
 		};
 	extGamepad.rightTrigger.valueChangedHandler =
 		^(GCControllerButtonInput *button, float value, BOOL pressed)
 		{
-			this->handleKey(dev, AppleGC::R2, Keycode::GAME_R2, pressed);
+			this->handleKey(dev, AppleGC::R2, pressed);
 		};
 	extGamepad.leftThumbstick.xAxis.valueChangedHandler =
 		^(GCControllerAxisInput *, float value)
@@ -144,15 +144,14 @@ void AppleGameDevice::setExtendedGamepadBlocks(Device &dev, GCController *contro
 		};
 }
 
-void AppleGameDevice::handleKey(Device &dev, Key key, Key sysKey, bool pressed, bool repeatable)
+void AppleGameDevice::handleKey(Device &dev, Key key, bool pressed, bool repeatable)
 {
-	assert(key < AppleGC::COUNT);
 	if(pushState[key] == pressed)
 		return;
 	auto time = SteadyClock::now();
 	pushState[key] = pressed;
 	ctx.endIdleByUserActivity();
-	KeyEvent event{Map::APPLE_GAME_CONTROLLER, key, sysKey, pressed ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev};
+	KeyEvent event{Map::APPLE_GAME_CONTROLLER, key, pressed ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev};
 	if(repeatable)
 		ctx.application().dispatchRepeatableKeyInputEvent(event);
 	else
@@ -185,8 +184,8 @@ void AppleGameDevice::setKeys(Device &dev)
 	gcController().controllerPausedHandler =
 		^(GCController *controller)
 		{
-			this->handleKey(dev, AppleGC::PAUSE, Keycode::MENU, true, false);
-			this->handleKey(dev, AppleGC::PAUSE, Keycode::MENU, false, false);
+			this->handleKey(dev, AppleGC::PAUSE, true, false);
+			this->handleKey(dev, AppleGC::PAUSE, false, false);
 		};
 }
 
@@ -287,18 +286,6 @@ static const char *appleGCButtonName(Key k)
 		case AppleGC::RSTICK_LEFT: return "R:Left";
 	}
 	return "";
-}
-
-std::pair<Input::Key, Input::Key> appleJoystickKeys(Input::AxisId axisId)
-{
-	switch(axisId)
-	{
-		case Input::AxisId::X: return {Input::AppleGC::LSTICK_LEFT, Input::AppleGC::LSTICK_RIGHT};
-		case Input::AxisId::Y: return {Input::AppleGC::LSTICK_DOWN, Input::AppleGC::LSTICK_UP};
-		case Input::AxisId::Z: return {Input::AppleGC::RSTICK_LEFT, Input::AppleGC::RSTICK_RIGHT};
-		case Input::AxisId::RZ: return {Input::AppleGC::RSTICK_DOWN, Input::AppleGC::RSTICK_UP};
-		default: return {};
-	}
 }
 
 }

@@ -26,8 +26,10 @@ InputDeviceData::InputDeviceData(const InputManager &mgr, Input::Device &dev):
 	devConf{dev},
 	displayName{makeDisplayName(dev.name(), dev.enumId())}
 {
-	dev.setJoystickAxesAsDpad(Input::AxisSetId::stick1, true);
-	dev.setJoystickAxesAsDpad(Input::AxisSetId::hat, true);
+	dev.setJoystickAxesAsKeys(Input::AxisSetId::stick1, true);
+	dev.setJoystickAxesAsKeys(Input::AxisSetId::hat, true);
+	dev.setJoystickAxesAsKeys(Input::AxisSetId::triggers, true);
+	dev.setJoystickAxesAsKeys(Input::AxisSetId::pedals, true);
 	for(auto &savedPtr : mgr.savedInputDevs)
 	{
 		if(savedPtr->matchesDevice(dev))
@@ -109,11 +111,11 @@ void InputDeviceData::updateInputKey(const Input::KeyEvent &keyEv)
 		return;
 	if(keyEv.pushed())
 	{
-		addInputKey(keyEv.mapKey());
+		addInputKey(keyEv.key());
 	}
 	else
 	{
-		removeInputKey(keyEv.mapKey());
+		removeInputKey(keyEv.key());
 	}
 }
 

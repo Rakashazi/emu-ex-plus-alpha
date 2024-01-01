@@ -91,110 +91,12 @@ constexpr Input::Key genericGamepadKeycodeToAppleGamepad(Input::Key k)
 	using namespace Input;
 	switch(k)
 	{
-		case Keycode::UP: return AppleGC::UP;
-		case Keycode::RIGHT: return AppleGC::RIGHT;
-		case Keycode::DOWN: return AppleGC::DOWN;
-		case Keycode::LEFT: return AppleGC::LEFT;
-		case Keycode::GAME_A: return AppleGC::A;
-		case Keycode::GAME_B: return AppleGC::B;
-		case Keycode::GAME_X: return AppleGC::X;
-		case Keycode::GAME_Y: return AppleGC::Y;
 		case Keycode::GAME_SELECT: return AppleGC::RSTICK_LEFT;
 		case Keycode::GAME_START: return AppleGC::RSTICK_RIGHT;
-		case Keycode::GAME_L1: return AppleGC::L1;
-		case Keycode::GAME_L2: return AppleGC::L2;
-		case Keycode::GAME_R1: return AppleGC::R1;
-		case Keycode::GAME_R2: return AppleGC::R2;
-		default: return 0;
+		default: return k;
 	}
 }
 #endif
-
-constexpr Input::Key wiimoteKeycodeToZeemote(Input::Key k)
-{
-	using namespace Input;
-	switch(k)
-	{
-		case WiimoteKey::UP: return ZeemoteKey::UP;
-		case WiimoteKey::RIGHT: return ZeemoteKey::RIGHT;
-		case WiimoteKey::DOWN: return ZeemoteKey::DOWN;
-		case WiimoteKey::LEFT: return ZeemoteKey::LEFT;
-		case WiimoteKey::_1: return ZeemoteKey::A;
-		case WiimoteKey::_2: return ZeemoteKey::B;
-		case WiimoteKey::A: return ZeemoteKey::C;
-		case WiimoteKey::B: return ZeemoteKey::POWER;
-		default: return 0;
-	}
-}
-
-constexpr Input::Key genericGamepadKeycodeToWiiCC(Input::Key k)
-{
-	using namespace Input;
-	switch(k)
-	{
-		case Keycode::UP: return WiiCCKey::UP;
-		case Keycode::RIGHT: return WiiCCKey::RIGHT;
-		case Keycode::DOWN: return WiiCCKey::DOWN;
-		case Keycode::LEFT: return WiiCCKey::LEFT;
-		case Keycode::GAME_A: return WiiCCKey::B;
-		case Keycode::GAME_B: return WiiCCKey::A;
-		case Keycode::GAME_X: return WiiCCKey::Y;
-		case Keycode::GAME_Y: return WiiCCKey::X;
-		case Keycode::GAME_SELECT: return WiiCCKey::MINUS;
-		case Keycode::GAME_START: return WiiCCKey::PLUS;
-		case Keycode::GAME_L1: return WiiCCKey::L;
-		case Keycode::GAME_L2: return WiiCCKey::ZL;
-		case Keycode::GAME_R1: return WiiCCKey::R;
-		case Keycode::GAME_R2: return WiiCCKey::ZR;
-		case Keycode::MENU: return WiiCCKey::HOME;
-		default: return 0;
-	}
-}
-
-constexpr Input::Key genericGamepadKeycodeToICP(Input::Key k)
-{
-	using namespace Input;
-	switch(k)
-	{
-		case Keycode::UP: return iControlPadKey::UP;
-		case Keycode::RIGHT: return iControlPadKey::RIGHT;
-		case Keycode::DOWN: return iControlPadKey::DOWN;
-		case Keycode::LEFT: return iControlPadKey::LEFT;
-		case Keycode::GAME_A: return iControlPadKey::X;
-		case Keycode::GAME_B: return iControlPadKey::B;
-		case Keycode::GAME_X: return iControlPadKey::A;
-		case Keycode::GAME_Y: return iControlPadKey::Y;
-		case Keycode::GAME_SELECT: return iControlPadKey::SELECT;
-		case Keycode::GAME_START: return iControlPadKey::START;
-		case Keycode::GAME_L1: return iControlPadKey::L;
-		case Keycode::GAME_R1: return iControlPadKey::R;
-		default: return 0;
-	}
-}
-
-constexpr Input::Key genericGamepadKeycodeToPS3(Input::Key k)
-{
-	using namespace Input;
-	switch(k)
-	{
-		case Keycode::UP: return PS3Key::UP;
-		case Keycode::RIGHT: return PS3Key::RIGHT;
-		case Keycode::DOWN: return PS3Key::DOWN;
-		case Keycode::LEFT: return PS3Key::LEFT;
-		case Keycode::GAME_A: return PS3Key::CROSS;
-		case Keycode::GAME_B: return PS3Key::CIRCLE;
-		case Keycode::GAME_X: return PS3Key::SQUARE;
-		case Keycode::GAME_Y: return PS3Key::TRIANGLE;
-		case Keycode::GAME_SELECT: return PS3Key::SELECT;
-		case Keycode::GAME_START: return PS3Key::START;
-		case Keycode::GAME_L1: return PS3Key::L1;
-		case Keycode::GAME_L2: return PS3Key::L2;
-		case Keycode::GAME_R1: return PS3Key::R1;
-		case Keycode::GAME_R2: return PS3Key::R2;
-		case Keycode::MENU: return PS3Key::PS;
-		default: return 0;
-	}
-}
 
 constexpr auto transformMappedKeys(auto map, auto &&func)
 {
@@ -249,10 +151,6 @@ constexpr std::span<const KeyConfigDesc> genericKeyConfigs()
 	#endif
 
 	static constexpr std::array wiimoteMap = concatToArrayNow<genericWiimoteAppKeyCodeMap, wiimoteBaseMap>;
-	static constexpr std::array wiiCCMap = transformMappedKeys(genericGamepadMap, genericGamepadKeycodeToWiiCC);
-	static constexpr std::array icpMap = transformMappedKeys(genericGamepadMap, genericGamepadKeycodeToICP);
-	static constexpr std::array ps3Map = transformMappedKeys(genericGamepadMap, genericGamepadKeycodeToPS3);
-	static constexpr std::array zeemoteMap = transformMappedKeys(wiimoteBaseMap, wiimoteKeycodeToZeemote);
 
 	static constexpr std::array configs
 	{
@@ -273,12 +171,12 @@ constexpr std::span<const KeyConfigDesc> genericKeyConfigs()
 		#endif
 		#ifdef CONFIG_INPUT_BLUETOOTH
 		KeyConfigDesc{Map::WIIMOTE, "Default", wiimoteMap},
-		KeyConfigDesc{Map::WII_CC, "Default", wiiCCMap},
-		KeyConfigDesc{Map::ICONTROLPAD, "Default", icpMap},
-		KeyConfigDesc{Map::ZEEMOTE, "Default", zeemoteMap},
+		KeyConfigDesc{Map::WII_CC, "Default", genericGamepadMap},
+		KeyConfigDesc{Map::ICONTROLPAD, "Default", genericGamepadMap},
+		KeyConfigDesc{Map::ZEEMOTE, "Default", wiimoteMap},
 		#endif
 		#ifdef CONFIG_BLUETOOTH_SERVER
-		KeyConfigDesc{Map::PS3PAD, "Default", ps3Map},
+		KeyConfigDesc{Map::PS3PAD, "Default", genericGamepadMap},
 		#endif
 	};
 	return configs;

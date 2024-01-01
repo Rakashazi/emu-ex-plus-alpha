@@ -17,6 +17,7 @@
 #include <imagine/bluetooth/PS3Controller.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/base/Error.hh>
+#include <imagine/input/bluetoothInputDefs.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
 #include <imagine/util/bit.hh>
@@ -54,25 +55,25 @@ using namespace IG::Input;
 
 static const PackedInputAccess padDataAccess[] =
 {
-	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_SELECT, PS3Key::SELECT, Keycode::GAME_SELECT },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_L3, PS3Key::L3, Keycode::GAME_LEFT_THUMB },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_R3, PS3Key::R3, Keycode::GAME_RIGHT_THUMB },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_START, PS3Key::START, Keycode::GAME_START },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_UP, PS3Key::UP, Keycode::UP },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_RIGHT, PS3Key::RIGHT, Keycode::RIGHT },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_DOWN, PS3Key::DOWN, Keycode::DOWN },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_LEFT, PS3Key::LEFT, Keycode::LEFT },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_SELECT, PS3Key::SELECT },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_L3, PS3Key::L3 },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_R3, PS3Key::R3 },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_START, PS3Key::START },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_UP, PS3Key::UP },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_RIGHT, PS3Key::RIGHT },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_DOWN, PS3Key::DOWN },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_LEFT, PS3Key::LEFT },
 
-	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_L2, PS3Key::L2, Keycode::GAME_L2 },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_R2, PS3Key::R2, Keycode::GAME_R2 },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_L1, PS3Key::L1, Keycode::GAME_L1 },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_R1, PS3Key::R1, Keycode::GAME_R1 },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_TRIANGLE, PS3Key::TRIANGLE, Keycode::GAME_Y },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_CIRCLE, PS3Key::CIRCLE, Keycode::GAME_B },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_CROSS, PS3Key::CROSS, Keycode::GAME_A },
-	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_SQUARE, PS3Key::SQUARE, Keycode::GAME_X },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_L2, PS3Key::L2 },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_R2, PS3Key::R2 },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_L1, PS3Key::L1 },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_R1, PS3Key::R1 },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_TRIANGLE, PS3Key::TRIANGLE },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_CIRCLE, PS3Key::CIRCLE },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_CROSS, PS3Key::CROSS },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL2, CELL_PAD_CTRL_SQUARE, PS3Key::SQUARE },
 
-	{ CELL_PAD_BTN_OFFSET_DIGITAL2+1, CELL_PAD_CTRL_PS, PS3Key::PS, Keycode::MENU },
+	{ CELL_PAD_BTN_OFFSET_DIGITAL2+1, CELL_PAD_CTRL_PS, PS3Key::PS },
 };
 
 static const char *ps3ButtonName(Input::Key k)
@@ -222,7 +223,7 @@ bool PS3Controller::dataHandler(Input::Device &dev, const char *packetPtr, size_
 				{
 					//logMsg("%s %s @ PS3 Pad %d", device->keyName(e.keyEvent), newState ? "pushed" : "released", player);
 					ctx.endIdleByUserActivity();
-					KeyEvent event{Map::PS3PAD, e.keyEvent, e.sysKey, newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev};
+					KeyEvent event{Map::PS3PAD, e.key, newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev};
 					ctx.application().dispatchRepeatableKeyInputEvent(event);
 				}
 			}
@@ -285,18 +286,6 @@ uint8_t PS3Controller::playerLEDs(uint32_t player)
 		case 2: return bit(3);
 		case 3: return bit(4);
 		case 4: return bit(4) | bit(1);
-	}
-}
-
-std::pair<Input::Key, Input::Key> PS3Controller::joystickKeys(Input::AxisId axisId)
-{
-	switch(axisId)
-	{
-		case Input::AxisId::X: return {Input::PS3Key::LSTICK_LEFT, Input::PS3Key::LSTICK_RIGHT};
-		case Input::AxisId::Y: return {Input::PS3Key::LSTICK_DOWN, Input::PS3Key::LSTICK_UP};
-		case Input::AxisId::Z: return {Input::PS3Key::RSTICK_LEFT, Input::PS3Key::RSTICK_RIGHT};
-		case Input::AxisId::RZ: return {Input::PS3Key::RSTICK_DOWN, Input::PS3Key::RSTICK_UP};
-		default: return {};
 	}
 }
 

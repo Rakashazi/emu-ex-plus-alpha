@@ -14,6 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/input/Event.hh>
+#include <imagine/input/bluetoothInputDefs.hh>
 #include <imagine/base/Application.hh>
 
 namespace IG::Input
@@ -81,75 +82,38 @@ bool KeyEvent::isKeyboard() const
 
 bool KeyEvent::isDefaultConfirmButton(uint32_t swapped) const
 {
-	switch(map())
+	switch(device()->subtype())
 	{
-		default: return false;
-		#ifdef CONFIG_INPUT_BLUETOOTH
-		case Map::WIIMOTE: return swapped ? isDefaultCancelButton(0) :
-				(button == Input::WiimoteKey::_1 || button == Input::WiimoteKey::NUN_Z);
-		case Map::WII_CC:
-		case Map::ICONTROLPAD:
-		case Map::ZEEMOTE:
+		#ifdef CONFIG_MACHINE_PANDORA
+		case DeviceSubtype::PANDORA_HANDHELD:
+			return key() == Input::Keycode::ENTER ||
+				(swapped ? isDefaultCancelButton(0) : key() == Keycode::Pandora::X);
 		#endif
-		#ifdef CONFIG_BLUETOOTH_SERVER
-		case Map::PS3PAD:
-		#endif
-		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case Map::APPLE_GAME_CONTROLLER:
-		#endif
-		case Map::SYSTEM:
-			switch(device()->subtype())
-			{
-				#ifdef CONFIG_MACHINE_PANDORA
-				case DeviceSubtype::PANDORA_HANDHELD:
-					return button == Input::Keycode::ENTER ||
-						(swapped ? isDefaultCancelButton(0) : button == Keycode::Pandora::X);
-				#endif
-				default: break;
-			}
-			return button == Keycode::ENTER
-			#ifdef __ANDROID__
-			|| button == Keycode::CENTER
-			#endif
-			|| ((swapped && isGamepad()) ? isDefaultCancelButton(0) : (button == Keycode::GAME_A || button == Keycode::GAME_1));
+		default: break;
 	}
+	return key() == Keycode::ENTER
+	#ifdef __ANDROID__
+	|| key() == Keycode::CENTER
+	#endif
+	|| ((swapped && isGamepad()) ? isDefaultCancelButton(0) : (key() == Keycode::GAME_A || key() == Keycode::GAME_C));
 }
 
 bool KeyEvent::isDefaultCancelButton(uint32_t swapped) const
 {
-	switch(map())
+	switch(device()->subtype())
 	{
-		default: return false;
-		#ifdef CONFIG_INPUT_BLUETOOTH
-		case Map::WIIMOTE: return swapped ? isDefaultConfirmButton(0) :
-				(button == Input::WiimoteKey::_2 || button == Input::WiimoteKey::NUN_C);
-		case Map::WII_CC:
-		case Map::ICONTROLPAD:
-		case Map::ZEEMOTE:
+		#ifdef CONFIG_MACHINE_PANDORA
+		case DeviceSubtype::PANDORA_HANDHELD:
+			// TODO: can't call isDefaultConfirmButton(0) since it doesn't check whether the source was
+			// a gamepad or keyboard
+			return swapped ? (key() == Keycode::Pandora::X) : (key() == Keycode::Pandora::B);
 		#endif
-		#ifdef CONFIG_BLUETOOTH_SERVER
-		case Map::PS3PAD:
-		#endif
-		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case Map::APPLE_GAME_CONTROLLER:
-		#endif
-		#ifdef CONFIG_INPUT_MOUSE_DEVICES
-		case Map::POINTER: return button == Pointer::DOWN_BUTTON;
-		#endif
-		case Map::SYSTEM:
-			switch(device()->subtype())
-			{
-				#ifdef CONFIG_MACHINE_PANDORA
-				case DeviceSubtype::PANDORA_HANDHELD:
-					// TODO: can't call isDefaultConfirmButton(0) since it doesn't check whether the source was
-					// a gamepad or keyboard
-					return swapped ? (button == Keycode::Pandora::X) : (button == Keycode::Pandora::B);
-				#endif
-				default: break;
-			}
-			return button == Input::Keycode::ESCAPE || button == Input::Keycode::BACK
-				|| ((swapped && isGamepad()) ? isDefaultConfirmButton(0) : (button == Input::Keycode::GAME_B || button == Input::Keycode::GAME_2));
+		default: break;
 	}
+	if(Config::Input::MOUSE_DEVICES && key() == Pointer::DOWN_BUTTON)
+		return true;
+	return key() == Input::Keycode::ESCAPE || key() == Input::Keycode::BACK
+		|| ((swapped && isGamepad()) ? isDefaultConfirmButton(0) : (key() == Input::Keycode::GAME_B || key() == Input::Keycode::GAME_Z));
 }
 
 bool KeyEvent::isDefaultConfirmButton() const
@@ -164,110 +128,34 @@ bool KeyEvent::isDefaultCancelButton() const
 
 bool KeyEvent::isDefaultLeftButton() const
 {
-	switch(map())
-	{
-		default: return false;
-		#ifdef CONFIG_INPUT_BLUETOOTH
-		case Map::WIIMOTE:
-			return button == Input::WiimoteKey::LEFT || button == Input::WiimoteKey::NUN_STICK_LEFT;
-		case Map::WII_CC:
-			return button == Input::WiiCCKey::LEFT || button == Input::WiiCCKey::LSTICK_LEFT;
-		case Map::ICONTROLPAD: return button == Input::iControlPadKey::LEFT || button == Input::iControlPadKey::LNUB_LEFT;
-		case Map::ZEEMOTE: return button == Input::ZeemoteKey::LEFT;
-		#endif
-		#ifdef CONFIG_BLUETOOTH_SERVER
-		case Map::PS3PAD: return button == Input::PS3Key::LEFT || button == PS3Key::LSTICK_LEFT;
-		#endif
-		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case Map::APPLE_GAME_CONTROLLER: return button == Input::AppleGC::LEFT;
-		#endif
-		case Map::SYSTEM:
-			return button == Input::Keycode::LEFT
-			|| button == Input::Keycode::JS1_XAXIS_NEG
-			|| button == Input::Keycode::JS_POV_XAXIS_NEG
-			;
-	}
+	return key() == Input::Keycode::LEFT
+	|| key() == Input::Keycode::JS1_XAXIS_NEG
+	|| key() == Input::Keycode::JS_POV_XAXIS_NEG
+	;
 }
 
 bool KeyEvent::isDefaultRightButton() const
 {
-	switch(map())
-	{
-		default: return false;
-		#ifdef CONFIG_INPUT_BLUETOOTH
-		case Map::WIIMOTE:
-			return button == Input::WiimoteKey::RIGHT || button == Input::WiimoteKey::NUN_STICK_RIGHT;
-		case Map::WII_CC:
-			return button == Input::WiiCCKey::RIGHT || button == Input::WiiCCKey::LSTICK_RIGHT;
-		case Map::ICONTROLPAD: return button == Input::iControlPadKey::RIGHT || button == Input::iControlPadKey::LNUB_RIGHT;
-		case Map::ZEEMOTE: return button == Input::ZeemoteKey::RIGHT;
-		#endif
-		#ifdef CONFIG_BLUETOOTH_SERVER
-		case Map::PS3PAD: return button == Input::PS3Key::RIGHT || button == PS3Key::LSTICK_RIGHT;
-		#endif
-		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case Map::APPLE_GAME_CONTROLLER: return button == Input::AppleGC::RIGHT;
-		#endif
-		case Map::SYSTEM:
-			return button == Input::Keycode::RIGHT
-			|| button == Input::Keycode::JS1_XAXIS_POS
-			|| button == Input::Keycode::JS_POV_XAXIS_POS
-			;
-	}
+	return key() == Input::Keycode::RIGHT
+	|| key() == Input::Keycode::JS1_XAXIS_POS
+	|| key() == Input::Keycode::JS_POV_XAXIS_POS
+	;
 }
 
 bool KeyEvent::isDefaultUpButton() const
 {
-	switch(map())
-	{
-		default: return false;
-		#ifdef CONFIG_INPUT_BLUETOOTH
-		case Map::WIIMOTE:
-			return button == Input::WiimoteKey::UP || button == Input::WiimoteKey::NUN_STICK_UP;
-		case Map::WII_CC:
-			return button == Input::WiiCCKey::UP || button == Input::WiiCCKey::LSTICK_UP;
-		case Map::ICONTROLPAD: return button == Input::iControlPadKey::UP || button == Input::iControlPadKey::LNUB_UP;
-		case Map::ZEEMOTE: return button == Input::ZeemoteKey::UP;
-		#endif
-		#ifdef CONFIG_BLUETOOTH_SERVER
-		case Map::PS3PAD: return button == Input::PS3Key::UP || button == PS3Key::LSTICK_UP;
-		#endif
-		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case Map::APPLE_GAME_CONTROLLER: return button == Input::AppleGC::UP;
-		#endif
-		case Map::SYSTEM:
-			return button == Input::Keycode::UP
-			|| button == Input::Keycode::JS1_YAXIS_NEG
-			|| button == Input::Keycode::JS_POV_YAXIS_NEG
-			;
-	}
+	return key() == Input::Keycode::UP
+	|| key() == Input::Keycode::JS1_YAXIS_NEG
+	|| key() == Input::Keycode::JS_POV_YAXIS_NEG
+	;
 }
 
 bool KeyEvent::isDefaultDownButton() const
 {
-	switch(map())
-	{
-		default: return false;
-		#ifdef CONFIG_INPUT_BLUETOOTH
-		case Map::WIIMOTE:
-			return button == Input::WiimoteKey::DOWN || button == Input::WiimoteKey::NUN_STICK_DOWN;
-		case Map::WII_CC:
-			return button == Input::WiiCCKey::DOWN || button == Input::WiiCCKey::LSTICK_DOWN;
-		case Map::ICONTROLPAD: return button == Input::iControlPadKey::DOWN || button == Input::iControlPadKey::LNUB_DOWN;
-		case Map::ZEEMOTE: return button == Input::ZeemoteKey::DOWN;
-		#endif
-		#ifdef CONFIG_BLUETOOTH_SERVER
-		case Map::PS3PAD: return button == Input::PS3Key::DOWN || button == PS3Key::LSTICK_DOWN;
-		#endif
-		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case Map::APPLE_GAME_CONTROLLER: return button == Input::AppleGC::DOWN;
-		#endif
-		case Map::SYSTEM:
-			return button == Input::Keycode::DOWN
-			|| button == Input::Keycode::JS1_YAXIS_POS
-			|| button == Input::Keycode::JS_POV_YAXIS_POS
-			;
-	}
+	return key() == Input::Keycode::DOWN
+	|| key() == Input::Keycode::JS1_YAXIS_POS
+	|| key() == Input::Keycode::JS_POV_YAXIS_POS
+	;
 }
 
 bool KeyEvent::isDefaultDirectionButton() const
@@ -279,30 +167,20 @@ bool KeyEvent::isDefaultPageUpButton() const
 {
 	switch(map())
 	{
-		default: return false;
 		#ifdef CONFIG_INPUT_BLUETOOTH
-		case Map::WIIMOTE: return button == Input::WiimoteKey::PLUS;
-		case Map::WII_CC: return button == Input::WiiCCKey::L;
-		case Map::ICONTROLPAD: return button == Input::iControlPadKey::L;
-		case Map::ZEEMOTE: return false;
+		case Map::WIIMOTE: return key() == Input::WiimoteKey::PLUS;
 		#endif
-		#ifdef CONFIG_BLUETOOTH_SERVER
-		case Map::PS3PAD: return button == Input::PS3Key::L1;
-		#endif
-		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case Map::APPLE_GAME_CONTROLLER: return button == Input::AppleGC::L1;
-		#endif
-		case Map::SYSTEM:
+		default:
 			switch(device()->subtype())
 			{
 				#ifdef CONFIG_MACHINE_PANDORA
 				case DeviceSubtype::PANDORA_HANDHELD:
-					return button == Keycode::Pandora::L;
+					return key() == Keycode::Pandora::L;
 				#endif
 				default: break;
 			}
-			return button == Input::Keycode::PGUP
-				|| button == Input::Keycode::GAME_L1;
+			return key() == Input::Keycode::PGUP
+				|| key() == Input::Keycode::GAME_L1;
 	}
 }
 
@@ -310,30 +188,20 @@ bool KeyEvent::isDefaultPageDownButton() const
 {
 	switch(map())
 	{
-		default: return false;
 		#ifdef CONFIG_INPUT_BLUETOOTH
-		case Map::WIIMOTE: return button == Input::WiimoteKey::MINUS;
-		case Map::WII_CC: return button == Input::WiiCCKey::R;
-		case Map::ICONTROLPAD: return button == Input::iControlPadKey::R;
-		case Map::ZEEMOTE: return false;
+		case Map::WIIMOTE: return key() == Input::WiimoteKey::MINUS;
 		#endif
-		#ifdef CONFIG_BLUETOOTH_SERVER
-		case Map::PS3PAD: return button == Input::PS3Key::R1;
-		#endif
-		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case Map::APPLE_GAME_CONTROLLER: return button == Input::AppleGC::R1;
-		#endif
-		case Map::SYSTEM:
+		default:
 			switch(device()->subtype())
 			{
 				#ifdef CONFIG_MACHINE_PANDORA
 				case DeviceSubtype::PANDORA_HANDHELD:
-					return button == Keycode::Pandora::R;
+					return key() == Keycode::Pandora::R;
 				#endif
 				default: break;
 			}
-			return button == Input::Keycode::PGDOWN
-				|| button == Input::Keycode::GAME_R1;
+			return key() == Input::Keycode::PGDOWN
+				|| key() == Input::Keycode::GAME_R1;
 	}
 }
 
@@ -354,14 +222,9 @@ bool KeyEvent::isDefaultKey(DefaultKey dKey) const
 	return false;
 }
 
-Key KeyEvent::key() const
+Key BaseEvent::key() const
 {
-	return sysKey_;
-}
-
-Key BaseEvent::mapKey() const
-{
-	return button;
+	return key_;
 }
 
 #ifdef CONFIG_BASE_X11
@@ -371,26 +234,18 @@ void KeyEvent::setX11RawKey(Key key)
 }
 #endif
 
+bool BaseEvent::pushed() const { return state() == Action::PUSHED; }
+
 bool BaseEvent::pushed(Key key) const
 {
-	return state() == Action::PUSHED
-		&& (!key || button == key);
+	return pushed() && key_ == key;
 }
 
-bool KeyEvent::pushedKey(Key sysKey) const
-{
-	return pushed() && sysKey_ == sysKey;
-}
+bool BaseEvent::released() const { return state() == Action::RELEASED; }
 
 bool BaseEvent::released(Key key) const
 {
-	return state() == Action::RELEASED
-		&& (!key || button == key);
-}
-
-bool KeyEvent::releasedKey(Key sysKey) const
-{
-	return released() && sysKey_ == sysKey;
+	return released() && key_ == key;
 }
 
 bool KeyEvent::pushed(DefaultKey defaultKey) const
@@ -440,7 +295,7 @@ void KeyEvent::setRepeatCount(int count)
 
 bool MotionEvent::pointerDown(Key btnMask) const
 {
-	return !released() && button & btnMask;
+	return !released() && key() & btnMask;
 }
 
 int MotionEvent::scrolledVertical() const
@@ -468,19 +323,22 @@ bool KeyEvent::isSystemFunction() const
 	#endif
 }
 
-std::string_view BaseEvent::actionToStr(Action action)
+std::string_view BaseEvent::toString(Action action)
 {
 	switch(action)
 	{
-		default:
-		case Action::UNUSED: return "Unknown";
+		case Action::UNUSED: break;
 		case Action::RELEASED: return "Released";
 		case Action::PUSHED: return "Pushed";
 		case Action::MOVED: return "Moved";
 		case Action::MOVED_RELATIVE: return "Moved Relative";
 		case Action::EXIT_VIEW: return "Left View";
 		case Action::ENTER_VIEW: return "Entered View";
+		case Action::SCROLL_UP: return "Scrolled Up";
+		case Action::SCROLL_DOWN: return "Scrolled Down";
+		case Action::CANCELED: return "Canceled";
 	}
+	return "Unknown";
 }
 
 SteadyClockTimePoint BaseEvent::time() const

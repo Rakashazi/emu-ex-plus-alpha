@@ -39,7 +39,7 @@ public:
 	ApplicationContext ctx;
 	void *gcController_{};
 	Input::Axis axis[4];
-	bool pushState[AppleGC::COUNT]{};
+	bool pushState[Keycode::COUNT]{};
 
 	#ifdef __OBJC__
 	AppleGameDevice(ApplicationContext ctx, GCController *gcController);
@@ -64,7 +64,7 @@ private:
 	void setGamepadBlocks(Device &, GCController *controller, T gamepad);
 	void setExtendedGamepadBlocks(Device &, GCController *controller, GCExtendedGamepad *extGamepad);
 	#endif
-	void handleKey(Device &, Key key, Key sysKey, bool pressed, bool repeatable = true);
+	void handleKey(Device &, Key key, bool pressed, bool repeatable = true);
 };
 
 }

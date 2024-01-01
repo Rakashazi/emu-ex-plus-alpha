@@ -69,14 +69,14 @@ bool InputDeviceConfig::iCadeMode()
 	return dev->iCadeMode();
 }
 
-bool InputDeviceConfig::joystickAxesAsDpad(Input::AxisSetId id)
+bool InputDeviceConfig::joystickAxesAsKeys(Input::AxisSetId id)
 {
-	return dev->joystickAxesAsDpad(id);
+	return dev->joystickAxesAsKeys(id);
 }
 
-void InputDeviceConfig::setJoystickAxesAsDpad(Input::AxisSetId id, bool on)
+void InputDeviceConfig::setJoystickAxesAsKeys(Input::AxisSetId id, bool on)
 {
-	dev->setJoystickAxesAsDpad(id, on);
+	dev->setJoystickAxesAsKeys(id, on);
 }
 
 void InputDeviceConfig::setKeyConfName(InputManager &mgr, std::string_view name)
@@ -149,9 +149,11 @@ void InputDeviceConfig::save(InputManager &mgr)
 	savedConf->player = player_;
 	savedConf->enabled = isEnabled;
 	savedConf->enumId = dev->enumId();
-	savedConf->joystickAxisAsDpadFlags.stick1 = dev->joystickAxesAsDpad(Input::AxisSetId::stick1);
-	savedConf->joystickAxisAsDpadFlags.stick2 = dev->joystickAxesAsDpad(Input::AxisSetId::stick2);
-	savedConf->joystickAxisAsDpadFlags.hat = dev->joystickAxesAsDpad(Input::AxisSetId::hat);
+	savedConf->joystickAxisAsDpadFlags.stick1 = dev->joystickAxesAsKeys(Input::AxisSetId::stick1);
+	savedConf->joystickAxisAsDpadFlags.stick2 = dev->joystickAxesAsKeys(Input::AxisSetId::stick2);
+	savedConf->joystickAxisAsDpadFlags.hat = dev->joystickAxesAsKeys(Input::AxisSetId::hat);
+	savedConf->joystickAxisAsDpadFlags.triggers = dev->joystickAxesAsKeys(Input::AxisSetId::triggers);
+	savedConf->joystickAxisAsDpadFlags.pedals = dev->joystickAxesAsKeys(Input::AxisSetId::pedals);
 	savedConf->iCadeMode = dev->iCadeMode();
 	savedConf->handleUnboundEvents = shouldHandleUnboundKeys;
 	savedConf->name = dev->name();
@@ -164,9 +166,11 @@ void InputDeviceConfig::setSavedConf(const InputManager &mgr, InputDeviceSavedCo
 	{
 		player_ = savedConf->player;
 		isEnabled = savedConf->enabled;
-		dev->setJoystickAxesAsDpad(Input::AxisSetId::stick1, savedConf->joystickAxisAsDpadFlags.stick1);
-		dev->setJoystickAxesAsDpad(Input::AxisSetId::stick2, savedConf->joystickAxisAsDpadFlags.stick2);
-		dev->setJoystickAxesAsDpad(Input::AxisSetId::hat, savedConf->joystickAxisAsDpadFlags.hat);
+		dev->setJoystickAxesAsKeys(Input::AxisSetId::stick1, savedConf->joystickAxisAsDpadFlags.stick1);
+		dev->setJoystickAxesAsKeys(Input::AxisSetId::stick2, savedConf->joystickAxisAsDpadFlags.stick2);
+		dev->setJoystickAxesAsKeys(Input::AxisSetId::hat, savedConf->joystickAxisAsDpadFlags.hat);
+		dev->setJoystickAxesAsKeys(Input::AxisSetId::triggers, savedConf->joystickAxisAsDpadFlags.triggers);
+		dev->setJoystickAxesAsKeys(Input::AxisSetId::pedals, savedConf->joystickAxisAsDpadFlags.pedals);
 		dev->setICadeMode(savedConf->iCadeMode);
 		shouldHandleUnboundKeys = savedConf->handleUnboundEvents;
 	}
@@ -174,8 +178,10 @@ void InputDeviceConfig::setSavedConf(const InputManager &mgr, InputDeviceSavedCo
 	{
 		player_ = dev->enumId() < EmuSystem::maxPlayers ? dev->enumId() : 0;
 		isEnabled = true;
-		dev->setJoystickAxesAsDpad(Input::AxisSetId::stick1, true);
-		dev->setJoystickAxesAsDpad(Input::AxisSetId::hat, true);
+		dev->setJoystickAxesAsKeys(Input::AxisSetId::stick1, true);
+		dev->setJoystickAxesAsKeys(Input::AxisSetId::hat, true);
+		dev->setJoystickAxesAsKeys(Input::AxisSetId::triggers, true);
+		dev->setJoystickAxesAsKeys(Input::AxisSetId::pedals, true);
 		dev->setICadeMode(false);
 		shouldHandleUnboundKeys = false;
 	}

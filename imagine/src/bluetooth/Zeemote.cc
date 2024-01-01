@@ -17,6 +17,7 @@
 #include <imagine/bluetooth/Zeemote.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/base/Error.hh>
+#include <imagine/input/bluetoothInputDefs.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
 #include <imagine/util/ranges.hh>
@@ -26,15 +27,15 @@
 namespace IG
 {
 
-static const Input::Key sysKeyMap[4]
+constexpr Input::Key sysKeyMap[4]
 {
-	Input::Keycode::GAME_A,
-	Input::Keycode::GAME_B,
-	Input::Keycode::GAME_C,
-	Input::Keycode::MENU
+	Input::ZeemoteKey::A,
+	Input::ZeemoteKey::B,
+	Input::ZeemoteKey::C,
+	Input::ZeemoteKey::POWER
 };
 
-static const char *zeemoteButtonName(Input::Key k)
+constexpr const char *zeemoteButtonName(Input::Key k)
 {
 	switch(k)
 	{
@@ -54,8 +55,7 @@ static const char *zeemoteButtonName(Input::Key k)
 Zeemote::Zeemote(ApplicationContext ctx, BluetoothAddr addr):
 	BluetoothInputDevice{ctx, Input::Map::ZEEMOTE, {.gamepad = true}, "Zeemote"},
 	sock{ctx},
-	addr{addr}
-{}
+	addr{addr} {}
 
 const char *Zeemote::keyName(Input::Key k) const
 {
@@ -198,10 +198,9 @@ void Zeemote::processBtnReport(Input::Device &dev, const uint8_t *btnData, Stead
 		if(prevBtnPush[i] != btnPush[i])
 		{
 			bool newState = btnPush[i];
-			uint32_t code = i + 1;
 			//logMsg("%s %s @ Zeemote", e->name, newState ? "pushed" : "released");
 			ctx.endIdleByUserActivity();
-			KeyEvent event{Map::ZEEMOTE, (Key)code, sysKeyMap[i], newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev};
+			KeyEvent event{Map::ZEEMOTE, sysKeyMap[i], newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev};
 			ctx.application().dispatchRepeatableKeyInputEvent( event);
 		}
 	}
@@ -211,16 +210,6 @@ void Zeemote::processBtnReport(Input::Device &dev, const uint8_t *btnData, Stead
 bool Zeemote::isSupportedClass(std::array<uint8_t, 3> devClass)
 {
 	return devClass == btClass;
-}
-
-std::pair<Input::Key, Input::Key> Zeemote::joystickKeys(Input::AxisId axisId)
-{
-	switch(axisId)
-	{
-		case Input::AxisId::X: return {Input::ZeemoteKey::LEFT, Input::ZeemoteKey::RIGHT};
-		case Input::AxisId::Y: return {Input::ZeemoteKey::DOWN, Input::ZeemoteKey::UP};
-		default: return {};
-	}
 }
 
 }

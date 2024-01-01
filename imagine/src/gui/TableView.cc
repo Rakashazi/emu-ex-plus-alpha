@@ -438,7 +438,7 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 		{
 			if(!cells_ || !motionEv.isPointer())
 				return false;
-			if(!pointIsInView(motionEv.pos()) || !(motionEv.mapKey() & Input::Pointer::LBUTTON))
+			if(!pointIsInView(motionEv.pos()) || !(motionEv.key() & Input::Pointer::LBUTTON))
 			{
 				//logMsg("cursor not in table");
 				return false;

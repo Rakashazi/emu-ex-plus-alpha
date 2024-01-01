@@ -99,8 +99,6 @@ public:
 
 	constexpr bool isModifierKey(Key k) const
 	{
-		if(map() != Map::SYSTEM)
-			return false;
 		using namespace Keycode;
 		switch(k)
 		{
@@ -117,8 +115,6 @@ public:
 
 	constexpr Key swapModifierKey(Key k) const
 	{
-		if(map() != Map::SYSTEM)
-			return false;
 		using namespace Keycode;
 		switch(k)
 		{
@@ -150,8 +146,8 @@ public:
 	Subtype subtype() const { return visit([](auto &d){ return d.subtype_; }, *this); }
 	void setSubtype(Subtype s) { visit([&](auto &d){ d.subtype_ = s; }, *this); }
 	bool operator==(Device const&) const = default;
-	void setJoystickAxesAsDpad(AxisSetId, bool on);
-	bool joystickAxesAsDpad(AxisSetId);
+	void setJoystickAxesAsKeys(AxisSetId, bool on);
+	bool joystickAxesAsKeys(AxisSetId);
 	Axis *motionAxis(AxisId);
 	std::string keyString(Key k, KeyNameFlags flags = {}) const;
 	static bool anyTypeFlagsPresent(ApplicationContext, DeviceTypeFlags);

@@ -15,101 +15,100 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <cstdint>
+#include <imagine/input/inputDefs.hh>
 
 namespace IG::Input
 {
-
-static constexpr uint8_t MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
-
 	namespace PS3Key
 	{
-	static const uint32_t CROSS = 1,
-	CIRCLE = 2,
-	SQUARE = 3,
-	TRIANGLE = 4,
-	L1 = 5,
-	L2 = 6,
-	L3 = 7,
-	R1 = 8,
-	R2 = 9,
-	R3 = 10,
-	SELECT = 11,
-	START = 12,
-	UP = 13, RIGHT = 14, DOWN = 15, LEFT = 16,
-	PS = 17,
-	LSTICK_RIGHT = 18, LSTICK_LEFT = 19, LSTICK_DOWN = 20, LSTICK_UP = 21,
-	RSTICK_RIGHT = 22, RSTICK_LEFT = 23, RSTICK_DOWN = 24, RSTICK_UP = 25
+	constexpr Key CROSS = Keycode::GAME_A,
+	CIRCLE = Keycode::GAME_B,
+	SQUARE = Keycode::GAME_X,
+	TRIANGLE = Keycode::GAME_Y,
+	L1 = Keycode::GAME_L1,
+	L2 = Keycode::GAME_L2,
+	L3 = Keycode::GAME_LEFT_THUMB,
+	R1 = Keycode::GAME_R1,
+	R2 = Keycode::GAME_R2,
+	R3 = Keycode::GAME_RIGHT_THUMB,
+	SELECT = Keycode::GAME_SELECT,
+	START = Keycode::GAME_START,
+	UP =   Keycode::UP,   RIGHT = Keycode::RIGHT,
+	DOWN = Keycode::DOWN, LEFT = Keycode::LEFT,
+	PS = Keycode::GAME_MODE,
+	LSTICK_RIGHT = Keycode::JS1_XAXIS_POS, LSTICK_LEFT = Keycode::JS1_XAXIS_NEG,
+	LSTICK_DOWN =  Keycode::JS1_YAXIS_POS, LSTICK_UP =   Keycode::JS1_YAXIS_NEG,
+	RSTICK_RIGHT = Keycode::JS2_XAXIS_POS, RSTICK_LEFT = Keycode::JS2_XAXIS_NEG,
+	RSTICK_DOWN =  Keycode::JS2_YAXIS_POS, RSTICK_UP =   Keycode::JS2_YAXIS_NEG
 	;
-
-	static const uint32_t COUNT = 26;
 	}
 
 	namespace WiimoteKey
 	{
-	static const uint32_t PLUS = 1,
-	MINUS = 2,
-	HOME = 3,
-	LEFT = 4, RIGHT = 5, UP = 6, DOWN = 7,
-	_1 = 8,
-	_2 = 9,
-	A = 10,
-	B = 11,
+	constexpr Key PLUS = Keycode::GAME_START,
+	MINUS = Keycode::GAME_SELECT,
+	HOME = Keycode::GAME_MODE,
+	LEFT = Keycode::LEFT, RIGHT = Keycode::RIGHT,
+	UP = Keycode::UP, DOWN = Keycode::DOWN,
+	_1 = Keycode::GAME_X,
+	_2 = Keycode::GAME_A,
+	A = Keycode::GAME_Y,
+	B = Keycode::GAME_B,
 	// Nunchuk
-	NUN_C = 12, NUN_Z = 13,
-	NUN_STICK_LEFT = 14, NUN_STICK_RIGHT = 15, NUN_STICK_UP = 16, NUN_STICK_DOWN = 17
+	NUN_C = Keycode::GAME_Z, NUN_Z = Keycode::GAME_C,
+	NUN_STICK_LEFT = Keycode::JS1_XAXIS_NEG, NUN_STICK_RIGHT = Keycode::JS1_XAXIS_POS,
+	NUN_STICK_UP = Keycode::JS1_YAXIS_NEG, NUN_STICK_DOWN = Keycode::JS1_YAXIS_POS
 	;
-
-	static const uint32_t COUNT = 18;
 	}
 
 	namespace WiiCCKey
 	{
-	static const uint32_t PLUS = 1,
-	MINUS = 2,
-	HOME = 3,
-	LEFT = 4, RIGHT = 5, UP = 6, DOWN = 7,
-	A = 8, B = 9,
-	X = 10, Y = 11,
-	L = 12, R = 13,
-	ZL = 14, ZR = 15,
-	LSTICK_LEFT = 16, LSTICK_RIGHT = 17, LSTICK_UP = 18, LSTICK_DOWN = 19,
-	RSTICK_LEFT = 20, RSTICK_RIGHT = 21, RSTICK_UP = 22, RSTICK_DOWN = 23,
-	LH = 24, RH = 25
+	constexpr Key PLUS = Keycode::GAME_START,
+	MINUS = Keycode::GAME_SELECT,
+	HOME = Keycode::GAME_MODE,
+	LEFT = Keycode::LEFT, RIGHT = Keycode::RIGHT,
+	UP = Keycode::UP, DOWN = Keycode::DOWN,
+	A = Keycode::GAME_B, B = Keycode::GAME_A,
+	X = Keycode::GAME_Y, Y = Keycode::GAME_X,
+	L = Keycode::GAME_L1, R = Keycode::GAME_R1,
+	ZL = Keycode::GAME_L2, ZR = Keycode::GAME_R2,
+	LSTICK_RIGHT = Keycode::JS1_XAXIS_POS, LSTICK_LEFT = Keycode::JS1_XAXIS_NEG,
+	LSTICK_DOWN =  Keycode::JS1_YAXIS_POS, LSTICK_UP =   Keycode::JS1_YAXIS_NEG,
+	RSTICK_RIGHT = Keycode::JS2_XAXIS_POS, RSTICK_LEFT = Keycode::JS2_XAXIS_NEG,
+	RSTICK_DOWN =  Keycode::JS2_YAXIS_POS, RSTICK_UP =   Keycode::JS2_YAXIS_NEG,
+	LH = Keycode::GAME_LEFT_THUMB, RH = Keycode::GAME_RIGHT_THUMB
 	;
-
-	static const uint32_t COUNT = 26;
 	}
 
 	namespace iControlPadKey
 	{
-	static const uint32_t A = 1,
-	B = 2,
-	X = 3,
-	Y = 4,
-	L = 5,
-	R = 6,
-	START = 7,
-	SELECT = 8,
-	LNUB_LEFT = 9, LNUB_RIGHT = 10, LNUB_UP = 11, LNUB_DOWN = 12,
-	RNUB_LEFT = 13, RNUB_RIGHT = 14, RNUB_UP = 15, RNUB_DOWN = 16,
-	LEFT = 17, RIGHT = 18, UP = 19, DOWN = 20
+	constexpr Key A = Keycode::GAME_X,
+	B = Keycode::GAME_B,
+	X = Keycode::GAME_A,
+	Y = Keycode::GAME_Y,
+	L = Keycode::GAME_L1,
+	R = Keycode::GAME_R1,
+	START = Keycode::GAME_START,
+	SELECT = Keycode::GAME_SELECT,
+	LNUB_LEFT = Keycode::JS1_XAXIS_NEG, LNUB_RIGHT = Keycode::JS1_XAXIS_POS,
+	LNUB_UP = Keycode::JS1_YAXIS_NEG, LNUB_DOWN = Keycode::JS1_YAXIS_POS,
+	RNUB_LEFT = Keycode::JS2_XAXIS_NEG, RNUB_RIGHT = Keycode::JS2_XAXIS_POS,
+	RNUB_UP = Keycode::JS2_YAXIS_NEG, RNUB_DOWN = Keycode::JS2_YAXIS_POS,
+	LEFT = Keycode::LEFT, RIGHT = Keycode::RIGHT,
+	UP = Keycode::UP, DOWN = Keycode::DOWN
 	;
-
-	static const uint32_t COUNT = 21;
 	}
 
 	namespace ZeemoteKey
 	{
-	static const uint32_t A = 1,
-	B = 2,
-	C = 3,
-	POWER = 4,
+	constexpr Key A = Keycode::GAME_X,
+	B = Keycode::GAME_A,
+	C = Keycode::GAME_B,
+	POWER = Keycode::GAME_Y,
 	// Directions (from analog stick)
-	LEFT = 5, RIGHT = 6, UP = 7, DOWN = 8
+	LEFT = Keycode::LEFT, RIGHT = Keycode::RIGHT,
+	UP = Keycode::UP, DOWN = Keycode::DOWN
 	;
-
-	static const uint32_t COUNT = 9;
 	}
 
 }

@@ -55,14 +55,16 @@ class BaseEvent
 public:
 	constexpr BaseEvent() = default;
 
-	constexpr BaseEvent(Map map, Key button, uint32_t metaState, Action state, Source src, SteadyClockTimePoint time, const Device *device)
-		: time_{time}, device_{device}, metaState{metaState}, button{button}, state_{state}, map_{map}, src{src} {}
+	constexpr BaseEvent(Map map, Key key, uint32_t metaState, Action state, Source src, SteadyClockTimePoint time, const Device *device)
+		: time_{time}, device_{device}, metaState{metaState}, key_{key}, state_{state}, map_{map}, src{src} {}
 
 	Map map() const;
 	Action state() const;
-	Key mapKey() const;
-	bool pushed(Key key = {}) const;
-	bool released(Key key = {}) const;
+	Key key() const;
+	bool pushed() const;
+	bool released() const;
+	bool pushed(Key key) const;
+	bool released(Key key) const;
 	uint32_t metaKeyBits() const;
 	bool isShiftPushed() const;
 	SteadyClockTimePoint time() const;
@@ -70,14 +72,14 @@ public:
 	void setMap(Map map);
 	std::string_view mapName() const;
 	static std::string_view mapName(Map map);
-	static uint32_t mapNumKeys(Map map);
-	static std::string_view actionToStr(Action action);
+	static size_t mapNumKeys(Map map);
+	static std::string_view toString(Action action);
 
 protected:
 	SteadyClockTimePoint time_{};
 	const Device *device_{};
 	uint32_t metaState{};
-	Key button{};
+	Key key_{};
 	Action state_{};
 	Map map_{};
 	Source src{};
@@ -88,10 +90,9 @@ class KeyEvent : public BaseEvent
 public:
 	constexpr KeyEvent() = default;
 
-	constexpr KeyEvent(Map map, Key button, Key sysKey, Action state, uint32_t metaState, int repeatCount, Source src, SteadyClockTimePoint time, const Device *device)
-		: BaseEvent{map, button, metaState, state, src, time, device}, sysKey_{sysKey}, repeatCount{repeatCount} {}
+	constexpr KeyEvent(Map map, Key key, Action state, uint32_t metaState, int repeatCount, Source src, SteadyClockTimePoint time, const Device *device)
+		: BaseEvent{map, key, metaState, state, src, time, device}, repeatCount{repeatCount} {}
 
-	Key key() const;
 	#ifdef CONFIG_BASE_X11
 	void setX11RawKey(Key key);
 	#endif
@@ -99,8 +100,6 @@ public:
 	using BaseEvent::released;
 	bool pushed(DefaultKey) const;
 	bool released(DefaultKey) const;
-	bool pushedKey(Key sysKey) const;
-	bool releasedKey(Key sysKey) const;
 	bool isSystemFunction() const;
 	bool hasSwappedConfirmKeys() const;
 	std::string keyString(ApplicationContext) const;
@@ -124,7 +123,6 @@ public:
 
 protected:
 	uint8_t keyFlags{};
-	Key sysKey_{};
 	#ifdef CONFIG_BASE_X11
 	Key rawKey{};
 	#endif
@@ -136,8 +134,8 @@ class MotionEvent : public BaseEvent
 public:
 	constexpr MotionEvent() = default;
 
-	constexpr MotionEvent(Map map, Key button, uint32_t metaState, Action state, float x, float y, PointerId pointerId, Source src, SteadyClockTimePoint time, const Device *device)
-		: BaseEvent{map, button, metaState, state, src, time, device}, pointerId_{pointerId}, x{x}, y{y} {}
+	constexpr MotionEvent(Map map, Key key, uint32_t metaState, Action state, float x, float y, PointerId pointerId, Source src, SteadyClockTimePoint time, const Device *device)
+		: BaseEvent{map, key, metaState, state, src, time, device}, pointerId_{pointerId}, x{x}, y{y} {}
 
 	WPt pos() const { return {int(x), int(y)}; }
 	F2Pt posF() const { return {x, y}; }

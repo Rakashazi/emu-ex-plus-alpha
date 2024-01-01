@@ -37,7 +37,6 @@ public:
 	void setLEDs(uint32_t player);
 	const char *keyName(Input::Key k) const;
 	std::span<Input::Axis> motionAxes() { return axis; };
-	static std::pair<Input::Key, Input::Key> joystickKeys(Input::AxisId);
 
 private:
 	static constexpr float axisScaler = 1./127.;

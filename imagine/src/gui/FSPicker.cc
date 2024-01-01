@@ -160,7 +160,7 @@ bool FSPicker::inputEvent(const Input::Event &e)
 			controller.top().setFocus(false);
 			return true;
 		}
-		else if(keyEv.pushedKey(Input::Keycode::GAME_B) || keyEv.pushedKey(Input::Keycode::F1))
+		else if(keyEv.pushed(Input::Keycode::GAME_B) || keyEv.pushed(Input::Keycode::F1))
 		{
 			pushFileLocationsView(e);
 			return true;

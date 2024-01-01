@@ -36,8 +36,8 @@ public:
 	void deleteConf(InputManager &);
 	void setICadeMode(bool on);
 	bool iCadeMode();
-	bool joystickAxesAsDpad(Input::AxisSetId);
-	void setJoystickAxesAsDpad(Input::AxisSetId, bool on);
+	bool joystickAxesAsKeys(Input::AxisSetId);
+	void setJoystickAxesAsKeys(Input::AxisSetId, bool on);
 	KeyConfigDesc keyConf(const InputManager &) const;
 	void setDefaultKeyConf();
 	void setKeyConfName(InputManager &, std::string_view name);

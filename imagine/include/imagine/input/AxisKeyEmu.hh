@@ -26,21 +26,18 @@ namespace IG::Input
 struct AxisKeyEmu
 {
 	static constexpr std::pair<float, float> limit{-.5, .5}; // low/high limits
-	std::pair<Key, Key> key{};
-	std::pair<Key, Key> sysKey{};
+	std::pair<Key, Key> keys{};
 	int8_t state{};
 
 	struct UpdateKeys
 	{
-		Key released = 0, sysReleased = 0,
-			pushed = 0, sysPushed = 0;
+		Key released = 0, pushed = 0;
 		bool updated = false;
 	};
 
 	constexpr AxisKeyEmu() = default;
-	constexpr AxisKeyEmu(std::pair<Key, Key> key, std::pair<Key, Key> sysKey):
-		key{key},
-		sysKey{sysKey} {}
+	constexpr AxisKeyEmu(std::pair<Key, Key> keys):
+		keys{keys} {}
 
 	UpdateKeys update(float pos);
 	bool dispatch(float pos, Map map, SteadyClockTimePoint time, const Device &dev, Window &win);

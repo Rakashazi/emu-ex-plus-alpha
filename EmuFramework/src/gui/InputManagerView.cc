@@ -653,36 +653,6 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 			}
 		}
 	},
-	joystickAxis1DPad
-	{
-		"Joystick X/Y Axis 1 as D-Pad", attach,
-		inputDevData(dev).devConf.joystickAxesAsDpad(Input::AxisSetId::stick1),
-		[this](BoolMenuItem &item, const Input::Event &e)
-		{
-			devConf.setJoystickAxesAsDpad(Input::AxisSetId::stick1, item.flipBoolValue(*this));
-			devConf.save(inputManager);
-		}
-	},
-	joystickAxis2DPad
-	{
-		"Joystick X/Y Axis 2 as D-Pad", attach,
-		inputDevData(dev).devConf.joystickAxesAsDpad(Input::AxisSetId::stick2),
-		[this](BoolMenuItem &item, const Input::Event &e)
-		{
-			devConf.setJoystickAxesAsDpad(Input::AxisSetId::stick2, item.flipBoolValue(*this));
-			devConf.save(inputManager);
-		}
-	},
-	joystickAxisHatDPad
-	{
-		"Joystick POV Hat as D-Pad", attach,
-		inputDevData(dev).devConf.joystickAxesAsDpad(Input::AxisSetId::hat),
-		[this](BoolMenuItem &item, const Input::Event &e)
-		{
-			devConf.setJoystickAxesAsDpad(Input::AxisSetId::hat, item.flipBoolValue(*this));
-			devConf.save(inputManager);
-		}
-	},
 	consumeUnboundKeys
 	{
 		"Handle Unbound Keys", attach,
@@ -693,8 +663,59 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 			devConf.save(inputManager);
 		}
 	},
+	joystickAxisStick1Keys
+	{
+		"Stick 1 as D-Pad", attach,
+		inputDevData(dev).devConf.joystickAxesAsKeys(Input::AxisSetId::stick1),
+		[this](BoolMenuItem &item, const Input::Event &e)
+		{
+			devConf.setJoystickAxesAsKeys(Input::AxisSetId::stick1, item.flipBoolValue(*this));
+			devConf.save(inputManager);
+		}
+	},
+	joystickAxisStick2Keys
+	{
+		"Stick 2 as D-Pad", attach,
+		inputDevData(dev).devConf.joystickAxesAsKeys(Input::AxisSetId::stick2),
+		[this](BoolMenuItem &item, const Input::Event &e)
+		{
+			devConf.setJoystickAxesAsKeys(Input::AxisSetId::stick2, item.flipBoolValue(*this));
+			devConf.save(inputManager);
+		}
+	},
+	joystickAxisHatKeys
+	{
+		"POV Hat as D-Pad", attach,
+		inputDevData(dev).devConf.joystickAxesAsKeys(Input::AxisSetId::hat),
+		[this](BoolMenuItem &item, const Input::Event &e)
+		{
+			devConf.setJoystickAxesAsKeys(Input::AxisSetId::hat, item.flipBoolValue(*this));
+			devConf.save(inputManager);
+		}
+	},
+	joystickAxisTriggerKeys
+	{
+		"L/R Triggers as L2/R2", attach,
+		inputDevData(dev).devConf.joystickAxesAsKeys(Input::AxisSetId::triggers),
+		[this](BoolMenuItem &item, const Input::Event &e)
+		{
+			devConf.setJoystickAxesAsKeys(Input::AxisSetId::triggers, item.flipBoolValue(*this));
+			devConf.save(inputManager);
+		}
+	},
+	joystickAxisPedalKeys
+	{
+		"Brake/Gas as L2/R2", attach,
+		inputDevData(dev).devConf.joystickAxesAsKeys(Input::AxisSetId::pedals),
+		[this](BoolMenuItem &item, const Input::Event &e)
+		{
+			devConf.setJoystickAxesAsKeys(Input::AxisSetId::pedals, item.flipBoolValue(*this));
+			devConf.save(inputManager);
+		}
+	},
 	categories{"Action Categories", attach},
 	options{"Options", attach},
+	joystickSetup{"Joystick Axis Setup", attach},
 	devConf{inputDevData(dev).devConf}
 {
 	loadProfile.setName(std::format("Profile: {}", devConf.keyConf(inputManager).name));
@@ -715,11 +736,14 @@ void InputManagerDeviceView::addCategoryItem(const KeyCategory &cat)
 
 void InputManagerDeviceView::loadItems()
 {
+	auto &dev = devConf.device();
 	item.clear();
-	auto totalCategories = 1 + EmuApp::keyCategories().size();
-	item.reserve(totalCategories + 11);
+	auto categoryCount = EmuApp::keyCategories().size();
+	bool hasJoystick = dev.motionAxes().size();
+	auto joystickItemCount = hasJoystick ? 9 : 0;
+	item.reserve(categoryCount + joystickItemCount + 12);
 	inputCategory.clear();
-	inputCategory.reserve(totalCategories);
+	inputCategory.reserve(categoryCount);
 	if(EmuSystem::maxPlayers > 1)
 	{
 		item.emplace_back(&player);
@@ -737,26 +761,27 @@ void InputManagerDeviceView::loadItems()
 	item.emplace_back(&newProfile);
 	item.emplace_back(&renameProfile);
 	item.emplace_back(&deleteProfile);
-	auto &dev = devConf.device();
 	if(hasICadeInput && (dev.map() == Input::Map::SYSTEM && dev.hasKeyboard()))
 	{
 		item.emplace_back(&iCadeMode);
 	}
-	if(dev.motionAxis(Input::AxisId::X))
-	{
-		item.emplace_back(&joystickAxis1DPad);
-	}
-	if(dev.motionAxis(Input::AxisId::Z))
-	{
-		item.emplace_back(&joystickAxis2DPad);
-	}
-	if(dev.motionAxis(Input::AxisId::HAT0X))
-	{
-		item.emplace_back(&joystickAxisHatDPad);
-	}
 	if constexpr(Config::envIsAndroid)
 	{
 		item.emplace_back(&consumeUnboundKeys);
+	}
+	if(hasJoystick)
+	{
+		item.emplace_back(&joystickSetup);
+		if(dev.motionAxis(Input::AxisId::X))
+			item.emplace_back(&joystickAxisStick1Keys);
+		if(dev.motionAxis(Input::AxisId::Z))
+			item.emplace_back(&joystickAxisStick2Keys);
+		if(dev.motionAxis(Input::AxisId::HAT0X))
+			item.emplace_back(&joystickAxisHatKeys);
+		if(dev.motionAxis(Input::AxisId::LTRIGGER))
+			item.emplace_back(&joystickAxisTriggerKeys);
+		if(dev.motionAxis(Input::AxisId::BRAKE))
+			item.emplace_back(&joystickAxisPedalKeys);
 	}
 }
 

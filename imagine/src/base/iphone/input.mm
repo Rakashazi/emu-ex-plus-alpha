@@ -225,7 +225,7 @@ void handleKeyEvent(ApplicationContext ctx, UIEvent *event)
 	auto &app = ctx.application();
 	auto &keyDev = *keyDevPtr;
 	auto src = Input::Source::KEYBOARD;
-	app.dispatchKeyInputEvent({Map::SYSTEM, key, key, action, 0, 0, src, SteadyClockTimePoint{time}, &keyDev});
+	app.dispatchKeyInputEvent({Map::SYSTEM, key, action, 0, 0, src, SteadyClockTimePoint{time}, &keyDev});
 }
 
 std::string KeyEvent::keyString(ApplicationContext) const

@@ -52,7 +52,6 @@ public:
 	const char *keyName(Input::Key k) const;
 	std::span<Input::Axis> motionAxes() { return axis; }
 	static bool isSupportedClass(std::array<uint8_t, 3> devClass);
-	static std::pair<Input::Key, Input::Key> joystickKeys(Input::Map, Input::AxisId);
 
 private:
 	BluetoothSocketSys ctlSock, intSock;

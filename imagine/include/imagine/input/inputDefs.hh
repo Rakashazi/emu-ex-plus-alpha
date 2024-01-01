@@ -28,9 +28,6 @@
 #elif defined CONFIG_BASE_WIN32
 #include <imagine/base/win32/inputDefs.hh>
 #endif
-#ifdef CONFIG_INPUT_BLUETOOTH
-#include <imagine/input/bluetoothInputDefs.hh>
-#endif
 
 #include <string>
 #include <string_view>
@@ -198,7 +195,9 @@ enum class AxisSetId : uint8_t
 {
 	stick1,
 	stick2,
-	hat
+	hat,
+	triggers,
+	pedals
 };
 
 constexpr DeviceTypeFlags virtualDeviceFlags{.miscKeys = true, .keyboard = true, .virtualInput = true};

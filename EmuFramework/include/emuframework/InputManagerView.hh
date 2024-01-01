@@ -111,13 +111,16 @@ private:
 	TextMenuItem newProfile;
 	TextMenuItem deleteProfile;
 	IG_UseMemberIf(hasICadeInput, BoolMenuItem, iCadeMode);
-	BoolMenuItem joystickAxis1DPad;
-	BoolMenuItem joystickAxis2DPad;
-	BoolMenuItem joystickAxisHatDPad;
 	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, consumeUnboundKeys);
+	BoolMenuItem joystickAxisStick1Keys;
+	BoolMenuItem joystickAxisStick2Keys;
+	BoolMenuItem joystickAxisHatKeys;
+	BoolMenuItem joystickAxisTriggerKeys;
+	BoolMenuItem joystickAxisPedalKeys;
 	//TextMenuItem disconnect {"Disconnect"}; // TODO
 	TextHeadingMenuItem categories;
 	TextHeadingMenuItem options;
+	TextHeadingMenuItem joystickSetup;
 	std::vector<TextMenuItem> inputCategory;
 	std::vector<MenuItem*> item;
 	InputDeviceConfig &devConf;

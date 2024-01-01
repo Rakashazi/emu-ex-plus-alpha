@@ -194,20 +194,21 @@ using Key = uint16_t;
 	namespace AppleGC
 	{
 	static constexpr Key
-	A = 1,
-	B = 2,
-	X = 3,
-	Y = 4,
-	L1 = 5,
-	L2 = 6,
-	R1 = 7,
-	R2 = 8,
-	PAUSE = 9,
-	UP = 10, RIGHT = 11, DOWN = 12, LEFT = 13,
-	LSTICK_UP = 14, LSTICK_RIGHT = 15, LSTICK_DOWN = 16, LSTICK_LEFT = 17,
-	RSTICK_UP = 18, RSTICK_RIGHT = 19, RSTICK_DOWN = 20, RSTICK_LEFT = 21;
-
-	static const uint32_t COUNT = 22;
+	A = Keycode::GAME_A,
+	B = Keycode::GAME_B,
+	X = Keycode::GAME_X,
+	Y = Keycode::GAME_Y,
+	L1 = Keycode::GAME_L1,
+	L2 = Keycode::GAME_L2,
+	R1 = Keycode::GAME_R1,
+	R2 = Keycode::GAME_R2,
+	PAUSE = Keycode::GAME_MODE,
+	LEFT = Keycode::LEFT, RIGHT = Keycode::RIGHT,
+	UP = Keycode::UP, DOWN = Keycode::DOWN,
+	LSTICK_RIGHT = Keycode::JS1_XAXIS_POS, LSTICK_LEFT = Keycode::JS1_XAXIS_NEG,
+	LSTICK_DOWN =  Keycode::JS1_YAXIS_POS, LSTICK_UP =   Keycode::JS1_YAXIS_NEG,
+	RSTICK_RIGHT = Keycode::JS2_XAXIS_POS, RSTICK_LEFT = Keycode::JS2_XAXIS_NEG,
+	RSTICK_DOWN =  Keycode::JS2_YAXIS_POS, RSTICK_UP =   Keycode::JS2_YAXIS_NEG;
 	}
 
 	namespace Meta

@@ -19,7 +19,35 @@
 namespace IG::Input
 {
 
-static std::pair<Key, Key> joystickKeys(AxisId axisId)
+std::string_view toString(AxisId axisId)
+{
+	switch(axisId)
+	{
+		case AxisId::X: return "X";
+		case AxisId::Y: return "Y";
+		case AxisId::Z: return "X";
+		case AxisId::RZ: return "RZ";
+		case AxisId::RX: return "RX";
+		case AxisId::RY: return "RY";
+		case AxisId::HAT0X:
+		case AxisId::HAT1X:
+		case AxisId::HAT2X:
+		case AxisId::HAT3X: return "Hat-X";
+		case AxisId::HAT0Y:
+		case AxisId::HAT1Y:
+		case AxisId::HAT2Y:
+		case AxisId::HAT3Y: return "Hat-Y";
+		case AxisId::RUDDER: return "Rudder";
+		case AxisId::WHEEL: return "Wheel";
+		case AxisId::LTRIGGER: return "L";
+		case AxisId::BRAKE : return "Brake";
+		case AxisId::RTRIGGER: return "R";
+		case AxisId::GAS : return "Gas";
+	}
+	return "Unknown";
+}
+
+constexpr std::pair<Key, Key> joystickKeys(AxisId axisId)
 {
 	switch(axisId)
 	{
@@ -40,44 +68,22 @@ static std::pair<Key, Key> joystickKeys(AxisId axisId)
 		case AxisId::RUDDER: return {Keycode::JS_RUDDER_AXIS_NEG, Keycode::JS_RUDDER_AXIS_POS};
 		case AxisId::WHEEL: return {Keycode::JS_WHEEL_AXIS_NEG, Keycode::JS_WHEEL_AXIS_POS};
 		case AxisId::LTRIGGER:
-		case AxisId::BRAKE : return {0, Keycode::GAME_L2};
+		case AxisId::BRAKE:
 		case AxisId::RTRIGGER:
-		case AxisId::GAS : return {0, Keycode::GAME_R2};
+		case AxisId::GAS: break;
 	}
 	return {};
-}
-
-static std::pair<Key, Key> joystickKeys(Map map, AxisId axisId)
-{
-	switch(map)
-	{
-		case Map::SYSTEM: return joystickKeys(axisId);
-		#ifdef CONFIG_INPUT_BLUETOOTH
-		case Map::WIIMOTE:
-		case Map::WII_CC: return ::IG::Wiimote::joystickKeys(map, axisId);
-		case Map::ICONTROLPAD: return ::IG::IControlPad::joystickKeys(axisId);
-		case Map::ZEEMOTE: return ::IG::Zeemote::joystickKeys(axisId);
-		#endif
-		#ifdef CONFIG_BLUETOOTH_SERVER
-		case Map::PS3PAD: return ::IG::PS3Controller::joystickKeys(axisId);
-		#endif
-		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case Map::APPLE_GAME_CONTROLLER: return appleJoystickKeys(axisId);
-		#endif
-		default: return {};
-	}
 }
 
 Axis::Axis(Map map, AxisId id, float scaler):
 	scaler{scaler},
 	keyEmu
 	{
-		joystickKeys(map, id),
 		joystickKeys(id)
 	},
 	id_{id} {}
 
-static std::pair<Key, Key> emulatedDirectionKeys(Map map, AxisId id, bool invertY)
+static std::pair<Key, Key> emulatedKeys(Map map, AxisId id, bool invertY)
 {
 	auto keys = directionKeys(map);
 	std::pair<Key, Key> yKeys = {keys.up, keys.down};
@@ -99,31 +105,31 @@ static std::pair<Key, Key> emulatedDirectionKeys(Map map, AxisId id, bool invert
 		case AxisId::HAT1Y:
 		case AxisId::HAT2Y:
 		case AxisId::HAT3Y: return yKeys;
+		case AxisId::LTRIGGER:
+		case AxisId::BRAKE : return {0, Keycode::GAME_L2};
+		case AxisId::RTRIGGER:
+		case AxisId::GAS : return {0, Keycode::GAME_R2};
 		default: return {};
 	}
 }
 
-void Axis::setEmulatesDirectionKeys(Map map, bool on)
+void Axis::setEmulatesKeys(Map map, bool on)
 {
 	if(on)
 	{
 		const bool invertY = Config::Input::BLUETOOTH && map != Map::SYSTEM;
-		auto dpadKeys = emulatedDirectionKeys(map, id(), invertY);
-		if(!dpadKeys.first)
-			return;
-		keyEmu.key = dpadKeys;
-		keyEmu.sysKey = emulatedDirectionKeys(Map::SYSTEM, id(), invertY);
+		auto dpadKeys = emulatedKeys(map, id(), invertY);
+		keyEmu.keys = dpadKeys;
 	}
 	else
 	{
-		keyEmu.key = joystickKeys(map, id());
-		keyEmu.sysKey = joystickKeys(id());
+		keyEmu.keys = joystickKeys(id());
 	}
 }
 
-bool Axis::emulatesDirectionKeys() const
+bool Axis::emulatesKeys() const
 {
-	return keyEmu.sysKey != joystickKeys(id());
+	return keyEmu.keys != joystickKeys(id());
 }
 
 AxisFlags Axis::idBit() const
@@ -167,6 +173,11 @@ bool Axis::isTrigger() const
 	}
 }
 
+std::string_view Axis::name() const
+{
+	return toString(id());
+}
+
 bool Axis::update(float pos, Map map, SteadyClockTimePoint time, const Device &dev, Window &win, bool normalized)
 {
 	if(!normalized)
@@ -187,7 +198,7 @@ bool Axis::dispatchInputEvent(float pos, Map map, SteadyClockTimePoint time, con
 
 AxisKeyEmu::UpdateKeys AxisKeyEmu::update(float pos)
 {
-	UpdateKeys keys;
+	UpdateKeys updateKeys;
 	auto newState = (pos <= limit.first) ? -1 :
 		(pos >= limit.second) ? 1 :
 		0;
@@ -195,16 +206,14 @@ AxisKeyEmu::UpdateKeys AxisKeyEmu::update(float pos)
 	{
 		const bool stateHigh = (state > 0);
 		const bool stateLow = (state < 0);
-		keys.released = stateHigh ? key.second : stateLow ? key.first : 0;
-		keys.sysReleased = stateHigh ? sysKey.second : stateLow ? sysKey.first : 0;
+		updateKeys.released = stateHigh ? keys.second : stateLow ? keys.first : 0;
 		const bool newStateHigh = (newState > 0);
 		const bool newStateLow = (newState < 0);
-		keys.pushed = newStateHigh ? key.second : newStateLow ? key.first : 0;
-		keys.sysPushed = newStateHigh ? sysKey.second : newStateLow ? sysKey.first : 0;
-		keys.updated = true;
+		updateKeys.pushed = newStateHigh ? keys.second : newStateLow ? keys.first : 0;
+		updateKeys.updated = true;
 		state = (int8_t)newState;
 	}
-	return keys;
+	return updateKeys;
 }
 
 bool AxisKeyEmu::dispatch(float pos, Map map, SteadyClockTimePoint time, const Device &dev, Window &win)
@@ -217,11 +226,11 @@ bool AxisKeyEmu::dispatch(float pos, Map map, SteadyClockTimePoint time, const D
 	}
 	if(updateKeys.released)
 	{
-		win.dispatchRepeatableKeyInputEvent(KeyEvent{map, updateKeys.released, updateKeys.sysReleased, Action::RELEASED, 0, 0, src, time, &dev});
+		win.dispatchRepeatableKeyInputEvent(KeyEvent{map, updateKeys.released, Action::RELEASED, 0, 0, src, time, &dev});
 	}
 	if(updateKeys.pushed)
 	{
-		KeyEvent event{map, updateKeys.pushed, updateKeys.sysPushed, Action::PUSHED, 0, 0, src, time, &dev};
+		KeyEvent event{map, updateKeys.pushed, Action::PUSHED, 0, 0, src, time, &dev};
 		win.dispatchRepeatableKeyInputEvent(event);
 	}
 	return true;

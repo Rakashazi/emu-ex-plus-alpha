@@ -98,25 +98,9 @@ std::string_view BaseEvent::mapName(Map map)
 	}
 }
 
-uint32_t BaseEvent::mapNumKeys(Map map)
+size_t BaseEvent::mapNumKeys(Map map)
 {
-	switch(map)
-	{
-		default: return 0;
-		case Map::SYSTEM: return Input::Keycode::COUNT;
-		#ifdef CONFIG_INPUT_BLUETOOTH
-		case Map::WIIMOTE: return Input::WiimoteKey::COUNT;
-		case Map::WII_CC: return Input::WiiCCKey::COUNT;
-		case Map::ICONTROLPAD: return Input::iControlPadKey::COUNT;
-		case Map::ZEEMOTE: return Input::ZeemoteKey::COUNT;
-		#endif
-		#ifdef CONFIG_BLUETOOTH_SERVER
-		case Map::PS3PAD: return Input::PS3Key::COUNT;
-		#endif
-		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case Map::APPLE_GAME_CONTROLLER: return Input::AppleGC::COUNT;
-		#endif
-	}
+	return Input::Keycode::COUNT;
 }
 
 const char *sourceStr(Source src)
@@ -176,23 +160,7 @@ Map validateMap(uint8_t mapValue)
 
 DirectionKeys directionKeys(Map map)
 {
-	switch(map)
-	{
-		case Map::SYSTEM: return {Keycode::UP, Keycode::RIGHT, Keycode::DOWN, Keycode::LEFT};
-		#ifdef CONFIG_INPUT_BLUETOOTH
-		case Map::WIIMOTE: return {WiimoteKey::UP, WiimoteKey::RIGHT, WiimoteKey::DOWN, WiimoteKey::LEFT};
-		case Map::WII_CC: return {WiiCCKey::UP, WiiCCKey::RIGHT, WiiCCKey::DOWN, WiiCCKey::LEFT};
-		case Map::ICONTROLPAD: return {iControlPadKey::UP, iControlPadKey::RIGHT, iControlPadKey::DOWN, iControlPadKey::LEFT};
-		case Map::ZEEMOTE: return {ZeemoteKey::UP, ZeemoteKey::RIGHT, ZeemoteKey::DOWN, ZeemoteKey::LEFT};
-		#endif
-		#ifdef CONFIG_BLUETOOTH_SERVER
-		case Map::PS3PAD: return {PS3Key::UP, PS3Key::RIGHT, PS3Key::DOWN, PS3Key::LEFT};
-		#endif
-		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case Map::APPLE_GAME_CONTROLLER: return {AppleGC::UP, AppleGC::RIGHT, AppleGC::DOWN, AppleGC::LEFT};
-		#endif
-		default: return {};
-	}
+	return {Keycode::UP, Keycode::RIGHT, Keycode::DOWN, Keycode::LEFT};
 }
 
 }
@@ -398,7 +366,7 @@ bool BaseApplication::processICadeKey(const Input::KeyEvent &e, Window &win)
 		if(e.state() == Action::PUSHED)
 		{
 			//logMsg("pushed iCade keyboard key: %s", dev.keyName(key));
-			dispatchRepeatableKeyInputEvent({Map::SYSTEM, onKey, onKey, Action::PUSHED, 0, 0, Source::GAMEPAD, e.time(), e.device()}, win);
+			dispatchRepeatableKeyInputEvent({Map::SYSTEM, onKey, Action::PUSHED, 0, 0, Source::GAMEPAD, e.time(), e.device()}, win);
 		}
 		return true;
 	}
@@ -406,7 +374,7 @@ bool BaseApplication::processICadeKey(const Input::KeyEvent &e, Window &win)
 	{
 		if(e.state() == Action::PUSHED)
 		{
-			dispatchRepeatableKeyInputEvent({Map::SYSTEM, offKey, offKey, Action::RELEASED, 0, 0, Source::GAMEPAD, e.time(), e.device()}, win);
+			dispatchRepeatableKeyInputEvent({Map::SYSTEM, offKey, Action::RELEASED, 0, 0, Source::GAMEPAD, e.time(), e.device()}, win);
 		}
 		return true;
 	}

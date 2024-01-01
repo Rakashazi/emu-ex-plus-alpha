@@ -142,7 +142,7 @@ void MogaManager::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 				ctx.endIdleByUserActivity();
 				Key key = keyCode & 0x1ff;
 				auto time = SteadyClockTimePoint{Nanoseconds{timestamp}};
-				KeyEvent event{Map::SYSTEM, key, key, (action == AKEY_EVENT_ACTION_DOWN) ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &mogaDev};
+				KeyEvent event{Map::SYSTEM, key, (action == AKEY_EVENT_ACTION_DOWN) ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &mogaDev};
 				ctx.application().dispatchRepeatableKeyInputEvent(event);
 			})
 		},

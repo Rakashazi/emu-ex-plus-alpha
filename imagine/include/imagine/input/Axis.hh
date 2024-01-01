@@ -27,7 +27,10 @@ class Window;
 namespace IG::Input
 {
 
-constexpr std::pair<AxisId, AxisId> toAxisIds(AxisSetId id)
+using AxisPair = std::pair<AxisId, AxisId>;
+std::string_view toString(AxisId);
+
+constexpr AxisPair toAxisIds(AxisSetId id)
 {
 	using enum AxisSetId;
 	switch(id)
@@ -35,6 +38,8 @@ constexpr std::pair<AxisId, AxisId> toAxisIds(AxisSetId id)
 		case stick1: return {AxisId::X, AxisId::Y};
 		case stick2: return {AxisId::Z, AxisId::RZ};
 		case hat: return {AxisId::HAT0X, AxisId::HAT0Y};
+		case triggers: return {AxisId::LTRIGGER, AxisId::RTRIGGER};
+		case pedals: return {AxisId::BRAKE, AxisId::GAS};
 	}
 	std::unreachable();
 }
@@ -44,12 +49,13 @@ class Axis
 public:
 	constexpr Axis() = default;
 	Axis(Map, AxisId, float scaler = 1.f);
-	void setEmulatesDirectionKeys(Map, bool);
-	bool emulatesDirectionKeys() const;
+	void setEmulatesKeys(Map, bool);
+	bool emulatesKeys() const;
 	constexpr AxisId id() const { return id_; }
 	AxisFlags idBit() const;
 	bool isTrigger() const;
 	float scale() const { return scaler; }
+	std::string_view name() const;
 	bool update(float pos, Map map, SteadyClockTimePoint time, const Device &, Window &, bool normalized = false);
 	bool dispatchInputEvent(float pos, Map, SteadyClockTimePoint, const Device &, Window &);
 

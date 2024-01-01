@@ -257,7 +257,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Input::Device *de
 					else
 					{
 						Key key = Keycode::ENTER;
-						win.dispatchInputEvent(KeyEvent{Map::REL_POINTER, key, key, actionCode == AMOTION_EVENT_ACTION_DOWN ? Action::PUSHED : Action::RELEASED, 0, 0, Source::KEYBOARD, time, nullptr});
+						win.dispatchInputEvent(KeyEvent{Map::REL_POINTER, key, actionCode == AMOTION_EVENT_ACTION_DOWN ? Action::PUSHED : Action::RELEASED, 0, 0, Source::KEYBOARD, time, nullptr});
 					}
 					return true;
 				}
@@ -355,7 +355,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Input::Device *de
 			auto action = AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? Action::RELEASED : Action::PUSHED;
 			cancelKeyRepeatTimer();
 			Key key = keyCode & 0x1ff;
-			return dispatchKeyInputEvent({Map::SYSTEM, key, key, action, (uint32_t)metaState,
+			return dispatchKeyInputEvent({Map::SYSTEM, key, action, (uint32_t)metaState,
 				repeatCount, eventSource, time, devPtr}, win);
 		}
 	}

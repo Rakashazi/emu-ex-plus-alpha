@@ -123,7 +123,9 @@ struct AxisAsDpadFlags
 	stick1:1{},
 	unused1:1{},
 	stick2:1{},
-	unused2:3{},
+	triggers:1{},
+	pedals:1{},
+	unused2:1{},
 	hat:1{};
 
 	constexpr bool operator==(AxisAsDpadFlags const&) const = default;

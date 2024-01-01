@@ -91,7 +91,7 @@ constexpr std::array genericGamepadModifierAppKeyCodeMap
 
 constexpr std::array genericWiimoteAppKeyCodeMap
 {
-	KeyMapping{appKeys.openSystemActions, Input::WiimoteKey::HOME},
+	KeyMapping{appKeys.openSystemActions, Input::Keycode::GAME_MODE},
 };
 
 constexpr std::array genericKeyboardAppKeyCodeMap

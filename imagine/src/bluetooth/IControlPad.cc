@@ -17,6 +17,7 @@
 #include <imagine/bluetooth/IControlPad.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/base/Error.hh>
+#include <imagine/input/bluetoothInputDefs.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
 #include <imagine/util/bit.hh>
@@ -31,19 +32,19 @@ using namespace IG::Input;
 
 static const PackedInputAccess iCPDataAccess[] =
 {
-	{ 0, bit(2), iControlPadKey::LEFT, Keycode::LEFT },
-	{ 0, bit(1), iControlPadKey::RIGHT, Keycode::RIGHT },
-	{ 0, bit(3), iControlPadKey::DOWN, Keycode::DOWN },
-	{ 0, bit(0), iControlPadKey::UP, Keycode::UP },
-	{ 0, bit(4), iControlPadKey::L, Keycode::GAME_L1 },
+	{ 0, bit(2), iControlPadKey::LEFT },
+	{ 0, bit(1), iControlPadKey::RIGHT },
+	{ 0, bit(3), iControlPadKey::DOWN },
+	{ 0, bit(0), iControlPadKey::UP },
+	{ 0, bit(4), iControlPadKey::L },
 
-	{ 1, bit(3), iControlPadKey::A, Keycode::GAME_X },
-	{ 1, bit(4), iControlPadKey::X, Keycode::GAME_A },
-	{ 1, bit(5), iControlPadKey::B, Keycode::GAME_B },
-	{ 1, bit(6), iControlPadKey::R, Keycode::GAME_R1 },
-	{ 1, bit(0), iControlPadKey::SELECT, Keycode::GAME_SELECT },
-	{ 1, bit(2), iControlPadKey::Y, Keycode::GAME_Y },
-	{ 1, bit(1), iControlPadKey::START, Keycode::GAME_START },
+	{ 1, bit(3), iControlPadKey::A },
+	{ 1, bit(4), iControlPadKey::X },
+	{ 1, bit(5), iControlPadKey::B },
+	{ 1, bit(6), iControlPadKey::R },
+	{ 1, bit(0), iControlPadKey::SELECT },
+	{ 1, bit(2), iControlPadKey::Y },
+	{ 1, bit(1), iControlPadKey::START },
 };
 
 static const uint8_t CMD_SPP_GP_REPORTS = 0xAD;
@@ -230,7 +231,7 @@ void IControlPad::processBtnReport(Input::Device &dev, const char *btnData, Stea
 		{
 			//logMsg("%s %s @ iCP", e->name, newState ? "pushed" : "released");
 			ctx.endIdleByUserActivity();
-			KeyEvent event{Map::ICONTROLPAD, e.keyEvent, e.sysKey, newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev};
+			KeyEvent event{Map::ICONTROLPAD, e.key, newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev};
 			ctx.application().dispatchRepeatableKeyInputEvent(event);
 		}
 	}
@@ -240,18 +241,6 @@ void IControlPad::processBtnReport(Input::Device &dev, const char *btnData, Stea
 bool IControlPad::isSupportedClass(std::array<uint8_t, 3> devClass)
 {
 	return devClass == btClass;
-}
-
-std::pair<Input::Key, Input::Key> IControlPad::joystickKeys(Input::AxisId axisId)
-{
-	switch(axisId)
-	{
-		case Input::AxisId::X: return {Input::iControlPadKey::LNUB_LEFT, Input::iControlPadKey::LNUB_RIGHT};
-		case Input::AxisId::Y: return {Input::iControlPadKey::LNUB_DOWN, Input::iControlPadKey::LNUB_UP};
-		case Input::AxisId::Z: return {Input::iControlPadKey::RNUB_LEFT, Input::iControlPadKey::RNUB_RIGHT};
-		case Input::AxisId::RZ: return {Input::iControlPadKey::RNUB_DOWN, Input::iControlPadKey::RNUB_UP};
-		default: return {};
-	}
 }
 
 }

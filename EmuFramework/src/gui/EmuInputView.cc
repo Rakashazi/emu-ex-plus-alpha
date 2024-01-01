@@ -91,7 +91,7 @@ bool EmuInputView::inputEvent(const Input::Event &e)
 			if(!actionTable.size()) [[unlikely]]
 				return false;
 			assumeExpr(keyEv.device());
-			const auto &actionGroup = actionTable[keyEv.mapKey()];
+			const auto &actionGroup = actionTable[keyEv.key()];
 			bool isPushed = keyEv.pushed();
 			bool isRepeated = keyEv.repeated();
 			bool didAction = false;

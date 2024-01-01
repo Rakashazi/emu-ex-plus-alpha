@@ -70,7 +70,7 @@ bool TextEntry::inputEvent(View &parentView, const Input::Event &e)
 			{
 				bool updateText = false;
 
-				if(keyEv.mapKey() == Input::Keycode::BACK_SPACE)
+				if(keyEv.key() == Input::Keycode::BACK_SPACE)
 				{
 					auto len = str.size();
 					if(len > 0)

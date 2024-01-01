@@ -329,18 +329,18 @@ bool Device::iCadeMode() const
 	}, *this);
 }
 
-void Device::setJoystickAxesAsDpad(AxisSetId id, bool on)
+void Device::setJoystickAxesAsKeys(AxisSetId id, bool on)
 {
 	if(auto axis1 = motionAxis(toAxisIds(id).first))
-		axis1->setEmulatesDirectionKeys(map(), on);
+		axis1->setEmulatesKeys(map(), on);
 	if(auto axis2 = motionAxis(toAxisIds(id).second))
-		axis2->setEmulatesDirectionKeys(map(), on);
+		axis2->setEmulatesKeys(map(), on);
 }
 
-bool Device::joystickAxesAsDpad(AxisSetId id)
+bool Device::joystickAxesAsKeys(AxisSetId id)
 {
-	if(auto axis1 = motionAxis(toAxisIds(id).first))
-		return axis1->emulatesDirectionKeys();
+	if(auto axis2 = motionAxis(toAxisIds(id).second))
+		return axis2->emulatesKeys();
 	return false;
 }
 
@@ -397,7 +397,7 @@ std::string Device::keyString(Key k, KeyNameFlags flags) const
 	if(auto name = keyName(k);
 		std::string_view{name}.size())
 	{
-		if(flags.basicModifiers && map() == Map::SYSTEM)
+		if(flags.basicModifiers)
 		{
 			using namespace Keycode;
 			switch(k)

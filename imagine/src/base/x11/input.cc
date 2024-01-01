@@ -342,7 +342,7 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 			auto dev = deviceForInputId(event.sourceid);
 			if(sendKeyEvent)
 			{
-				auto ev = Input::KeyEvent{Input::Map::POINTER, key, key, action, (uint32_t)event.mods.effective,
+				auto ev = Input::KeyEvent{Input::Map::POINTER, key, action, (uint32_t)event.mods.effective,
 					0, Input::Source::MOUSE, time, dev};
 				dispatchKeyInputEvent(ev, win);
 			}
@@ -371,7 +371,7 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 			else
 			{
 				auto key = keysymToKey(k);
-				auto ev = Input::KeyEvent{Input::Map::SYSTEM, key, key, action, (uint32_t)event.mods.effective,
+				auto ev = Input::KeyEvent{Input::Map::SYSTEM, key, action, (uint32_t)event.mods.effective,
 					repeated, Input::Source::KEYBOARD, time, dev};
 				ev.setX11RawKey(event.detail);
 				dispatchKeyInputEvent(ev, win);
