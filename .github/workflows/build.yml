@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image: ["2600.emu", "C64.emu", "GBA.emu", "GBC.emu", "Lynx.emu", "MD.emu", "MSX.emu", "NEO.emu", "NES.emu", "NGP.emu", "PCE.emu", "Snes9x", "Swan.emu"]
+        image: ["2600.emu", "C64.emu", "GBA.emu", "GBC.emu", "Lynx.emu", "MD.emu", "MSX.emu", "NEO.emu", "NES.emu", "NGP.emu", "PCE.emu", "Snes9x", "Snes9x-1.43-9", "Snes9x-1.43-15", "Swan.emu"]
 
     steps:
     - name: Checkout emu-ex-plus-alpha repo
@@ -279,6 +279,42 @@ jobs:
       with:
         name: Snes9x
         path: ${{ github.workspace }}/Snes9x/target/android-release/build/outputs/apk/release/Snes9xEXPlus-release.apk
+
+    - name: Build Snes9x-1.43-9
+      if: ${{ matrix.image == 'Snes9x-1.43-9' }}
+      run: |
+        cd Snes9x/1.43
+        make -f android-release-9.mk android-apk V=1 -j2
+
+    - name: Copy Snes9x-1.43-9 artifact
+      if: ${{ matrix.image == 'Snes9x-1.43-9' }}
+      run: |
+        cp Snes9x/1.43/target/android-release-9/build/outputs/apk/release/Snes9xEX-release.apk EX-Emulators/Snes9xEX-9-release.apk
+
+    - name: Upload Snes9x-1.43-9 artifact
+      uses: actions/upload-artifact@v3
+      if: ${{ matrix.image == 'Snes9x-1.43-9' }}
+      with:
+        name: Snes9x-1.43-9
+        path: ${{ github.workspace }}/Snes9x/1.43/target/android-release-9/build/outputs/apk/release/Snes9xEX-release.apk
+
+    - name: Build Snes9x-1.43-15
+      if: ${{ matrix.image == 'Snes9x-1.43-15' }}
+      run: |
+        cd Snes9x/1.43
+        make -f android-release-15.mk android-apk V=1 -j2
+
+    - name: Copy Snes9x-1.43-15 artifact
+      if: ${{ matrix.image == 'Snes9x-1.43-15' }}
+      run: |
+        cp Snes9x/1.43/target/android-release-15/build/outputs/apk/release/Snes9xEX-release.apk EX-Emulators/Snes9xEX-15-release.apk
+
+    - name: Upload Snes9x-1.43-15 artifact
+      uses: actions/upload-artifact@v3
+      if: ${{ matrix.image == 'Snes9x-1.43-15' }}
+      with:
+        name: Snes9x-1.43-15
+        path: ${{ github.workspace }}/Snes9x/1.43/target/android-release-15/build/outputs/apk/release/Snes9xEX-release.apk
 
     - name: Build Swan.emu
       if: ${{ matrix.image == 'Swan.emu' }}
