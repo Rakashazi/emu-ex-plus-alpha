@@ -22,6 +22,7 @@
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/Quads.hh>
 #include <imagine/util/container/ArrayList.hh>
+#include <imagine/util/memory/DynArray.hh>
 #include <vector>
 #include <array>
 #include <string>
@@ -104,7 +105,7 @@ public:
 private:
 	InputManager &inputManager;
 	InputManagerView &rootIMView;
-	TextMenuItem playerItem[6];
+	DynArray<TextMenuItem> playerItems;
 	MultiChoiceMenuItem player;
 	TextMenuItem loadProfile;
 	TextMenuItem renameProfile;

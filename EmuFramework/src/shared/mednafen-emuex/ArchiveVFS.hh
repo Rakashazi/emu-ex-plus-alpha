@@ -24,8 +24,9 @@ namespace Mednafen
 class ArchiveVFS : public VirtualFS
 {
 public:
-	ArchiveVFS(IG::FS::ArchiveIterator);
+	ArchiveVFS(IG::ArchiveIO);
 	Stream* open(const std::string& path, const uint32 mode, const int do_lock = false, const bool throw_on_noent = true, const CanaryType canary = CanaryType::open) override;
+	FILE* openAsStdio(const std::string& path, const uint32 mode) override;
 	bool mkdir(const std::string& path, const bool throw_on_exist = false) override;
 	bool unlink(const std::string& path, const bool throw_on_noent = false, const CanaryType canary = CanaryType::unlink) override;
 	void rename(const std::string& oldpath, const std::string& newpath, const CanaryType canary = CanaryType::rename) override;
@@ -36,7 +37,9 @@ public:
 	std::string get_human_path(const std::string& path) override;
 
 private:
-	IG::FS::ArchiveIterator archIt;
+	IG::ArchiveIO arch;
+
+	void seekFile(const std::string& path);
 };
 
 }

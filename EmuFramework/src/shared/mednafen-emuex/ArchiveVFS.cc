@@ -24,35 +24,44 @@ namespace Mednafen
 
 constexpr IG::SystemLogger log{"ArchiveVFS"};
 
-ArchiveVFS::ArchiveVFS(IG::FS::ArchiveIterator it):
+ArchiveVFS::ArchiveVFS(IG::ArchiveIO arch):
 	VirtualFS('/', "/"),
-	archIt{std::move(it)} {}
+	arch{std::move(arch)} {}
 
 Stream* ArchiveVFS::open(const std::string &path, const uint32 mode, const int do_lock, const bool throw_on_noent, const CanaryType canary)
 {
 	assert(mode == MODE_READ);
 	assert(do_lock == 0);
-	archIt.rewind();
+	seekFile(path);
+	auto stream = std::make_unique<MemoryStream>(arch.size(), true);
+	if(arch.read(stream->map(), arch.size()) != ssize_t(arch.size()))
+	{
+		throw MDFN_Error(0, "Error reading archive file:\n%s", arch.name().data());
+	}
+	return stream.release();
+}
+
+FILE* ArchiveVFS::openAsStdio(const std::string& path, const uint32 mode)
+{
+	assert(mode == MODE_READ);
+	seekFile(path);
+	return IG::MapIO{arch}.toFileStream("rb");
+}
+
+void ArchiveVFS::seekFile(const std::string& path)
+{
+	arch.rewind();
 	auto filename = IG::FS::basename(path);
 	log.info("looking for file:{}", filename);
-	for(auto &entry : archIt)
+	if(!IG::FS::seekFileInArchive(arch, [&](auto &entry)
+		{
+			auto name = IG::FS::basename(entry.name());
+			log.info("checking:{}", name);
+			return name == filename;
+		}))
 	{
-		if(entry.type() == IG::FS::file_type::directory)
-		{
-			continue;
-		}
-		auto name = IG::FS::basename(entry.name());
-		if(name == filename)
-		{
-			auto stream = std::make_unique<MemoryStream>(entry.size(), true);
-			if(entry.read(stream->map(), entry.size()) != ssize_t(entry.size()))
-			{
-				throw MDFN_Error(0, "Error reading archive file:\n%s", filename.c_str());
-			}
-			return stream.release();
-		}
+		throw MDFN_Error(ENOENT, "Not found");
 	}
-	throw MDFN_Error(ENOENT, "Not found");
 }
 
 bool ArchiveVFS::mkdir(const std::string &path, const bool throw_on_exist) { return false; }

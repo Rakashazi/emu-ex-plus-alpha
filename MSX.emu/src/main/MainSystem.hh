@@ -62,7 +62,7 @@ public:
 	std::string optionDefaultColecoMachineNameStr{optionColecoMachineNameDefault};
 	std::string optionSessionMachineNameStr;
 	FS::PathString firmwarePath_;
-	mutable FS::ArchiveIterator firmwareArchiveIt;
+	mutable ArchiveIO firmwareArch;
 
 	MsxSystem(ApplicationContext ctx):
 		EmuSystem{ctx}
@@ -99,7 +99,7 @@ public:
 	void destroyMachine(bool clearMediaNames = true);
 	void setFirmwarePath(CStringView path, FS::file_type);
 	FS::PathString firmwarePath() const;
-	FS::ArchiveIterator &firmwareArchiveIterator(CStringView path) const;
+	ArchiveIO &firmwareArchive(CStringView path) const;
 
 	// required API functions
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);

@@ -29,7 +29,7 @@ IG::ApplicationContext gAppContext();
 namespace Mednafen
 {
 
-static std::pair<IG::OpenFlags, uint8_t> modeToAttribs(uint32 mode)
+std::pair<IG::OpenFlags, uint8_t> modeToAttribs(uint32 mode)
 {
 	using namespace IG;
 	switch(mode)

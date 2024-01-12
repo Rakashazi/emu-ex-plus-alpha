@@ -1009,7 +1009,7 @@ void EmuApp::reloadSystem(EmuSystemCreateParams params)
 
 void EmuApp::onSystemCreated()
 {
-	updateContentRotation();
+	updateVideoContentRotation();
 	if(!rewindManager.reset(system().stateSize()))
 	{
 		postErrorMessage(4, "Not enough memory for rewind states");

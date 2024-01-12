@@ -91,14 +91,17 @@ DynArray<uint8_t> EmuSystem::saveState()
 	return stateArr;
 }
 
-DynArray<uint8_t> EmuSystem::uncompressGzipState(std::span<uint8_t> buff, size_t expectedSize, UncompressStateFlags flags)
+DynArray<uint8_t> EmuSystem::uncompressGzipState(std::span<uint8_t> buff, size_t expectedSize)
 {
-	assert(expectedSize);
-	auto uncompArr = dynArrayForOverwrite<uint8_t>(expectedSize);
+	assert(hasGzipHeader(buff));
+	auto uncompSize = gzipUncompressedSize(buff);
+	if(expectedSize && expectedSize != uncompSize)
+		throw std::runtime_error("Invalid state size from header");
+	auto uncompArr = dynArrayForOverwrite<uint8_t>(uncompSize);
 	auto size = uncompressGzip(uncompArr, buff);
 	if(!size)
 		throw std::runtime_error("Error uncompressing state");
-	if(!flags.estimatedExpectedSize && size != expectedSize)
+	if(expectedSize && size != expectedSize)
 		throw std::runtime_error("Invalid state size");
 	return uncompArr;
 }
@@ -163,7 +166,7 @@ void EmuSystem::updateContentSaveDirectory()
 		else
 			contentSaveDirectory_ = fallbackSaveDirectory(true);
 	}
-	log.info("updated content save path:%s", contentSaveDirectory_);
+	log.info("updated content save path:{}", contentSaveDirectory_);
 }
 
 FS::PathString EmuSystem::fallbackSaveDirectory(bool create)
@@ -420,7 +423,7 @@ void EmuSystem::loadContentFromPath(CStringView pathStr, std::string_view displa
 
 void EmuSystem::loadContentFromFile(IO file, CStringView path, std::string_view displayName, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
-	if(EmuApp::hasArchiveExtension(displayName))
+	if(!EmuSystem::handlesArchiveFiles && EmuApp::hasArchiveExtension(displayName))
 	{
 		IO io{};
 		FS::FileString originalName{};

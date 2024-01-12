@@ -38,7 +38,7 @@ public:
 	constexpr IOStreamBuf() = default;
 
 	IOStreamBuf(IO io_, std::ios::openmode mode):
-		io{std::move(io_)}
+		io{std::forward<IO>(io_)}
 	{
 		if(!io)
 			return;
@@ -128,7 +128,7 @@ public:
 
 	StreamBase(IO io, std::ios::openmode mode = openMode()):
 		StdStream{&streamBuf},
-		streamBuf{std::move(io), mode | implicitOpenMode()}
+		streamBuf{std::forward<IO>(io), mode | implicitOpenMode()}
 	{
 		if(!streamBuf) [[unlikely]]
 			this->setstate(std::ios::failbit);

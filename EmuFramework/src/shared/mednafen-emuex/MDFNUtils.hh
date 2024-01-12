@@ -30,6 +30,18 @@
 #include <main/MainSystem.hh>
 #include <string_view>
 
+namespace Mednafen
+{
+
+struct DriveMediaStatus
+{
+	uint32 state_idx{};
+	uint32 media_idx{};
+	uint32 orientation_idx{};
+};
+
+}
+
 namespace EmuEx
 {
 
@@ -167,7 +179,7 @@ inline void readStateMDFN(EmuApp &app, std::span<uint8_t> buff)
 	using namespace Mednafen;
 	if(hasGzipHeader(buff))
 	{
-		MemoryStream s{stateSizeMDFN(), -1};
+		MemoryStream s{gzipUncompressedSize(buff), -1};
 		auto outputSize = uncompressGzip({s.map(), size_t(s.size())}, buff);
 		if(!outputSize)
 			throw std::runtime_error("Error uncompressing state");
@@ -203,37 +215,32 @@ inline size_t writeStateMDFN(std::span<uint8_t> buff, SaveStateFlags flags)
 	}
 }
 
-inline void writeCDMD5(Mednafen::MDFNGI &mdfnGameInfo, Mednafen::CDInterface &cdInterface)
+inline void writeCDMD5(Mednafen::MDFNGI &mdfnGameInfo, const auto &cdInterfaces)
 {
-	Mednafen::CDUtility::TOC toc;
 	Mednafen::md5_context layout_md5;
-
-	cdInterface.ReadTOC(&toc);
-
 	layout_md5.starts();
-
-	layout_md5.update_u32_as_lsb(toc.first_track);
-	layout_md5.update_u32_as_lsb(toc.last_track);
-	layout_md5.update_u32_as_lsb(toc.tracks[100].lba);
-
-	for(uint32 track = toc.first_track; track <= toc.last_track; track++)
+	for(auto &cdInterface : cdInterfaces)
 	{
-		layout_md5.update_u32_as_lsb(toc.tracks[track].lba);
-		layout_md5.update_u32_as_lsb(toc.tracks[track].control & 0x4);
+		Mednafen::CDUtility::TOC toc;
+		cdInterface->ReadTOC(&toc);
+		layout_md5.update_u32_as_lsb(toc.first_track);
+		layout_md5.update_u32_as_lsb(toc.last_track);
+		layout_md5.update_u32_as_lsb(toc.tracks[100].lba);
+		for(size_t track = toc.first_track; track <= toc.last_track; track++)
+		{
+			layout_md5.update_u32_as_lsb(toc.tracks[track].lba);
+			layout_md5.update_u32_as_lsb(toc.tracks[track].control & 0x4);
+		}
 	}
-
-	uint8 LayoutMD5[16];
-	layout_md5.finish(LayoutMD5);
-
-	memcpy(mdfnGameInfo.MD5, LayoutMD5, 16);
+	layout_md5.finish(mdfnGameInfo.MD5);
 }
 
 inline void clearCDInterfaces(std::vector<Mednafen::CDInterface *> &ifaces)
 {
-	if(!ifaces.size())
-		return;
-	assert(ifaces.size() == 1);
-	delete ifaces[0];
+	for(auto cdIfPtr : ifaces)
+	{
+		delete cdIfPtr;
+	}
 	ifaces.clear();
 }
 

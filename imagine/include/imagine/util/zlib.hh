@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <span>
+#include <bit>
 #include <cstdint>
 #include <zlib.h>
 
@@ -53,6 +54,17 @@ inline size_t uncompressGzip(std::span<uint8_t> dest, std::span<const uint8_t> s
 inline bool hasGzipHeader(std::span<const uint8_t> buff)
 {
 	return buff.size() > 10 && buff[0] == 0x1F && buff[1] == 0x8B;
+}
+
+inline size_t gzipUncompressedSize(std::span<const uint8_t> buff)
+{
+	if(buff.size() < 18)
+		return 0;
+	using uint32u [[gnu::aligned(1)]] = uint32_t;
+	uint32_t size = *reinterpret_cast<const uint32u*>(&*(buff.end() - 4));
+	if constexpr(std::endian::native == std::endian::big)
+		return std::byteswap(size);
+	return size;
 }
 
 }

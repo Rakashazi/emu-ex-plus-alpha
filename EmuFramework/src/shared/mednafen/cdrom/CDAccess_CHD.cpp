@@ -57,16 +57,15 @@ static const int32_t DI_Size_Table[8] =
         2352  // CD-I RAW
 };
 
-extern FILE *fopenHelper(const char* filename, const char* mode);
-
-CDAccess_CHD::CDAccess_CHD(const std::string &path, bool image_memcache) : NumTracks(0), total_sectors(0)
+CDAccess_CHD::CDAccess_CHD(VirtualFS* vfs, const std::string &path, bool image_memcache) : NumTracks(0), total_sectors(0)
 {
-  Load(path, image_memcache);
+  Load(vfs, path, image_memcache);
 }
 
-void CDAccess_CHD::Load(const std::string &path, bool image_memcache)
+void CDAccess_CHD::Load(VirtualFS* vfs, const std::string &path, bool image_memcache)
 {
-  chd_error err = chd_open_file(fopenHelper(path.c_str(), "rb"), CHD_OPEN_READ, NULL, &chd);
+	// Note: chd_open_file() should set chd->owns_file to true
+  chd_error err = chd_open_file(vfs->openAsStdio(path, VirtualFS::MODE_READ), CHD_OPEN_READ, NULL, &chd);
   if (err != CHDERR_NONE)
   {
     throw MDFN_Error(0, _("Failed to load CHD image: %s"), path.c_str());

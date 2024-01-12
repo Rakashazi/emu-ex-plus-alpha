@@ -306,7 +306,7 @@ void MsxSystem::setFirmwarePath(CStringView path, FS::file_type type)
 		throw std::runtime_error{"Path is missing Machines folder"};
 	}
 	firmwarePath_ = path;
-	firmwareArchiveIt = {};
+	firmwareArch = {};
 }
 
 FS::PathString MsxSystem::firmwarePath() const

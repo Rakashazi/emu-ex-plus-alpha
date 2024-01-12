@@ -48,7 +48,7 @@ namespace EmuEx
 {
 
 constexpr SystemLogger log{"App"};
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2023\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\nsegaretro.org/Genesis_Plus";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\nsegaretro.org/Genesis_Plus";
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::canRenderRGBA8888 = RENDER_BPP == 32;
@@ -358,7 +358,7 @@ void MdSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate
 				}
 				io = std::move(*archIt);
 			}
-			ArchiveVFS archVFS{std::move(io)};
+			ArchiveVFS archVFS{ArchiveIO{std::move(io)}};
 			cd = CDAccess_Open(&archVFS, std::string{contentFileName()}, true);
 		}
 		else

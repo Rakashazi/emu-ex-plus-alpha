@@ -66,8 +66,11 @@ void MDFND_SetStateStatus(StateStatusStruct *status) noexcept {}
 void NetplaySendState(void) {}
 void MDFND_NetplayText(const char *text, bool NetEcho) {}
 
+[[gnu::weak]] void MDFN_MediaStateAction(StateMem *sm, const unsigned load, const bool data_only) {}
+
 void MDFN_StateAction(StateMem *sm, const unsigned load, const bool data_only)
 {
+	MDFN_MediaStateAction(sm, load, data_only);
 	SFORMAT StateRegs[]{SFEND};
 	MDFNSS_StateAction(sm, load, data_only, StateRegs, "MDFNRINP", true);
 

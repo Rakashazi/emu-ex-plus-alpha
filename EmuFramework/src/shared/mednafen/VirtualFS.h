@@ -73,6 +73,7 @@ class VirtualFS
  // If throw_on_noent is true, will always return a non-null pointer or throw.
  // Otherwise, will return nullptr if the file doesn't exist/wasn't found.
  virtual Stream* open(const std::string& path, const uint32 mode, const int do_lock = false, const bool throw_on_noent = true, const CanaryType canary = CanaryType::open) = 0;
+ virtual FILE* openAsStdio(const std::string& path, const uint32 mode) = 0;
 
  // Returns true if directory was created, false if it already exists(unless throw_on_exist is true).
  virtual bool mkdir(const std::string& path, const bool throw_on_exist = false) = 0;

@@ -114,5 +114,6 @@ struct OutVector
 class AssetIO;
 class FileIO;
 class MapIO;
+class IO;
 
 }

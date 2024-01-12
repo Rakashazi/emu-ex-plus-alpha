@@ -152,7 +152,7 @@ void C64System::onSessionOptionsLoaded(EmuApp &)
 bool C64System::resetSessionOptions(EmuApp &app)
 {
 	optionModel.reset();
-	optionDriveTrueEmulation.reset();
+	optionDriveTrueEmulation = defaultDriveTrueEmulation;
 	optionAutostartWarp.reset();
 	optionAutostartTDE.reset();
 	optionAutostartBasicLoad.reset();
@@ -183,6 +183,7 @@ bool C64System::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 			case CFGKEY_SYSTEM_FILE_PATH:
 				return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &&path){sysFilePath[0] = IG_forward(path);});
 			case CFGKEY_RESID_SAMPLING: return optionReSidSampling.readFromIO(io, readSize);
+			case CFGKEY_DEFAULT_DRIVE_TRUE_EMULATION: readOptionValue(io, readSize, defaultDriveTrueEmulation);
 		}
 	}
 	else if(type == ConfigType::CORE)
@@ -232,6 +233,7 @@ void C64System::writeConfig(ConfigType type, FileIO &io)
 {
 	if(type == ConfigType::MAIN)
 	{
+		writeOptionValueIfNotDefault(io, CFGKEY_DEFAULT_DRIVE_TRUE_EMULATION, defaultDriveTrueEmulation, false);
 		optionViceSystem.writeWithKeyIfNotDefault(io);
 		optionBorderMode.writeWithKeyIfNotDefault(io);
 		optionCropNormalBorders.writeWithKeyIfNotDefault(io);

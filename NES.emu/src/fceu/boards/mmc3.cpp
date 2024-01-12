@@ -497,39 +497,46 @@ void Mapper44_Init(CartInfo *info) {
 
 // ---------------------------- Mapper 45 -------------------------------
 
+
 static void M45CW(uint32 A, uint8 V) {
-	uint32 NV = V;
-	const int mask = ((EXPREGS[2] & 0x0F) > 7)
-		? ((1 << (EXPREGS[2] & 0x0F) << 3) - 1)
-		: 0;
-	NV |= (EXPREGS[0] & mask) | ((EXPREGS[2] & 0xF0) << 4);
-	setchr1(A, NV);
+	if (CHRsize[0] ==8192)
+		setchr1(A, V);
+	else {
+		int chrAND =0xFF >>(~EXPREGS[2] &0xF);
+		int chrOR  =EXPREGS[0] | EXPREGS[2] <<4 &0xF00;
+		setchr1(A, V &chrAND | chrOR &~chrAND);
+	}
+}
+
+static uint8 M45ReadOB(uint32 A) {
+	return X.DB;
 }
 
 static void M45PW(uint32 A, uint8 V) {
-	uint32 MV = V;
-	const int mask = (EXPREGS[3] & 0x3F) ^ 0x3F;
-	MV |= (EXPREGS[1] & 0x3F & mask) | (EXPREGS[1] & 0xC0);
-	setprg8(A, MV);
+	int prgAND =~EXPREGS[3] &0x3F;
+	int prgOR  =EXPREGS[1] | EXPREGS[2] <<2 &0x300;
+	setprg8(A, V &prgAND | prgOR &~prgAND);
+
+	/* Some multicarts select between five different menus by connecting one of the higher address lines to PRG /CE.
+	   The menu code selects between menus by checking which of the higher address lines disables PRG-ROM when set. */
+	if (PRGsize[0] <0x200000 && EXPREGS[5] ==1 && EXPREGS[1] &0x80 ||
+	    PRGsize[0] <0x200000 && EXPREGS[5] ==2 && EXPREGS[2] &0x40 ||
+	    PRGsize[0] <0x100000 && EXPREGS[5] ==3 && EXPREGS[1] &0x40 ||
+	    PRGsize[0] <0x100000 && EXPREGS[5] ==4 && EXPREGS[2] &0x20)
+		SetReadHandler(0x8000, 0xFFFF, M45ReadOB);
+	else
+		SetReadHandler(0x8000, 0xFFFF, CartBR);
 }
 
 static DECLFW(M45Write) {
-	WRAM[A - 0x6000] = V;
-	if (!(A & 1))
-	{
-		if (EXPREGS[3] & 0x40) {
-			WRAM[A - 0x6000] = V;
-			return;
-		}
-		EXPREGS[EXPREGS[4]] = V;
-		EXPREGS[4] = (EXPREGS[4] + 1) & 3;
-		FixMMC3PRG(MMC3_cmd);
-		FixMMC3CHR(MMC3_cmd);
+	if (EXPREGS[3] & 0x40) {
+		WRAM[A - 0x6000] = V;
+		return;
 	}
-	else {
-		// lock reset
-		EXPREGS[3] &= ~0x40;
-	}
+	EXPREGS[EXPREGS[4]] = V;
+	EXPREGS[4] = (EXPREGS[4] + 1) & 3;
+	FixMMC3PRG(MMC3_cmd);
+	FixMMC3CHR(MMC3_cmd);
 }
 
 static DECLFR(M45Read) {
@@ -542,6 +549,7 @@ static DECLFR(M45Read) {
 
 static void M45Reset(void) {
 	EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = EXPREGS[3] = EXPREGS[4] = 0;
+	EXPREGS[2] = 0x0F;
 	EXPREGS[5]++;
 	EXPREGS[5] &= 7;
 	MMC3RegReset();
@@ -550,6 +558,7 @@ static void M45Reset(void) {
 static void M45Power(void) {
 	GenMMC3Power();
 	EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = EXPREGS[3] = EXPREGS[4] = EXPREGS[5] = 0;
+	EXPREGS[2] = 0x0F;
 	SetWriteHandler(0x6000, 0x7FFF, M45Write);
 	SetReadHandler(0x5000, 0x5FFF, M45Read);
 }

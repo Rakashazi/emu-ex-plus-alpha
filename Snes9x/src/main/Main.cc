@@ -20,7 +20,7 @@
 namespace EmuEx
 {
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2023\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nSnes9x Team\nwww.snes9x.com";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nSnes9x Team\nwww.snes9x.com";
 #if PIXEL_FORMAT == RGB565
 constexpr auto srcPixFmt = IG::PIXEL_FMT_RGB565;
 #else
@@ -138,8 +138,7 @@ void Snes9xSystem::readState(EmuApp &, std::span<uint8_t> buff)
 	DynArray<uint8_t> uncompArr;
 	if(hasGzipHeader(buff))
 	{
-		// can't use exact state size since old version 12 snapshots may store variable length file names
-		uncompArr = uncompressGzipState(buff, 0x100000, {.estimatedExpectedSize = true});
+		uncompArr = uncompressGzipState(buff);
 		buff = uncompArr;
 	}
 	if(!unfreezeStateFrom(buff))

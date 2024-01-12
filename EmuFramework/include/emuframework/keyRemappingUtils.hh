@@ -125,14 +125,15 @@ constexpr auto turbo(std::ranges::range auto keyInfo)
 	return keyInfo;
 }
 
-template<const auto &pcKeyboardBaseMap, const auto &genericGamepadBaseMap, const auto &wiimoteBaseMap>
+template<const auto &pcKeyboardBaseMap, const auto &genericGamepadBaseMap, const auto &wiimoteBaseMap,
+	const auto &gamepadAppKeyCodeMap = genericGamepadAppKeyCodeMap>
 constexpr std::span<const KeyConfigDesc> genericKeyConfigs()
 {
 	using namespace IG::Input;
 
 	static constexpr auto pcKeyboardMap = concatToArrayNow<genericKeyboardAppKeyCodeMap, pcKeyboardBaseMap>;
 
-	static constexpr auto genericGamepadMap = concatToArrayNow<genericGamepadAppKeyCodeMap, genericGamepadBaseMap>;
+	static constexpr auto genericGamepadMap = concatToArrayNow<gamepadAppKeyCodeMap, genericGamepadBaseMap>;
 	#ifdef CONFIG_INPUT_GAMEPAD_DEVICES
 	static constexpr auto ps3GamepadMap = transformMappedKeys(genericGamepadMap, genericGamepadKeycodeToPS3HID);
 	static constexpr auto ouyaGamepadMap = transformMappedKeys(genericGamepadMap, genericGamepadKeycodeToOuya);

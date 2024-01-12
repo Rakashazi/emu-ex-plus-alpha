@@ -499,20 +499,25 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 	TableView{std::move(name), attach, item},
 	inputManager{inputManager_},
 	rootIMView{rootIMView_},
-	playerItem
+	playerItems
 	{
-		{"Multiple", attach, {.id = InputDeviceConfig::PLAYER_MULTI}},
-		{"1",        attach, {.id = 0}},
-		{"2",        attach, {.id = 1}},
-		{"3",        attach, {.id = 2}},
-		{"4",        attach, {.id = 3}},
-		{"5",        attach, {.id = 4}}
+		[&]
+		{
+			DynArray<TextMenuItem> items{EmuSystem::maxPlayers + 1uz};
+			items[0] = {"Multiple", attach, {.id = InputDeviceConfig::PLAYER_MULTI}};
+			const char *numStrings[] {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
+			for(auto i : iotaCount(EmuSystem::maxPlayers))
+			{
+				items[i + 1] = {numStrings[i], attach, {.id = i}};
+			}
+			return items;
+		}()
 	},
 	player
 	{
 		"Player", attach,
 		MenuId{inputDevData(dev).devConf.player()},
-		std::span{playerItem, EmuSystem::maxPlayers + 1uz},
+		playerItems,
 		{
 			.defaultItemOnSelect = [this](TextMenuItem &item)
 			{

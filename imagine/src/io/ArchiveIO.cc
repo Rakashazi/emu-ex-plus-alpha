@@ -81,6 +81,8 @@ ArchiveIO::ArchiveIO(CStringView path)
 	init(FileIO{path, IOAccessHint::Sequential});
 }
 
+ArchiveIO::ArchiveIO(FileIO io) { init(std::move(io)); }
+
 ArchiveIO::ArchiveIO(IO io)
 {
 	visit(overloaded

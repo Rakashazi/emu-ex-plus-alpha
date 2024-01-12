@@ -91,7 +91,6 @@ void LynxSystem::setRotation(LynxRotation r)
 	sessionOptionSet();
 	auto &app = EmuApp::get(appContext());
 	app.updateContentRotation();
-	app.viewController().placeEmuViews();
 }
 
 void LynxSystem::setLowpassFilter(bool on)

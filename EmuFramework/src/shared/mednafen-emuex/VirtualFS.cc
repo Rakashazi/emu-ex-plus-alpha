@@ -17,6 +17,7 @@
 #include <mednafen/VirtualFS.h>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/io/FileIO.hh>
 
 namespace EmuEx
 {
@@ -26,7 +27,15 @@ IG::ApplicationContext gAppContext();
 namespace Mednafen
 {
 
+std::pair<IG::OpenFlags, uint8_t> modeToAttribs(uint32 mode);
+
 NativeVFS NVFS{};
+
+FILE* NativeVFS::openAsStdio(const std::string& path, const uint32 mode)
+{
+	assert(mode == MODE_READ);
+	return EmuEx::gAppContext().openFileUri(path, IG::IOAccessHint::Sequential, modeToAttribs(mode).first).toFileStream("rb");
+}
 
 VirtualFS::VirtualFS(char preferred_path_separator_, const std::string& allowed_path_separators_)
 	: preferred_path_separator(preferred_path_separator_), allowed_path_separators(allowed_path_separators_) {}

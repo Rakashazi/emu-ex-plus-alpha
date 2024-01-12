@@ -36,18 +36,18 @@ IG::ApplicationContext gAppContext();
 
 constexpr SystemLogger log{"RomLoader"};
 
-FS::ArchiveIterator &MsxSystem::firmwareArchiveIterator(CStringView path) const
+ArchiveIO &MsxSystem::firmwareArchive(CStringView path) const
 {
-	if(!firmwareArchiveIt.hasArchive())
+	if(!firmwareArch)
 	{
 		log.info("{} not cached, opening archive", path);
-		firmwareArchiveIt = {appContext().openFileUri(path)};
+		firmwareArch = {appContext().openFileUri(path)};
 	}
 	else
 	{
-		firmwareArchiveIt.rewind();
+		firmwareArch.rewind();
 	}
-	return firmwareArchiveIt;
+	return firmwareArch;
 }
 
 }
@@ -75,10 +75,10 @@ static IO fileFromFirmwarePath(CStringView path)
 		{
 			if(FS::hasArchiveExtension(firmwarePath))
 			{
-				auto &it = sys.firmwareArchiveIterator(firmwarePath);
-				if(FS::seekFileInArchive(it, [&](auto &entry){ return entry.name().ends_with(path.data()); }))
+				auto &arch = sys.firmwareArchive(firmwarePath);
+				if(FS::seekFileInArchive(arch, [&](auto &entry){ return entry.name().ends_with(path.data()); }))
 				{
-					return MapIO{*it};
+					return MapIO{arch};
 				}
 			}
 			else

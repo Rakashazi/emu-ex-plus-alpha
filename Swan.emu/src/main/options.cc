@@ -116,7 +116,6 @@ void WsSystem::setRotation(WsRotation r)
 	auto &app = EmuApp::get(appContext());
 	setupInput(app);
 	app.updateContentRotation();
-	app.viewController().placeEmuViews();
 }
 
 }

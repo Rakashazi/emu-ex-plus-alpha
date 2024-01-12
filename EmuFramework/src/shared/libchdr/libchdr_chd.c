@@ -1618,6 +1618,7 @@ CHD_EXPORT chd_error chd_open_file(core_file *file, int mode, chd_file *parent, 
 
 	/* all done */
 	*chd = newchd;
+	(*chd)->owns_file = TRUE;
 	return CHDERR_NONE;
 
 cleanup:

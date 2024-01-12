@@ -33,8 +33,9 @@
 namespace EmuEx
 {
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2023\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.github.io";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.github.io";
 bool EmuSystem::hasRectangularPixels = true;
+bool EmuSystem::stateSizeChangesAtRuntime = true;
 constexpr double masterClockFrac = 21477272.727273 / 3.;
 constexpr auto pceFrameTimeWith262Lines{fromSeconds<FrameTime>(455. * 262. / masterClockFrac)}; // ~60.05Hz
 constexpr auto pceFrameTime{fromSeconds<FrameTime>(455. * 263. / masterClockFrac)}; //~59.82Hz
@@ -115,7 +116,8 @@ void PceSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	if(hasCDExtension(contentFileName()))
 	{
 		bool isArchive = std::holds_alternative<ArchiveIO>(io);
-		if(contentDirectory().empty() && !isArchive)
+		bool isCHD = endsWithAnyCaseless(contentFileName(), ".chd");
+		if(contentDirectory().empty() && (!isArchive && !isCHD))
 		{
 			throwMissingContentDirError();
 		}
@@ -126,14 +128,14 @@ void PceSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 		auto unloadCD = scopeGuard([&]() { clearCDInterfaces(CDInterfaces); });
 		if(isArchive)
 		{
-			ArchiveVFS archVFS{std::move(io)};
+			ArchiveVFS archVFS{ArchiveIO{std::move(io)}};
 			CDInterfaces.push_back(CDInterface::Open(&archVFS, std::string{contentFileName()}, true, 0));
 		}
 		else
 		{
 			CDInterfaces.push_back(CDInterface::Open(&NVFS, std::string{contentLocation()}, false, 0));
 		}
-		writeCDMD5(mdfnGameInfo, *CDInterfaces[0]);
+		writeCDMD5(mdfnGameInfo, CDInterfaces);
 		mdfnGameInfo.LoadCD(&CDInterfaces);
 		if(isUsingAccurateCore())
 			Mednafen::SCSICD_SetDisc(false, CDInterfaces[0]);

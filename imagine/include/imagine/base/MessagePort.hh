@@ -106,7 +106,7 @@ public:
 
 	struct NullInit{};
 
-	PipeMessagePort(const char *debugLabel = nullptr, int capacity = 8):
+	PipeMessagePort(const char *debugLabel = nullptr, int capacity = 0):
 		pipe{debugLabel, (int)MSG_SIZE * capacity} {}
 
 	explicit constexpr PipeMessagePort(NullInit) {}
@@ -197,10 +197,11 @@ public:
 		return pipe.sink().writeVector(buffs) != -1;
 	}
 
+	MsgType getMessage() { return pipe.source().get<MsgType>(); }
+
 	void clear()
 	{
-		auto &io = pipe.source();
-		while(io.template get<MsgType>()) {}
+		while(getMessage()) {}
 	}
 
 	void dispatchMessages()

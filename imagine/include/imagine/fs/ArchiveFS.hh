@@ -24,11 +24,6 @@
 #include <string_view>
 #include <concepts>
 
-namespace IG
-{
-class IO;
-}
-
 namespace IG::FS
 {
 
@@ -72,49 +67,49 @@ static auto end(const ArchiveIterator &)
 	return ArchiveIterator::Sentinel{};
 }
 
-inline bool seekInArchive(ArchiveIterator &it, std::predicate<const ArchiveIO &> auto &&pred)
+inline bool seekInArchive(ArchiveIO &arch, std::predicate<const ArchiveIO &> auto &&pred)
 {
-	for(ArchiveIO &entry : it)
+	return arch.forEachEntry([&](const ArchiveIO &entry)
 	{
 		if(pred(entry))
 		{
 			return true;
 		}
-	}
-	return false;
+		return false;
+	});
 }
 
-inline ArchiveIO findInArchive(ArchiveIterator it, std::predicate<const ArchiveIO &> auto &&pred)
+inline ArchiveIO findInArchive(ArchiveIO arch, std::predicate<const ArchiveIO &> auto &&pred)
 {
-	if(seekInArchive(it, pred))
-		return std::move(*it);
+	if(seekInArchive(arch, pred))
+		return arch;
 	else
 		return {};
 }
 
-inline ArchiveIO findFileInArchive(ArchiveIterator it, std::predicate<const ArchiveIO &> auto &&pred)
+inline ArchiveIO findFileInArchive(ArchiveIO arch, std::predicate<const ArchiveIO &> auto &&pred)
 {
-	return findInArchive(it, [&](const ArchiveIO &entry){ return entry.type() == file_type::regular && pred(entry); });
+	return findInArchive(std::move(arch), [&](const ArchiveIO &entry){ return entry.type() == file_type::regular && pred(entry); });
 }
 
-inline ArchiveIO findFileInArchive(ArchiveIterator it, std::string_view path)
+inline ArchiveIO findFileInArchive(ArchiveIO arch, std::string_view path)
 {
-	return findFileInArchive(it, [&](const ArchiveIO &entry){ return entry.name() == path; });
+	return findFileInArchive(std::move(arch), [&](const ArchiveIO &entry){ return entry.name() == path; });
 }
 
-inline ArchiveIO findDirectoryInArchive(ArchiveIterator it, std::predicate<const ArchiveIO &> auto &&pred)
+inline ArchiveIO findDirectoryInArchive(ArchiveIO arch, std::predicate<const ArchiveIO &> auto &&pred)
 {
-	return findInArchive(it, [&](const ArchiveIO &entry){ return entry.type() == file_type::directory && pred(entry); });
+	return findInArchive(std::move(arch), [&](const ArchiveIO &entry){ return entry.type() == file_type::directory && pred(entry); });
 }
 
-inline bool seekFileInArchive(ArchiveIterator &it, std::predicate<const ArchiveIO &> auto &&pred)
+inline bool seekFileInArchive(ArchiveIO &arch, std::predicate<const ArchiveIO &> auto &&pred)
 {
-	return seekInArchive(it, [&](const ArchiveIO &entry){ return entry.type() == file_type::regular && pred(entry); });
+	return seekInArchive(arch, [&](const ArchiveIO &entry){ return entry.type() == file_type::regular && pred(entry); });
 }
 
-inline bool seekFileInArchive(ArchiveIterator &it, std::string_view path)
+inline bool seekFileInArchive(ArchiveIO &arch, std::string_view path)
 {
-	return seekFileInArchive(it, [&](const ArchiveIO &entry){ return entry.name() == path; });
+	return seekFileInArchive(arch, [&](const ArchiveIO &entry){ return entry.name() == path; });
 }
 
 bool hasArchiveExtension(std::string_view name);

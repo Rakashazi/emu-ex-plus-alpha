@@ -305,7 +305,8 @@ public:
 	auto &showOnSecondScreenOption() { return optionShowOnSecondScreen; }
 	auto &textureBufferModeOption() { return optionTextureBufferMode; }
 	void setContentRotation(IG::Rotation);
-	IG::Rotation contentRotation() const { return contentRotation_; }
+	Rotation contentRotation() const { return contentRotation_; }
+	void updateVideoContentRotation();
 	void updateContentRotation();
 	float videoBrightness(ImageChannel) const;
 	const Gfx::Vec3 &videoBrightnessAsRGB() const { return videoBrightnessRGB; }

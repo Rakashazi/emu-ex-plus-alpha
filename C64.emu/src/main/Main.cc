@@ -67,7 +67,7 @@ namespace EmuEx
 {
 
 constexpr SystemLogger log{"main"};
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2023\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nvice-emu.sourceforge.io";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nvice-emu.sourceforge.io";
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 bool EmuSystem::handlesGenericIO = false;

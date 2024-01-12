@@ -30,8 +30,6 @@ enum class file_type : int8_t;
 namespace IG
 {
 
-class IO;
-
 // data used by libarchive callbacks allocated in its own memory block
 struct ArchiveControlBlock;
 
@@ -51,6 +49,7 @@ public:
 	ArchiveIO();
 	~ArchiveIO();
 	ArchiveIO(CStringView path);
+	ArchiveIO(FileIO);
 	explicit ArchiveIO(IO);
 	ArchiveIO(ArchiveIO&&) noexcept;
 	ArchiveIO &operator=(ArchiveIO&&) noexcept;
@@ -68,6 +67,26 @@ public:
 	size_t size();
 	bool eof();
 	explicit operator bool() const;
+
+	bool forEachEntry(std::predicate<const ArchiveIO &> auto &&pred)
+	{
+		while(hasEntry())
+		{
+			if(pred(*this))
+				return true;
+			readNextEntry();
+		}
+		return false;
+	}
+
+	void forAllEntries(std::invocable<const ArchiveIO &> auto &&f)
+	{
+		while(hasEntry())
+		{
+			f(*this);
+			readNextEntry();
+		}
+	}
 
 protected:
 	struct ArchiveDeleter

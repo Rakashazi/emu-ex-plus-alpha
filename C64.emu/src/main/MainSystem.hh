@@ -58,6 +58,7 @@ enum
 	CFGKEY_DEFAULT_MODEL = 282, CFGKEY_DEFAULT_PALETTE_NAME = 283,
 	CFGKEY_DRIVE8_TYPE = 284, CFGKEY_DRIVE9_TYPE = 285,
 	CFGKEY_DRIVE10_TYPE = 286, CFGKEY_DRIVE11_TYPE = 287,
+	CFGKEY_DEFAULT_DRIVE_TRUE_EMULATION = 288
 };
 
 enum Vic20Ram : uint8_t
@@ -92,7 +93,7 @@ public:
 	struct video_canvas_s *activeCanvas{};
 	const char *sysFileDir{};
 	VicePlugin plugin{};
-	mutable FS::ArchiveIterator firmwareArchiveIt;
+	mutable ArchiveIO firmwareArch;
 	std::string defaultPaletteName{};
 	std::string lastMissingSysFile;
 	IG::PixmapView canvasSrcPix{};
@@ -104,6 +105,7 @@ public:
 	std::array <FS::PathString, Config::envIsLinux ? 3 : 1> sysFilePath{};
 	std::array<char, 21> externalPaletteResStr{};
 	std::array<char, 17> paletteFileResStr{};
+	bool defaultDriveTrueEmulation{};
 	Byte1Option optionDriveTrueEmulation{CFGKEY_DRIVE_TRUE_EMULATION, 0};
 	Byte1Option optionCropNormalBorders{CFGKEY_CROP_NORMAL_BORDERS, 1};
 	Byte1Option optionAutostartWarp{CFGKEY_AUTOSTART_WARP, 1};
@@ -184,7 +186,7 @@ public:
 	bool currSystemIsC64Or128() const;
 	void setRuntimeReuSize(int size);
 	void resetCanvasSourcePixmap(struct video_canvas_s *c);
-	FS::ArchiveIterator &firmwareArchiveIterator(CStringView path) const;
+	ArchiveIO &firmwareArchive(CStringView path) const;
 	void setSystemFilesPath(CStringView path, FS::file_type);
 	void execC64Frame();
 

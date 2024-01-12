@@ -57,7 +57,7 @@ class CDAccess_CHD final : public CDAccess
 {
  public:
 
- CDAccess_CHD(const std::string& path, bool image_memcache);
+ CDAccess_CHD(VirtualFS* vfs, const std::string& path, bool image_memcache);
  ~CDAccess_CHD() final;
 
  int Read_Raw_Sector(uint8 *buf, int32 lba) final;
@@ -72,7 +72,7 @@ class CDAccess_CHD final : public CDAccess
 
  private:
 
- void Load(const std::string& path, bool image_memcache);
+ void Load(VirtualFS* vfs, const std::string& path, bool image_memcache);
  void Cleanup(void);
 
   // MakeSubPQ will OR the simulated P and Q subchannel data into SubPWBuf.

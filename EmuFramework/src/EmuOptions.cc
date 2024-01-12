@@ -141,16 +141,21 @@ void EmuApp::setContentRotation(IG::Rotation r)
 {
 	contentRotation_ = r;
 	updateContentRotation();
-	viewController().placeEmuViews();
-	viewController().postDrawToEmuWindows();
 }
 
-void EmuApp::updateContentRotation()
+void EmuApp::updateVideoContentRotation()
 {
 	if(contentRotation_ == Rotation::ANY)
 		emuVideoLayer.setRotation(system().contentRotation());
 	else
 		emuVideoLayer.setRotation(contentRotation_);
+}
+
+void EmuApp::updateContentRotation()
+{
+	updateVideoContentRotation();
+	viewController().placeEmuViews();
+	viewController().postDrawToEmuWindows();
 }
 
 bool EmuApp::setOverlayEffectLevel(EmuVideoLayer &videoLayer, uint8_t val)

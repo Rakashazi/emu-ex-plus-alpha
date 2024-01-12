@@ -45,7 +45,7 @@ FilePicker::FilePicker(ViewAttachParams attach, EmuApp &app,
 		{
 			if(entry.type() == FS::file_type::directory)
 				return true;
-			else if(!EmuSystem::handlesArchiveFiles && includeArchives && EmuApp::hasArchiveExtension(entry.name()))
+			else if(includeArchives && EmuApp::hasArchiveExtension(entry.name()))
 				return true;
 			else if(filter)
 				return filter(entry.name());

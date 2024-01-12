@@ -56,7 +56,7 @@ struct MdCheat
 
 	void setApplied(bool applied)
 	{
-		IG::setOrClearBits(flags, APPLIED, applied);
+		flags = setOrClearBits(flags, APPLIED, applied);
 	}
 
 	bool operator ==(MdCheat const& rhs) const

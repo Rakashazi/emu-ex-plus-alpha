@@ -286,6 +286,16 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 		defaultModelItem
 	};
 
+	BoolMenuItem defaultTrueDriveEmu
+	{
+		"Default True Drive Emulation", attachParams(),
+		system().defaultDriveTrueEmulation,
+		[this](BoolMenuItem &item)
+		{
+			system().defaultDriveTrueEmulation = item.flipBoolValue(*this);
+		}
+	};
+
 public:
 	CustomSystemOptionView(ViewAttachParams attach):
 		SystemOptionView{attach, true},
@@ -308,6 +318,7 @@ public:
 	{
 		loadStockItems();
 		item.emplace_back(&defaultModel);
+		item.emplace_back(&defaultTrueDriveEmu);
 	}
 };
 
