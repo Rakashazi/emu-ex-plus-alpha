@@ -229,8 +229,8 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 		{"11+224", attachParams(), setVisibleVideoLinesDel(11, 234)},
 		{"18+224", attachParams(), setVisibleVideoLinesDel(18, 241)},
 		{"4+232",  attachParams(), setVisibleVideoLinesDel(4, 235)},
-		{"3+239",  attachParams(), setVisibleVideoLinesDel(3, 241)},
-		{"0+242",  attachParams(), setVisibleVideoLinesDel(0, 241)},
+		{"3+240",  attachParams(), setVisibleVideoLinesDel(3, 242)},
+		{"0+243",  attachParams(), setVisibleVideoLinesDel(0, 242)},
 	};
 
 	MultiChoiceMenuItem visibleVideoLines
