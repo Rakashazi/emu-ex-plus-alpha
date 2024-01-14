@@ -103,7 +103,7 @@ static PixelFormat effectFormat(IG::PixelFormat format, Gfx::ColorSpace colSpace
 VideoImageEffect::VideoImageEffect(Gfx::Renderer &r, Id effect, IG::PixelFormat fmt, Gfx::ColorSpace colSpace,
 	Gfx::TextureSamplerConfig samplerConf, WSize size):
 		quad{r.mainTask, {.size = 1}},
-		inputImgSize{size}, format{effectFormat(fmt, colSpace)}, colorSpace{colSpace}
+		inputImgSize{size == WSize{} ? WSize{1, 1} : size}, format{effectFormat(fmt, colSpace)}, colorSpace{colSpace}
 {
 	quad.write(0, {.bounds = {{-1, -1}, {1, 1}}});
 	log.info("compiling effect:{}", effectName(effect));

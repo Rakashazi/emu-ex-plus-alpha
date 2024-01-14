@@ -524,12 +524,11 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	imgFilter
 	{
 		"Image Interpolation", attach,
-		(bool)app().videoFilterOption(),
+		app().videoLayer().usingLinearFilter(),
 		"None", "Linear",
 		[this](BoolMenuItem &item)
 		{
-			app().videoFilterOption().val = item.flipBoolValue(*this);
-			videoLayer->setLinearFilter(app().videoFilterOption());
+			videoLayer->setLinearFilter(item.flipBoolValue(*this));
 			app().viewController().postDrawToEmuWindows();
 		}
 	},
@@ -545,17 +544,13 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	imgEffect
 	{
 		"Image Effect", attach,
-		MenuId{app().videoEffectOption().val},
+		MenuId{app().videoLayer().effectId()},
 		imgEffectItem,
 		{
 			.defaultItemOnSelect = [this](TextMenuItem &item)
 			{
-				app().videoEffectOption() = item.id;
-				if(emuVideo().image())
-				{
-					videoLayer->setEffect(system(), ImageEffectId(item.id.val), app().videoEffectPixelFormat());
-					app().viewController().postDrawToEmuWindows();
-				}
+				videoLayer->setEffect(system(), ImageEffectId(item.id.val), app().videoEffectPixelFormat());
+				app().viewController().postDrawToEmuWindows();
 			}
 		},
 	},
@@ -573,13 +568,12 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	overlayEffect
 	{
 		"Overlay Effect", attach,
-		MenuId{app().overlayEffectOption().val},
+		MenuId{app().videoLayer().overlayEffectId()},
 		overlayEffectItem,
 		{
 			.defaultItemOnSelect = [this](TextMenuItem &item)
 			{
-				app().overlayEffectOption() = item.id;
-				videoLayer->setOverlay((ImageOverlayId)item.id.val);
+				videoLayer->setOverlay(ImageOverlayId(item.id.val));
 				app().viewController().postDrawToEmuWindows();
 			}
 		},
@@ -596,7 +590,8 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				app().pushAndShowNewCollectValueRangeInputView<int, 0, 100>(attachParams(), e, "Input 0 to 100", "",
 					[this](EmuApp &app, auto val)
 					{
-						app.setOverlayEffectLevel(*videoLayer, val);
+						videoLayer->setOverlayIntensity(val / 100.f);
+						app.viewController().postDrawToEmuWindows();
 						overlayEffectLevel.setSelected(MenuId{val}, *this);
 						dismissPrevious();
 						return true;
@@ -608,15 +603,19 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	overlayEffectLevel
 	{
 		"Overlay Effect Level", attach,
-		MenuId{app().overlayEffectLevel()},
+		MenuId{app().videoLayer().overlayIntensity() * 100.f},
 		overlayEffectLevelItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(std::format("{}%", app().overlayEffectLevel()));
+				t.resetString(std::format("{}%", int(videoLayer->overlayIntensity() * 100.f)));
 				return true;
 			},
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setOverlayEffectLevel(*videoLayer, item.id); }
+			.defaultItemOnSelect = [this](TextMenuItem &item)
+			{
+				videoLayer->setOverlayIntensity(item.id / 100.f);
+				app().viewController().postDrawToEmuWindows();
+			}
 		},
 	},
 	imgEffectPixelFormatItem

@@ -52,7 +52,7 @@ void TurboInput::updateEvent(EmuApp &app, KeyInfo key, Input::Action act)
 	else
 	{
 		removeEvent(key);
-		app.handleSystemKeyInput(key, Input::Action::RELEASED);
+		app.handleSystemKeyInput(key, Input::Action::RELEASED, 0, {.allowTurboModifier = false});
 	}
 }
 
@@ -63,11 +63,11 @@ void TurboInput::update(EmuApp &app)
 	{
 		if(clock == 0)
 		{
-			app.handleSystemKeyInput(k, Input::Action::PUSHED);
+			app.handleSystemKeyInput(k, Input::Action::PUSHED, 0, {.allowTurboModifier = false});
 		}
 		else if(clock == turboFrames/2)
 		{
-			app.handleSystemKeyInput(k, Input::Action::RELEASED);
+			app.handleSystemKeyInput(k, Input::Action::RELEASED, 0, {.allowTurboModifier = false});
 		}
 	}
 	clock++;

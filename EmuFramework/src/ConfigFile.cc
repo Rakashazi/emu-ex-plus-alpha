@@ -63,22 +63,9 @@ void EmuApp::saveConfigFile(FileIO &io)
 
 	const auto cfgFileOptions = std::tie
 	(
-		optionImageZoom,
-		optionViewportZoom,
 		#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
 		optionShowOnSecondScreen,
 		#endif
-		optionImgFilter,
-		optionImgEffect,
-		optionImageEffectPixelFormat,
-		optionOverlayEffect,
-		optionOverlayEffectLevel,
-		optionFontSize,
-		optionFrameInterval,
-		optionNotificationIcon,
-		optionTitleBar,
-		optionHideStatusBar,
-		optionTextureBufferMode,
 		#if defined __ANDROID__
 		optionLowProfileOSNav,
 		optionHideOSNav,
@@ -86,12 +73,22 @@ void EmuApp::saveConfigFile(FileIO &io)
 		#ifdef CONFIG_INPUT_BLUETOOTH
 		optionShowBluetoothScan,
 		#endif
-		optionShowBundledGames
+		optionImageZoom,
+		optionViewportZoom,
+		optionImageEffectPixelFormat,
+		optionFontSize,
+		optionNotificationIcon,
+		optionTitleBar,
+		optionTextureBufferMode
 	);
 
 	std::apply([&](auto &...opt){ (writeOptionValue(io, opt), ...); }, cfgFileOptions);
 
 	recentContent.writeConfig(io);
+	if(used(optionHideStatusBar))
+		writeOptionValueIfNotDefault(io, CFGKEY_HIDE_STATUS_BAR, optionHideStatusBar, Tristate::IN_EMU);
+	writeOptionValueIfNotDefault(io, CFGKEY_SHOW_BUNDLED_GAMES, optionShowBundledGames, true);
+	writeOptionValueIfNotDefault(io, CFGKEY_FRAME_INTERVAL, optionFrameInterval, 1);
 	writeOptionValueIfNotDefault(io, CFGKEY_IDLE_DISPLAY_POWER_SAVE, idleDisplayPowerSave_, false);
 	writeOptionValueIfNotDefault(io, CFGKEY_CONFIRM_OVERWRITE_STATE, confirmOverwriteState, true);
 	writeOptionValueIfNotDefault(io, CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU, systemActionsIsDefaultMenu, true);
@@ -133,6 +130,7 @@ void EmuApp::saveConfigFile(FileIO &io)
 	autosaveManager_.writeConfig(io);
 	rewindManager.writeConfig(io);
 	emuAudio.writeConfig(io);
+	emuVideoLayer.writeConfig(io);
 	doIfUsed(overrideScreenFrameRate, [&](auto &rate)
 	{
 		writeOptionValueIfNotDefault(io, CFGKEY_OVERRIDE_SCREEN_FRAME_RATE, rate, FrameRate{0});
@@ -211,10 +209,12 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 						return true;
 					if(recentContent.readConfig(io, key, size, system()))
 						return true;
+					if(emuVideoLayer.readConfig(io, key, size))
+						return true;
 					log.info("skipping key:{}", key);
 					return false;
 				}
-				case CFGKEY_FRAME_INTERVAL: return optionFrameInterval.readFromIO(io, size);;
+				case CFGKEY_FRAME_INTERVAL: return readOptionValue(io, size, optionFrameInterval, optionIsValidWithMinMax<0, 4, uint8_t>);
 				case CFGKEY_FRAME_RATE: return readOptionValue<FrameTime>(io, size, [&](auto &&val){outputTimingManager.setFrameTimeOption(VideoSystem::NATIVE_NTSC, val);});
 				case CFGKEY_FRAME_RATE_PAL: return readOptionValue<FrameTime>(io, size, [&](auto &&val){outputTimingManager.setFrameTimeOption(VideoSystem::PAL, val);});
 				case CFGKEY_LAST_DIR:
@@ -222,19 +222,15 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_FONT_Y_SIZE: return optionFontSize.readFromIO(io, size);
 				case CFGKEY_GAME_ORIENTATION: return readOptionValue(io, size, optionEmuOrientation);
 				case CFGKEY_MENU_ORIENTATION: return readOptionValue(io, size, optionMenuOrientation);
-				case CFGKEY_GAME_IMG_FILTER: return optionImgFilter.readFromIO(io, size);
 				case CFGKEY_IMAGE_ZOOM: return optionImageZoom.readFromIO(io, size);
 				case CFGKEY_VIEWPORT_ZOOM: return optionViewportZoom.readFromIO(io, size);
 				#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
 				case CFGKEY_SHOW_ON_2ND_SCREEN: return optionShowOnSecondScreen.readFromIO(io, size);
 				#endif
-				case CFGKEY_IMAGE_EFFECT: return optionImgEffect.readFromIO(io, size);
 				case CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT: return optionImageEffectPixelFormat.readFromIO(io, size);
 				case CFGKEY_RENDER_PIXEL_FORMAT:
 					setRenderPixelFormat(readOptionValue<IG::PixelFormat>(io, size, renderPixelFormatIsValid));
 					return true;
-				case CFGKEY_OVERLAY_EFFECT: return optionOverlayEffect.readFromIO(io, size);
-				case CFGKEY_OVERLAY_EFFECT_LEVEL: return optionOverlayEffectLevel.readFromIO(io, size);
 				case CFGKEY_RECENT_CONTENT: return recentContent.readLegacyConfig(io, system());
 				case CFGKEY_SWAPPED_GAMEPAD_CONFIM:
 					setSwappedConfirmKeys(readOptionValue<bool>(io, size));
@@ -246,7 +242,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 					return readOptionValue(io, size, viewManager.needsBackControl);
 				case CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU: return readOptionValue(io, size, systemActionsIsDefaultMenu);
 				case CFGKEY_IDLE_DISPLAY_POWER_SAVE: return readOptionValue(io, size, idleDisplayPowerSave_);
-				case CFGKEY_HIDE_STATUS_BAR: return doIfUsed(optionHideStatusBar, [&](auto &opt){ return opt.readFromIO(io, size); });
+				case CFGKEY_HIDE_STATUS_BAR: return used(optionHideStatusBar) ? readOptionValue(io, size, optionHideStatusBar) : false;
 				case CFGKEY_LAYOUT_BEHIND_SYSTEM_UI:
 					return ctx.hasTranslucentSysUI() ? readOptionValue(io, size, layoutBehindSystemUI) : false;
 				case CFGKEY_CONFIRM_OVERWRITE_STATE: return readOptionValue(io, size, confirmOverwriteState);
@@ -285,7 +281,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_SAVE_PATH:
 					return readStringOptionValue<FS::PathString>(io, size, [&](auto &&path){system().setUserSaveDirectory(path);});
 				case CFGKEY_SCREENSHOTS_PATH: return readStringOptionValue(io, size, userScreenshotPath);
-				case CFGKEY_SHOW_BUNDLED_GAMES: return EmuSystem::hasBundledGames ? optionShowBundledGames.readFromIO(io, size) : false;
+				case CFGKEY_SHOW_BUNDLED_GAMES: return EmuSystem::hasBundledGames ? readOptionValue(io, size, optionShowBundledGames) : false;
 				case CFGKEY_WINDOW_PIXEL_FORMAT: return readOptionValue(io, size, pendingWindowDrawableConf.pixelFormat, windowPixelFormatIsValid);
 				case CFGKEY_VIDEO_COLOR_SPACE: return readOptionValue(io, size, pendingWindowDrawableConf.colorSpace, colorSpaceIsValid);
 				case CFGKEY_SHOW_HIDDEN_FILES: return readOptionValue(io, size, showHiddenFilesInPicker);

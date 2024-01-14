@@ -30,9 +30,22 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	autosaveTimerItem
 	{
 		{"Off",    attach, {.id = 0}},
-		{"5mins",  attach, {.id = 5}},
-		{"10mins", attach, {.id = 10}},
-		{"15mins", attach, {.id = 15}},
+		{"5min",  attach, {.id = 5}},
+		{"10min", attach, {.id = 10}},
+		{"15min", attach, {.id = 15}},
+		{"Custom Value", attach, [this](const Input::Event &e)
+			{
+				app().pushAndShowNewCollectValueRangeInputView<int, 0, maxAutosaveSaveFreq.count()>(attachParams(), e, "Input 0 to 720", "",
+					[this](EmuApp &app, auto val)
+					{
+						app.autosaveManager().saveTimer.frequency = Minutes{val};
+						autosaveTimer.setSelected(MenuId{val}, *this);
+						dismissPrevious();
+						return true;
+					});
+				return false;
+			}, {.id = defaultMenuId}
+		},
 	},
 	autosaveTimer
 	{
@@ -40,6 +53,13 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		MenuId{app().autosaveManager().saveTimer.frequency.count()},
 		autosaveTimerItem,
 		{
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				if(!idx)
+					return false;
+				t.resetString(std::format("{}", app().autosaveManager().saveTimer.frequency));
+				return true;
+			},
 			.defaultItemOnSelect = [this](TextMenuItem &item) { app().autosaveManager().saveTimer.frequency = IG::Minutes{item.id}; }
 		},
 	},

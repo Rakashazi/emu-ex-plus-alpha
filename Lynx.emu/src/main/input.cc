@@ -83,7 +83,7 @@ std::string_view LynxApp::systemKeyCodeToString(KeyCode c)
 		case LynxKey::Down: return "Down";
 		case LynxKey::Left: return "Left";
 		case LynxKey::Option1: return "Option 1";
-		case LynxKey::Option2: return "Option 1";
+		case LynxKey::Option2: return "Option 2";
 		case LynxKey::Pause: return "Pause";
 		case LynxKey::A: return "A";
 		case LynxKey::B: return "B";

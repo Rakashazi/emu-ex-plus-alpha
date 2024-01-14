@@ -18,6 +18,7 @@
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/VController.hh>
+#include <emuframework/Option.hh>
 #include "EmuOptions.hh"
 #include <imagine/util/math/Point2D.hh>
 #include <imagine/util/format.hh>
@@ -233,7 +234,12 @@ void EmuVideoLayer::setEffect(EmuSystem &sys, ImageEffectId effect, IG::PixelFor
 	if(userEffectId == effect)
 		return;
 	userEffectId = effect;
-	if(effect == ImageEffectId::DIRECT)
+	updateEffect(sys, fmt);
+}
+
+void EmuVideoLayer::updateEffect(EmuSystem &sys, IG::PixelFormat fmt)
+{
+	if(userEffectId == ImageEffectId::DIRECT)
 	{
 		userEffect = {};
 		buildEffectChain();
@@ -243,7 +249,7 @@ void EmuVideoLayer::setEffect(EmuSystem &sys, ImageEffectId effect, IG::PixelFor
 	}
 	else
 	{
-		userEffect = {renderer(), effect, fmt, colorSpace(), samplerConfig(), video.size()};
+		userEffect = {renderer(), userEffectId, fmt, colorSpace(), samplerConfig(), video.size()};
 		buildEffectChain();
 		video.setRenderPixelFormat(sys, video.renderPixelFormat(), Gfx::ColorSpace::LINEAR);
 	}
@@ -377,5 +383,25 @@ Gfx::ColorSpace EmuVideoLayer::videoColorSpace(IG::PixelFormat videoFmt) const
 }
 
 Gfx::TextureSamplerConfig EmuVideoLayer::samplerConfig() const { return EmuVideo::samplerConfigForLinearFilter(useLinearFilter); }
+
+bool EmuVideoLayer::readConfig(MapIO &io, unsigned key, size_t size)
+{
+	switch(key)
+	{
+		default: return false;
+		case CFGKEY_GAME_IMG_FILTER: return readOptionValue(io, size, useLinearFilter);
+		case CFGKEY_IMAGE_EFFECT: return readOptionValue(io, size, userEffectId, [](auto m){return m <= lastEnum<ImageEffectId>;});
+		case CFGKEY_OVERLAY_EFFECT: return readOptionValue(io, size, userOverlayEffectId, [](auto m){return m <= lastEnum<ImageOverlayId>;});
+		case CFGKEY_OVERLAY_EFFECT_LEVEL: return readOptionValue<int8_t>(io, size, [&](auto i){if(i >= 0 && i <= 100) setOverlayIntensity(i / 100.f); });
+	}
+}
+
+void EmuVideoLayer::writeConfig(FileIO &io) const
+{
+	writeOptionValueIfNotDefault(io, CFGKEY_GAME_IMG_FILTER, useLinearFilter, true);
+	writeOptionValueIfNotDefault(io, CFGKEY_IMAGE_EFFECT, userEffectId, ImageEffectId{});
+	writeOptionValueIfNotDefault(io, CFGKEY_OVERLAY_EFFECT, userOverlayEffectId, ImageOverlayId{});
+	writeOptionValueIfNotDefault(io, CFGKEY_OVERLAY_EFFECT_LEVEL, int8_t(overlayIntensity() * 100.f), 75);
+}
 
 }

@@ -158,16 +158,6 @@ void EmuApp::updateContentRotation()
 	viewController().postDrawToEmuWindows();
 }
 
-bool EmuApp::setOverlayEffectLevel(EmuVideoLayer &videoLayer, uint8_t val)
-{
-	if(!optionOverlayEffectLevel.isValidVal(val))
-		return false;
-	optionOverlayEffectLevel = val;
-	videoLayer.setOverlayIntensity(val / 100.f);
-	viewController().postDrawToEmuWindows();
-	return true;
-}
-
 bool isValidAspectRatio(float val)
 {
 	return val == -1.f || (val >= 0.1f && val <= 10.f);
@@ -226,7 +216,7 @@ void EmuApp::setHideOSNavMode(Tristate mode)
 
 void EmuApp::setHideStatusBarMode(Tristate mode)
 {
-	optionHideStatusBar = (uint8_t)mode;
+	optionHideStatusBar = mode;
 	applyOSNavStyle(appContext(), false);
 }
 

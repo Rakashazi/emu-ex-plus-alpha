@@ -39,10 +39,15 @@ public:
 	void setRendererTask(Gfx::RendererTask &);
 	void setFormat(EmuSystem &, IG::PixelFormat videoFmt, IG::PixelFormat effectFmt, Gfx::ColorSpace);
 	void setOverlay(ImageOverlayId id);
+	ImageOverlayId overlayEffectId() const { return userOverlayEffectId; }
 	void setOverlayIntensity(float intensity);
+	float overlayIntensity() const { return vidImgOverlay.intensityLevel(); }
 	void setEffect(EmuSystem &, ImageEffectId, IG::PixelFormat);
+	ImageEffectId effectId() const { return userEffectId; }
+	void updateEffect(EmuSystem &, IG::PixelFormat);
 	void setEffectFormat(IG::PixelFormat);
 	void setLinearFilter(bool on);
+	bool usingLinearFilter() const { return useLinearFilter; }
 	void setBrightness(Gfx::Vec3);
 	void onVideoFormatChanged(IG::PixelFormat effectFmt);
 	EmuVideo &emuVideo() const { return video; }
@@ -52,6 +57,8 @@ public:
 	auto zoom() const { return zoom_; }
 	void setRotation(IG::Rotation);
 	float evalAspectRatio(float aR);
+	bool readConfig(MapIO &, unsigned key, size_t size);
+	void writeConfig(FileIO &) const;
 
 	const IG::WindowRect &contentRect() const
 	{

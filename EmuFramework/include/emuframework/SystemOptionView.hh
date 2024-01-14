@@ -32,7 +32,7 @@ public:
 	void loadStockItems();
 
 protected:
-	TextMenuItem autosaveTimerItem[4];
+	TextMenuItem autosaveTimerItem[5];
 	MultiChoiceMenuItem autosaveTimer;
 	TextMenuItem autosaveLaunchItem[4];
 	MultiChoiceMenuItem autosaveLaunch;

@@ -43,6 +43,7 @@ enum class AutosaveActionSource{Auto, Manual};
 
 constexpr std::string_view defaultAutosaveFilename = "auto-00";
 constexpr std::string_view noAutosaveName = "\a";
+constexpr Minutes maxAutosaveSaveFreq{720};
 
 class AutosaveManager
 {

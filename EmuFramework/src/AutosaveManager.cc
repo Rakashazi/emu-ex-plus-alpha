@@ -25,7 +25,7 @@ namespace EmuEx
 {
 
 constexpr SystemLogger log{"AutosaveMgr"};
-constexpr Minutes defaultSaveFreq{5};
+constexpr Minutes defaultSaveFreq{0};
 
 AutosaveManager::AutosaveManager(EmuApp &app_):
 	app{app_},
@@ -242,8 +242,9 @@ bool AutosaveManager::readConfig(MapIO &io, unsigned key, size_t size)
 		case CFGKEY_AUTOSAVE_LAUNCH_MODE: return readOptionValue(io, size, autosaveLaunchMode, [](auto m){return m <= lastEnum<AutosaveLaunchMode>;});
 		case CFGKEY_AUTOSAVE_TIMER_MINS: return readOptionValue<decltype(saveTimer.frequency.count())>(io, size, [&](auto m)
 		{
-			if(m >= 0 && m <= 15)
-				saveTimer.frequency = IG::Minutes{m};
+			Minutes mins = Minutes{m};
+			if(mins >= Minutes{0} && mins <= maxAutosaveSaveFreq)
+				saveTimer.frequency = mins;
 		});
 		case CFGKEY_AUTOSAVE_CONTENT: return readOptionValue(io, size, saveOnlyBackupMemory);
 	}
