@@ -1105,8 +1105,6 @@ int CDAccess_Image::Read_Raw_Sector(uint8 *buf, int32 lba)
     if(ct->SubchannelMode)
      SeekPos += 96 * (lba - ct->LBA);
 
-    //ct->fp->seek(SeekPos, SEEK_SET);
-
     switch(ct->DIFormat)
     {
 	case DI_FORMAT_AUDIO:

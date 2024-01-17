@@ -64,6 +64,12 @@ public:
 	std::string_view tag;
 
 	template <class... T>
+	void print(LoggerSeverity lv, std::format_string<T...> format, T&&... args) const
+	{
+		Log::print(lv, tag, format.get(), std::make_format_args(args...));
+	}
+
+	template <class... T>
 	void info(std::format_string<T...> format, T&&... args) const
 	{
 		Log::print(LOG_M, tag, format.get(), std::make_format_args(args...));

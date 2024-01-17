@@ -3,6 +3,9 @@
 #if defined(__x86_64__) || defined(__i386__)
 	/* Define if we are compiling for x86 architectures. */
 	#define ARCH_X86 1
+
+	/* Define if GNU-style AVX inline assembly is supported. */
+	#define HAVE_INLINEASM_AVX 1
 #endif
 
 #if defined(__x86_64__)
@@ -161,7 +164,7 @@
 #endif
 
 /* Mednafen version definition. */
-#define MEDNAFEN_VERSION "1.31.0-UNSTABLE"
+#define MEDNAFEN_VERSION "1.32.0-UNSTABLE"
 
 /* Mednafen version numeric. */
 #define MEDNAFEN_VERSION_NUMERIC 0x00103100
@@ -199,7 +202,7 @@
 #define PACKAGE_VERSION ""
 
 /* Defines the filesystem path-separator type. */
-#define PSS_STYLE 1
+#define MDFN_PSS_STYLE 1
 
 /* The size of `int', as computed by sizeof. */
 #define SIZEOF_INT 4

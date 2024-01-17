@@ -3,18 +3,17 @@
 
 #include "types.h"
 
-#if PSS_STYLE==2
- #define PSS "\\"
- #define MDFN_PS '\\'
-#elif PSS_STYLE==1
- #define PSS "/"
+#if MDFN_PSS_STYLE == 1
+ #define MDFN_PSS "/"
  #define MDFN_PS '/'
-#elif PSS_STYLE==3
- #define PSS "\\"
+#elif MDFN_PSS_STYLE == 2 || MDFN_PSS_STYLE == 3
+ #define MDFN_PSS "\\"
  #define MDFN_PS '\\'
-#elif PSS_STYLE==4
- #define PSS ":" 
+#elif MDFN_PSS_STYLE == 4
+ #define MDFN_PSS ":"
  #define MDFN_PS ':'
+#else
+ #error "Bad MDFN_PSS_STYLE"
 #endif
 
 #include "git.h"
@@ -78,6 +77,7 @@ std::string MDFN_GetSettingS(const char *name);
 
 std::vector<uint64> MDFN_GetSettingMultiUI(const char *name);
 std::vector<int64> MDFN_GetSettingMultiI(const char *name);
+uint64 MDFN_GetSettingMultiM(const char *name);
 
 uint64 MDFN_GetSettingUI(const std::string& name);
 int64 MDFN_GetSettingI(const std::string& name);
@@ -86,6 +86,7 @@ bool MDFN_GetSettingB(const std::string& name);
 std::string MDFN_GetSettingS(const std::string& name);
 std::vector<uint64> MDFN_GetSettingMultiUI(const std::string& name);
 std::vector<int64> MDFN_GetSettingMultiI(const std::string& name);
+uint64 MDFN_GetSettingMultiM(const std::string& name);
 }
 
 #include "state.h"

@@ -169,6 +169,11 @@ uint32 crc32_cdrom_edc(const void* data, const size_t len)
  return crcN<uint32, 32, 0x8001801B, true>(0, data, len);
 }
 
+uint32 crc32_zip(const uint32 initial, const void* data, const size_t len)
+{
+ return ~crcN<uint32, 32, 0x04C11DB7, true>(~initial, data, len);
+}
+
 void crc_test(void)
 {
  unsigned char tv[256];
@@ -183,5 +188,9 @@ void crc_test(void)
  assert(crc32_cdrom_edc(tv,   0) == 0x00000000);
  assert(crc32_cdrom_edc(tv,   1) == 0x58D0A500);
  assert(crc32_cdrom_edc(tv, 256) == 0xA194A58B);
+
+ assert(crc32_zip(0xDEADBEEF, tv,   0) == 0xDEADBEEF);
+ assert(crc32_zip(0x12345678, tv,   1) == 0x2A7275B2);
+ assert(crc32_zip(0xA555555A, tv, 256) == 0xBF3981FE);
 }
 }

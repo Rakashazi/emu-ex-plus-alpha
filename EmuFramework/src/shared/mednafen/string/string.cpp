@@ -2,7 +2,7 @@
 /* Mednafen - Multi-system Emulator                                           */
 /******************************************************************************/
 /* string.cpp:
-**  Copyright (C) 2007-2018 Mednafen Team
+**  Copyright (C) 2007-2023 Mednafen Team
 **
 ** This program is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU General Public License
@@ -598,6 +598,51 @@ int MDFN_strazicmp(const std::string& s, const char* t, size_t n)
  return MDFN_memazicmp(s.data(), t, sn_len);
 }
 
+size_t MDFN_memmismatch(const void* s, const void* t, size_t n)
+{
+ for(size_t i = 0; i != n; i++)
+ {
+  if(((uint8*)s)[i] != ((uint8*)t)[i])
+   return i;
+ }
+
+ return SIZE_MAX;
+}
+
+size_t MDFN_strmismatch(const std::string& s, const std::string& t)
+{
+ size_t ms = std::min<size_t>(s.size(), t.size());
+ size_t r = MDFN_memmismatch(s.data(), t.data(), ms);
+
+ if(s.size() != t.size())
+  r = std::min<size_t>(r, ms);
+
+ return r;
+}
+
+size_t MDFN_strmismatch(const std::string& s, const char* t)
+{
+ const size_t t_len = strlen(t);
+ size_t ms = std::min<size_t>(s.size(), t_len);
+ size_t r = MDFN_memmismatch(s.data(), t, ms);
+
+ if(s.size() != t_len)
+  r = std::min<size_t>(r, ms);
+
+ return r;
+}
+
+size_t MDFN_strmismatch(const char* s, const char* t)
+{
+ for(size_t i = 0; s[i] || t[i]; i++)
+ {
+  if(s[i] != t[i])
+   return i;
+ }
+
+ return SIZE_MAX;
+}
+
 std::vector<std::string> MDFN_strsplit(const std::string& str, const std::string& delim)
 {
  std::vector<std::string> ret;
@@ -629,25 +674,33 @@ void MDFN_strunescape(std::string* s)
 
  for(size_t i = 0; i < str.size(); i++)
  {
+  const char c = str[i];
+
   if(in_octal)
   {
-   if(str[i] >= '0' && str[i] <= '7')
+   const bool valid_octal_char = (c >= '0' && c <= '7');
+
+   if(valid_octal_char)
    {
     hv *= 8;
-    hv += str[i] - '0';
+    hv += c - '0';
     in_octal--;
    }
    else
     in_octal = 0;
 
-   if(!in_octal || (i + 1) == str.size())
+   if(!in_octal)
     str[di++] = hv;
+
+   if(!valid_octal_char)
+    goto noesc;
   }
   else if(in_hex)
   {
-   char lc = MDFN_azlower(str[i]);
+   char lc = MDFN_azlower(c);
+   const bool valid_hex_char = ((lc >= '0' && lc <= '9') || (lc >= 'a' && lc <= 'f'));
 
-   if((lc >= '0' && lc <= '9') || (lc >= 'a' && lc <= 'f'))
+   if(valid_hex_char)
    {
     hv <<= 4;
     hv += (lc >= '0' && lc <= '9') ? (lc - '0') : (lc - 'a' + 0xA);
@@ -658,59 +711,67 @@ void MDFN_strunescape(std::string* s)
 
    if(!in_hex)
     str[di++] = hv;
+
+   if(!valid_hex_char)
+    goto noesc;
   }
   else if(in_escape)
   {
-   if(str[i] >= '0' && str[i] <= '7')
+   in_escape = false;
+
+   if(c >= '0' && c <= '7')
    {
     in_octal = 2;
-    hv = str[i] - '0';
+    hv = c - '0';
    }
    else
    {
-    in_escape = false;
-
-    if(str[i] == 'x')
+    if(c == 'x')
     {
      in_hex = 2;
      hv = 0;
     }
-    else if(str[i] == 'o')
+    else if(c == 'o')
     {
      in_octal = 3;
      hv = 0;
     }
     else
     {
-     char c = str[i];
+     char nc = c;
 
      switch(str[i])
      {
-      case 'a': c = '\a'; break;
-      case 'b': c = '\b'; break;
-      case 'f': c = '\f'; break;
-      case 'n': c = '\n'; break;
-      case 'r': c = '\r'; break;
-      case 't': c = '\t'; break;
-      case 'v': c = '\v'; break;
-      case '\\': c = '\\'; break;
-      case '\'': c = '\''; break;
-      case '"': c = '"'; break;
-      case '?': c = '?'; break;
+      case 'a': nc = '\a'; break;
+      case 'b': nc = '\b'; break;
+      case 'f': nc = '\f'; break;
+      case 'n': nc = '\n'; break;
+      case 'r': nc = '\r'; break;
+      case 't': nc = '\t'; break;
+      case 'v': nc = '\v'; break;
+      case '\\': nc = '\\'; break;
+      case '\'': nc = '\''; break;
+      case '"': nc = '"'; break;
+      case '?': nc = '?'; break;
      }
 
-     str[di++] = c;
+     str[di++] = nc;
     }
    }
   }
   else
   {
-   if(str[i] == '\\')
+   noesc:;
+   if(c == '\\')
     in_escape = true;
    else
-    str[di++] = str[i];
+    str[di++] = c;
   }
  }
+ //
+ //
+ if(in_octal > 0 || in_hex > 0)
+  str[di++] = hv;
 
  assert(di <= str.size());
  str.resize(di);
@@ -745,25 +806,23 @@ std::string MDFN_strescape(const std::string& str)
  {
   unsigned char c = str[i];
 
-  if(c < 0x0E)
+  if(c >= 0x07 && c <= 0x0D)
   {
-   static const char tab[0xE] = { '0', '1', '2', '3', '4', '5', '6', 'a', 'b', 't', 'n', 'v', 'f', 'r' };
+   static const char tab[0x7] = { 'a', 'b', 't', 'n', 'v', 'f', 'r' };
 
    ret[di++] = '\\';
-   ret[di++] = tab[c];
+   ret[di++] = tab[c - 0x07];
   }
   else if(c < 0x20 || c == 0x7F)
   {
-   static const char nybtab[0x10] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
-
    ret[di++] = '\\';
-   ret[di++] = 'x';
-   ret[di++] = '0' + (c >> 4);
-   ret[di++] = nybtab[c & 0xF]; // (c & 0x0F) + (((c & 0x0F) >= 0x0A) ? 'a' : '0');
+   ret[di++] = '0' + ((c >> 6) & 0x7);
+   ret[di++] = '0' + ((c >> 3) & 0x7);
+   ret[di++] = '0' + ((c >> 0) & 0x7);
   }
   else
   {
-   if(c == '"' || c == '\\')
+   if(c == '"' || c == '\'' || c == '\\')
     ret[di++] = '\\';
 
    ret[di++] = c;
@@ -809,12 +868,13 @@ std::vector<std::string> MDFN_strargssplit(const std::string& str)
  bool tmp_valid = false;
  bool in_quote = false;
  bool in_ws = true;
- int last_c = 0;
+ bool in_esc = false;
 
  for(size_t i = 0; i < str.size(); i++)
  {
   const int new_c = str[i];
-  const bool is_quote = (new_c == '"' && last_c != '\\');
+  const bool is_quote = (new_c == '"' && !in_esc);
+  const bool new_in_esc = (!in_esc && new_c == '\\');
   const bool new_in_quote = in_quote ^ is_quote;
   const bool new_in_ws = MDFN_isspace(new_c) & !new_in_quote;
 
@@ -839,7 +899,7 @@ std::vector<std::string> MDFN_strargssplit(const std::string& str)
 
   in_quote = new_in_quote;
   in_ws = new_in_ws;
-  last_c = new_c;
+  in_esc = new_in_esc;
  }
 
  if(tmp_valid)

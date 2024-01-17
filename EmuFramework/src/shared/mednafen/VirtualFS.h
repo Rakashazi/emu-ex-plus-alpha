@@ -59,6 +59,8 @@ class VirtualFS
   MODE__CUSTOM_BEGIN = 0xF0000000,
  };
 
+ static std::string get_human_mode(uint32 mode);
+
  protected:
 
  // Probably not necessary, but virtual functions make me a little uneasy. ;)
@@ -75,8 +77,10 @@ class VirtualFS
  virtual Stream* open(const std::string& path, const uint32 mode, const int do_lock = false, const bool throw_on_noent = true, const CanaryType canary = CanaryType::open) = 0;
  virtual FILE* openAsStdio(const std::string& path, const uint32 mode) = 0;
 
- // Returns true if directory was created, false if it already exists(unless throw_on_exist is true).
- virtual bool mkdir(const std::string& path, const bool throw_on_exist = false) = 0;
+ // Returns 1 if directory was created, -1 if it already exists(unless throw_on_exist is true),
+ // and 0 if a directory component is missing(unless throw_on_noent is true).
+ // Otherwise, throws on error.
+ virtual int mkdir(const std::string& path, const bool throw_on_exist = false, const bool throw_on_noent = true) = 0;
 
  // Returns true if the file was unlinked successfully, false if the file didn't exist(unless throw_on_noent is true), and throws on other errors.
  virtual bool unlink(const std::string& path, const bool throw_on_noent = false, const CanaryType canary = CanaryType::unlink) = 0;
@@ -114,8 +118,8 @@ class VirtualFS
  //
  //
  virtual bool is_absolute_path(const std::string& path);
+ virtual bool is_driverel_path(const std::string& path);
  virtual bool is_path_separator(const char c);
- //virtual bool is_driverel_path(const std::string& path) = 0;
 
  //
  // Note: It IS permissible for an output to point to the same string as the file_path reference.
@@ -131,7 +135,7 @@ class VirtualFS
  INLINE char get_preferred_path_separator(void) { return preferred_path_separator; }
 
  // Create any directories needed to create a file at file_path
- void create_missing_dirs(const std::string& file_path);
+ virtual void create_missing_dirs(const std::string& file_path);
 
  /* std::string get_canonical_ext(const std::string& file_path); */
 

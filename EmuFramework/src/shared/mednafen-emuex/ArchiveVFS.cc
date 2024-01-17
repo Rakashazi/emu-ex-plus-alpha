@@ -15,7 +15,9 @@
 
 #include "ArchiveVFS.hh"
 #include <mednafen/MemoryStream.h>
+#include <imagine/fs/ArchiveFS.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/io/MapIO.hh>
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 
@@ -56,7 +58,7 @@ void ArchiveVFS::seekFile(const std::string& path)
 	if(!IG::FS::seekFileInArchive(arch, [&](auto &entry)
 		{
 			auto name = IG::FS::basename(entry.name());
-			log.info("checking:{}", name);
+			//log.debug("checking:{}", name);
 			return name == filename;
 		}))
 	{
@@ -64,7 +66,7 @@ void ArchiveVFS::seekFile(const std::string& path)
 	}
 }
 
-bool ArchiveVFS::mkdir(const std::string &path, const bool throw_on_exist) { return false; }
+int ArchiveVFS::mkdir(const std::string& path, const bool throw_on_exist, const bool throw_on_noent) { return -1; }
 bool ArchiveVFS::unlink(const std::string &path, const bool throw_on_noent, const CanaryType canary) { return false; }
 void ArchiveVFS::rename(const std::string &oldpath, const std::string &newpath, const CanaryType canary) {}
 

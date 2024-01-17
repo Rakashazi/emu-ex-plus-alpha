@@ -419,15 +419,16 @@ bool MDFNSS_StateAction(StateMem *sm, const unsigned load, const bool data_only,
    }
    else
    {
+    const size_t sname_len = strlen(sname);
     int64 data_start_pos;
     int64 end_pos;
     uint8 sname_tmp[32];
 
-    memset(sname_tmp, 0, sizeof(sname_tmp));
-    strncpy((char *)sname_tmp, sname, 32);
-
-    if(strlen(sname) > 32)
+    if(sname_len > 32)
      printf("Warning: section name is too long: %s\n", sname);
+
+    memset(sname_tmp, 0, sizeof(sname_tmp));
+    memcpy(sname_tmp, sname, std::min<size_t>(32, sname_len));
 
     st->write(sname_tmp, 32);
 
@@ -900,15 +901,15 @@ bool MDFNI_LoadState(const char *fname, const char *suffix) noexcept
  }
  catch(std::exception &e)
  {
-  //MDFN_Error* me = dynamic_cast<MDFN_Error*>(&e);
+  MDFN_Error* me = dynamic_cast<MDFN_Error*>(&e);
 
   if(!fname && !suffix)
    MDFN_Notify(MDFN_NOTICE_ERROR, _("State %d load error: %s"), CurrentState, e.what());
   else
   {
    // FIXME: Autosave kludgery, refactor interfaces in the future to make cleaner.
-   /*if(suffix && me && me->GetErrno() == ENOENT)
-    return true;*/
+   if(suffix && me && me->GetErrno() == ENOENT)
+    return true;
 
    MDFND_OutputNotice(MDFN_NOTICE_ERROR, e.what());
   }

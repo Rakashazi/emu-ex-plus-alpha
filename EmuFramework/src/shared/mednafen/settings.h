@@ -2,7 +2,7 @@
 /* Mednafen - Multi-system Emulator                                           */
 /******************************************************************************/
 /* settings.h:
-**  Copyright (C) 2005-2021 Mednafen Team
+**  Copyright (C) 2005-2023 Mednafen Team
 **
 ** This program is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU General Public License
@@ -39,11 +39,11 @@ class SettingsManager
 
  void Finalize(void);
 
- bool Load(const std::string& path, bool override = false);
+ bool Load(const std::string& path, unsigned override = 0);
  void Save(const std::string& path);
  void SaveCompact(Stream* s);
 
- void ClearAllOverrides(void);
+ void ClearOverridesAbove(unsigned clear_above = 0);
 
  void Kill();	// Free any resources acquired.
 
@@ -55,8 +55,9 @@ class SettingsManager
 
  std::vector<uint64> GetMultiUI(const char *name);
  std::vector<int64> GetMultiI(const char *name);
+ uint64 GetMultiM(const char *name);
 
- bool Set(const char *name, const char *value, bool NetplayOverride = false);
+ bool Set(const char *name, const char *value, unsigned override = 0);
  bool SetB(const char *name, bool value);
  bool SetUI(const char *name, uint64 value);
  bool SetI(const char *name, int64 value);
@@ -67,7 +68,7 @@ class SettingsManager
  std::string GetDefault(const char* name);
 
  private:
- void ParseSettingLine(char* ls, const char* lb, size_t* valid_count, size_t* unknown_count, bool IsOverrideSetting);
+ void ParseSettingLine(char* ls, const char* lb, size_t* valid_count, size_t* unknown_count, unsigned override);
  //void ValidateSetting(const char *value, const MDFNSetting *setting)
  MDFNCS *FindSetting(const char* name, bool dont_freak_out_on_fail = false);
  INLINE void MergeSettingSub(const MDFNSetting& setting);

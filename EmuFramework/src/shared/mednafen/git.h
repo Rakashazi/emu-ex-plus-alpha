@@ -77,7 +77,8 @@ typedef enum
 
 enum InputDeviceInputType : uint8
 {
- IDIT_PADDING = 0,	// n-bit, zero
+ IDIT_PADDING0 = 0,	// n-bit, zero
+ IDIT_PADDING1,		// n-bit, one bits
 
  IDIT_BUTTON,		// 1-bit
  IDIT_BUTTON_CAN_RAPID, // 1-bit
@@ -210,10 +211,10 @@ static INLINE constexpr InputDeviceInputInfoStruct IDIIS_ResetButton(void)
  return { nullptr, nullptr, -1, IDIT_RESET_BUTTON, 0, 0, 0 };
 }
 
-template<unsigned nbits = 1>
+template<unsigned nbits = 1, bool value = false>
 static INLINE constexpr InputDeviceInputInfoStruct IDIIS_Padding(void)
 {
- return { nullptr, nullptr, -1, IDIT_PADDING, 0, nbits, 0 };
+ return { nullptr, nullptr, -1, value ? IDIT_PADDING1 : IDIT_PADDING0, 0, nbits, 0 };
 }
 
 static INLINE /*constexpr*/ InputDeviceInputInfoStruct IDIIS_Axis(const char* sname_pfx, const char* name_pfx, const char* sname_neg, const char* name_neg, const char* sname_pos, const char* name_pos, int16 co, bool co_invert = false, bool sqlr = false)
@@ -277,7 +278,8 @@ struct InputDeviceInfoStruct
 
  enum
  {
-  FLAG_KEYBOARD = (1U << 0)
+  FLAG_KEYBOARD = (1U << 0),
+  FLAG_UNIQUE   = (1U << 1)
  };
 };
 
@@ -287,6 +289,12 @@ struct InputPortInfoStruct
  const char *FullName;
  const std::vector<InputDeviceInfoStruct> &DeviceInfo;
  const char *DefaultDevice;	// Default device for this port.
+
+ unsigned Flags;
+ enum
+ {
+  FLAG_NO_USER_SELECT = (1U << 0),
+ };
 };
 
 struct MemoryPatch;
@@ -540,6 +548,7 @@ struct GameFile
 {
  VirtualFS* const vfs;
  const std::string dir;	// path = vfs->eval_fip(dir, whatever);
+ const std::string orig_fname;
  Stream* const stream;
 
  const std::string ext;		// Lowercase.

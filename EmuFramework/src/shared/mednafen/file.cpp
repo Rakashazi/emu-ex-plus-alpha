@@ -20,6 +20,7 @@
 #include <mednafen/compress/GZFileStream.h>
 #include <mednafen/compress/ZIPReader.h>
 #include <mednafen/compress/ZLInflateFilter.h>
+#include <mednafen/compress/ZstdDecompressFilter.h>
 #include <mednafen/MemoryStream.h>
 #include <mednafen/IPSPatcher.h>
 #include <mednafen/string/string.h>

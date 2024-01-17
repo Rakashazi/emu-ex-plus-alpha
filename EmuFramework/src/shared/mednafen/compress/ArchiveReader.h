@@ -43,7 +43,7 @@ class ArchiveReader : public VirtualFS
  virtual size_t find_by_path(const std::string& path) = 0;
 
  virtual Stream* open(const std::string& path, const uint32 mode, const int do_lock = false, const bool throw_on_noent = true, const CanaryType canary = CanaryType::open) override;
- virtual bool mkdir(const std::string& path, const bool throw_on_exist = false) override;
+ virtual int mkdir(const std::string& path, const bool throw_on_exist = false, const bool throw_on_noent = true) override;
  virtual bool unlink(const std::string& path, const bool throw_on_noent = false, const CanaryType canary = CanaryType::unlink) override;
  virtual void rename(const std::string& oldpath, const std::string& newpath, const CanaryType canary = CanaryType::rename) override;
 

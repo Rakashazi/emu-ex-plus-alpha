@@ -1,8 +1,8 @@
 /******************************************************************************/
 /* Mednafen - Multi-system Emulator                                           */
 /******************************************************************************/
-/* crc.h:
-**  Copyright (C) 2018-2023 Mednafen Team
+/* ZstdDecompressFilter.h:
+**  Copyright (C) 2021 Mednafen Team
 **
 ** This program is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU General Public License
@@ -19,17 +19,33 @@
 ** 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#ifndef __MDFN_HASH_CRC_H
-#define __MDFN_HASH_CRC_H
+#ifndef __MDFN_COMPRESS_ZSTDDECOMPRESSFILTER_H
+#define __MDFN_COMPRESS_ZSTDDECOMPRESSFILTER_H
+
+#include "DecompressFilter.h"
+
+#include <zstd/zstd.h>
 
 namespace Mednafen
 {
 
-NO_CLONE NO_INLINE uint16 crc16_ccitt(const uint16 initial, const void* data, const size_t len);
-NO_CLONE NO_INLINE uint32 crc32_cdrom_edc(const void* data, const size_t len);
-// zlib's crc32() will probably be faster, so use that instead where appropriate.
-NO_CLONE NO_INLINE uint32 crc32_zip(const uint32 initial, const void* data, const size_t len);
+class ZstdDecompressFilter : public DecompressFilter
+{
+ public:
 
-void crc_test(void);
+ ZstdDecompressFilter(janky_ptr<Stream> source_stream, const std::string& vfcontext, uint64 csize, uint64 ucs = (uint64)-1, uint64 ucrc32 = (uint64)-1);
+ virtual ~ZstdDecompressFilter() override;
+
+ virtual uint64 read_decompress(void* data, uint64 count) override;
+ virtual void reset_decompress(void) override;
+ virtual void close_decompress(void) override;
+
+ private:
+ ZSTD_DStream* zs;
+ ZSTD_inBuffer ib;
+
+ uint8 buf[8192];
+};
+
 }
 #endif

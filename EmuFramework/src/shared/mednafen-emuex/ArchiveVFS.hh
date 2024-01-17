@@ -16,25 +16,25 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <mednafen/VirtualFS.h>
-#include <imagine/fs/ArchiveFS.hh>
+#include <imagine/io/ArchiveIO.hh>
 
 namespace Mednafen
 {
 
-class ArchiveVFS : public VirtualFS
+class ArchiveVFS final : public VirtualFS
 {
 public:
 	ArchiveVFS(IG::ArchiveIO);
-	Stream* open(const std::string& path, const uint32 mode, const int do_lock = false, const bool throw_on_noent = true, const CanaryType canary = CanaryType::open) override;
-	FILE* openAsStdio(const std::string& path, const uint32 mode) override;
-	bool mkdir(const std::string& path, const bool throw_on_exist = false) override;
-	bool unlink(const std::string& path, const bool throw_on_noent = false, const CanaryType canary = CanaryType::unlink) override;
-	void rename(const std::string& oldpath, const std::string& newpath, const CanaryType canary = CanaryType::rename) override;
-	bool is_absolute_path(const std::string& path) override;
-	void check_firop_safe(const std::string& path) override;
-	bool finfo(const std::string& path, FileInfo*, const bool throw_on_noent = true) override;
-	void readdirentries(const std::string& path, std::function<bool(const std::string&)> callb) override;
-	std::string get_human_path(const std::string& path) override;
+	Stream* open(const std::string& path, const uint32 mode, const int do_lock = false, const bool throw_on_noent = true, const CanaryType canary = CanaryType::open) final;
+	FILE* openAsStdio(const std::string& path, const uint32 mode) final;
+	int mkdir(const std::string& path, const bool throw_on_exist = false, const bool throw_on_noent = true) final;
+	bool unlink(const std::string& path, const bool throw_on_noent = false, const CanaryType canary = CanaryType::unlink) final;
+	void rename(const std::string& oldpath, const std::string& newpath, const CanaryType canary = CanaryType::rename) final;
+	bool is_absolute_path(const std::string& path) final;
+	void check_firop_safe(const std::string& path) final;
+	bool finfo(const std::string& path, FileInfo*, const bool throw_on_noent = true) final;
+	void readdirentries(const std::string& path, std::function<bool(const std::string&)> callb) final;
+	std::string get_human_path(const std::string& path) final;
 
 private:
 	IG::ArchiveIO arch;

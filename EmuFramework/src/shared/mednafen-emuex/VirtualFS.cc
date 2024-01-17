@@ -81,5 +81,22 @@ std::string VirtualFS::eval_fip(const std::string& dir_path, const std::string& 
 		return std::string{IG::FS::uriString(dir_path, rel_path)};
 }
 
+std::string VirtualFS::get_human_mode(uint32 mode)
+{
+	switch(mode)
+	{
+		default:
+		case MODE_READ: return "for reading";
+		case MODE_READ_WRITE: return "for reading and writing";
+		case MODE_WRITE_SAFE:
+		case MODE_WRITE_INPLACE:
+		case MODE_WRITE: return "for writing";
+	}
+}
+
+void VirtualFS::create_missing_dirs(const std::string& file_path) {}
+
+bool VirtualFS::is_driverel_path(const std::string& path) { return false; }
+
 }
 

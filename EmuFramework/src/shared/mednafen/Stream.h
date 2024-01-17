@@ -25,7 +25,7 @@
 #define __MDFN_STREAM_H
 
 #include <mednafen/types.h>
-#include <imagine/io/IO.hh>
+#include <imagine/io/ioDefs.hh>
 
 namespace Mednafen
 {

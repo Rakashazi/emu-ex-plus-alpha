@@ -68,9 +68,13 @@ bool CDInterface_ST::ReadRawSector(uint8 *buf, int32 lba)
   return false;
  }
 
- if(disc_cdaccess->Read_Raw_Sector(buf, lba) == -1)
+ try
  {
-  MDFN_Notify(MDFN_NOTICE_ERROR, _("Sector %u read error"), lba);
+  disc_cdaccess->Read_Raw_Sector(buf, lba);
+ }
+ catch(std::exception &e)
+ {
+  MDFN_Notify(MDFN_NOTICE_ERROR, _("Sector %u read error: %s"), lba, e.what());
   memset(buf, 0, 2352 + 96);
   return false;
  }

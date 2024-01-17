@@ -126,7 +126,7 @@ MDFNGI *MDFNI_LoadExternalCD(const char* force_module, const char* path_hint, CD
 // Loads settings from specified path.
 // Call once, after MDFNI_InitFinalize()
 // returns -1 if settings file didn't exist, 0 on error, and 1 on success
-int MDFNI_LoadSettings(const char* path);
+int MDFNI_LoadSettings(const char* path, bool override = false);
 
 // Saves settings to specified path.
 // Call at least once right before MDFNI_Kill()
@@ -206,9 +206,9 @@ void MDFNI_MergeSettings(const MDFNSetting* s);
 // take care not to call MDFNI_SetSetting*() unless the setting has actually changed due to a user action.
 // I.E. do NOT call SetSetting*() unconditionally en-masse at emulator exit/game close to synchronize certain things like input mappings.
 //
-bool MDFNI_SetSetting(const char *name, const char *value, bool NetplayOverride = false);
-bool MDFNI_SetSetting(const char *name, const std::string& value, bool NetplayOverride = false);
-bool MDFNI_SetSetting(const std::string& name, const std::string& value, bool NetplayOverride = false);
+bool MDFNI_SetSetting(const char *name, const char *value, bool override = false);
+bool MDFNI_SetSetting(const char *name, const std::string& value, bool override = false);
+bool MDFNI_SetSetting(const std::string& name, const std::string& value, bool override = false);
 
 bool MDFNI_SetSettingB(const char *name, bool value);
 bool MDFNI_SetSettingB(const std::string& name, bool value);

@@ -45,6 +45,9 @@ GZFileStream::GZFileStream(const std::string& path, const MODE mode, const int l
  int tmpfd;
  auto perm_mode = S_IRUSR | S_IWUSR;
 
+ if(path.find('\0') != std::string::npos)
+  throw MDFN_Error(EINVAL, _("Error opening file \"%s\" %s: %s"), path_humesc.c_str(), VirtualFS::get_human_mode((uint32)mode).c_str(), _("Null character in path."));
+
  #if defined(S_IRGRP)
  perm_mode |= S_IRGRP;
  #endif
@@ -68,7 +71,7 @@ GZFileStream::GZFileStream(const std::string& path, const MODE mode, const int l
    trio_snprintf(zmode, sizeof(zmode), "wbT");
  }
  else
-  abort();
+  throw MDFN_Error(EINVAL, _("Error opening file \"%s\" %s: %s"), path_humesc.c_str(), VirtualFS::get_human_mode((uint32)mode).c_str(), _("Specified mode is unsupported"));
 
  #ifdef O_BINARY
   open_flags |= O_BINARY;
@@ -76,16 +79,13 @@ GZFileStream::GZFileStream(const std::string& path, const MODE mode, const int l
   open_flags |= _O_BINARY;
  #endif
 
- if(path.find('\0') != std::string::npos)
-  throw MDFN_Error(EINVAL, _("Error opening file \"%s\": %s"), path_humesc.c_str(), _("Null character in path."));
-
  #ifdef WIN32
  {
   bool invalid_utf8;
   auto tpath = Win32Common::UTF8_to_T(path, &invalid_utf8, true);
 
   if(invalid_utf8)
-   throw MDFN_Error(EINVAL, _("Error opening file \"%s\": %s"), path_humesc.c_str(), _("Invalid UTF-8 in path."));
+   throw MDFN_Error(EINVAL, _("Error opening file \"%s\" %s: %s"), path_humesc.c_str(), VirtualFS::get_human_mode((uint32)mode).c_str(), _("Invalid UTF-8 in path."));
 
   tmpfd = ::_topen((const TCHAR*)tpath.c_str(), open_flags, perm_mode);
  }
@@ -97,7 +97,7 @@ GZFileStream::GZFileStream(const std::string& path, const MODE mode, const int l
  {
   ErrnoHolder ene(errno);
 
-  throw MDFN_Error(ene.Errno(), _("Error opening file \"%s\": %s"), path_humesc.c_str(), ene.StrError());
+  throw MDFN_Error(ene.Errno(), _("Error opening file \"%s\" %s: %s"), path_humesc.c_str(), VirtualFS::get_human_mode((uint32)mode).c_str(), ene.StrError());
  }
 
  // Clear errno to 0 so can we detect internal zlib errors.
@@ -110,7 +110,7 @@ GZFileStream::GZFileStream(const std::string& path, const MODE mode, const int l
 
   ::close(tmpfd);
 
-  throw MDFN_Error(ene.Errno(), _("Error opening file \"%s\": %s"), path_humesc.c_str(), (ene.Errno() == 0) ? _("zlib error") : ene.StrError());
+  throw MDFN_Error(ene.Errno(), _("Error opening file \"%s\" %s: %s"), path_humesc.c_str(), VirtualFS::get_human_mode((uint32)mode).c_str(), (ene.Errno() == 0) ? _("zlib error") : ene.StrError());
  }
 }
 

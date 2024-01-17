@@ -505,10 +505,9 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 		{
 			DynArray<TextMenuItem> items{EmuSystem::maxPlayers + 1uz};
 			items[0] = {"Multiple", attach, {.id = InputDeviceConfig::PLAYER_MULTI}};
-			const char *numStrings[] {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
 			for(auto i : iotaCount(EmuSystem::maxPlayers))
 			{
-				items[i + 1] = {numStrings[i], attach, {.id = i}};
+				items[i + 1] = {playerNumStrings[i], attach, {.id = i}};
 			}
 			return items;
 		}()
@@ -748,7 +747,7 @@ void InputManagerDeviceView::loadItems()
 	auto joystickItemCount = hasJoystick ? 9 : 0;
 	item.reserve(categoryCount + joystickItemCount + 12);
 	inputCategory.clear();
-	inputCategory.reserve(categoryCount);
+	inputCategory.reserve(categoryCount + 1);
 	if(EmuSystem::maxPlayers > 1)
 	{
 		item.emplace_back(&player);

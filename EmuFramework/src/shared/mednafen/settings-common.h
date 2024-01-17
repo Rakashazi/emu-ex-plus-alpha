@@ -119,9 +119,7 @@ struct MDFNSetting
 
 struct MDFNCS
 {
-	char *value;
-	char *game_override;    // per-game setting override(netplay_override > game_override > value, in precedence)
-	char *netplay_override; // "value" override for network play.
+	char* value[4];		// priority: [3] > [2] > [1] > [0]
 
 	uint32 name_hash;
 	MDFNSetting desc;

@@ -18,7 +18,7 @@
 #include <emuframework/EmuAppHelper.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
-#include <imagine/util/container/ArrayList.hh>
+#include <imagine/util/memory/DynArray.hh>
 #include <emuframework/config.hh>
 #include <vector>
 
@@ -43,8 +43,8 @@ protected:
 	VController &vController;
 	TextMenuItem touchCtrlItem[3];
 	MultiChoiceMenuItem touchCtrl;
-	TextMenuItem pointerInputItem[5];
-	MultiChoiceMenuItem pointerInput;
+	DynArray<TextMenuItem> playerItems;
+	MultiChoiceMenuItem player;
 	TextMenuItem sizeItem[11];
 	MultiChoiceMenuItem size;
 	BoolMenuItem vibrate;

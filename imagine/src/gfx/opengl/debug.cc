@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "GLRenderer"
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
@@ -57,6 +56,7 @@
 namespace IG::Gfx
 {
 
+constexpr SystemLogger log{"GLRenderer"};
 bool checkGLErrors = Config::DEBUG_BUILD;
 bool checkGLErrorsVerbose = false;
 
@@ -64,7 +64,7 @@ void Renderer::setCorrectnessChecks(bool on)
 {
 	if(on)
 	{
-		logWarn("enabling verification of OpenGL state");
+		log.warn("enabling verification of OpenGL state");
 	}
 	GLStateCache::verifyState = on;
 	checkGLErrors = on ? true : Config::DEBUG_BUILD;
@@ -111,7 +111,7 @@ void DrawContextSupport::setGLDebugOutput(bool on)
 		{
 			auto glDebugMessageCallbackStr =
 					Config::Gfx::OPENGL_ES ? "glDebugMessageCallbackKHR" : "glDebugMessageCallback";
-			logWarn("enabling debug output with %s", glDebugMessageCallbackStr);
+			log.warn("enabling debug output with {}", glDebugMessageCallbackStr);
 			glDebugMessageCallback = (typeof(glDebugMessageCallback))GLManager::procAddress(glDebugMessageCallbackStr);
 		}
 		glDebugMessageCallback(
@@ -127,7 +127,7 @@ void DrawContextSupport::setGLDebugOutput(bool on)
 					return;
 				}
 				logger_modulePrintfn(severityToLogger(severity), "%s: %s", debugTypeToStr(type), message);
-				if(severity == GL_DEBUG_SEVERITY_HIGH)
+				if(severity == GL_DEBUG_SEVERITY_HIGH && type != GL_DEBUG_TYPE_PERFORMANCE)
 					abort();
 			}, nullptr);
 		glEnable(DEBUG_OUTPUT);

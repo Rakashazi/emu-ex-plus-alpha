@@ -292,7 +292,7 @@ void CDAccess_CCD::Load(VirtualFS* vfs, const std::string& path, bool image_memc
 //
 void CDAccess_CCD::CheckSubQSanity(void)
 {
- size_t checksum_pass_counter = 0;
+ //size_t checksum_pass_counter = 0;
  int prev_lba = INT_MAX;
  uint8 prev_track = 0;
 
@@ -368,7 +368,7 @@ void CDAccess_CCD::CheckSubQSanity(void)
 
      prev_track = track;
     }
-    checksum_pass_counter++;
+    //checksum_pass_counter++;
    }
   }
  }

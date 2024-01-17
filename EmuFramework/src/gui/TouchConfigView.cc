@@ -718,7 +718,7 @@ void TouchConfigView::refreshTouchConfigMenu()
 	alpha.setSelected(MenuId{vController.buttonAlpha()}, *this);
 	touchCtrl.setSelected((int)vController.gamepadControlsVisibility(), *this);
 	if(EmuSystem::maxPlayers > 1)
-		pointerInput.setSelected((int)vController.inputPlayer(), *this);
+		player.setSelected((int)vController.inputPlayer(), *this);
 	size.setSelected(MenuId{vController.buttonSize()}, *this);
 	if(app().vibrationManager().hasVibrator())
 	{
@@ -745,19 +745,25 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl):
 			.defaultItemOnSelect = [this](TextMenuItem &item){ vController.setGamepadControlsVisibility(VControllerVisibility(item.id.val)); }
 		},
 	},
-	pointerInputItem
+	playerItems
 	{
-		{"1", attach, {.id = 0}},
-		{"2", attach, {.id = 1}},
-		{"3", attach, {.id = 2}},
-		{"4", attach, {.id = 3}},
-		{"5", attach, {.id = 4}},
+		[&] -> DynArray<TextMenuItem>
+		{
+			if(EmuSystem::maxPlayers == 1)
+				return {};
+			DynArray<TextMenuItem> items{size_t(EmuSystem::maxPlayers)};
+			for(auto i : iotaCount(EmuSystem::maxPlayers))
+			{
+				items[i] = {playerNumStrings[i], attach, {.id = i}};
+			}
+			return items;
+		}()
 	},
-	pointerInput
+	player
 	{
 		"Virtual Gamepad Player", attach,
 		int(vCtrl.inputPlayer()),
-		std::span{pointerInputItem, size_t(EmuSystem::maxPlayers)},
+		playerItems,
 		{
 			.defaultItemOnSelect = [this](TextMenuItem &item){ vController.setInputPlayer(item.id); }
 		},
@@ -981,7 +987,7 @@ void TouchConfigView::reloadItems()
 	item.emplace_back(&touchCtrl);
 	if(EmuSystem::maxPlayers > 1)
 	{
-		item.emplace_back(&pointerInput);
+		item.emplace_back(&player);
 	}
 	item.emplace_back(&size);
 	item.emplace_back(&btnPlace);

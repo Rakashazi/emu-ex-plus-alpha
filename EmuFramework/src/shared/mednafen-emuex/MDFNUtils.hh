@@ -15,6 +15,7 @@
 
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/fs/FSDefs.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
@@ -130,7 +131,7 @@ inline void loadContent(EmuSystem &sys, Mednafen::MDFNGI &mdfnGameInfo, IO &io, 
 		sys.throwFileReadError();
 	stream->setSize(size);
 	MDFNFILE fp(&NVFS, std::move(stream));
-	GameFile gf{&NVFS, std::string{sys.contentDirectory()}, fp.stream(),
+	GameFile gf{&NVFS, std::string{sys.contentDirectory()}, {}, fp.stream(),
 		std::string{withoutDotExtension(sys.contentFileName())},
 		std::string{sys.contentName()}};
 	mdfnGameInfo.Load(&gf);

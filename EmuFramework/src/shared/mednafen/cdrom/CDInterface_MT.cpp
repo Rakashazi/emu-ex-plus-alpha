@@ -206,9 +206,13 @@ int CDInterface_MT::ReadThreadStart()
    uint8 tmpbuf[2352 + 96];
    bool error_condition = false;
 
-   if(disc_cdaccess->Read_Raw_Sector(tmpbuf, ra_lba) == -1)
+   try
    {
-    MDFN_Notify(MDFN_NOTICE_ERROR, _("Sector %u read error"), ra_lba);
+    disc_cdaccess->Read_Raw_Sector(tmpbuf, ra_lba);
+   }
+   catch(std::exception &e)
+   {
+    MDFN_Notify(MDFN_NOTICE_ERROR, _("Sector %u read error: %s"), ra_lba, e.what());
     memset(tmpbuf, 0, sizeof(tmpbuf));
     error_condition = true;
    }

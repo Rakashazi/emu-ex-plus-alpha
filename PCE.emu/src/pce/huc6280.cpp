@@ -579,7 +579,7 @@ NO_INLINE void HuC6280::RunSub(void)
   IBM_Dispatch: ;
   switch(in_block_move)
   {
-   default: __builtin_unreachable();
+   default: std::unreachable();
    case IBM_TIA: goto continue_the_TIA;
    case IBM_TAI: goto continue_the_TAI;
    case IBM_TDD: goto continue_the_TDD;
