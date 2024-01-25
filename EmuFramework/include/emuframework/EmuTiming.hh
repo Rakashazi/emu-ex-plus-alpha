@@ -33,16 +33,11 @@ public:
 	EmuFrameTimeInfo advanceFramesWithTime(SteadyClockTimePoint);
 	void setFrameTime(SteadyClockTime time);
 	void reset();
-	void setSpeedMultiplier(double newSpeed);
 
 protected:
 	SteadyClockTime timePerVideoFrame{};
-	SteadyClockTime timePerVideoFrameScaled{};
 	SteadyClockTimePoint startFrameTime{};
-	double speed = 1;
 	int64_t lastFrame = 0;
-
-	void updateScaledFrameTime();
 };
 
 }

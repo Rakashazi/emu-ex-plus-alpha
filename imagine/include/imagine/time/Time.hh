@@ -92,15 +92,24 @@ inline SteadyClockTime timeFuncDebug(auto &&func, auto &&...args)
 	#endif
 }
 
+enum class FrameTimeSource : uint8_t
+{
+	unset,
+	screen,
+	renderer,
+};
+
 class FrameParams
 {
 public:
 	SteadyClockTimePoint timestamp;
 	SteadyClockTime frameTime;
+	FrameTimeSource timeSource;
 
 	SteadyClockTimePoint presentTime(int frames) const;
 	int elapsedFrames(SteadyClockTimePoint lastTimestamp) const;
 	static int elapsedFrames(SteadyClockTimePoint timestamp, SteadyClockTimePoint lastTimestamp, SteadyClockTime frameTime);
+	bool isFromRenderer() const { return timeSource == FrameTimeSource::renderer; }
 };
 
 using FrameRate = float;

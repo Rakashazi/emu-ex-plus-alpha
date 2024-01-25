@@ -239,6 +239,7 @@ public:
 	bool shouldFastForward() const;
 	FS::FileString contentDisplayNameForPath(CStringView path) const;
 	IG::Rotation contentRotation() const;
+	void addThreadGroupIds(std::vector<ThreadId> &) const;
 
 	ApplicationContext appContext() const { return appCtx; }
 	bool isActive() const { return state == State::ACTIVE; }
@@ -342,12 +343,20 @@ public:
 		EmuSystemCreateParams, OnLoadProgressDelegate);
 	int updateAudioFramesPerVideoFrame();
 	double frameRate() const { return toHz(frameTime()); }
+	FrameTime scaledFrameTime() const
+	{
+		auto t = std::chrono::duration_cast<FloatSeconds>(frameTime()) * frameTimeMultiplier;
+		return std::chrono::duration_cast<FrameTime>(t);
+	}
+	double scaledFrameRate() const
+	{
+		return toHz(std::chrono::duration_cast<FloatSeconds>(frameTime()) * frameTimeMultiplier);
+	}
 	void onFrameTimeChanged();
 	static double audioMixRate(int outputRate, double inputFrameRate, FrameTime outputFrameTime);
 	double audioMixRate(int outputRate, FrameTime outputFrameTime) const { return audioMixRate(outputRate, frameRate(), outputFrameTime); }
 	void configFrameTime(int outputRate, FrameTime outputFrameTime);
 	auto advanceFramesWithTime(SteadyClockTimePoint time) { return emuTiming.advanceFramesWithTime(time); }
-	void setSpeedMultiplier(EmuAudio &, double speed);
 	SteadyClockTime benchmark(EmuVideo &video);
 	bool hasContent() const;
 	void resetFrameTime();
@@ -385,7 +394,7 @@ protected:
 
 public:
 	IG::OnFrameDelegate onFrameUpdate;
-	double targetSpeed{1.};
+	double frameTimeMultiplier{1.};
 	static constexpr double minFrameRate = 48.;
 };
 

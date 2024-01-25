@@ -25,25 +25,15 @@
 #include <span>
 #include <memory>
 
-namespace IG::Input
-{
-class Event;
-class KeyEvent;
-}
-
 namespace IG
 {
 
-class Screen;
-class ApplicationContext;
-class Application;
 class PixelFormat;
+enum class FrameTimeSource : uint8_t;
 
 class Window : public WindowImpl
 {
 public:
-	using FrameTimeSource = WindowFrameTimeSource;
-
 	Window(ApplicationContext, WindowConfig, InitDelegate);
 	void show();
 	void dismiss();
@@ -60,6 +50,7 @@ public:
 	int8_t setDrawEventPriority(int8_t = 0);
 	int8_t drawEventPriority() const;
 	bool isReady() const { return drawPhase == DrawPhase::READY; }
+	bool isDrawing() const { return drawPhase == DrawPhase::DRAW || drawEventPriority() == drawEventPriorityLocked; }
 	void drawNow(bool needsSync = false);
 	Screen *screen() const;
 	NativeWindow nativeObject() const;

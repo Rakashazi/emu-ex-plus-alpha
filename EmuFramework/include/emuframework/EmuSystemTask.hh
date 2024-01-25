@@ -17,6 +17,7 @@
 
 #include <imagine/base/MessagePort.hh>
 #include <imagine/thread/Thread.hh>
+#include <imagine/time/Time.hh>
 #include <variant>
 
 namespace EmuEx
@@ -31,32 +32,20 @@ class EmuApp;
 class EmuSystemTask
 {
 public:
-	enum class Command: uint8_t
+	struct FrameParamsCommand
 	{
-		UNSET,
-		RUN_FRAME,
-		PAUSE,
-		EXIT,
-	};
-
-	struct RunFrameCommand
-	{
-		EmuVideo *video{};
-		EmuAudio *audio{};
-		int8_t frames{};
-		bool skipForward{};
-		bool fastForward{};
+		FrameParams params;
 	};
 
 	struct PauseCommand {};
 	struct ExitCommand {};
 
-	using CommandVariant = std::variant<RunFrameCommand, PauseCommand, ExitCommand>;
+	using CommandVariant = std::variant<FrameParamsCommand, PauseCommand, ExitCommand>;
 
 	struct CommandMessage
 	{
 		std::binary_semaphore *semPtr{};
-		CommandVariant command{RunFrameCommand{}};
+		CommandVariant command{PauseCommand{}};
 
 		void setReplySemaphore(std::binary_semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
 	};
@@ -65,7 +54,7 @@ public:
 	void start();
 	void pause();
 	void stop();
-	void runFrame(EmuVideo *, EmuAudio *, int8_t frames, bool skipForward, bool fastForward);
+	void updateFrameParams(FrameParams);
 	void sendVideoFormatChangedReply(EmuVideo &);
 	void sendFrameFinishedReply(EmuVideo &);
 	void sendScreenshotReply(bool success);

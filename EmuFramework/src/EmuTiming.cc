@@ -31,13 +31,13 @@ EmuFrameTimeInfo EmuTiming::advanceFramesWithTime(SteadyClockTimePoint time)
 		// first frame
 		startFrameTime = time;
 		lastFrame = 0;
-		return {1};
+		return {};
 	}
-	assumeExpr(timePerVideoFrameScaled.count() > 0);
+	assumeExpr(timePerVideoFrame.count() > 0);
 	assumeExpr(startFrameTime.time_since_epoch().count() > 0);
 	assumeExpr(time > startFrameTime);
 	auto timeTotal = time - startFrameTime;
-	auto now = divRoundClosestPositive(timeTotal.count(), timePerVideoFrameScaled.count());
+	auto now = divRoundClosestPositive(timeTotal.count(), timePerVideoFrame.count());
 	int elapsedFrames = now - lastFrame;
 	lastFrame = now;
 	return {elapsedFrames};
@@ -46,7 +46,6 @@ EmuFrameTimeInfo EmuTiming::advanceFramesWithTime(SteadyClockTimePoint time)
 void EmuTiming::setFrameTime(SteadyClockTime time)
 {
 	timePerVideoFrame = time;
-	updateScaledFrameTime();
 	log.info("configured frame time:{} ({:g} fps)", timePerVideoFrame, toHz(time));
 	reset();
 }
@@ -54,21 +53,6 @@ void EmuTiming::setFrameTime(SteadyClockTime time)
 void EmuTiming::reset()
 {
 	startFrameTime = {};
-}
-
-void EmuTiming::setSpeedMultiplier(double newSpeed)
-{
-	assumeExpr(newSpeed > 0.);
-	if(speed == newSpeed)
-		return;
-	speed = newSpeed;
-	updateScaledFrameTime();
-	reset();
-}
-
-void EmuTiming::updateScaledFrameTime()
-{
-	timePerVideoFrameScaled = speed == 1. ? timePerVideoFrame : round<SteadyClockTime>(FloatSeconds{timePerVideoFrame} / speed);
 }
 
 }

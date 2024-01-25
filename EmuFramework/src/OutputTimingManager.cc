@@ -81,8 +81,8 @@ FrameTimeConfig OutputTimingManager::frameTimeConfig(const EmuSystem &system, st
 	if(t.count() > 0)
 		return {t, FrameRate(toHz(t)), 0};
 	else if(t == originalOption)
-		return {system.frameTime(), FrameRate(system.frameRate()), 0};
-	return bestOutputTimeForScreen(supportedFrameRates, system.frameTime());
+		return {system.scaledFrameTime(), FrameRate(system.scaledFrameRate()), 0};
+	return bestOutputTimeForScreen(supportedFrameRates, system.scaledFrameTime());
 }
 
 }

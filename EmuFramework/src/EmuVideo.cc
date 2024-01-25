@@ -71,7 +71,7 @@ bool EmuVideo::setFormat(IG::PixmapDesc desc, EmuSystemTaskContext taskCtx)
 	{
 		Gfx::TextureConfig conf{desc, samplerConfig()};
 		conf.colorSpace = colSpace;
-		vidImg = renderer().makePixmapBufferTexture(conf, bufferMode);
+		vidImg = renderer().makePixmapBufferTexture(conf, bufferMode, true);
 	}
 	else
 	{

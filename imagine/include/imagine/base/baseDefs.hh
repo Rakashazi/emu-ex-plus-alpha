@@ -137,6 +137,8 @@ namespace IG::Input
 
 class Event;
 class Device;
+class KeyEvent;
+class MotionEvent;
 
 enum class DeviceChange: uint8_t { added, removed, updated, shown, hidden, connectError };
 
@@ -225,13 +227,6 @@ struct WindowDrawParams
 {
 	bool wasResized{};
 	bool needsSync{};
-};
-
-enum class WindowFrameTimeSource : uint8_t
-{
-	AUTO,
-	SCREEN,
-	RENDERER,
 };
 
 enum class ScreenChange : int8_t { added, removed, frameRate };

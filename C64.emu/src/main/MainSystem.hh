@@ -92,6 +92,7 @@ public:
 	EmuAudio *audioPtr{};
 	struct video_canvas_s *activeCanvas{};
 	const char *sysFileDir{};
+	ThreadId emuThreadId{};
 	VicePlugin plugin{};
 	mutable ArchiveIO firmwareArch;
 	std::string defaultPaletteName{};
@@ -134,6 +135,7 @@ public:
 		makeDetachedThread(
 			[this]()
 			{
+				emuThreadId = thisThreadId();
 				execSem.acquire();
 				logMsg("starting maincpu_mainloop()");
 				plugin.maincpu_mainloop();
@@ -220,6 +222,7 @@ public:
 	void renderFramebuffer(EmuVideo &);
 	bool shouldFastForward() const;
 	bool onVideoRenderFormatChange(EmuVideo &, PixelFormat);
+	void addThreadGroupIds(std::vector<ThreadId> &ids) const { ids.emplace_back(emuThreadId); }
 
 protected:
 	void initC64(EmuApp &app);

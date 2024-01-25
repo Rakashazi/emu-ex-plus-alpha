@@ -106,12 +106,6 @@ DynArray<uint8_t> EmuSystem::uncompressGzipState(std::span<uint8_t> buff, size_t
 	return uncompArr;
 }
 
-void EmuSystem::setSpeedMultiplier(EmuAudio &emuAudio, double speed)
-{
-	emuTiming.setSpeedMultiplier(speed);
-	emuAudio.setSpeedMultiplier(speed);
-}
-
 void EmuSystem::setupContentUriPaths(CStringView uri, std::string_view displayName)
 {
 	contentFileName_ = displayName;
@@ -339,16 +333,19 @@ void EmuSystem::configFrameTime(int outputRate, FrameTime outputFrameTime)
 {
 	if(!hasContent())
 		return;
-	configAudioRate(outputFrameTime, outputRate);
-	audioFramesPerVideoFrameFloat = outputRate * duration_cast<FloatSeconds>(outputFrameTime).count();
-	audioFramesPerVideoFrame = std::ceil(audioFramesPerVideoFrameFloat);
-	currentAudioFramesPerVideoFrame = audioFramesPerVideoFrameFloat;
+	if(frameTimeMultiplier == 1.)
+	{
+		configAudioRate(outputFrameTime, outputRate);
+		audioFramesPerVideoFrameFloat = outputRate * duration_cast<FloatSeconds>(outputFrameTime).count();
+		audioFramesPerVideoFrame = std::ceil(audioFramesPerVideoFrameFloat);
+		currentAudioFramesPerVideoFrame = audioFramesPerVideoFrameFloat;
+	}
 	emuTiming.setFrameTime(outputFrameTime);
 }
 
 void EmuSystem::onFrameTimeChanged()
 {
-	log.info("frame rate changed:{}", frameRate());
+	log.info("frame rate changed:{}", scaledFrameRate());
 	EmuApp::get(appContext()).configFrameTime();
 }
 

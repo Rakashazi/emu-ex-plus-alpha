@@ -274,4 +274,10 @@ void EmuSystem::onStop()
 		static_cast<MainSystem*>(this)->onStop();
 }
 
+void EmuSystem::addThreadGroupIds(std::vector<ThreadId> &ids) const
+{
+	if(&MainSystem::addThreadGroupIds != &EmuSystem::addThreadGroupIds)
+		static_cast<const MainSystem*>(this)->addThreadGroupIds(ids);
+}
+
 }

@@ -66,15 +66,15 @@ void BaseWindow::attachDrawEvent()
 		});
 }
 
-static auto frameClock(const Window &win, WindowFrameTimeSource clock)
+static auto frameClock(const Window &win, FrameTimeSource clock)
 {
-	return clock == Window::FrameTimeSource::AUTO ? win.defaultFrameTimeSource() : clock;
+	return clock == FrameTimeSource::unset ? win.defaultFrameTimeSource() : clock;
 }
 
 bool Window::addOnFrame(OnFrameDelegate del, FrameTimeSource clock, int priority)
 {
 	clock = frameClock(*this, clock);
-	if(clock == FrameTimeSource::SCREEN)
+	if(clock == FrameTimeSource::screen)
 	{
 		return screen()->addOnFrame(del);
 	}
@@ -94,7 +94,7 @@ bool Window::addOnFrame(OnFrameDelegate del, FrameTimeSource clock, int priority
 bool Window::removeOnFrame(OnFrameDelegate del, FrameTimeSource clock)
 {
 	clock = frameClock(*this, clock);
-	if(clock == FrameTimeSource::SCREEN)
+	if(clock == FrameTimeSource::screen)
 	{
 		return screen()->removeOnFrame(del);
 	}
@@ -110,9 +110,9 @@ bool Window::moveOnFrame(Window &srcWin, OnFrameDelegate del, FrameTimeSource sr
 	return addOnFrame(del, src);
 }
 
-WindowFrameTimeSource Window::defaultFrameTimeSource() const
+FrameTimeSource Window::defaultFrameTimeSource() const
 {
-	return screen()->supportsTimestamps() ? FrameTimeSource::SCREEN : FrameTimeSource::RENDERER;
+	return screen()->supportsTimestamps() ? FrameTimeSource::screen : FrameTimeSource::renderer;
 }
 
 void Window::resetAppData()
@@ -290,12 +290,8 @@ void Window::dispatchOnFrame()
 	}
 	drawPhase = DrawPhase::UPDATE;
 	//log.debug("running {} onFrame delegates", onFrame.size());
-	FrameParams frameParams{.timestamp = SteadyClock::now(), .frameTime = screen()->frameTime()};
+	FrameParams frameParams{.timestamp = SteadyClock::now(), .frameTime = screen()->frameTime(), .timeSource = FrameTimeSource::renderer};
 	onFrame.runAll([&](OnFrameDelegate del){ return del(frameParams); });
-	if(onFrame.size())
-	{
-		setNeedsDraw(true);
-	}
 }
 
 void Window::draw(bool needsSync)

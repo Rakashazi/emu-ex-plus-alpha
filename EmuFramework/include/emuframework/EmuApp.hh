@@ -253,7 +253,8 @@ public:
 	static std::unique_ptr<View> makeView(ViewAttachParams, ViewID);
 	void applyOSNavStyle(IG::ApplicationContext, bool inGame);
 	void setCPUNeedsLowLatency(IG::ApplicationContext, bool needed);
-	void runFrames(EmuSystemTaskContext, EmuVideo *, EmuAudio *, int frames, bool skipForward);
+	void advanceFrames(FrameParams, EmuSystemTask *);
+	void runFrames(EmuSystemTaskContext, EmuVideo *, EmuAudio *, int frames);
 	void skipFrames(EmuSystemTaskContext, int frames, EmuAudio *);
 	bool skipForwardFrames(EmuSystemTaskContext, int frames);
 	IG::Audio::Manager &audioManager() { return audioManager_; }
@@ -271,7 +272,7 @@ public:
 	IG::Viewport makeViewport(const Window &win) const;
 	void setEmuViewOnExtraWindow(bool on, IG::Screen &);
 	void record(FrameTimeStatEvent, SteadyClockTimePoint t = {});
-	bool supportsPresentModes() const { return windowFrameTimeSource != WindowFrameTimeSource::RENDERER; }
+	bool supportsPresentModes() const { return windowFrameTimeSource != FrameTimeSource::renderer; }
 	void setIntendedFrameRate(Window &, FrameTimeConfig);
 	static std::u16string_view mainViewName();
 	void runBenchmarkOneShot(EmuVideo &);
@@ -560,7 +561,7 @@ public:
 	IG_UseMemberIf(Config::Input::BLUETOOTH && Config::BASE_CAN_BACKGROUND_APP, bool, keepBluetoothActive){};
 	IG_UseMemberIf(Config::Input::DEVICE_HOTSWAP, bool, notifyOnInputDeviceChange){true};
 	IG_UseMemberIf(Config::multipleScreenFrameRates, FrameRate, overrideScreenFrameRate){};
-	WindowFrameTimeSource windowFrameTimeSource{WindowFrameTimeSource::AUTO};
+	FrameTimeSource windowFrameTimeSource{FrameTimeSource::unset};
 	IG_UseMemberIf(Config::cpuAffinity, CPUAffinityMode, cpuAffinityMode){CPUAffinityMode::Auto};
 	IG_UseMemberIf(Config::envIsAndroid && Config::DEBUG_BUILD, bool, useNoopThread){};
 	IG_UseMemberIf(enableFrameTimeStats, bool, showFrameTimeStats){};

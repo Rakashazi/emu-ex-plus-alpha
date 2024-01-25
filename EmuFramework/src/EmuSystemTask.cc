@@ -27,6 +27,10 @@ constexpr SystemLogger log{"EmuSystemTask"};
 EmuSystemTask::EmuSystemTask(EmuApp &app):
 	app{app} {}
 
+using FrameParamsCommand = EmuSystemTask::FrameParamsCommand;
+using PauseCommand = EmuSystemTask::PauseCommand;
+using ExitCommand = EmuSystemTask::ExitCommand;
+
 void EmuSystemTask::start()
 {
 	if(taskThread.joinable())
@@ -39,30 +43,20 @@ void EmuSystemTask::start()
 			bool started = true;
 			commandPort.attach(eventLoop, [this, &started](auto msgs)
 			{
-				constexpr int frameProccessLimit = 20;
-				const int maxFrames = app.frameInterval() ? frameProccessLimit : 1;
-				int fastForwardFrames{};
-				RunFrameCommand runCmd{};
+				FrameParams frameParams{};
 				for(auto msg : msgs)
 				{
 					bool threadIsRunning = visit(overloaded
 					{
-						[&](RunFrameCommand &run)
+						[&](FrameParamsCommand &cmd)
 						{
-							runCmd.video = run.video;
-							runCmd.audio = run.audio;
-							// accumulate the total frames from all commands in queue
-							if(!run.fastForward)
-								runCmd.frames = std::min(runCmd.frames + run.frames, maxFrames);
-							else
-								fastForwardFrames += run.frames;
-							runCmd.skipForward = run.skipForward;
+							frameParams = cmd.params;
 							return true;
 						},
 						[&](PauseCommand &)
 						{
 							//log.debug("got pause command");
-							runCmd.frames = fastForwardFrames = 0;
+							frameParams = {};
 							assumeExpr(msg.semPtr);
 							msg.semPtr->release();
 							return true;
@@ -77,13 +71,8 @@ void EmuSystemTask::start()
 					if(!threadIsRunning)
 						return false;
 				}
-				runCmd.frames = std::min(runCmd.frames + fastForwardFrames, frameProccessLimit);
-				if(!runCmd.frames)
-					return true;
-				assumeExpr(runCmd.frames > 0);
-				//log.debug("running {} frame(s)", runCmd.frames);
-				app.runFrames({this}, runCmd.video, runCmd.audio,
-					runCmd.frames, runCmd.skipForward);
+				if(hasTime(frameParams.timestamp))
+					app.advanceFrames(frameParams, this);
 				return true;
 			});
 			sem.release();
@@ -112,12 +101,11 @@ void EmuSystemTask::stop()
 	app.flushMainThreadMessages();
 }
 
-void EmuSystemTask::runFrame(EmuVideo *video, EmuAudio *audio, int8_t frames, bool skipForward, bool fastForward)
+void EmuSystemTask::updateFrameParams(FrameParams params)
 {
-	assumeExpr(frames > 0);
 	if(!taskThread.joinable()) [[unlikely]]
 		return;
-	commandPort.send({.command = RunFrameCommand{video, audio, frames, skipForward, fastForward}});
+	commandPort.send({.command = FrameParamsCommand{params}});
 }
 
 void EmuSystemTask::sendVideoFormatChangedReply(EmuVideo &video)
