@@ -7,7 +7,7 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 ifeq ($(SUBARCH), armv6)
  # compile app code in ARMv7, link to ARMv6 libs so dynarec works
- android_cpuFlags = -marm -march=armv7-a -mfloat-abi=softfp -mfpu=vfp
+ android_cpuFlags = -marm -march=armv7-a -mtune=generic -mfloat-abi=softfp -mfpu=vfp
 endif
 
 ifneq ($(config_compiler),clang)
