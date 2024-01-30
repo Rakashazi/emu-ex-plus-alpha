@@ -50,7 +50,7 @@ public:
 	int8_t setDrawEventPriority(int8_t = 0);
 	int8_t drawEventPriority() const;
 	bool isReady() const { return drawPhase == DrawPhase::READY; }
-	bool isDrawing() const { return drawPhase == DrawPhase::DRAW || drawEventPriority() == drawEventPriorityLocked; }
+	DrawPhase activeDrawPhase() const { return drawPhase; }
 	void drawNow(bool needsSync = false);
 	Screen *screen() const;
 	NativeWindow nativeObject() const;
@@ -63,6 +63,7 @@ public:
 	bool removeOnFrame(OnFrameDelegate del, FrameTimeSource src = {});
 	bool moveOnFrame(Window &srcWin, OnFrameDelegate, FrameTimeSource src = {});
 	FrameTimeSource defaultFrameTimeSource() const;
+	FrameTimeSource evalFrameTimeSource(FrameTimeSource) const;
 	void resetAppData();
 	void resetRendererData();
 	bool isMainWindow() const;

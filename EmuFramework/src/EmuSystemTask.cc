@@ -43,7 +43,7 @@ void EmuSystemTask::start()
 			bool started = true;
 			commandPort.attach(eventLoop, [this, &started](auto msgs)
 			{
-				FrameParams frameParams{};
+				std::binary_semaphore *syncSemPtr{};
 				for(auto msg : msgs)
 				{
 					bool threadIsRunning = visit(overloaded
@@ -53,12 +53,16 @@ void EmuSystemTask::start()
 							frameParams = cmd.params;
 							return true;
 						},
+						[&](FramePresentedCommand &cmd)
+						{
+							framePending = false;
+							return true;
+						},
 						[&](PauseCommand &)
 						{
 							//log.debug("got pause command");
-							frameParams = {};
 							assumeExpr(msg.semPtr);
-							msg.semPtr->release();
+							syncSemPtr = msg.semPtr;
 							return true;
 						},
 						[&](ExitCommand &)
@@ -72,7 +76,22 @@ void EmuSystemTask::start()
 						return false;
 				}
 				if(hasTime(frameParams.timestamp))
-					app.advanceFrames(frameParams, this);
+				{
+					if(!framePending)
+					{
+						app.advanceFrames(std::exchange(frameParams, {}), this);
+					}
+					else
+					{
+						log.debug("previous async frame not ready yet");
+						doIfUsed(app.frameTimeStats, [&](auto &stats) { stats.missedFrameCallbacks++; });
+					}
+				}
+				if(syncSemPtr)
+				{
+					framePending = false;
+					syncSemPtr->release();
+				}
 				return true;
 			});
 			sem.release();
@@ -106,6 +125,13 @@ void EmuSystemTask::updateFrameParams(FrameParams params)
 	if(!taskThread.joinable()) [[unlikely]]
 		return;
 	commandPort.send({.command = FrameParamsCommand{params}});
+}
+
+void EmuSystemTask::notifyFramePresented()
+{
+	if(!taskThread.joinable()) [[unlikely]]
+		return;
+	commandPort.send({.command = FramePresentedCommand{}});
 }
 
 void EmuSystemTask::sendVideoFormatChangedReply(EmuVideo &video)

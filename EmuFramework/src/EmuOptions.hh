@@ -15,6 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <cstdint>
+
 namespace EmuEx
 {
 
@@ -78,6 +80,7 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_INPUT_KEY_CONFIGS_V2 = 114, CFGKEY_VCONTROLLER_HIGHLIGHT_PUSHED_BUTTONS = 115,
 	CFGKEY_RECENT_CONTENT_V2 = 116, CFGKEY_MAX_RECENT_CONTENT = 117,
 	CFGKEY_REWIND_STATES = 118, CFGKEY_REWIND_TIMER_SECS = 119,
+	CFGKEY_FRAME_CLOCK = 120,
 	// 256+ is reserved
 };
 
@@ -87,5 +90,10 @@ constexpr const char *optionSavePathDefaultToken = ":DEFAULT:";
 
 constexpr double minRunSpeed = .05;
 constexpr double maxRunSpeed = 20.;
+
+bool isValidAspectRatio(float val);
+bool isValidFastSpeed(int16_t);
+bool isValidSlowSpeed(int16_t);
+bool isValidFontSize(int16_t);
 
 }

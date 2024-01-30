@@ -257,6 +257,7 @@ public:
 	void runFrames(EmuSystemTaskContext, EmuVideo *, EmuAudio *, int frames);
 	void skipFrames(EmuSystemTaskContext, int frames, EmuAudio *);
 	bool skipForwardFrames(EmuSystemTaskContext, int frames);
+	void notifyWindowPresented();
 	IG::Audio::Manager &audioManager() { return audioManager_; }
 	void renderSystemFramebuffer(EmuVideo &);
 	bool writeScreenshot(IG::PixmapView, CStringView path);
@@ -272,7 +273,6 @@ public:
 	IG::Viewport makeViewport(const Window &win) const;
 	void setEmuViewOnExtraWindow(bool on, IG::Screen &);
 	void record(FrameTimeStatEvent, SteadyClockTimePoint t = {});
-	bool supportsPresentModes() const { return windowFrameTimeSource != FrameTimeSource::renderer; }
 	void setIntendedFrameRate(Window &, FrameTimeConfig);
 	static std::u16string_view mainViewName();
 	void runBenchmarkOneShot(EmuVideo &);
@@ -313,6 +313,10 @@ public:
 	const Gfx::Vec3 &videoBrightnessAsRGB() const { return videoBrightnessRGB; }
 	int videoBrightnessAsInt(ImageChannel ch) const { return videoBrightness(ch) * 100.f; }
 	void setVideoBrightness(float brightness, ImageChannel);
+	Gfx::PresentMode effectivePresentMode() const
+	{
+		return frameTimeSource == FrameTimeSource::Renderer ? Gfx::PresentMode::Auto : presentMode;
+	};
 
 	// System Options
 	bool setAltSpeed(AltSpeedMode mode, int16_t speed);
@@ -509,9 +513,9 @@ public:
 	InputManager inputManager;
 	OutputTimingManager outputTimingManager;
 	RewindManager rewindManager;
-protected:
 	IG_UseMemberIf(enableFrameTimeStats, FrameTimeStats, frameTimeStats);
-	IG_UseMemberIf(Config::threadPerformanceHints, SteadyClockTimePoint, frameStartTimePoint){};
+protected:
+	SteadyClockTimePoint frameStartTimePoint{};
 	Gfx::Vec3 videoBrightnessRGB{1.f, 1.f, 1.f};
 	FS::PathString contentSearchPath_;
 	[[no_unique_address]] IG::Data::PixmapReader pixmapReader;
@@ -531,8 +535,11 @@ protected:
 	static constexpr int16_t defaultSlowModeSpeed{50};
 	int16_t fastModeSpeed{defaultFastModeSpeed};
 	int16_t slowModeSpeed{defaultSlowModeSpeed};
+	int16_t defaultFontSize = Config::MACHINE_IS_PANDORA ? 6500 :
+		(Config::envIsIOS || Config::envIsAndroid) ? 3000 :
+		8000;
+	int16_t optionFontSize{defaultFontSize};
 	int8_t optionFrameInterval{1};
-	Byte2Option optionFontSize;
 	Byte1Option optionNotificationIcon;
 	Byte1Option optionTitleBar;
 	IG_UseMemberIf(Config::NAVIGATION_BAR, Byte1Option, optionLowProfileOSNav);
@@ -561,7 +568,7 @@ public:
 	IG_UseMemberIf(Config::Input::BLUETOOTH && Config::BASE_CAN_BACKGROUND_APP, bool, keepBluetoothActive){};
 	IG_UseMemberIf(Config::Input::DEVICE_HOTSWAP, bool, notifyOnInputDeviceChange){true};
 	IG_UseMemberIf(Config::multipleScreenFrameRates, FrameRate, overrideScreenFrameRate){};
-	FrameTimeSource windowFrameTimeSource{FrameTimeSource::unset};
+	FrameTimeSource frameTimeSource{FrameTimeSource::Unset};
 	IG_UseMemberIf(Config::cpuAffinity, CPUAffinityMode, cpuAffinityMode){CPUAffinityMode::Auto};
 	IG_UseMemberIf(Config::envIsAndroid && Config::DEBUG_BUILD, bool, useNoopThread){};
 	IG_UseMemberIf(enableFrameTimeStats, bool, showFrameTimeStats){};

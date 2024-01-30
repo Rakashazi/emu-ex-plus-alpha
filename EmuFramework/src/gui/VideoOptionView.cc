@@ -711,11 +711,35 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 				app().setEmuViewOnExtraWindow(app().showOnSecondScreenOption(), *appContext().screens()[1]);
 		}
 	},
+	frameClockItems
+	{
+		{"Auto",                                  attach, MenuItem::Config{.id = FrameTimeSource::Unset}},
+		{"Screen (Less latency & power use)",     attach, MenuItem::Config{.id = FrameTimeSource::Screen}},
+		{"Renderer (May buffer multiple frames)", attach, MenuItem::Config{.id = FrameTimeSource::Renderer}},
+	},
+	frameClock
+	{
+		"Frame Clock", attach,
+		MenuId{FrameTimeSource(app().frameTimeSource)},
+		frameClockItems,
+		MultiChoiceMenuItem::Config
+		{
+			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			{
+				t.resetString(wise_enum::to_string(app().emuWindow().evalFrameTimeSource(app().frameTimeSource)));
+				return true;
+			},
+			.defaultItemOnSelect = [this](TextMenuItem &item)
+			{
+				app().frameTimeSource = FrameTimeSource(item.id.val);
+			}
+		},
+	},
 	presentModeItems
 	{
-		{"Auto",                                                    attach, MenuItem::Config{.id = Gfx::PresentMode::Auto}},
-		{"Immediate (Less compositor latency but may drop frames)", attach, MenuItem::Config{.id = Gfx::PresentMode::Immediate}},
-		{"Queued (Better frame rate stability)",                    attach, MenuItem::Config{.id = Gfx::PresentMode::FIFO}},
+		{"Auto",                                                 attach, MenuItem::Config{.id = Gfx::PresentMode::Auto}},
+		{"Immediate (Less compositor latency, may drop frames)", attach, MenuItem::Config{.id = Gfx::PresentMode::Immediate}},
+		{"Queued (Better frame rate stability)",                 attach, MenuItem::Config{.id = Gfx::PresentMode::FIFO}},
 	},
 	presentMode
 	{
@@ -938,7 +962,8 @@ void VideoOptionView::loadStockItems()
 	if(EmuSystem::canRenderRGBA8888)
 		item.emplace_back(&renderPixelFormat);
 	item.emplace_back(&imgEffectPixelFormat);
-	if(used(presentMode) && app().supportsPresentModes())
+	item.emplace_back(&frameClock);
+	if(used(presentMode))
 		item.emplace_back(&presentMode);
 	if(used(presentationTime) && renderer().supportsPresentationTime())
 		item.emplace_back(&presentationTime);

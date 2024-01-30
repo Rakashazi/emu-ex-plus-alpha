@@ -113,7 +113,7 @@ void Screen::setActive(bool active)
 
 FrameParams Screen::makeFrameParams(SteadyClockTimePoint timestamp) const
 {
-	return {.timestamp = timestamp, .frameTime = frameTime(), .timeSource = FrameTimeSource::screen};
+	return {.timestamp = timestamp, .frameTime = frameTime(), .timeSource = FrameTimeSource::Screen};
 }
 
 void Screen::postFrame()

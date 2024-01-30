@@ -40,6 +40,9 @@ namespace glm
 
 #		if GLM_CONFIG_XYZW_ONLY
 			T x, y;
+#			if GLM_CONFIG_SWIZZLE == GLM_SWIZZLE_FUNCTION
+			GLM_SWIZZLE_GEN_VEC_FROM_VEC2_COMP(T, Q, x, y)
+#			endif//GLM_CONFIG_SWIZZLE
 #		elif GLM_CONFIG_ANONYMOUS_STRUCT == GLM_ENABLE
 			union
 			{
@@ -91,8 +94,8 @@ namespace glm
 
 		// -- Implicit basic constructors --
 
-		GLM_FUNC_DECL GLM_CONSTEXPR vec() GLM_DEFAULT;
-		GLM_FUNC_DECL GLM_CONSTEXPR vec(vec const& v) GLM_DEFAULT;
+		GLM_DEFAULTED_DEFAULT_CTOR_DECL GLM_CONSTEXPR vec() GLM_DEFAULT_CTOR;
+		GLM_DEFAULTED_FUNC_DECL GLM_CONSTEXPR vec(vec const& v) GLM_DEFAULT;
 		template<qualifier P>
 		GLM_FUNC_DECL GLM_CONSTEXPR vec(vec<2, T, P> const& v);
 
@@ -140,7 +143,7 @@ namespace glm
 
 		// -- Unary arithmetic operators --
 
-		GLM_FUNC_DECL GLM_CONSTEXPR vec<2, T, Q> & operator=(vec const& v) GLM_DEFAULT;
+		GLM_DEFAULTED_FUNC_DECL GLM_CONSTEXPR vec<2, T, Q> & operator=(vec const& v) GLM_DEFAULT;
 
 		template<typename U>
 		GLM_FUNC_DECL GLM_CONSTEXPR vec<2, T, Q> & operator=(vec<2, U, Q> const& v);

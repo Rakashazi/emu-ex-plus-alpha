@@ -122,11 +122,6 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	pixmapWriter{ctx},
 	vibrationManager_{ctx},
 	perfHintManager{ctx.performanceHintManager()},
-	optionFontSize{CFGKEY_FONT_Y_SIZE,
-		Config::MACHINE_IS_PANDORA ? 6500 :
-		(Config::envIsIOS || Config::envIsAndroid) ? 3000 :
-		8000,
-		false, optionIsValidWithMinMax<2000, 10000, uint16_t>},
 	optionNotificationIcon{CFGKEY_NOTIFICATION_ICON, 1, !Config::envIsAndroid},
 	optionTitleBar{CFGKEY_TITLE_BAR, 1, !CAN_HIDE_TITLE_BAR},
 	optionLowProfileOSNav{CFGKEY_LOW_PROFILE_OS_NAV, 1, !Config::envIsAndroid},
@@ -513,15 +508,6 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 				vController.setKeyboardImage(asset(AssetID::keyboardOverlay));
 			}
 			auto &screen = *win.screen();
-			if(!screen.supportsTimestamps() && (!Config::envIsLinux || screen.frameRate() < 100.))
-			{
-				windowFrameTimeSource = FrameTimeSource::renderer;
-			}
-			else
-			{
-				windowFrameTimeSource = FrameTimeSource::screen;
-			}
-			log.info("timestamp source:{}", windowFrameTimeSource == FrameTimeSource::renderer ? "renderer" : "screen");
 			winData.viewController.placeElements();
 			winData.viewController.pushAndShowMainMenu(viewAttach, emuVideoLayer, emuAudio);
 			configureSecondaryScreens();
@@ -701,6 +687,8 @@ void EmuApp::advanceFrames(FrameParams frameParams, EmuSystemTask *taskPtr)
 	auto *audioPtr = audio() ? &audio() : nullptr;
 	auto drawIfRendererSource = scopeGuard([&](){ if(frameParams.isFromRenderer()) win.postDraw(1); });
 	auto frameInfo = sys.advanceFramesWithTime(frameParams.timestamp);
+	auto elapsedScreenFrames  = frameParams.elapsedFrames(frameStartTimePoint);
+	frameStartTimePoint = frameParams.timestamp;
 	if(sys.shouldFastForward()) [[unlikely]]
 	{
 		// for skipping loading on disk-based computers
@@ -737,33 +725,14 @@ void EmuApp::advanceFrames(FrameParams frameParams, EmuSystemTask *taskPtr)
 		}
 	}
 	assumeExpr(frameInfo.advanced > 0);
-	doIfUsed(frameStartTimePoint, [&](auto &tp)
-	{
-		if(!hasTime(tp))
-			tp = frameParams.timestamp;
-	});
+	// cap advanced frames if we're falling behind
+	if(elapsedScreenFrames > 4)
+		frameInfo.advanced = std::min(frameInfo.advanced, 4);
 	EmuVideo *videoPtr = savedAdvancedFrames ? nullptr : &video();
-	if(videoPtr && viewCtrl.emuWindow().isDrawing())
-	{
-		//log.debug("previous async frame not ready yet");
-		doIfUsed(frameTimeStats, [&](auto &stats) { stats.missedFrameCallbacks++; });
-		if(allowFrameSkip)
-		{
-			// cap advanced frames if we're falling behind
-			frameInfo.advanced = std::min(frameInfo.advanced, 4);
-		}
-		else
-		{
-			reportFrameWorkTime();
-			return;
-		}
-		videoPtr = nullptr;
-	}
 	if(videoPtr)
 	{
 		if(showFrameTimeStats)
 		{
-			renderer.mainTask.awaitPending();
 			viewCtrl.emuView.updateFrameTimeStats(frameTimeStats, frameParams.timestamp);
 		}
 		record(FrameTimeStatEvent::startOfFrame, frameParams.timestamp);
@@ -775,12 +744,16 @@ void EmuApp::advanceFrames(FrameParams frameParams, EmuSystemTask *taskPtr)
 			viewCtrl.presentTime = frameParams.presentTime(interval);
 		}
 		drawIfRendererSource.cancel();
+		if(taskPtr)
+			taskPtr->framePending = true;
 	}
 	runTurboInputEvents();
 	//log.debug("running {} frame(s), skip:{}", frameInfo.advanced, !videoPtr);
 	runFrames({taskPtr}, videoPtr, audioPtr, frameInfo.advanced);
 	if(!videoPtr)
+	{
 		reportFrameWorkTime();
+	}
 }
 
 IG::Viewport EmuApp::makeViewport(const IG::Window &win) const
@@ -926,6 +899,7 @@ void EmuApp::startEmulation()
 	emuSystemTask.start();
 	setCPUNeedsLowLatency(appContext(), true);
 	system().start(*this);
+	log.info("timestamp source:{}", wise_enum::to_string(emuWindow().evalFrameTimeSource(frameTimeSource)));
 	addOnFrameDelayed();
 }
 
@@ -1581,6 +1555,7 @@ void EmuApp::saveSystemOptions(FileIO &configFile)
 
 void EmuApp::syncEmulationThread()
 {
+	renderer.mainTask.awaitPending();
 	emuSystemTask.pause();
 }
 
@@ -1622,6 +1597,11 @@ bool EmuApp::skipForwardFrames(EmuSystemTaskContext taskCtx, int frames)
 	return true;
 }
 
+void EmuApp::notifyWindowPresented()
+{
+	emuSystemTask.notifyFramePresented();
+}
+
 bool EmuApp::writeScreenshot(IG::PixmapView pix, CStringView path)
 {
 	return pixmapWriter.writeToFile(pix, path);
@@ -1656,7 +1636,7 @@ ViewAttachParams EmuApp::attachParams()
 
 bool EmuApp::setFontSize(int size)
 {
-	if(!optionFontSize.isValidVal(size))
+	if(!isValidFontSize(size))
 		return false;
 	optionFontSize = size;
 	applyFontSize(viewController().emuWindow());
@@ -1735,7 +1715,7 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 				if(system().isActive())
 				{
 					emuSystemTask.pause();
-					win.moveOnFrame(ctx.mainWindow(), system().onFrameUpdate, windowFrameTimeSource);
+					win.moveOnFrame(ctx.mainWindow(), system().onFrameUpdate, frameTimeSource);
 					setIntendedFrameRate(win, configFrameTime());
 				}
 				extraWinData.updateWindowViewport(win, makeViewport(win), renderer);
@@ -1788,7 +1768,7 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 							if(system().isActive())
 							{
 								emuSystemTask.pause();
-								mainWindow().moveOnFrame(win, system().onFrameUpdate, windowFrameTimeSource);
+								mainWindow().moveOnFrame(win, system().onFrameUpdate, frameTimeSource);
 								setIntendedFrameRate(mainWindow(), configFrameTime());
 							}
 							return true;
@@ -1853,7 +1833,7 @@ IG::OnFrameDelegate EmuApp::onFrameDelayed(int8_t delay)
 
 void EmuApp::addOnFrameDelegate(IG::OnFrameDelegate onFrame)
 {
-	viewController().emuWindow().addOnFrame(onFrame, windowFrameTimeSource);
+	viewController().emuWindow().addOnFrame(onFrame, frameTimeSource);
 }
 
 void EmuApp::addOnFrameDelayed()
@@ -1872,7 +1852,7 @@ void EmuApp::addOnFrame()
 
 void EmuApp::removeOnFrame()
 {
-	viewController().emuWindow().removeOnFrame(system().onFrameUpdate, windowFrameTimeSource);
+	viewController().emuWindow().removeOnFrame(system().onFrameUpdate, frameTimeSource);
 }
 
 static auto &videoBrightnessVal(ImageChannel ch, auto &videoBrightnessRGB)
@@ -2007,11 +1987,8 @@ void EmuApp::closeBluetoothConnections()
 
 void EmuApp::reportFrameWorkTime()
 {
-	doIfUsed(frameStartTimePoint, [&](auto &tp)
-	{
-		if(perfHintSession && hasTime(tp))
-			perfHintSession.reportActualWorkTime(SteadyClock::now() - std::exchange(tp, {}));
-	});
+	if(perfHintSession && hasTime(frameStartTimePoint))
+		perfHintSession.reportActualWorkTime(SteadyClock::now() - frameStartTimePoint);
 }
 
 MainWindowData &EmuApp::mainWindowData() const

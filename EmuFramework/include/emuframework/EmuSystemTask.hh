@@ -37,10 +37,11 @@ public:
 		FrameParams params;
 	};
 
+	struct FramePresentedCommand {};
 	struct PauseCommand {};
 	struct ExitCommand {};
 
-	using CommandVariant = std::variant<FrameParamsCommand, PauseCommand, ExitCommand>;
+	using CommandVariant = std::variant<FrameParamsCommand, FramePresentedCommand, PauseCommand, ExitCommand>;
 
 	struct CommandMessage
 	{
@@ -55,6 +56,7 @@ public:
 	void pause();
 	void stop();
 	void updateFrameParams(FrameParams);
+	void notifyFramePresented();
 	void sendVideoFormatChangedReply(EmuVideo &);
 	void sendFrameFinishedReply(EmuVideo &);
 	void sendScreenshotReply(bool success);
@@ -65,6 +67,9 @@ private:
 	MessagePort<CommandMessage> commandPort{"EmuSystemTask Command"};
 	std::thread taskThread;
 	ThreadId threadId_{};
+	FrameParams frameParams;
+public:
+	bool framePending{};
 };
 
 }

@@ -76,6 +76,8 @@ protected:
 	IG_UseMemberIf(Config::BASE_MULTI_SCREEN && Config::BASE_MULTI_WINDOW, BoolMenuItem, showOnSecondScreen);
 	TextMenuItem imageBuffersItem[3];
 	MultiChoiceMenuItem imageBuffers;
+	TextMenuItem frameClockItems[3];
+	MultiChoiceMenuItem frameClock;
 	IG_UseMemberIf(Gfx::supportsPresentModes, TextMenuItem, presentModeItems[3]);
 	IG_UseMemberIf(Gfx::supportsPresentModes, MultiChoiceMenuItem, presentMode);
 	TextMenuItem renderPixelFormatItem[3];
@@ -98,7 +100,7 @@ protected:
 	TextHeadingMenuItem colorLevelsHeading;
 	TextHeadingMenuItem advancedHeading;
 	TextHeadingMenuItem systemSpecificHeading;
-	StaticArrayList<MenuItem*, 37> item;
+	StaticArrayList<MenuItem*, 38> item;
 
 	bool onFrameTimeChange(VideoSystem vidSys, SteadyClockTime time);
 	TextMenuItem::SelectDelegate setVideoBrightnessCustomDel(ImageChannel);

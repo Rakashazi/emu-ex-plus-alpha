@@ -48,10 +48,7 @@ SimpleFrameTimer::SimpleFrameTimer(Screen &screen, EventLoop loop):
 			return true;
 		}
 	},
-	eventLoop{loop}
-{
-	assumeExpr(screen.frameTime().count());
-}
+	eventLoop{loop} {}
 
 void SimpleFrameTimer::scheduleVSync()
 {

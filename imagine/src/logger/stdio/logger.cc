@@ -182,6 +182,10 @@ void print(LoggerSeverity lv, std::string_view tag, std::string_view format, std
 	if(!logEnabled || lv > loggerVerbosity)
 		return;
 	StaticString<512> str;
+	if(Config::envIsLinux)
+	{
+		str += severityToColorCode(lv);
+	}
 	if(tag.size())
 	{
 		str += tag;
@@ -198,10 +202,8 @@ void print(LoggerSeverity lv, std::string_view tag, std::string_view format, std
 	#elif defined __APPLE__
 	asl_log(nullptr, nullptr, severityToLogLevel(lv), "%s", str.c_str());
 	#else
-	auto colorStr = severityToColorCode(lv);
-	fwrite(colorStr.data(), 1, colorStr.size(), stderr);
+	str += '\n';
 	fwrite(str.data(), 1, str.size(), stderr);
-	putc('\n', stderr);
 	#endif
 }
 

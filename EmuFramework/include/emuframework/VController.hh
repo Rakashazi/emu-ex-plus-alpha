@@ -192,6 +192,7 @@ public:
 	void setImage(Gfx::TextureSpan, int aR = 1);
 	WRect bounds() const { return bounds_; }
 	WRect realBounds() const { return extendedBounds_; }
+	bool isFullHeight() const { return aspectRatio == 1; }
 	std::string name(const InputManager &) const;
 	bool overlaps(WPt windowPos) const { return enabled && realBounds().overlaps(windowPos); }
 	void setAlpha(float alpha);

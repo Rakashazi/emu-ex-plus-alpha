@@ -27,10 +27,6 @@ namespace EmuEx
 
 constexpr SystemLogger log{"ConfigFile"};
 
-bool isValidAspectRatio(float val);
-bool isValidFastSpeed(int16_t);
-bool isValidSlowSpeed(int16_t);
-
 constexpr bool windowPixelFormatIsValid(uint8_t val)
 {
 	switch(val)
@@ -76,7 +72,6 @@ void EmuApp::saveConfigFile(FileIO &io)
 		optionImageZoom,
 		optionViewportZoom,
 		optionImageEffectPixelFormat,
-		optionFontSize,
 		optionNotificationIcon,
 		optionTitleBar,
 		optionTextureBufferMode
@@ -85,10 +80,12 @@ void EmuApp::saveConfigFile(FileIO &io)
 	std::apply([&](auto &...opt){ (writeOptionValue(io, opt), ...); }, cfgFileOptions);
 
 	recentContent.writeConfig(io);
+	writeOptionValueIfNotDefault(io, CFGKEY_FONT_Y_SIZE, optionFontSize, defaultFontSize);
 	if(used(optionHideStatusBar))
 		writeOptionValueIfNotDefault(io, CFGKEY_HIDE_STATUS_BAR, optionHideStatusBar, Tristate::IN_EMU);
 	writeOptionValueIfNotDefault(io, CFGKEY_SHOW_BUNDLED_GAMES, optionShowBundledGames, true);
 	writeOptionValueIfNotDefault(io, CFGKEY_FRAME_INTERVAL, optionFrameInterval, 1);
+	writeOptionValueIfNotDefault(io, CFGKEY_FRAME_CLOCK, frameTimeSource, FrameTimeSource::Unset);
 	writeOptionValueIfNotDefault(io, CFGKEY_IDLE_DISPLAY_POWER_SAVE, idleDisplayPowerSave_, false);
 	writeOptionValueIfNotDefault(io, CFGKEY_CONFIRM_OVERWRITE_STATE, confirmOverwriteState, true);
 	writeOptionValueIfNotDefault(io, CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU, systemActionsIsDefaultMenu, true);
@@ -146,7 +143,7 @@ void EmuApp::saveConfigFile(FileIO &io)
 		writeOptionValue(io, CFGKEY_CPU_AFFINITY_MASK, cpuAffinityMask);
 	if(used(cpuAffinityMode))
 		writeOptionValueIfNotDefault(io, CFGKEY_CPU_AFFINITY_MODE, cpuAffinityMode, CPUAffinityMode::Auto);
-	if(used(presentMode) && supportsPresentModes())
+	if(used(presentMode))
 		writeOptionValueIfNotDefault(io, CFGKEY_RENDERER_PRESENT_MODE, presentMode, Gfx::PresentMode::Auto);
 	if(used(presentationTimeMode) && renderer.supportsPresentationTime())
 		writeOptionValueIfNotDefault(io, CFGKEY_RENDERER_PRESENTATION_TIME, presentationTimeMode, PresentationTimeMode::basic);
@@ -219,7 +216,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_FRAME_RATE_PAL: return readOptionValue<FrameTime>(io, size, [&](auto &&val){outputTimingManager.setFrameTimeOption(VideoSystem::PAL, val);});
 				case CFGKEY_LAST_DIR:
 					return readStringOptionValue<FS::PathString>(io, size, [&](auto &&path){setContentSearchPath(path);});
-				case CFGKEY_FONT_Y_SIZE: return optionFontSize.readFromIO(io, size);
+				case CFGKEY_FONT_Y_SIZE: return readOptionValue(io, size, optionFontSize, isValidFontSize);
 				case CFGKEY_GAME_ORIENTATION: return readOptionValue(io, size, optionEmuOrientation);
 				case CFGKEY_MENU_ORIENTATION: return readOptionValue(io, size, optionMenuOrientation);
 				case CFGKEY_IMAGE_ZOOM: return optionImageZoom.readFromIO(io, size);
@@ -272,9 +269,11 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_CPU_AFFINITY_MODE:
 					return used(cpuAffinityMode) ? readOptionValue(io, size, cpuAffinityMode, [](auto m){return m <= lastEnum<CPUAffinityMode>;}) : false;
 				case CFGKEY_RENDERER_PRESENT_MODE:
-					return used(presentMode) && supportsPresentModes() ? readOptionValue(io, size, presentMode, [](auto m){return m <= lastEnum<Gfx::PresentMode>;}) : false;
+					return used(presentMode) ? readOptionValue(io, size, presentMode, [](auto m){return m <= lastEnum<Gfx::PresentMode>;}) : false;
 				case CFGKEY_RENDERER_PRESENTATION_TIME:
 					return used(presentationTimeMode) ? readOptionValue(io, size, presentationTimeMode, [](auto m){return m <= lastEnum<PresentationTimeMode>;}) : false;
+				case CFGKEY_FRAME_CLOCK:
+					return readOptionValue(io, size, frameTimeSource, [](auto m){return m <= lastEnum<FrameTimeSource>;});
 				case CFGKEY_AUDIO_SOLO_MIX:
 					audioManager().setSoloMix(readOptionValue<bool>(io, size));
 					return true;

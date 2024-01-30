@@ -39,7 +39,7 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 {
 	#ifdef CONFIG_BASE_IOS
 	if(ctx.deviceIsIPad())
-		optionFontSize.initDefault(5000);
+		defaultFontSize = 5000;
 	#endif
 
 	#ifdef __ANDROID__
@@ -81,6 +81,11 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 	}
 }
 
+bool isValidFontSize(int16_t s)
+{
+	return optionIsValidWithMinMax<2000, 10000, uint16_t>(s);
+}
+
 void EmuApp::applyFontSize(Window &win)
 {
 	auto settings = fontSettings(win);
@@ -91,7 +96,7 @@ void EmuApp::applyFontSize(Window &win)
 
 IG::FontSettings EmuApp::fontSettings(Window &win) const
 {
-	float size = optionFontSize / 1000.;
+	float size = optionFontSize / 1000.f;
 	return {win.heightScaledMMInPixels(size)};
 }
 

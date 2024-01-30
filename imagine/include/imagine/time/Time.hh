@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/utility.h>
+#include <imagine/util/enum.hh>
 #include <chrono>
 #include <concepts>
 
@@ -92,12 +93,12 @@ inline SteadyClockTime timeFuncDebug(auto &&func, auto &&...args)
 	#endif
 }
 
-enum class FrameTimeSource : uint8_t
-{
-	unset,
-	screen,
-	renderer,
-};
+
+WISE_ENUM_CLASS((FrameTimeSource, uint8_t),
+	Unset,
+	Renderer,
+	Screen,
+	Timer);
 
 class FrameParams
 {
@@ -109,7 +110,7 @@ public:
 	SteadyClockTimePoint presentTime(int frames) const;
 	int elapsedFrames(SteadyClockTimePoint lastTimestamp) const;
 	static int elapsedFrames(SteadyClockTimePoint timestamp, SteadyClockTimePoint lastTimestamp, SteadyClockTime frameTime);
-	bool isFromRenderer() const { return timeSource == FrameTimeSource::renderer; }
+	bool isFromRenderer() const { return timeSource == FrameTimeSource::Renderer; }
 };
 
 using FrameRate = float;

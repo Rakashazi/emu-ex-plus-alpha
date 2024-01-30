@@ -20,12 +20,10 @@
 #include "../gtc/constants.hpp"
 #include "../gtc/quaternion.hpp"
 
-#if GLM_MESSAGES == GLM_ENABLE && !defined(GLM_EXT_INCLUDED)
-#	ifndef GLM_ENABLE_EXPERIMENTAL
-#		pragma message("GLM: GLM_GTX_dual_quaternion is an experimental extension and may change in the future. Use #define GLM_ENABLE_EXPERIMENTAL before including it, if you really want to use it.")
-#	else
-#		pragma message("GLM: GLM_GTX_dual_quaternion extension included")
-#	endif
+#ifndef GLM_ENABLE_EXPERIMENTAL
+#	error "GLM: GLM_GTX_dual_quaternion is an experimental extension and may change in the future. Use #define GLM_ENABLE_EXPERIMENTAL before including it, if you really want to use it."
+#elif GLM_MESSAGES == GLM_ENABLE && !defined(GLM_EXT_INCLUDED)
+#	pragma message("GLM: GLM_GTX_dual_quaternion extension included")
 #endif
 
 namespace glm
@@ -56,8 +54,8 @@ namespace glm
 
 		// -- Implicit basic constructors --
 
-		GLM_FUNC_DECL GLM_CONSTEXPR tdualquat() GLM_DEFAULT;
-		GLM_FUNC_DECL GLM_CONSTEXPR tdualquat(tdualquat<T, Q> const& d) GLM_DEFAULT;
+		GLM_DEFAULTED_FUNC_DECL GLM_CONSTEXPR tdualquat() GLM_DEFAULT;
+		GLM_DEFAULTED_FUNC_DECL GLM_CONSTEXPR tdualquat(tdualquat<T, Q> const& d) GLM_DEFAULT;
 		template<qualifier P>
 		GLM_FUNC_DECL GLM_CONSTEXPR tdualquat(tdualquat<T, P> const& d);
 
@@ -77,7 +75,7 @@ namespace glm
 
 		// -- Unary arithmetic operators --
 
-		GLM_FUNC_DECL tdualquat<T, Q> & operator=(tdualquat<T, Q> const& m) GLM_DEFAULT;
+		GLM_DEFAULTED_FUNC_DECL tdualquat<T, Q> & operator=(tdualquat<T, Q> const& m) GLM_DEFAULT;
 
 		template<typename U>
 		GLM_FUNC_DECL tdualquat<T, Q> & operator=(tdualquat<U, Q> const& m);

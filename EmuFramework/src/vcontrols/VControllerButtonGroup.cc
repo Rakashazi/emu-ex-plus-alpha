@@ -69,13 +69,13 @@ static int buttonsToLayout(const auto &buttons)
 	return count;
 }
 
-static void layoutButtons(auto &buttons, WRect layoutBounds, WRect viewBounds, int size,
+static void layoutButtons(auto &buttons, WRect layoutBounds, WRect viewBounds, WSize size,
 	int spacing, int stagger, int rowShift, int rowItems, _2DOrigin o)
 {
 	if(!rowItems)
 		return;
 	int rows = divRoundUp(buttonsToLayout(buttons), rowItems);
-	int row{}, btnPos{}, y{o.yScaler() == -1 ? -size : 0};
+	int row{}, btnPos{}, y{o.yScaler() == -1 ? -size.y : 0};
 	if(stagger < 0)
 		y += stagger * (rowItems - 1);
 	int x = -rowShift * (rows - 1);
@@ -86,12 +86,12 @@ static void layoutButtons(auto &buttons, WRect layoutBounds, WRect viewBounds, i
 			continue;
 		auto pos = layoutBounds.pos(o) + WPt{x, y + staggerOffset} + (size / 2);
 		b.setPos(pos, viewBounds);
-		x += size + spacing;
+		x += size.x + spacing;
 		staggerOffset -= stagger;
 		if(++btnPos == rowItems)
 		{
 			row++;
-			y += (size + spacing) * o.yScaler();
+			y += (size.y + spacing) * o.yScaler();
 			staggerOffset = 0;
 			x = -rowShift * ((rows - 1) - row);
 			btnPos = 0;
@@ -99,11 +99,17 @@ static void layoutButtons(auto &buttons, WRect layoutBounds, WRect viewBounds, i
 	}
 }
 
+static bool allButtonsAreHalfHeight(const auto &btns)
+{
+	return std::ranges::all_of(btns, [](auto &b){ return !b.isFullHeight(); });
+}
+
 void VControllerButtonGroup::setPos(WPt pos, WindowRect viewBounds)
 {
 	bounds_.setPos(pos, C2DO);
 	bounds_.fitIn(viewBounds);
-	layoutButtons(buttons, bounds_, viewBounds, btnSize,
+	int ySize = allButtonsAreHalfHeight(buttons) ? btnSize / 2 : btnSize;
+	layoutButtons(buttons, bounds_, viewBounds, {btnSize, ySize},
 		spacingPixels, btnStagger, btnRowShift, layout.rowItems, LB2DO);
 	updateSprites();
 }
@@ -112,9 +118,10 @@ void VControllerButtonGroup::setButtonSize(int sizePx)
 {
 	btnSize = sizePx;
 	setStaggerType(layout.staggerType);
+	int ySizePx = allButtonsAreHalfHeight(buttons) ? sizePx / 2 : sizePx;
 	int btnsPerRow = std::min(buttonsToLayout(buttons), int(layout.rowItems));
 	int xSizePixel = sizePx * btnsPerRow + spacingPixels*(btnsPerRow-1) + std::abs(btnRowShift*((int)rows()-1));
-	int ySizePixel = sizePx * rows() + spacingPixels*(rows()-1) + std::abs(btnStagger*((int)btnsPerRow-1));
+	int ySizePixel = ySizePx * rows() + spacingPixels*(rows()-1) + std::abs(btnStagger*((int)btnsPerRow-1));
 	bounds_ = makeWindowRectRel({0, 0}, {xSizePixel, ySizePixel});
 	auto extendedSize = paddingPixels();
 	for(auto &b : buttons)
@@ -271,7 +278,7 @@ void VControllerUIButtonGroup::setPos(WPt pos, WRect viewBounds)
 {
 	bounds_.setPos(pos, C2DO);
 	bounds_.fitIn(viewBounds);
-	layoutButtons(buttons, bounds_, viewBounds, btnSize,
+	layoutButtons(buttons, bounds_, viewBounds, {btnSize, btnSize},
 		0, 0, 0, layout.rowItems, LT2DO);
 	updateSprites();
 }

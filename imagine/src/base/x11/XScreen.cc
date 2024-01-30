@@ -58,22 +58,16 @@ XScreen::XScreen(ApplicationContext ctx, InitParams params):
 		}
 		auto outputInfo = XRRGetOutputInfo(DisplayOfScreen(xScreen), screenRes, primaryOutput);
 		auto crtcInfo = XRRGetCrtcInfo(DisplayOfScreen(xScreen), screenRes, outputInfo->crtc);
+		frameRate_ = 60;
+		frameTime_ = fromHz<SteadyClockTime>(60.);
+		reliableFrameTime = false;
 		for(auto &modeInfo : std::span<XRRModeInfo>{screenRes->modes, (size_t)screenRes->nmode})
 		{
-			if(modeInfo.id == crtcInfo->mode)
+			if(modeInfo.id == crtcInfo->mode && modeInfo.hTotal && modeInfo.vTotal)
 			{
-				if(modeInfo.hTotal && modeInfo.vTotal)
-				{
-					frameRate_ = float(modeInfo.dotClock) / (modeInfo.hTotal * modeInfo.vTotal);
-					frameTime_ = fromSeconds<SteadyClockTime>(modeInfo.hTotal * modeInfo.vTotal / double(modeInfo.dotClock));
-				}
-				else
-				{
-					logWarn("unknown display time");
-					frameRate_ = 60;
-					frameTime_ = fromHz<SteadyClockTime>(60.);
-					reliableFrameTime = false;
-				}
+				frameRate_ = float(modeInfo.dotClock) / (modeInfo.hTotal * modeInfo.vTotal);
+				frameTime_ = fromSeconds<SteadyClockTime>(modeInfo.hTotal * modeInfo.vTotal / double(modeInfo.dotClock));
+				reliableFrameTime = true;
 				break;
 			}
 		}
@@ -82,9 +76,9 @@ XScreen::XScreen(ApplicationContext ctx, InitParams params):
 		XRRFreeScreenResources(screenRes);
 		assert(frameTime_.count());
 	}
-	frameTimer.setFrameRate(frameRate_);
 	logMsg("screen:%p %dx%d (%dx%dmm) %.2fHz", xScreen,
 		WidthOfScreen(xScreen), HeightOfScreen(xScreen), (int)xMM, (int)yMM, frameRate_);
+	frameTimer.setFrameRate(frameRate_);
 }
 
 void *XScreen::nativeObject() const

@@ -911,7 +911,7 @@ void VController::resetUIPositions(std::vector<VControllerElement> &uiElements) 
 	auto &win = window();
 	log.info("resetting UI controls to default positions");
 	const auto sidePadding = xMMSizeToPixel(win, 2);
-	const int yTop = win.contentBounds().y;
+	const int yTop = win.bounds().y;
 	for(int leftY{yTop}, rightY{yTop}; auto &e : uiElements)
 	{
 		const auto halfSize = e.realBounds().size() / 2;

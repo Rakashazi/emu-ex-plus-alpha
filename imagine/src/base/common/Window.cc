@@ -66,15 +66,15 @@ void BaseWindow::attachDrawEvent()
 		});
 }
 
-static auto frameClock(const Window &win, FrameTimeSource clock)
+FrameTimeSource Window::evalFrameTimeSource(FrameTimeSource clock) const
 {
-	return clock == FrameTimeSource::unset ? win.defaultFrameTimeSource() : clock;
+	return clock == FrameTimeSource::Unset ? defaultFrameTimeSource() : clock;
 }
 
 bool Window::addOnFrame(OnFrameDelegate del, FrameTimeSource clock, int priority)
 {
-	clock = frameClock(*this, clock);
-	if(clock == FrameTimeSource::screen)
+	clock = evalFrameTimeSource(clock);
+	if(clock == FrameTimeSource::Screen)
 	{
 		return screen()->addOnFrame(del);
 	}
@@ -93,8 +93,8 @@ bool Window::addOnFrame(OnFrameDelegate del, FrameTimeSource clock, int priority
 
 bool Window::removeOnFrame(OnFrameDelegate del, FrameTimeSource clock)
 {
-	clock = frameClock(*this, clock);
-	if(clock == FrameTimeSource::screen)
+	clock = evalFrameTimeSource(clock);
+	if(clock == FrameTimeSource::Screen)
 	{
 		return screen()->removeOnFrame(del);
 	}
@@ -112,7 +112,7 @@ bool Window::moveOnFrame(Window &srcWin, OnFrameDelegate del, FrameTimeSource sr
 
 FrameTimeSource Window::defaultFrameTimeSource() const
 {
-	return screen()->supportsTimestamps() ? FrameTimeSource::screen : FrameTimeSource::renderer;
+	return screen()->supportsTimestamps() ? FrameTimeSource::Screen : FrameTimeSource::Renderer;
 }
 
 void Window::resetAppData()
@@ -199,7 +199,7 @@ int8_t Window::setDrawEventPriority(int8_t priority)
 {
 	if(priority == drawEventPriorityLocked)
 	{
-		unpostDraw();
+		setNeedsDraw(false);
 		drawPhase = DrawPhase::UPDATE;
 	}
 	return std::exchange(drawEventPriority_, priority);
@@ -290,7 +290,7 @@ void Window::dispatchOnFrame()
 	}
 	drawPhase = DrawPhase::UPDATE;
 	//log.debug("running {} onFrame delegates", onFrame.size());
-	FrameParams frameParams{.timestamp = SteadyClock::now(), .frameTime = screen()->frameTime(), .timeSource = FrameTimeSource::renderer};
+	FrameParams frameParams{.timestamp = SteadyClock::now(), .frameTime = screen()->frameTime(), .timeSource = FrameTimeSource::Renderer};
 	onFrame.runAll([&](OnFrameDelegate del){ return del(frameParams); });
 }
 
