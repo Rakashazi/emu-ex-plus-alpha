@@ -71,7 +71,8 @@ bool EmuVideo::setFormat(IG::PixmapDesc desc, EmuSystemTaskContext taskCtx)
 	{
 		Gfx::TextureConfig conf{desc, samplerConfig()};
 		conf.colorSpace = colSpace;
-		vidImg = renderer().makePixmapBufferTexture(conf, bufferMode, true);
+		bool singleBuffer = renderer().maxSwapChainImages() < 3 || app().effectiveFrameTimeSource() != FrameTimeSource::Renderer;
+		vidImg = renderer().makePixmapBufferTexture(conf, bufferMode, singleBuffer);
 	}
 	else
 	{

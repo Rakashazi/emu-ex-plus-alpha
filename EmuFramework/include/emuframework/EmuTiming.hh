@@ -24,20 +24,26 @@ using namespace IG;
 
 struct EmuFrameTimeInfo
 {
-	int advanced;
+	int advanced{};
+	SteadyClockTime frameTimeDiff{};
 };
 
 class EmuTiming
 {
 public:
-	EmuFrameTimeInfo advanceFramesWithTime(SteadyClockTimePoint);
+	EmuFrameTimeInfo advanceFrames(FrameParams);
 	void setFrameTime(SteadyClockTime time);
 	void reset();
+	SteadyClockTimePoint lastFrameTimestamp() const { return lastFrameTimestamp_; }
 
 protected:
 	SteadyClockTime timePerVideoFrame{};
 	SteadyClockTimePoint startFrameTime{};
-	int64_t lastFrame = 0;
+	SteadyClockTimePoint lastFrameTimestamp_{};
+	int64_t lastFrame{};
+	int8_t savedAdvancedFrames{};
+public:
+	int8_t exactFrameDivisor{};
 };
 
 }

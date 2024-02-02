@@ -243,6 +243,7 @@ public:
 	IG::ToastView &toastView();
 	const Screen &emuScreen() const;
 	Window &emuWindow();
+	const Window &emuWindow() const;
 	AutosaveManager &autosaveManager() { return autosaveManager_; }
 	FrameTimeConfig configFrameTime();
 	void setDisabledInputKeys(std::span<const KeyCode> keys);
@@ -253,7 +254,7 @@ public:
 	static std::unique_ptr<View> makeView(ViewAttachParams, ViewID);
 	void applyOSNavStyle(IG::ApplicationContext, bool inGame);
 	void setCPUNeedsLowLatency(IG::ApplicationContext, bool needed);
-	void advanceFrames(FrameParams, EmuSystemTask *);
+	bool advanceFrames(FrameParams, EmuSystemTask *);
 	void runFrames(EmuSystemTaskContext, EmuVideo *, EmuAudio *, int frames);
 	void skipFrames(EmuSystemTaskContext, int frames, EmuAudio *);
 	bool skipForwardFrames(EmuSystemTaskContext, int frames);
@@ -315,7 +316,13 @@ public:
 	void setVideoBrightness(float brightness, ImageChannel);
 	Gfx::PresentMode effectivePresentMode() const
 	{
-		return frameTimeSource == FrameTimeSource::Renderer ? Gfx::PresentMode::Auto : presentMode;
+		if(frameTimeSource == FrameTimeSource::Renderer)
+			return Gfx::PresentMode::Auto;
+		return presentMode;
+	};
+	FrameTimeSource effectiveFrameTimeSource() const
+	{
+		return emuWindow().evalFrameTimeSource(frameTimeSource);
 	};
 
 	// System Options
@@ -515,7 +522,6 @@ public:
 	RewindManager rewindManager;
 	IG_UseMemberIf(enableFrameTimeStats, FrameTimeStats, frameTimeStats);
 protected:
-	SteadyClockTimePoint frameStartTimePoint{};
 	Gfx::Vec3 videoBrightnessRGB{1.f, 1.f, 1.f};
 	FS::PathString contentSearchPath_;
 	[[no_unique_address]] IG::Data::PixmapReader pixmapReader;
@@ -559,6 +565,7 @@ protected:
 	IG::Rotation contentRotation_{IG::Rotation::ANY};
 	IG_UseMemberIf(Config::TRANSLUCENT_SYSTEM_UI, bool, layoutBehindSystemUI){};
 	bool idleDisplayPowerSave_{};
+	bool enableBlankFrameInsertion{};
 public:
 	bool showHiddenFilesInPicker{};
 	bool confirmOverwriteState{true};
@@ -575,7 +582,6 @@ public:
 	IG_UseMemberIf(Gfx::supportsPresentModes, Gfx::PresentMode, presentMode){};
 	IG_UseMemberIf(Gfx::supportsPresentationTime, PresentationTimeMode, presentationTimeMode){PresentationTimeMode::basic};
 	bool allowBlankFrameInsertion{};
-	bool enableBlankFrameInsertion{};
 
 protected:
 	struct ConfigParams

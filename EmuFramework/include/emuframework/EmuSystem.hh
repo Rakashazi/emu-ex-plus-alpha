@@ -356,7 +356,6 @@ public:
 	static double audioMixRate(int outputRate, double inputFrameRate, FrameTime outputFrameTime);
 	double audioMixRate(int outputRate, FrameTime outputFrameTime) const { return audioMixRate(outputRate, frameRate(), outputFrameTime); }
 	void configFrameTime(int outputRate, FrameTime outputFrameTime);
-	auto advanceFramesWithTime(SteadyClockTimePoint time) { return emuTiming.advanceFramesWithTime(time); }
 	SteadyClockTime benchmark(EmuVideo &video);
 	bool hasContent() const;
 	void resetFrameTime();
@@ -369,7 +368,8 @@ public:
 
 protected:
 	IG::ApplicationContext appCtx{};
-	EmuTiming emuTiming;
+public:
+	EmuTiming timing;
 protected:
 	double audioFramesPerVideoFrameFloat{};
 	double currentAudioFramesPerVideoFrame{};

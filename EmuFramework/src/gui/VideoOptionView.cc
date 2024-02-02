@@ -726,12 +726,13 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(wise_enum::to_string(app().emuWindow().evalFrameTimeSource(app().frameTimeSource)));
+				t.resetString(wise_enum::to_string(app().effectiveFrameTimeSource()));
 				return true;
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item)
 			{
 				app().frameTimeSource = FrameTimeSource(item.id.val);
+				app().video().resetImage(); // texture can switch between single/double buffered
 			}
 		},
 	},

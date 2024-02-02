@@ -243,6 +243,7 @@ void EmuViewController::showMenuView(bool updateTopView)
 	if(!showingEmulation)
 		return;
 	showingEmulation = false;
+	presentTime = {};
 	inputView.setSystemGestureExclusion(false);
 	configureWindowForEmulation(emuView.window(), {}, false);
 	emuView.postDraw();

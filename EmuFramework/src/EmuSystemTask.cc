@@ -79,7 +79,16 @@ void EmuSystemTask::start()
 				{
 					if(!framePending)
 					{
-						app.advanceFrames(std::exchange(frameParams, {}), this);
+						auto params = std::exchange(frameParams, {});
+						bool renderingFrame = app.advanceFrames(params, this);
+						if(params.isFromRenderer())
+						{
+							framePending = false;
+							if(!renderingFrame)
+							{
+								app.emuWindow().postDraw(1);
+							}
+						}
 					}
 					else
 					{

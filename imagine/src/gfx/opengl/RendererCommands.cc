@@ -125,17 +125,12 @@ void RendererCommands::flush()
 	glFlush();
 }
 
-void RendererCommands::present()
-{
-	notifyDrawComplete();
-	doPresent();
-}
-
 void RendererCommands::present(SteadyClockTimePoint t)
 {
 	if constexpr(Config::GL_PLATFORM_EGL)
 		r->glManager.setPresentationTime(drawable, t);
-	present();
+	notifyDrawComplete();
+	doPresent();
 }
 
 SyncFence RendererCommands::addSyncFence()

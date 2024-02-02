@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "EGL"
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/EGLContextBase.hh>
 #include <imagine/base/Window.hh>
@@ -44,8 +43,9 @@
 namespace IG
 {
 
-static constexpr bool HAS_DEBUG_CONTEXT = !Config::MACHINE_IS_PANDORA;
-static constexpr bool HAS_NATIVE_WINDOW_TYPE = !Config::MACHINE_IS_PANDORA;
+constexpr SystemLogger log{"EGL"};
+constexpr bool HAS_DEBUG_CONTEXT = !Config::MACHINE_IS_PANDORA;
+constexpr bool HAS_NATIVE_WINDOW_TYPE = !Config::MACHINE_IS_PANDORA;
 using EGLSurfaceAttrList = StaticArrayList<int, 8>;
 using EGLAttrList = StaticArrayList<int, 24>;
 using EGLContextAttrList = StaticArrayList<int, 16>;
@@ -97,7 +97,7 @@ static EGLContextAttrList glContextAttrsToEGLAttrs(GLContextAttributes attr)
 	{
 		list.push_back(EGL_CONTEXT_CLIENT_VERSION);
 		list.push_back(attr.majorVersion);
-		//logDMsg("using OpenGL ES client version:%d", attr.majorVersion());
+		//log.debug("using OpenGL ES client version:{}", attr.majorVersion());
 	}
 	else
 	{
@@ -141,12 +141,12 @@ void GLDisplay::resetCurrentContext() const
 {
 	if(Config::DEBUG_BUILD)
 	{
-		logDMsg("setting no context current on thread:%d", IG::thisThreadId());
+		log.debug("setting no context current on thread:{}", IG::thisThreadId());
 	}
 	if(eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) == EGL_FALSE)
 	{
 		if(Config::DEBUG_BUILD)
-			logErr("error:%s setting no context current", GLManager::errorString(eglGetError()));
+			log.error("error:{} setting no context current", GLManager::errorString(eglGetError()));
 	}
 }
 
@@ -169,7 +169,7 @@ EGLDrawable::EGLDrawable(EGLDisplay display, Window &win, EGLConfig config, cons
 	if(!surface)
 	{
 		if(Config::DEBUG_BUILD)
-			logErr("eglCreateWindowSurface returned:%s", GLManager::errorString(eglGetError()));
+			log.error("eglCreateWindowSurface returned:{}", GLManager::errorString(eglGetError()));
 		throw Error{EINVAL};
 	}
 }
@@ -178,11 +178,11 @@ void EGLDrawable::destroySurface(EGLDisplay dpy, EGLSurface surface)
 {
 	if(!surface)
 		return;
-	logMsg("destroying surface:%p", surface);
+	log.info("destroying surface:{}", surface);
 	auto success = eglDestroySurface(dpy, surface);
 	if(Config::DEBUG_BUILD && !success)
 	{
-		logErr("error:%s in eglDestroySurface(%p, %p)",
+		log.error("error:{} in eglDestroySurface({}, {})",
 			GLManager::errorString(eglGetError()), (EGLDisplay)dpy, surface);
 	}
 }
@@ -202,14 +202,14 @@ EGLContextBase::EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGL
 	{
 		if(attr.debug)
 		{
-			logMsg("retrying without debug bit");
+			log.info("retrying without debug bit");
 			attr.debug = false;
 			context.reset(eglCreateContext(display, config, shareContext, &glContextAttrsToEGLAttrs(attr)[0]));
 		}
 		if(!context)
 		{
 			if(Config::DEBUG_BUILD)
-				logErr("error creating context: 0x%X", (int)eglGetError());
+				log.error("error creating context: {:X}", (int)eglGetError());
 			throw Error{EINVAL};
 		}
 	}
@@ -217,18 +217,18 @@ EGLContextBase::EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGL
 	{
 		dummyPbuffConfig.emplace(config);
 	}
-	//logDMsg("created context:%p", context);
+	//log.debug("created context:{}", context);
 }
 
 void EGLContextBase::destroyContext(EGLDisplay dpy, EGLContext context)
 {
 	if(!context)
 		return;
-	logMsg("destroying context:%p", context);
+	log.info("destroying context:{}", context);
 	auto success = eglDestroyContext(dpy, context);
 	if(Config::DEBUG_BUILD && !success)
 	{
-		logErr("error:%s in eglDestroyContext(%p, %p)",
+		log.error("error:{} in eglDestroyContext({}, {})",
 			GLManager::errorString(eglGetError()), dpy, context);
 	}
 }
@@ -245,31 +245,31 @@ void GLContext::setCurrentContext(NativeGLDrawable surface) const
 	{
 		if(Config::DEBUG_BUILD)
 		{
-			logDMsg("setting dummy pbuffer current on context:%p thread:%d", context.get(), IG::thisThreadId());
+			log.debug("setting dummy pbuffer current on context:{} thread:{}", context.get(), IG::thisThreadId());
 		}
 		auto dpy = display();
 		auto dummyPbuff = makeDummyPbuffer(dpy, *dummyPbuffConfig);
 		if(!dummyPbuff)
 		{
 			if(Config::DEBUG_BUILD)
-				logErr("error:%s making dummy pbuffer", GLManager::errorString(eglGetError()));
+				log.error("error:{} making dummy pbuffer", GLManager::errorString(eglGetError()));
 		}
 		if(eglMakeCurrent(dpy, dummyPbuff, dummyPbuff, context.get()) == EGL_FALSE)
 		{
 			if(Config::DEBUG_BUILD)
-				logErr("error:%s in eglMakeCurrent()", GLManager::errorString(eglGetError()));
+				log.error("error:{} in eglMakeCurrent()", GLManager::errorString(eglGetError()));
 		}
 		eglDestroySurface(dpy, dummyPbuff);
 		return;
 	}
 	if(Config::DEBUG_BUILD)
 	{
-		logDMsg("setting surface:%p current on context:%p thread:%d", surface, context.get(), IG::thisThreadId());
+		log.debug("setting surface:{} current on context:{} thread:{}", surface, context.get(), IG::thisThreadId());
 	}
 	if(eglMakeCurrent(display(), surface, surface, context.get()) == EGL_FALSE)
 	{
 		if(Config::DEBUG_BUILD)
-			logErr("error:%s in eglMakeCurrent()", GLManager::errorString(eglGetError()));
+			log.error("error:{} in eglMakeCurrent()", GLManager::errorString(eglGetError()));
 	}
 }
 
@@ -284,7 +284,7 @@ void GLContext::present(NativeGLDrawable drawable) const
 	if(eglSwapBuffers(display(), drawable) == EGL_FALSE)
 	{
 		if(Config::DEBUG_BUILD)
-			logErr("error 0x%X swapping buffers for surface:%p", eglGetError(), drawable);
+			log.error("error {:X} swapping buffers for surface:{}", eglGetError(), drawable);
 	}
 }
 
@@ -293,7 +293,7 @@ void GLContext::setSwapInterval(int i)
 	bool success = eglSwapInterval(display(), i);
 	if(Config::DEBUG_BUILD && !success)
 	{
-		logErr("error:%s in eglSwapInterval(%d)", EGLManager::errorString(eglGetError()), i);
+		log.error("error:{} in eglSwapInterval({})", EGLManager::errorString(eglGetError()), i);
 	}
 }
 
@@ -303,7 +303,7 @@ GLManager::GLManager(NativeDisplayConnection ctx, GL::API api)
 {
 	if(!bindAPI(api))
 	{
-		logErr("error binding requested API");
+		log.error("error binding requested API");
 		return;
 	}
 	auto display = getDefaultDisplay(ctx);
@@ -319,13 +319,13 @@ std::optional<EGLConfig> EGLManager::chooseConfig(GLDisplay display, int rendera
 	int configCount = chooseConfigs(display, renderableType, attr, std::span{&config, 1});
 	if(allowFallback && !configCount)
 	{
-		logErr("no EGL configs found, retrying with no color bits set");
+		log.error("no EGL configs found, retrying with no color bits set");
 		attr.pixelFormat = {};
 		configCount = chooseConfigs(display, renderableType, attr, std::span{&config, 1});
 	}
 	if(!configCount)
 	{
-		logErr("no usable EGL configs found with renderable type:%s", eglRenderableTypeToStr(renderableType));
+		log.error("no usable EGL configs found with renderable type:{}", eglRenderableTypeToStr(renderableType));
 		return {};
 	}
 	if(Config::DEBUG_BUILD)
@@ -343,7 +343,7 @@ int EGLManager::chooseConfigs(GLDisplay display, int renderableType, GLBufferCon
 
 void *GLManager::procAddress(const char *funcName)
 {
-	//logDMsg("getting proc address for:%s", funcName);
+	//log.debug("getting proc address for:{}", funcName);
 	return (void*)eglGetProcAddress(funcName);
 }
 
@@ -399,16 +399,16 @@ void EGLManager::logFeatures() const
 	}
 	if(featuresStr.empty())
 		return;
-	logMsg("features:%s", featuresStr.c_str());
+	log.info("features:{}", featuresStr);
 }
 
 IG::ErrorCode EGLManager::initDisplay(EGLDisplay display)
 {
-	logMsg("initializing EGL with display:%p", display);
+	log.info("initializing EGL with display:{}", display);
 	EGLint major, minor;
 	if(!eglInitialize(display, &major, &minor))
 	{
-		logErr("error initializing EGL for display:%p", display);
+		log.error("error initializing EGL for display:{}", display);
 		return {EINVAL};
 	}
 	int eglVersion = 10 * major + minor;
@@ -438,8 +438,8 @@ GLContext GLManager::makeContext(GLContextAttributes attr, GLBufferConfig config
 		config = EGL_NO_CONFIG_KHR;
 	if(!hasNoErrorContextAttribute())
 		attr.noError = false;
-	logMsg("making context with version: %d.%d config:0x%llX share context:%p",
-		attr.majorVersion, attr.minorVersion, (long long)(EGLConfig)config, shareContext);
+	log.info("making context with version: {}.{} config:{} share context:{}",
+		attr.majorVersion, attr.minorVersion, (EGLConfig)config, shareContext);
 	// Ignore surfaceless context support when using GL versions below 3.0 due to possible driver issues,
 	// such as on Tegra 3 GPUs
 	bool savePBuffConfig = attr.majorVersion <= 2 || !supportsSurfaceless;
@@ -448,7 +448,7 @@ GLContext GLManager::makeContext(GLContextAttributes attr, GLBufferConfig config
 		return {};
 	if(savePBuffConfig)
 	{
-		logMsg("surfaceless context not supported:%s, saving config for dummy pbuffer",
+		log.info("surfaceless context not supported:{}, saving config for dummy pbuffer",
 			supportsSurfaceless ? "context version below 3.0" : "missing extension");
 	}
 	return ctx;
@@ -528,7 +528,7 @@ GLDrawable GLManager::makeDrawable(Window &win, GLDrawableAttributes attr) const
 	}
 	attrList.push_back(EGL_NONE);
 	GLDrawable drawable{dpy, win, attr.bufferConfig, attrList.data()};
-	logMsg("made surface:%p %s", (EGLSurface)drawable,
+	log.info("made surface:{} {}", (EGLSurface)drawable,
 		useSrgbColorSpace ? "(SRGB color space)" : "");
 	return drawable;
 }
@@ -562,13 +562,19 @@ bool GLManager::hasPresentationTime() const { return presentationTime; }
 
 void GLManager::setPresentationTime(NativeGLDrawable drawable, SteadyClockTimePoint time) const
 {
-	if(!hasPresentationTime() || !hasTime(time))
+	if(!hasPresentationTime())
 		return;
-	bool success = presentationTime(display(), drawable, time.time_since_epoch().count());
+	/* From window.h in Android frameworks:
+	Special timestamp value to indicate that timestamps should be auto-generated
+	by the native window when queueBuffer is called.  This is equal to INT64_MIN,
+	defined directly to avoid problems with C99/C++ inclusion of stdint.h. */
+	constexpr int64_t NATIVE_WINDOW_TIMESTAMP_AUTO = (-9223372036854775807LL-1);
+	auto timestamp = hasTime(time) ? time.time_since_epoch().count() : NATIVE_WINDOW_TIMESTAMP_AUTO;
+	bool success = presentationTime(display(), drawable, timestamp);
 	if(Config::DEBUG_BUILD && !success)
 	{
-		logErr("error:%s in eglPresentationTimeANDROID(%p, %lld)",
-			errorString(eglGetError()), drawable, (long long)time.time_since_epoch().count());
+		log.error("error:{} in eglPresentationTimeANDROID({}, {})",
+			errorString(eglGetError()), drawable, timestamp);
 	}
 }
 
@@ -576,9 +582,9 @@ void GLManager::logInfo() const
 {
 	if(!Config::DEBUG_BUILD)
 		return;
-	logMsg("version: %s (%s)", eglQueryString(display(), EGL_VENDOR), eglQueryString(display(), EGL_VERSION));
-	logMsg("APIs: %s", eglQueryString(display(), EGL_CLIENT_APIS));
-	logMsg("extensions: %s", eglQueryString(display(), EGL_EXTENSIONS));
+	log.info("version: {} ({})", eglQueryString(display(), EGL_VENDOR), eglQueryString(display(), EGL_VERSION));
+	log.info("APIs: {}", eglQueryString(display(), EGL_CLIENT_APIS));
+	log.info("extensions: {}", eglQueryString(display(), EGL_EXTENSIONS));
 	//printEGLConfs(display);
 }
 
@@ -586,7 +592,7 @@ void EGLManager::terminateEGL(EGLDisplay display)
 {
 	if(display == EGL_NO_DISPLAY)
 		return;
-	logMsg("terminating EGL display:%p", display);
+	log.info("terminating EGL display:{}", display);
 	eglTerminate(display);
 }
 

@@ -287,7 +287,7 @@ bool EmuSystem::hasContent() const
 
 void EmuSystem::resetFrameTime()
 {
-	emuTiming.reset();
+	timing.reset();
 }
 
 void EmuSystem::pause(EmuApp &app)
@@ -340,7 +340,7 @@ void EmuSystem::configFrameTime(int outputRate, FrameTime outputFrameTime)
 		audioFramesPerVideoFrame = std::ceil(audioFramesPerVideoFrameFloat);
 		currentAudioFramesPerVideoFrame = audioFramesPerVideoFrameFloat;
 	}
-	emuTiming.setFrameTime(outputFrameTime);
+	timing.setFrameTime(outputFrameTime);
 }
 
 void EmuSystem::onFrameTimeChanged()

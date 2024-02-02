@@ -181,7 +181,7 @@ void print(LoggerSeverity lv, std::string_view tag, std::string_view format, std
 {
 	if(!logEnabled || lv > loggerVerbosity)
 		return;
-	StaticString<512> str;
+	StaticString<4096> str;
 	if(Config::envIsLinux)
 	{
 		str += severityToColorCode(lv);

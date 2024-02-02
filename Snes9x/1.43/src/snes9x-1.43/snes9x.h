@@ -132,6 +132,8 @@
 #define CLOSE_STREAM(s) fclose (s)
 #endif
 
+FILE *fopenHelper(const char *filename, const char *mode);
+void removeFileHelper(const char *filename);
 
 /* SNES screen width and height */
 #define SNES_WIDTH		256

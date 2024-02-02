@@ -92,6 +92,7 @@
 #include "snes9x.h"
 #include "cheats.h"
 #include "memmap.h"
+#include <main/wrappers.h>
 
 extern SCheatData Cheat;
 

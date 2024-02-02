@@ -24,23 +24,41 @@ namespace EmuEx
 
 constexpr SystemLogger log{"EmuTiming"};
 
-EmuFrameTimeInfo EmuTiming::advanceFramesWithTime(SteadyClockTimePoint time)
+EmuFrameTimeInfo EmuTiming::advanceFrames(FrameParams params)
 {
-	if(!hasTime(startFrameTime)) [[unlikely]]
+	auto frameTimeDiff = params.timestamp - lastFrameTimestamp_;
+	auto framesDiff  = params.elapsedFrames(lastFrameTimestamp_);
+	auto lastTimestamp = std::exchange(lastFrameTimestamp_, params.timestamp);
+	if(exactFrameDivisor > 0)
 	{
-		// first frame
-		startFrameTime = time;
-		lastFrame = 0;
-		return {};
+		savedAdvancedFrames += framesDiff;
+		int elapsedFrames{};
+		if(savedAdvancedFrames >= exactFrameDivisor)
+		{
+			auto [quot, rem] = std::div(savedAdvancedFrames, exactFrameDivisor);
+			elapsedFrames = quot;
+			savedAdvancedFrames = rem;
+		}
+		return {elapsedFrames, frameTimeDiff};
 	}
-	assumeExpr(timePerVideoFrame.count() > 0);
-	assumeExpr(startFrameTime.time_since_epoch().count() > 0);
-	assumeExpr(time > startFrameTime);
-	auto timeTotal = time - startFrameTime;
-	auto now = divRoundClosestPositive(timeTotal.count(), timePerVideoFrame.count());
-	int elapsedFrames = now - lastFrame;
-	lastFrame = now;
-	return {elapsedFrames};
+	else
+	{
+		if(!hasTime(startFrameTime)) [[unlikely]]
+		{
+			// first frame
+			startFrameTime = params.timestamp;
+			lastFrame = 0;
+			return {};
+		}
+		assumeExpr(timePerVideoFrame.count() > 0);
+		assumeExpr(startFrameTime.time_since_epoch().count() > 0);
+		assumeExpr(params.timestamp > startFrameTime);
+		auto timeTotal = params.timestamp - startFrameTime;
+		auto now = divRoundClosestPositive(timeTotal.count(), timePerVideoFrame.count());
+		int elapsedFrames = now - lastFrame;
+		lastFrame = now;
+		return {elapsedFrames, frameTimeDiff};
+	}
 }
 
 void EmuTiming::setFrameTime(SteadyClockTime time)
@@ -53,6 +71,7 @@ void EmuTiming::setFrameTime(SteadyClockTime time)
 void EmuTiming::reset()
 {
 	startFrameTime = {};
+	savedAdvancedFrames = {};
 }
 
 }

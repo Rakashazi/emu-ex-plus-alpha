@@ -132,6 +132,8 @@ extern uint8 *SFXPlotTable;
 END_EXTERN_C
 #endif
 
+#include <main/wrappers.h>
+
 #ifndef SET_UI_COLOR
 #define SET_UI_COLOR(r,g,b) ;
 #endif
