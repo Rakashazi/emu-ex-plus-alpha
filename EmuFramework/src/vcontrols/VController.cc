@@ -910,7 +910,8 @@ void VController::resetUIPositions(std::vector<VControllerElement> &uiElements) 
 {
 	auto &win = window();
 	log.info("resetting UI controls to default positions");
-	const auto sidePadding = xMMSizeToPixel(win, 2);
+	const auto leftSidePadding = xMMSizeToPixel(win, 4); // slightly more padding on left side to account for FF button on round displays
+	const auto rightSidePadding = -xMMSizeToPixel(win, 2);
 	const int yTop = win.bounds().y;
 	for(int leftY{yTop}, rightY{yTop}; auto &e : uiElements)
 	{
@@ -918,7 +919,7 @@ void VController::resetUIPositions(std::vector<VControllerElement> &uiElements) 
 		if(e.layoutOrigin() == RT2DO || e.layoutOrigin() == LT2DO)
 		{
 			auto &yOffset = e.layoutOrigin() == RT2DO ? rightY : leftY;
-			auto xOffset = e.layoutOrigin() == RT2DO ? -sidePadding : sidePadding;
+			auto xOffset = e.layoutOrigin() == RT2DO ? rightSidePadding : leftSidePadding;
 			e.layoutPos[0] = e.layoutPos[1] = {e.layoutOrigin(), {xOffset, yOffset + halfSize.y}};
 			yOffset += e.realBounds().ySize();
 		}

@@ -17,187 +17,61 @@
 #include <emuframework/EmuSystemInlines.hh>
 #include <emuframework/EmuAppInlines.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/fs/ArchiveFS.hh>
+#include <imagine/io/IOStream.hh>
+#include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
+#include <mednafen/cdrom/CDInterface.h>
+#include <mednafen/state-driver.h>
+#include <mednafen/hash/md5.h>
+#include <ss/cdb.h>
+#include <ss/cart.h>
+#include <ss/stvio.h>
+#include <ss/smpc.h>
+#include <ss/vdp2.h>
+#include <mednafen-emuex/MDFNUtils.hh>
+#include <mednafen-emuex/ArchiveVFS.hh>
 
-extern "C"
+namespace MDFN_IEN_SS
 {
-	#include <yabause/yabause.h>
-	#include <yabause/m68kcore.h>
-	#include <yabause/peripheral.h>
-	#include <yabause/sh2core.h>
-	#include <yabause/sh2int.h>
-	#include <yabause/vidsoft.h>
-	#include <yabause/scsp.h>
-	#include <yabause/cdbase.h>
-	#include <yabause/cs0.h>
-	#include <yabause/cs2.h>
+
+extern bool ResetPending;
+
+void SaveBackupRAM(IG::FileIO&);
+void LoadBackupRAM(IG::FileIO&);
+
 }
-
-// from sh2_dynarec.c
-#define SH2CORE_DYNAREC 2
-extern const int defaultSH2CoreID =
-#ifdef SH2_DYNAREC
-SH2CORE_DYNAREC;
-#else
-SH2CORE_INTERPRETER;
-#endif
-
-PerInterface_struct *PERCoreList[] =
-{
-	&PERDummy,
-	nullptr
-};
-
-CDInterface *CDCoreList[] =
-{
-	&DummyCD,
-	&ISOCD,
-	nullptr
-};
-
-#define SNDCORE_IMAGINE 1
-
-// EmuFramework is in charge of audio setup & parameters
-static int SNDImagineInit() { logMsg("called sound core init"); return 0; }
-static void SNDImagineDeInit() {}
-static int SNDImagineReset() { return 0; }
-static void SNDImagineMuteAudio() {}
-static void SNDImagineUnMuteAudio() {}
-static void SNDImagineSetVolume(int volume) {}
-static int SNDImagineChangeVideoFormat(int vertfreq) { return 0; }
-
-static void mergeSamplesToStereo(s32 srcL, s32 srcR, s16 *dst)
-{
-	// Left Channel
-	if (srcL > 0x7FFF) *dst = 0x7FFF;
-	else if (srcL < -0x8000) *dst = -0x8000;
-	else *dst = srcL;
-	dst++;
-	// Right Channel
-	if (srcR > 0x7FFF) *dst = 0x7FFF;
-	else if (srcR < -0x8000) *dst = -0x8000;
-	else *dst = srcR;
-}
-
-static void SNDImagineUpdateAudioNull(u32 *leftchanbuffer, u32 *rightchanbuffer, u32 frames) {}
-
-static void SNDImagineUpdateAudio(u32 *leftchanbuffer, u32 *rightchanbuffer, u32 frames);
-
-static u32 SNDImagineGetAudioSpace()
-{
-	return 1024; // always render all samples available
-}
-
-static SoundInterface_struct SNDImagine
-{
-	SNDCORE_IMAGINE,
-	"Imagine Engine Sound Interface",
-	SNDImagineInit,
-	SNDImagineDeInit,
-	SNDImagineReset,
-	SNDImagineChangeVideoFormat,
-	SNDImagineUpdateAudio,
-	SNDImagineGetAudioSpace,
-	SNDImagineMuteAudio,
-	SNDImagineUnMuteAudio,
-	SNDImagineSetVolume
-};
-
-SoundInterface_struct *SNDCoreList[] =
-{
-	//&SNDDummy,
-	&SNDImagine,
-	nullptr
-};
-
-VideoInterface_struct *VIDCoreList[] =
-{
-	//&VIDDummy,
-	&VIDSoft,
-	nullptr
-};
-
-#if !defined HAVE_Q68 && !defined HAVE_C68K
-#warning No 68K cores compiled in
-#endif
-
-M68K_struct *M68KCoreList[] =
-{
-	//&M68KDummy,
-	#ifdef HAVE_C68K
-	&M68KC68K,
-	#endif
-	#ifdef HAVE_Q68
-	&M68KQ68,
-	#endif
-	nullptr
-};
-
-static void SNDImagineUpdateAudioNull(u32 *leftchanbuffer, u32 *rightchanbuffer, u32 frames);
-static void SNDImagineUpdateAudio(u32 *leftchanbuffer, u32 *rightchanbuffer, u32 frames);
 
 namespace EmuEx
 {
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2023\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nYabause Team\nyabause.org";
-bool EmuSystem::handlesGenericIO = false;
+constexpr SystemLogger log{"App"};
+
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.github.io";
+bool EmuSystem::handlesArchiveFiles = true;
+bool EmuSystem::hasResetModes = true;
 bool EmuSystem::hasRectangularPixels = true;
-static EmuSystemTaskContext emuSysTask{};
-static EmuAudio *emuAudio{};
-static EmuVideo *emuVideo{};
-PerPad_struct *pad[2];
+bool EmuSystem::hasPALVideoSystem = true;
+bool EmuSystem::stateSizeChangesAtRuntime = true;
+bool EmuApp::needsGlobalInstance = true;
+
+constexpr EmuSystem::BackupMemoryDirtyFlags sramDirtyBit = bit(0);
+constexpr EmuSystem::BackupMemoryDirtyFlags nvramDirtyBit = bit(1);
+constexpr EmuSystem::BackupMemoryDirtyFlags rtcDirtyBit = bit(2);
+constexpr EmuSystem::BackupMemoryDirtyFlags eepromDirtyBit = bit(3);
 
 SaturnApp::SaturnApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	EmuApp{initParams, ctx}, saturnSystem{ctx} {}
 
 static bool hasCDExtension(std::string_view name)
 {
-	return IG::endsWithAnyCaseless(name, ".cue", ".iso", ".bin");
+	return endsWithAnyCaseless(name, ".toc", ".cue", ".ccd", ".chd", ".m3u");
 }
-
-bool hasBIOSExtension(std::string_view name)
-{
-	return IG::endsWithAnyCaseless(name, ".bin");
-}
-
-static FS::PathString bupPath{};
-static char mpegPath[] = "";
-static char cartPath[] = "";
-
-FS::PathString biosPath{};
-
-yabauseinit_struct yinit
-{
-	PERCORE_DUMMY,
-	defaultSH2CoreID,
-	VIDCORE_SOFT,
-	SNDCORE_IMAGINE,
-	#if defined(HAVE_Q68)
-	M68KCORE_Q68,
-	#else
-	M68KCORE_C68K,
-	#endif
-	CDCORE_ISO,
-	CART_NONE,
-	REGION_AUTODETECT,
-	biosPath.data(),
-	{},
-	bupPath.data(),
-	mpegPath,
-	cartPath,
-	nullptr,
-	VIDEOFORMATTYPE_NTSC,
-	0,
-	0,
-	0,
-	0,
-	0
-};
 
 const char *EmuSystem::shortSystemName() const
 {
-	return "SS";
+	return "Saturn";
 }
 
 const char *EmuSystem::systemName() const
@@ -207,120 +81,349 @@ const char *EmuSystem::systemName() const
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasCDExtension;
 
-static constexpr auto pixFmt = IG::PIXEL_FMT_RGBA8888;
-
-CLINK void YuiSwapBuffers()
+void SaturnSystem::loadCartNV(EmuApp &app, FileIO &io)
 {
-	//logMsg("YuiSwapBuffers");
-	if(emuVideo) [[likely]]
+	using namespace MDFN_IEN_SS;
+	const char* ext = nullptr;
+	void* nv_ptr = nullptr;
+	bool nv16 = false;
+	uint64 nv_size = 0;
+	CART_GetNVInfo(&ext, &nv_ptr, &nv16, &nv_size);
+	if(!ext)
+		return;
+	auto fullExt = saveExtMDFN(ext, noMD5InFilenames);
+	if(!io)
+		io = app.appContext().openFileUri(app.contentSaveFilePath(fullExt), IOAccessHint::Normal, OpenFlags::testCreateFile());
+	if(!io)
+		throw std::runtime_error(std::format("Error opening {}, please verify save path has write access", contentNameExt(fullExt)));
+	auto buff = io.buffer();
+	if(!hasGzipHeader(buff))
 	{
-		int height, width;
-		VIDCore->GetGlSize(&width, &height);
-		IG::PixmapView srcPix{{{width, height}, pixFmt}, dispbuffer};
-		emuVideo->startFrameWithAltFormat(emuSysTask, srcPix);
-		emuVideo = {};
-		emuSysTask = {};
+		log.warn("skipped loading cart memory due to missing gzip header");
+		return;
 	}
-	else
+	auto outputSize = uncompressGzip({static_cast<uint8*>(nv_ptr), size_t(nv_size)}, buff);
+	if(!outputSize)
+		throw std::runtime_error("Error uncompressing cart memory");
+	if(nv16)
 	{
-		//logMsg("skipping render");
+		for(uint64 i = 0; i < nv_size; i += 2)
+		{
+			void* p = (uint8*)nv_ptr + i;
+			MDFN_ennsb<uint16>(p, MDFN_de16msb(p));
+		}
 	}
 }
 
-CLINK void YuiSetVideoAttribute(int type, int val) { }
-CLINK int YuiSetVideoMode(int width, int height, int bpp, int fullscreen) { return 0; }
-
-CLINK void YuiErrorMsg(const char *string)
+void SaturnSystem::saveCartNV(FileIO &io)
 {
-	logMsg("%s", string);
+	using namespace MDFN_IEN_SS;
+	if(!io)
+		return;
+	const char* ext = nullptr;
+	void* nv_ptr = nullptr;
+	bool nv16 = false;
+	uint64 nv_size = 0;
+	CART_GetNVInfo(&ext, &nv_ptr, &nv16, &nv_size);
+	if(!ext)
+		return;
+	DynArray<uint8_t> compBuff{size_t(nv_size)};
+	DynArray<uint8_t> byteSwapBuff;
+	if(nv16)
+	{
+		log.info("byte swapping cart RAM for file");
+		byteSwapBuff.reset(nv_size);
+		for(uint64 i = 0; i < nv_size; i += 2)
+		{
+			void* p = (uint8*)nv_ptr + i;
+			void* byteSwapPtr = (uint8*)byteSwapBuff.data() + i;
+			MDFN_enmsb<uint16>(byteSwapPtr, MDFN_densb<uint16>(p));
+		}
+		nv_ptr = byteSwapBuff.data();
+	}
+	compBuff.trim(compressGzip(compBuff, {static_cast<uint8*>(nv_ptr), size_t(nv_size)}, MDFN_GetSettingI("filesys.state_comp_level")));
+	io.truncate(0);
+	io.write(compBuff.span(), 0);
 }
 
-CLINK int OSDUseBuffer()
+void SaturnSystem::loadBackupMemory(EmuApp &app)
 {
-	return 0;
+	using namespace MDFN_IEN_SS;
+	logMsg("loading backup memory");
+	if(ActiveCartType == CART_STV)
+	{
+		app.setupStaticBackupMemoryFile(stvEepromFileIO, saveExtMDFN("seep", noMD5InFilenames), 0x80);
+		STVIO_LoadNV(stvEepromFileIO);
+	}
+	app.setupStaticBackupMemoryFile(rtcFileIO, saveExtMDFN("smpc", noMD5InFilenames), 12);
+	SMPC_LoadNV(rtcFileIO);
+	app.setupStaticBackupMemoryFile(backupRamFileIO, saveExtMDFN("bkr", noMD5InFilenames), 32768);
+	LoadBackupRAM(backupRamFileIO);
+	loadCartNV(app, cartRamFileIO);
 }
 
-CLINK int OSDChangeCore(int coreid)
+void SaturnSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags flags)
 {
-	return 0;
+	using namespace MDFN_IEN_SS;
+	if(!hasContent())
+		return;
+	logMsg("saving backup memory");
+	if(flags & sramDirtyBit && backupRamFileIO)
+		SaveBackupRAM(backupRamFileIO);
+	if(flags & nvramDirtyBit && cartRamFileIO)
+		saveCartNV(cartRamFileIO);
+	if(ActiveCartType == CART_STV && flags & eepromDirtyBit && stvEepromFileIO)
+		STVIO_SaveNV(stvEepromFileIO);
+	if(flags & rtcDirtyBit && rtcFileIO)
+		SMPC_SaveNV(rtcFileIO);
 }
 
-void SaturnSystem::reset(EmuApp &, ResetMode mode)
+WallClockTimePoint SaturnSystem::backupMemoryLastWriteTime(const EmuApp &app) const
 {
-	logMsg("resetting system");
-	assert(hasContent());
-	//Cs2ChangeCDCore(CDCORE_DUMMY, yinit.cdpath);
-	YabauseReset();
+	return appContext().fileUriLastWriteTime(savePathMDFN(app, 0, "bkr", noMD5InFilenames).c_str());
 }
 
 FS::FileString SaturnSystem::stateFilename(int slot, std::string_view name) const
 {
-	return IG::format<FS::FileString>("{}.0{}.yss", name, saveSlotCharUpper(slot));
+	return stateFilenameMDFN(*MDFNGameInfo, slot, name, 'q', noMD5InFilenames);
 }
-
-size_t SaturnSystem::stateSize() { return 0; }
-void SaturnSystem::readState(EmuApp &app, std::span<uint8_t> buff) {}
-size_t SaturnSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags) { return 0; }
-
-void SaturnSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags)
-{
-	if(hasContent())
-	{
-		logMsg("saving backup memory");
-		T123Save(BupRam, 0x10000, 1, bupPath.data());
-	}
-}
-
-static bool yabauseIsInit = 0;
 
 void SaturnSystem::closeSystem()
 {
-	if(yabauseIsInit)
-	{
-		YabauseDeInit();
-		yabauseIsInit = 0;
-	}
+	mdfnGameInfo.CloseGame();
+	clearCDInterfaces(CDInterfaces);
+	backupRamFileIO = {};
+	cartRamFileIO = {};
+	stvEepromFileIO = {};
+	rtcFileIO = {};
 }
 
-void SaturnSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
+WSize SaturnSystem::multiresVideoBaseSize() const { return {704, 0}; }
+
+static FrameTime makeFrameTime(uint8 InterlaceMode)
 {
-	bupPath = contentSavePath("bkram.bin");
-	if(YabauseInit(&yinit) != 0)
+	using namespace MDFN_IEN_SS;
+	const double masterClock = VDP2::PAL ? 1734687500. : 1746818181.8181818181;
+	const double vdpClock = masterClock / 61. / 4.;
+	if(VDP2::PAL)
 	{
-		logErr("YabauseInit failed");
-		throw std::runtime_error("Error loading game");
+		const double lines = InterlaceMode ? 312.5 : 313.;
+		return std::chrono::duration_cast<FrameTime>(FloatSeconds{454.99 * lines / vdpClock});
 	}
-	logMsg("YabauseInit done");
-	yabauseIsInit = 1;
-
-	PerPortReset();
-	pad[0] = PerPadAdd(&PORTDATA1);
-	pad[1] = PerPadAdd(&PORTDATA2);
-	ScspSetFrameAccurate(1);
+	else
+	{
+		const double lines = InterlaceMode ? 262.5 : 263.;
+		return std::chrono::duration_cast<FrameTime>(FloatSeconds{454.99 * lines / vdpClock});
+	}
 }
+
+static std::vector<std::string> m3uFilenames(auto &io)
+{
+	std::vector<std::string> filenames;
+	auto in = IStream<MapIO>{MapIO{io}};
+	for(std::string line; std::getline(in, line);)
+	{
+		filenames.emplace_back(std::move(line));
+		if(filenames.size() > 15)
+			break;
+	}
+	return filenames;
+}
+
+static bool isM3U(std::string_view s)
+{
+	return endsWithAnyCaseless(s, ".m3u");
+}
+
+static ArchiveIO scanCDImages(ArchiveIO arch)
+{
+	// prioritize .m3u in archives
+	bool hasM3U = FS::seekFileInArchive(arch, [](auto &entry) { return isM3U(entry.name()); });
+	if(hasM3U)
+	{
+		log.info("found M3U:{}", arch.name());
+		return arch;
+	}
+	else
+	{
+		arch.rewind();
+		return FS::findFileInArchive(std::move(arch), [](auto &entry) { return EmuSystem::defaultFsFilter(entry.name()); });
+	}
+}
+
+void SaturnSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+{
+	bool isArchive = EmuApp::hasArchiveExtension(contentFileName());
+	auto unloadCD = scopeGuard([&]() { clearCDInterfaces(CDInterfaces); });
+	if(isArchive)
+	{
+		auto cdImgFile = scanCDImages(ArchiveIO{std::move(io)});
+		if(!cdImgFile)
+			throw std::runtime_error("No recognized file extensions in archive");
+		contentFileName_ = cdImgFile.name();
+		std::vector<std::string> filenames;
+		if(endsWithAnyCaseless(cdImgFile.name(), ".m3u"))
+		{
+			filenames = m3uFilenames(cdImgFile);
+		}
+		else
+		{
+			filenames.emplace_back(cdImgFile.name());
+		}
+		ArchiveVFS archVFS{std::move(cdImgFile)};
+		for(auto &fn : filenames)
+		{
+			CDInterfaces.emplace_back(CDInterface::Open(&archVFS, std::move(fn), true, 0));
+		}
+	}
+	else
+	{
+		bool isCHD = endsWithAnyCaseless(contentFileName(), ".chd");
+		if(contentDirectory().empty() && !isCHD)
+		{
+			throwMissingContentDirError();
+		}
+		std::vector<std::string> filenames;
+		if(isM3U(contentFileName()))
+		{
+			filenames = m3uFilenames(io);
+		}
+		else
+		{
+			filenames.emplace_back(contentLocation());
+		}
+		for(auto &fn : filenames)
+		{
+			CDInterfaces.emplace_back(CDInterface::Open(&NVFS, std::move(fn), false, 0));
+		}
+	}
+	if(!CDInterfaces.size())
+		throw std::runtime_error("No disc images found");
+	writeCDMD5(mdfnGameInfo, CDInterfaces);
+	mdfnGameInfo.LoadCD(&CDInterfaces);
+	MDFN_IEN_SS::CDB_SetDisc(false, CDInterfaces[0]);
+	unloadCD.cancel();
+	mdfnGameInfo.SetInput(12, "builtin", reinterpret_cast<uint8*>(&inputBuff[12]));
+	applyInputConfig(EmuApp::get(appContext()));
+	if(!videoLines)
+	{
+		videoLines = MDFN_IEN_SS::VDP2::PAL ? defaultPalLines : defaultNtscLines;
+		updateVideoSettings();
+	}
+	updatePixmap(mSurfacePix.format());
+	mSurfacePix.clear();
+	lastInterlaceMode = MDFN_IEN_SS::VDP2::InterlaceMode;
+	frameTime_ = makeFrameTime(MDFN_IEN_SS::VDP2::InterlaceMode);
+}
+
+bool SaturnSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
+{
+	updatePixmap(fmt);
+	return false;
+}
+
+void SaturnSystem::updatePixmap(IG::PixelFormat fmt)
+{
+	mSurfacePix = {{{mdfnGameInfo.fb_width, mdfnGameInfo.fb_height}, fmt}, pixBuff};
+}
+
+FrameTime SaturnSystem::frameTime() const { return frameTime_; }
 
 void SaturnSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
 {
-	// TODO
+	espec.SoundRate = audioMixRate(outputRate, outputFrameTime);
 }
 
 void SaturnSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
-	emuSysTask = taskCtx;
-	emuVideo = video;
-	emuAudio = audio;
-	SNDImagine.UpdateAudio = audio ? SNDImagineUpdateAudio : SNDImagineUpdateAudioNull;
-	YabauseEmulate();
-	emuAudio = {};
+	static constexpr size_t maxAudioFrames = 48000 / minFrameRate;
+	static constexpr size_t maxLineWidths = maxFrameBuffHeight;
+	using namespace Mednafen;
+	int16 audioBuff[maxAudioFrames * 2];
+	espec.audio = audio;
+	espec.SoundBuf = audio ? audioBuff : nullptr;
+	espec.SoundBufMaxSize = audio ? maxAudioFrames : 0;
+	espec.SoundBufSize = 0;
+	espec.taskCtx = taskCtx;
+	espec.video = video;
+	espec.skip = !video;
+	auto mSurface = toMDFNSurface(mSurfacePix);
+	espec.surface = &mSurface;
+	int32 lineWidths[maxLineWidths];
+	lineWidths[0] = lineWidths[1] = 0; // first line widths are not always set by emulation code
+	espec.LineWidths = lineWidths;
+	mdfnGameInfo.Emulate(&espec);
+	if(lastInterlaceMode != MDFN_IEN_SS::VDP2::InterlaceMode) [[unlikely]]
+	{
+		lastInterlaceMode = MDFN_IEN_SS::VDP2::InterlaceMode;
+		frameTime_ = makeFrameTime(MDFN_IEN_SS::VDP2::InterlaceMode);
+		onFrameTimeChanged();
+	}
 }
+
+void SaturnSystem::reset(EmuApp &, ResetMode mode)
+{
+	assert(hasContent());
+	if(mode == ResetMode::SOFT)
+	{
+		MDFN_IEN_SS::ResetPending = true;
+	}
+	else
+	{
+		MDFN_IEN_SS::SS_Reset(true);
+	}
+}
+
+int SaturnSystem::currentDiscId() const { return findIndex(CDInterfaces, MDFN_IEN_SS::Cur_CDIF); }
+
+void SaturnSystem::setDisc(int id)
+{
+	auto currId = currentDiscId();
+	if(currId == id)
+		return;
+	log.info("ejecting disc");
+	MDFN_IEN_SS::CDB_SetDisc(true, nullptr);
+	if(id != -1)
+	{
+		log.info("inserting disc:{}", id);
+		MDFN_IEN_SS::CDB_SetDisc(false, CDInterfaces[id]);
+	}
+}
+
+void SaturnSystem::updateVideoSettings()
+{
+	MDFN_IEN_SS::VDP2::SetGetVideoParams(&mdfnGameInfo, true, videoLines.first, videoLines.last, showHOverscan, false);
+}
+
+void SaturnSystem::renderFramebuffer(EmuVideo &video)
+{
+	espec.video = &video;
+	int32 lineWidths[2]{video.size().x};
+	espec.LineWidths = lineWidths;
+	MDFND_commitVideoFrame(&espec);
+}
+
+double SaturnSystem::videoAspectRatioScale() const
+{
+	double horizontalScaler = 352. / 341.; // full pixel width / cropped width
+	double baseLines = 224.;
+	assumeExpr(videoLines.size() != 0);
+	double lineAspectScaler = baseLines / videoLines.size();
+	return (correctLineAspect ? lineAspectScaler : 1.)
+		* (showHOverscan ? horizontalScaler : 1.);
+}
+
+size_t SaturnSystem::stateSize() { return currStateSize; }
+void SaturnSystem::readState(EmuApp &app, std::span<uint8_t> buff) { readStateMDFN(app, buff); }
+size_t SaturnSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags) { return writeStateMDFN(buff, flags); }
 
 void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
-		{ .0, Gfx::PackedColor::format.build(.8 * .4, 0., 0., 1.) },
-		{ .3, Gfx::PackedColor::format.build(.8 * .4, 0., 0., 1.) },
-		{ .97, Gfx::PackedColor::format.build(.2 * .4, 0., 0., 1.) },
+		{ .0, Gfx::PackedColor::format.build((103./255.) * .7, (176./255.) * .7, (255./255.) * .7, 1.) },
+		{ .3, Gfx::PackedColor::format.build((103./255.) * .7, (176./255.) * .7, (255./255.) * .7, 1.) },
+		{ .97, Gfx::PackedColor::format.build((103./255.) * .4, (176./255.) * .4, (255./255.) * .4, 1.) },
 		{ 1., view.separatorColor() },
 	};
 	view.setBackgroundGradient(navViewGrad);
@@ -328,21 +431,57 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 
 }
 
-static void SNDImagineUpdateAudio(u32 *leftchanbuffer, u32 *rightchanbuffer, u32 frames)
+namespace Mednafen
 {
-	//logMsg("got %d audio frames to write", frames);
-	s16 sample[frames*2];
-	for(auto i : IG::iotaCount(frames))
+
+void MDFN_MidSync(EmulateSpecStruct *espec, const unsigned flags)
+{
+	if(!espec->audio)
+		return;
+	//log.debug("{} audio frames", espec.SoundBufSize);
+	espec->audio->writeFrames(espec->SoundBuf, std::exchange(espec->SoundBufSize, 0));
+}
+
+void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
+{
+	auto &sys = static_cast<EmuEx::SaturnSystem&>(*espec->sys);
+	int width = std::max(espec->LineWidths[0], espec->LineWidths[1]);
+	IG::PixmapView srcPix = sys.mSurfacePix.subView(
+		{espec->DisplayRect.x, espec->DisplayRect.y},
+		{width, espec->DisplayRect.h});
+	espec->video->startFrameWithFormat(espec->taskCtx, srcPix);
+}
+
+void MDFN_MediaStateAction(StateMem *sm, const unsigned load, const bool data_only)
+{
+	auto &sys = static_cast<EmuEx::SaturnSystem&>(EmuEx::gSystem());
+	auto discId = sys.currentDiscId();
+	bool discPresent = discId != -1;
+	std::array<DriveMediaStatus, 1> dms
 	{
-		mergeSamplesToStereo(leftchanbuffer[i], rightchanbuffer[i], &sample[i*2]);
-	}
-	if(EmuEx::emuAudio)
+		{{discPresent ? 2u : 0, discPresent ? uint32(discId) : 0, 0}}
+	};
+	SFORMAT StateRegs[]
 	{
-		EmuEx::emuAudio->writeFrames(sample, frames);
+		SFVARN(dms.data()->state_idx, dms.size(), sizeof(*dms.data()), dms.data(), "state_idx"),
+		SFVARN(dms.data()->media_idx, dms.size(), sizeof(*dms.data()), dms.data(), "media_idx"),
+		SFVARN(dms.data()->orientation_idx, dms.size(), sizeof(*dms.data()), dms.data(), "orientation_idx"),
+		SFEND
+	};
+	if(MDFNSS_StateAction(sm, load, data_only, StateRegs, "MDFNDRIVE_00000000", true) && load)
+	{
+		// Be sure to set media before loading the emulation module state, as setting media
+		// may affect what state is saved in the emulation module code, and setting media
+		// can also have side effects(that will be undone by the state load).
+		if(!dms[0].state_idx)
+		{
+			sys.setDisc(-1);
+		}
+		else if(dms[0].media_idx < sys.CDInterfaces.size())
+		{
+			sys.setDisc(dms[0].media_idx);
+		}
 	}
 }
 
-CLINK void DisplayMessage(const char* str) {}
-CLINK int OSDInit(int coreid) { return 0; }
-CLINK void OSDPushMessage(int msgtype, int ttl, const char * message, ...) {}
-CLINK void OSDDisplayMessages(void) {}
+}

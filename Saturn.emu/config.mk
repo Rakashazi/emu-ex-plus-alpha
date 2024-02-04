@@ -3,6 +3,7 @@ ifndef EMUFRAMEWORK_PATH
 endif
 metadata_confDeps = $(EMUFRAMEWORK_PATH)/metadata/conf.mk
 
-# TODO: address sanitizer makes emulation very slow and triggers
-# fault with call to sh2_recompile_block() -> sh2_set_const()
-compiler_noSanitizeAddress := 1
+# A 64-bit device is needed for performance reasons
+android_minSDK = 21
+android_arch = arm64 x86_64
+ios_arch = arm64

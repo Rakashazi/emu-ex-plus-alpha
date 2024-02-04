@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image: ["2600.emu", "C64.emu", "GBA.emu", "GBC.emu", "Lynx.emu", "MD.emu", "MSX.emu", "NEO.emu", "NES.emu", "NGP.emu", "PCE.emu", "Snes9x", "Snes9x-1.43-9", "Snes9x-1.43-15", "Swan.emu"]
+        image: ["2600.emu", "C64.emu", "GBA.emu", "GBC.emu", "Lynx.emu", "MD.emu", "MSX.emu", "NEO.emu", "NES.emu", "NGP.emu", "PCE.emu", "Snes9x", "Snes9x-1.43-9", "Snes9x-1.43-15", "Swan.emu", "Saturn.emu"]
 
     steps:
     - name: Checkout emu-ex-plus-alpha repo
@@ -60,15 +60,15 @@ jobs:
 
     - name: Build environment
       run: |
-        make -f $IMAGINE_PATH/android-release.mk install V=1 -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk config -j2
-        make -f $EMUFRAMEWORK_PATH/android-release.mk install V=1 -j2
+        make -f $IMAGINE_PATH/android-release.mk install V=1 -j`nproc`
+        make -f $EMUFRAMEWORK_PATH/android-release.mk config -j`nproc`
+        make -f $EMUFRAMEWORK_PATH/android-release.mk install V=1 -j`nproc`
 
     - name: Build 2600.emu
       if: ${{ matrix.image == '2600.emu' }}
       run: |
         cd 2600.emu
-        make -f android-release.mk android-apk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j`nproc`
 
     - name: Copy 2600.emu artifact
       if: ${{ matrix.image == '2600.emu' }}
@@ -86,7 +86,7 @@ jobs:
       if: ${{ matrix.image == 'C64.emu' }}
       run: |
         cd C64.emu
-        make -f android-release.mk android-apk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j`nproc`
 
     - name: Copy C64.emu artifact
       if: ${{ matrix.image == 'C64.emu' }}
@@ -104,7 +104,7 @@ jobs:
       if: ${{ matrix.image == 'GBA.emu' }}
       run: |
         cd GBA.emu
-        make -f android-release.mk android-apk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j`nproc`
 
     - name: Copy GBA.emu artifact
       if: ${{ matrix.image == 'GBA.emu' }}
@@ -122,7 +122,7 @@ jobs:
       if: ${{ matrix.image == 'GBC.emu' }}
       run: |
         cd GBC.emu
-        make -f android-release.mk android-apk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j`nproc`
 
     - name: Copy GBC.emu artifact
       if: ${{ matrix.image == 'GBC.emu' }}
@@ -140,7 +140,7 @@ jobs:
       if: ${{ matrix.image == 'Lynx.emu' }}
       run: |
         cd Lynx.emu
-        make -f android-release.mk android-apk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j`nproc`
 
     - name: Copy Lynx.emu artifact
       if: ${{ matrix.image == 'Lynx.emu' }}
@@ -158,7 +158,7 @@ jobs:
       if: ${{ matrix.image == 'MD.emu' }}
       run: |
         cd MD.emu
-        make -f android-release.mk android-apk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j`nproc`
 
     - name: Copy MD.emu artifact
       if: ${{ matrix.image == 'MD.emu' }}
@@ -176,7 +176,7 @@ jobs:
       if: ${{ matrix.image == 'MSX.emu' }}
       run: |
         cd MSX.emu
-        make -f android-release.mk android-apk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j`nproc`
 
     - name: Copy MSX.emu artifact
       if: ${{ matrix.image == 'MSX.emu' }}
@@ -194,7 +194,7 @@ jobs:
       if: ${{ matrix.image == 'NEO.emu' }}
       run: |
         cd NEO.emu
-        make -f android-release.mk android-apk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j`nproc`
 
     - name: Copy NEO.emu artifact
       if: ${{ matrix.image == 'NEO.emu' }}
@@ -212,7 +212,7 @@ jobs:
       if: ${{ matrix.image == 'NES.emu' }}
       run: |
         cd NES.emu
-        make -f android-release.mk android-apk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j`nproc`
 
     - name: Copy NES.emu artifact
       if: ${{ matrix.image == 'NES.emu' }}
@@ -230,7 +230,7 @@ jobs:
       if: ${{ matrix.image == 'NGP.emu' }}
       run: |
         cd NGP.emu
-        make -f android-release.mk android-apk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j`nproc`
 
     - name: Copy NGP.emu artifact
       if: ${{ matrix.image == 'NGP.emu' }}
@@ -248,7 +248,7 @@ jobs:
       if: ${{ matrix.image == 'PCE.emu' }}
       run: |
         cd PCE.emu
-        make -f android-release.mk android-apk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j`nproc`
 
     - name: Copy PCE.emu artifact
       if: ${{ matrix.image == 'PCE.emu' }}
@@ -266,7 +266,7 @@ jobs:
       if: ${{ matrix.image == 'Snes9x' }}
       run: |
         cd Snes9x
-        make -f android-release.mk android-apk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j`nproc`
 
     - name: Copy Snes9x artifact
       if: ${{ matrix.image == 'Snes9x' }}
@@ -284,7 +284,7 @@ jobs:
       if: ${{ matrix.image == 'Snes9x-1.43-9' }}
       run: |
         cd Snes9x/1.43
-        make -f android-release-9.mk android-apk V=1 -j2
+        make -f android-release-9.mk android-apk V=1 -j`nproc`
 
     - name: Copy Snes9x-1.43-9 artifact
       if: ${{ matrix.image == 'Snes9x-1.43-9' }}
@@ -302,7 +302,7 @@ jobs:
       if: ${{ matrix.image == 'Snes9x-1.43-15' }}
       run: |
         cd Snes9x/1.43
-        make -f android-release-15.mk android-apk V=1 -j2
+        make -f android-release-15.mk android-apk V=1 -j`nproc`
 
     - name: Copy Snes9x-1.43-15 artifact
       if: ${{ matrix.image == 'Snes9x-1.43-15' }}
@@ -320,7 +320,7 @@ jobs:
       if: ${{ matrix.image == 'Swan.emu' }}
       run: |
         cd Swan.emu
-        make -f android-release.mk android-apk V=1 -j2
+        make -f android-release.mk android-apk V=1 -j`nproc`
 
     - name: Copy Swan.emu artifact
       if: ${{ matrix.image == 'Swan.emu' }}
@@ -333,6 +333,24 @@ jobs:
       with:
         name: Swanemu
         path: ${{ github.workspace }}/Swan.emu/target/android-release/build/outputs/apk/release/SwanEmu-release.apk
+
+    - name: Build Saturn.emu
+      if: ${{ matrix.image == 'Saturn.emu' }}
+      run: |
+        cd Saturn.emu
+        make -f android-release.mk android-apk V=1 -j`nproc`
+
+    - name: Copy Saturn.emu artifact
+      if: ${{ matrix.image == 'Saturn.emu' }}
+      run: |
+        cp Saturn.emu/target/android-release/build/outputs/apk/release/SaturnEmu-release.apk EX-Emulators/SaturnEmu-release.apk
+
+    - name: Upload Saturn.emu artifact
+      uses: actions/upload-artifact@v3
+      if: ${{ matrix.image == 'Saturn.emu' }}
+      with:
+        name: Saturnemu
+        path: ${{ github.workspace }}/Saturn.emu/target/android-release/build/outputs/apk/release/SaturnEmu-release.apk
 
     - name: Upload EX-Emulators artifacts
       uses: actions/upload-artifact@v3
