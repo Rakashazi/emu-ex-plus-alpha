@@ -8,3 +8,7 @@ __asm__(".symver powf,powf@GLIBC_2.4");
 __asm__(".symver pow,pow@GLIBC_2.4");
 __asm__(".symver log,log@GLIBC_2.4");
 __asm__(".symver fcntl,fcntl@GLIBC_2.4");
+__asm__(".symver __isoc23_sscanf,sscanf@GLIBC_2.4");
+__asm__(".symver __isoc23_fscanf,fscanf@GLIBC_2.4");
+__asm__(".symver __isoc23_strtoul,strtoul@GLIBC_2.4");
+__asm__(".symver __isoc23_strtol,strtol@GLIBC_2.4");

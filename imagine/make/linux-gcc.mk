@@ -28,4 +28,10 @@ ifndef PROFILE
  OPTIMIZE_LDFLAGS = -s
 endif
 LDLIBS += -lm
-LDFLAGS_SYSTEM += -fuse-ld=mold -Wl,-O3,--gc-sections,--as-needed,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all
+LDFLAGS_SYSTEM += -Wl,-O3,--gc-sections,--as-needed,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all
+
+ifneq ($(ARCH),arm)
+ LDFLAGS_SYSTEM += -fuse-ld=mold
+else
+ LDFLAGS_SYSTEM += -fuse-ld=gold
+endif

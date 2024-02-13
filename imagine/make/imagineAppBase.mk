@@ -1,25 +1,11 @@
 CPPFLAGS += -I$(genPath)
 VPATH += $(projectPath)/src
 
-ifdef makeConfigH
- genConfigH = $(genPath)/config.h
-endif
-
-genMetaH = $(genPath)/meta.h
-
 .SUFFIXES: 
 .PHONY: all main config metadata-header
 all : main
 
-ifdef makeConfigH
-# config.h is only built if not present, needs manual deletion to update
-$(genConfigH) :
-	@echo "Generating Config $@"
-	@mkdir -p $(@D)
-	$(PRINT_CMD)bash $(IMAGINE_PATH)/make/writeConfig.sh $@ "$(configDefs)" "$(configInc)" "$(configIncNext)"
-config : $(genConfigH)
-endif
-
+genMetaH = $(genPath)/meta.h
 include $(projectPath)/metadata/conf.mk
 $(genMetaH) :
 	@echo "Generating Metadata Header $@"

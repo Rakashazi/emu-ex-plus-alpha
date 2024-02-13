@@ -17,11 +17,11 @@
 
 #include <imagine/config/defs.hh>
 
-#ifdef CONFIG_BASE_X11
+#ifdef CONFIG_PACKAGE_X11
 #include <imagine/base/x11/inputDefs.hh>
 #elif defined __ANDROID__
 #include <imagine/base/android/inputDefs.hh>
-#elif defined CONFIG_BASE_IOS
+#elif defined CONFIG_OS_IOS
 #include <imagine/base/iphone/inputDefs.hh>
 #elif defined CONFIG_BASE_MACOSX
 #include <imagine/base/osx/inputDefs.hh>

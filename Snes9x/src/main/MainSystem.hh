@@ -26,7 +26,7 @@ enum
 	CFGKEY_SUPERFX_CLOCK_MULTIPLIER = 282, CFGKEY_ALLOW_EXTENDED_VIDEO_LINES = 283,
 	CFGKEY_CHEATS_PATH = 284, CFGKEY_PATCHES_PATH = 285,
 	CFGKEY_SATELLAVIEW_PATH = 286, CFGKEY_SUFAMI_BIOS_PATH = 287,
-	CFGKEY_BSX_BIOS_PATH = 288,
+	CFGKEY_BSX_BIOS_PATH = 288, CFGKEY_DEINTERLACE_MODE = 289,
 };
 
 #ifdef SNES9X_VERSION_1_4
@@ -70,6 +70,7 @@ public:
 	int doubleClickFrames{}, rightClickFrames{};
 	Input::PointerId mousePointerId{Input::NULL_POINTER_ID};
 	bool dragWithButton{}; // true to start next mouse drag with a button held
+	DeinterlaceMode deinterlaceMode{DeinterlaceMode::Bob};
 	Byte1Option optionMultitap{CFGKEY_MULTITAP, 0};
 	SByte1Option optionInputPort{CFGKEY_INPUT_PORT, inputPortMinVal, false, optionIsValidWithMinMax<inputPortMinVal, SNES_JUSTIFIER>};
 	Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMax<3>};
@@ -109,6 +110,7 @@ public:
 	void setupSNESInput(VController &);
 	static bool hasBiosExtension(std::string_view name);
 	FloatSeconds frameTimeSecs() const { return videoSystem() == VideoSystem::PAL ? palFrameTimeSecs : ntscFrameTimeSecs; }
+	MutablePixmapView fbPixmapView(WSize size, bool useInterlaceFields);
 
 	// required API functions
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);

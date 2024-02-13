@@ -30,17 +30,13 @@ LinuxApplication::LinuxApplication(ApplicationInitParams initParams):
 	BaseApplication{({initParams.ctxPtr->setApplicationPtr(static_cast<Application*>(this)); *initParams.ctxPtr;})}
 {
 	setAppPath(FS::makeAppPathFromLaunchCommand(initParams.argv[0]));
-	#ifdef CONFIG_BASE_DBUS
 	initDBus();
-	#endif
 	initEvdev(initParams.eventLoop);
 }
 
 LinuxApplication::~LinuxApplication()
 {
-	#ifdef CONFIG_BASE_DBUS
 	deinitDBus();
-	#endif
 }
 
 const FS::PathString &LinuxApplication::appPath() const
@@ -52,6 +48,15 @@ void LinuxApplication::setAppPath(FS::PathString path)
 {
 	appPath_ = std::move(path);
 }
+
+#ifndef CONFIG_PACKAGE_DBUS
+bool LinuxApplication::initDBus() { return false; }
+void LinuxApplication::deinitDBus() {}
+void LinuxApplication::setIdleDisplayPowerSave(bool) {}
+void LinuxApplication::endIdleByUserActivity() {}
+bool LinuxApplication::registerInstance(ApplicationInitParams, char const*) { return false; }
+void LinuxApplication::setAcceptIPC(bool, char const*) {}
+#endif
 
 }
 

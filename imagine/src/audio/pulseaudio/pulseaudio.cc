@@ -18,7 +18,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/ScopeGuard.hh>
 #include <pulse/pulseaudio.h>
-#ifdef CONFIG_AUDIO_PULSEAUDIO_GLIB
+#ifdef CONFIG_PACKAGE_PULSEAUDIO_GLIB
 #include <pulse/glib-mainloop.h>
 #else
 #include <pulse/thread-mainloop.h>
@@ -286,7 +286,7 @@ PAOutputStream::operator bool() const
 
 void PAOutputStream::lockMainLoop()
 {
-	#ifdef CONFIG_AUDIO_PULSEAUDIO_GLIB
+	#ifdef CONFIG_PACKAGE_PULSEAUDIO_GLIB
 	// no-op
 	#else
 	pa_threaded_mainloop_lock(mainloop);
@@ -295,7 +295,7 @@ void PAOutputStream::lockMainLoop()
 
 void PAOutputStream::unlockMainLoop()
 {
-	#ifdef CONFIG_AUDIO_PULSEAUDIO_GLIB
+	#ifdef CONFIG_PACKAGE_PULSEAUDIO_GLIB
 	// no-op
 	#else
 	pa_threaded_mainloop_unlock(mainloop);
@@ -304,7 +304,7 @@ void PAOutputStream::unlockMainLoop()
 
 void PAOutputStream::signalMainLoop()
 {
-	#ifdef CONFIG_AUDIO_PULSEAUDIO_GLIB
+	#ifdef CONFIG_PACKAGE_PULSEAUDIO_GLIB
 	log.info("signaling main loop");
 	assert(!mainLoopSignaled);
 	mainLoopSignaled = true;
@@ -315,7 +315,7 @@ void PAOutputStream::signalMainLoop()
 
 void PAOutputStream::iterateMainLoop()
 {
-	#ifdef CONFIG_AUDIO_PULSEAUDIO_GLIB
+	#ifdef CONFIG_PACKAGE_PULSEAUDIO_GLIB
 	int iterations = 0;
 	while(g_main_context_iteration(nullptr, false) == TRUE)
 	{
@@ -329,7 +329,7 @@ void PAOutputStream::iterateMainLoop()
 
 void PAOutputStream::waitMainLoop()
 {
-	#ifdef CONFIG_AUDIO_PULSEAUDIO_GLIB
+	#ifdef CONFIG_PACKAGE_PULSEAUDIO_GLIB
 	int iterations = 0;
 	while(!mainLoopSignaled)
 	{
@@ -345,7 +345,7 @@ void PAOutputStream::waitMainLoop()
 
 void PAOutputStream::startMainLoop()
 {
-	#ifdef CONFIG_AUDIO_PULSEAUDIO_GLIB
+	#ifdef CONFIG_PACKAGE_PULSEAUDIO_GLIB
 	// no-op
 	#else
 	pa_threaded_mainloop_start(mainloop);
@@ -354,7 +354,7 @@ void PAOutputStream::startMainLoop()
 
 void PAOutputStream::stopMainLoop()
 {
-	#ifdef CONFIG_AUDIO_PULSEAUDIO_GLIB
+	#ifdef CONFIG_PACKAGE_PULSEAUDIO_GLIB
 	// no-op
 	#else
 	pa_threaded_mainloop_stop(mainloop);
@@ -363,7 +363,7 @@ void PAOutputStream::stopMainLoop()
 
 void PAOutputStream::freeMainLoop()
 {
-	#ifdef CONFIG_AUDIO_PULSEAUDIO_GLIB
+	#ifdef CONFIG_PACKAGE_PULSEAUDIO_GLIB
 	pa_glib_mainloop_free(mainloop);
 	#else
 	pa_threaded_mainloop_free(mainloop);

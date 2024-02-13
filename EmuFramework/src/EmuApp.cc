@@ -1208,6 +1208,20 @@ FS::PathString EmuApp::validSearchPath(const FS::PathString &path) const
 	return nullptr;
 }
 
+std::unique_ptr<YesNoAlertView> EmuApp::makeCloseContentView()
+{
+	return std::make_unique<YesNoAlertView>(attachParams(), "Really close current content?",
+		YesNoAlertView::Delegates
+		{
+			.onYes = [this]
+			{
+				closeSystem(); // pops any System Actions views in the stack
+				viewController().popModalViews();
+				return false;
+			}
+		});
+}
+
 bool EmuApp::handleKeyInput(KeyInfo keyInfo, const Input::Event &srcEvent)
 {
 	if(!keyInfo.flags.appCode)
@@ -1244,6 +1258,13 @@ bool EmuApp::handleAppActionKeyInput(InputAction action, const Input::Event &src
 			log.info("show load game view from key event");
 			viewController().popToRoot();
 			viewController().pushAndShow(FilePicker::forLoading(attachParams(), srcEvent), srcEvent, false);
+			return true;
+		}
+		case closeContent:
+		{
+			if(!isPushed)
+				break;
+			viewController().pushAndShowModal(makeCloseContentView(), srcEvent, false);
 			return true;
 		}
 		case openSystemActions:

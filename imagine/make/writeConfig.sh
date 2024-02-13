@@ -1,18 +1,23 @@
 NEW=
 for def in $2; do
-	NEW="${NEW}#define ${def/=/ }
+	NEW="${NEW}#define ${def/=/ } 1
 "
 done
 
 for inc in $3; do
-	NEW="${NEW}#include $inc
+	NEW="${NEW}#define ${def/=/ } 0
 "
 done
 
 for inc in $4; do
-	NEW="${NEW}#include_next $inc
+	NEW="${NEW}#include $inc
 "
 done
+
+# check for empty config
+if [ -z "${NEW}" ]; then
+	exit 0
+fi
 
 if [ -f $1 ]; then
 	OLD=`cat $1`"
@@ -24,5 +29,5 @@ if [ -f $1 ]; then
 	fi
 fi
 
-#echo "writing config to $1"
+echo "Generating Config $1"
 printf "$NEW" > $1

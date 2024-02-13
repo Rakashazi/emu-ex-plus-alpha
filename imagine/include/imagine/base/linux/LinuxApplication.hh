@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/BaseApplication.hh>
 #include <imagine/fs/FSDefs.hh>
-#ifdef CONFIG_BASE_DBUS
+#if CONFIG_PACKAGE_DBUS
 #include <gio/gio.h>
 #endif
 #include <imagine/base/EventLoop.hh>
@@ -60,7 +60,7 @@ public:
 
 protected:
 	FDEventSource evdevSrc{};
-	#ifdef CONFIG_BASE_DBUS
+	#if CONFIG_PACKAGE_DBUS
 	GDBusConnection *gbus{};
 	unsigned openPathSub{};
 	uint32_t screenSaverCookie{};

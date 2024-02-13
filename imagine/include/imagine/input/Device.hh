@@ -23,12 +23,12 @@
 #include <string_view>
 #include <span>
 
-#ifdef CONFIG_BASE_X11
+#ifdef CONFIG_PACKAGE_X11
 #include <imagine/base/x11/XInputDevice.hh>
 #include <imagine/input/evdev/EvdevInputDevice.hh>
 #elif defined __ANDROID__
 #include <imagine/base/android/AndroidInputDevice.hh>
-#elif defined CONFIG_BASE_IOS
+#elif defined CONFIG_OS_IOS
 #include <imagine/input/apple/KeyboardDevice.hh>
 #endif
 #ifdef CONFIG_INPUT_BLUETOOTH
@@ -61,12 +61,12 @@ struct KeyNameFlags
 class NullDevice : public BaseDevice {};
 
 using DeviceVariant = std::variant<
-#ifdef CONFIG_BASE_X11
+#ifdef CONFIG_PACKAGE_X11
 XInputDevice,
 EvdevInputDevice,
 #elif defined __ANDROID__
 AndroidInputDevice,
-#elif defined CONFIG_BASE_IOS
+#elif defined CONFIG_OS_IOS
 KeyboardDevice,
 #endif
 #ifdef CONFIG_INPUT_BLUETOOTH

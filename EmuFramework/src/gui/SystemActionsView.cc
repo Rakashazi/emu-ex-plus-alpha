@@ -195,11 +195,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 		"Close Content", attach,
 		[this](const Input::Event &e)
 		{
-			pushAndShowModal(makeView<YesNoAlertView>("Really close current content?",
-				YesNoAlertView::Delegates
-				{
-					.onYes = [this] { app().closeSystem(); return false; } // pops any System Actions views in the stack
-				}), e);
+			pushAndShowModal(app().makeCloseContentView(), e);
 		}
 	}
 {

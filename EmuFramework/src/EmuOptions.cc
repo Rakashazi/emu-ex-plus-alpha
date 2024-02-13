@@ -37,7 +37,7 @@ constexpr SystemLogger log{"App"};
 
 void EmuApp::initOptions(IG::ApplicationContext ctx)
 {
-	#ifdef CONFIG_BASE_IOS
+	#ifdef CONFIG_OS_IOS
 	if(ctx.deviceIsIPad())
 		defaultFontSize = 5000;
 	#endif

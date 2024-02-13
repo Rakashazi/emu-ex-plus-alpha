@@ -30,7 +30,12 @@ namespace IG
 
 class ApplicationContext;
 
-using FrameTimerVariant = std::variant<DRMFrameTimer, FBDevFrameTimer, SimpleFrameTimer>;
+using FrameTimerVariant = std::variant<
+	#if CONFIG_PACKAGE_LIBDRM
+	DRMFrameTimer,
+	#endif
+	FBDevFrameTimer,
+	SimpleFrameTimer>;
 
 class FrameTimer : public FrameTimerInterface<FrameTimerVariant>
 {

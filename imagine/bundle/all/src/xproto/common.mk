@@ -25,6 +25,7 @@ install : $(outputPCFile)
 $(xprotoSrcDir)/configure : | $(xprotoSrcArchive)
 	@echo "Extracting xproto..."
 	tar -mxjf $|
+	autoreconf -vfi $(xprotoSrcDir)
 
 $(outputPCFile) : $(makeFile)
 	@echo "Building xproto..."

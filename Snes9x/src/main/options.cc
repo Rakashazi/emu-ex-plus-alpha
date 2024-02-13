@@ -75,6 +75,7 @@ bool Snes9xSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t r
 			case CFGKEY_MULTITAP: return optionMultitap.readFromIO(io, readSize);
 			case CFGKEY_VIDEO_SYSTEM: return optionVideoSystem.readFromIO(io, readSize);
 			case CFGKEY_ALLOW_EXTENDED_VIDEO_LINES: return optionAllowExtendedVideoLines.readFromIO(io, readSize);
+			case CFGKEY_DEINTERLACE_MODE: return readOptionValue(io, readSize, deinterlaceMode);
 			#ifndef SNES9X_VERSION_1_4
 			case CFGKEY_BLOCK_INVALID_VRAM_ACCESS: return optionBlockInvalidVRAMAccess.readFromIO(io, readSize);
 			case CFGKEY_SEPARATE_ECHO_BUFFER: return optionSeparateEchoBuffer.readFromIO(io, readSize);
@@ -104,6 +105,7 @@ void Snes9xSystem::writeConfig(ConfigType type, FileIO &io)
 		optionMultitap.writeWithKeyIfNotDefault(io);
 		optionVideoSystem.writeWithKeyIfNotDefault(io);
 		optionAllowExtendedVideoLines.writeWithKeyIfNotDefault(io);
+		writeOptionValueIfNotDefault(io, CFGKEY_DEINTERLACE_MODE, deinterlaceMode, DeinterlaceMode::Bob);
 		#ifndef SNES9X_VERSION_1_4
 		optionBlockInvalidVRAMAccess.writeWithKeyIfNotDefault(io);
 		optionSeparateEchoBuffer.writeWithKeyIfNotDefault(io);
@@ -128,6 +130,7 @@ bool Snes9xSystem::resetSessionOptions(EmuApp &app)
 	optionMultitap.reset();
 	optionVideoSystem.reset();
 	optionAllowExtendedVideoLines.reset();
+	deinterlaceMode = DeinterlaceMode::Bob;
 	#ifndef SNES9X_VERSION_1_4
 	// reset emulations hacks
 	PPU.BlockInvalidVRAMAccess = optionBlockInvalidVRAMAccess.reset();

@@ -170,7 +170,7 @@ static void dispatchTouches(NSSet *touches, EAGLView *view, Input::Action action
 		pos.x *= win.pointScale;
 		pos.y *= win.pointScale;
 		auto time = fromSeconds<SteadyClockTime>([touch timestamp]);
-		auto transPos = win.transformInputPos({pos.x, pos.y});
+		auto transPos = win.transformInputPos({float(pos.x), float(pos.y)});
 		win.dispatchInputEvent(Input::MotionEvent{Input::Map::POINTER, Input::Pointer::LBUTTON, 1, action,
 			transPos.x, transPos.y, (__bridge void*)touch, Input::Source::TOUCHSCREEN, SteadyClockTimePoint{time}, nullptr});
 	}

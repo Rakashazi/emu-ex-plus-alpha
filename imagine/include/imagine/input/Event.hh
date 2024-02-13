@@ -93,7 +93,7 @@ public:
 	constexpr KeyEvent(Map map, Key key, Action state, uint32_t metaState, int repeatCount, Source src, SteadyClockTimePoint time, const Device *device)
 		: BaseEvent{map, key, metaState, state, src, time, device}, repeatCount{repeatCount} {}
 
-	#ifdef CONFIG_BASE_X11
+	#ifdef CONFIG_PACKAGE_X11
 	void setX11RawKey(Key key);
 	#endif
 	using BaseEvent::pushed;
@@ -123,7 +123,7 @@ public:
 
 protected:
 	uint8_t keyFlags{};
-	#ifdef CONFIG_BASE_X11
+	#ifdef CONFIG_PACKAGE_X11
 	Key rawKey{};
 	#endif
 	int repeatCount{};

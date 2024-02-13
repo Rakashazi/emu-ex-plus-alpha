@@ -22,7 +22,7 @@ namespace Config
 	namespace Gfx
 	{
 	#ifndef CONFIG_GFX_OPENGL_ES
-		#if defined CONFIG_BASE_IOS || defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
+		#if defined CONFIG_OS_IOS || defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
 		#define CONFIG_GFX_OPENGL_ES 2
 		#endif
 	#endif
@@ -65,7 +65,7 @@ namespace Config
 	static constexpr bool OPENGL_DEBUG_CONTEXT = false;
 	#endif
 
-	#if defined CONFIG_BASE_IOS
+	#if defined CONFIG_OS_IOS
 	static constexpr bool GLDRAWABLE_NEEDS_FRAMEBUFFER = true;
 	#else
 	static constexpr bool GLDRAWABLE_NEEDS_FRAMEBUFFER = false;

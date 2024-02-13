@@ -28,10 +28,10 @@ void OutputStream::setApi(const Manager &mgr, Api api)
 	api = mgr.makeValidAPI(api);
 	switch(api)
 	{
-		#ifdef CONFIG_AUDIO_PULSEAUDIO
+		#ifdef CONFIG_PACKAGE_PULSEAUDIO
 		case Api::PULSEAUDIO: emplace<PAOutputStream>(); return;
 		#endif
-		#ifdef CONFIG_AUDIO_ALSA
+		#ifdef CONFIG_PACKAGE_ALSA
 		case Api::ALSA: emplace<ALSAOutputStream>(); return;
 		#endif
 		#ifdef __ANDROID__

@@ -31,18 +31,11 @@
 	#endif
 #endif
 
-// default configuration
-
-#if defined __linux__ && !defined __ANDROID__ && !defined CONFIG_BASE_X11
-#define CONFIG_BASE_X11
-#endif
-
-#ifndef CONFIG_GFX_OPENGL
-#define CONFIG_GFX_OPENGL
-#endif
-
 #if defined __APPLE__
 #include <TargetConditionals.h>
+	#if TARGET_OS_IPHONE
+	#define CONFIG_OS_IOS
+	#endif
 #endif
 #ifdef __ANDROID__
 #include <android/api-level.h>
@@ -177,7 +170,7 @@ constexpr bool MACHINE_IS_PANDORA = MACHINE == PANDORA;
 	#endif
 
 	// dynamic input device list from system
-	#if defined CONFIG_BASE_X11 || defined __ANDROID__ || defined __APPLE__
+	#if defined CONFIG_PACKAGE_X11 || defined __ANDROID__ || defined __APPLE__
 	#define CONFIG_INPUT_DEVICE_HOTSWAP
 	constexpr bool DEVICE_HOTSWAP = true;
 	#else
@@ -191,14 +184,14 @@ constexpr bool MACHINE_IS_PANDORA = MACHINE == PANDORA;
 	#define CONFIG_INPUT_POINTING_DEVICES
 	constexpr bool POINTING_DEVICES = true;
 
-	#if defined CONFIG_BASE_X11 || defined __ANDROID__ || defined _WIN32
+	#if defined CONFIG_PACKAGE_X11 || defined __ANDROID__ || defined _WIN32
 	#define CONFIG_INPUT_MOUSE_DEVICES
 	constexpr bool MOUSE_DEVICES = true;
 	#else
 	constexpr bool MOUSE_DEVICES = false;
 	#endif
 
-	#if defined CONFIG_BASE_X11 || defined __ANDROID__ || defined _WIN32
+	#if defined CONFIG_PACKAGE_X11 || defined __ANDROID__ || defined _WIN32
 	#define CONFIG_INPUT_GAMEPAD_DEVICES
 	constexpr bool GAMEPAD_DEVICES = true;
 	#else
@@ -213,9 +206,9 @@ constexpr bool MACHINE_IS_PANDORA = MACHINE == PANDORA;
 	#endif
 
 	static constexpr int MAX_POINTERS =
-	#if defined CONFIG_BASE_X11
+	#if defined CONFIG_PACKAGE_X11
 	4; // arbitrary max
-	#elif defined CONFIG_BASE_IOS || defined __ANDROID__
+	#elif defined CONFIG_OS_IOS || defined __ANDROID__
 	// arbitrary max
 	7;
 	#else
@@ -230,7 +223,7 @@ constexpr bool MACHINE_IS_PANDORA = MACHINE == PANDORA;
 	constexpr bool RELATIVE_MOTION_DEVICES = false;
 	#endif
 
-	#if defined CONFIG_BASE_X11 || defined __ANDROID__ || defined __APPLE__
+	#if defined CONFIG_PACKAGE_X11 || defined __ANDROID__ || defined __APPLE__
 	constexpr bool BLUETOOTH = true;
 	#define CONFIG_INPUT_BLUETOOTH
 	#else

@@ -6,9 +6,9 @@ endif
 
 buildArg += xorg_cv_malloc0_returns_null=yes
 
-libX11Ver := 1.6.5
+libX11Ver := 1.8.7
 libX11SrcDir := libX11-$(libX11Ver)
-libX11SrcArchive := libX11-$(libX11Ver).tar.bz2
+libX11SrcArchive := libX11-$(libX11Ver).tar.xz
 
 makeFile := $(buildDir)/Makefile
 outputLibFile := $(buildDir)/src/.libs/libX11.a
@@ -27,7 +27,7 @@ install : $(outputLibFile)
 
 $(libX11SrcDir)/configure : | $(libX11SrcArchive)
 	@echo "Extracting libX11..."
-	tar -mxjf $|
+	tar -mxJf $|
 	cd $(libX11SrcDir) && autoreconf -isf
 
 $(outputLibFile) : $(makeFile)

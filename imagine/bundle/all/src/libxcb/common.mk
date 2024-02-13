@@ -4,9 +4,9 @@ else
 buildArg := --build=$(shell cc -dumpmachine)
 endif
 
-libxcbVer := 1.13
+libxcbVer := 1.16
 libxcbSrcDir := libxcb-$(libxcbVer)
-libxcbSrcArchive := libxcb-$(libxcbVer).tar.bz2
+libxcbSrcArchive := libxcb-$(libxcbVer).tar.xz
 
 makeFile := $(buildDir)/Makefile
 outputLibFile := $(buildDir)/src/.libs/libxcb.a
@@ -25,7 +25,7 @@ install : $(outputLibFile)
 
 $(libxcbSrcDir)/configure : | $(libxcbSrcArchive)
 	@echo "Extracting libxcb..."
-	tar -mxjf $|
+	tar -mxJf $|
 	cd $(libxcbSrcDir) && autoreconf -isf
 
 $(outputLibFile) : $(makeFile)

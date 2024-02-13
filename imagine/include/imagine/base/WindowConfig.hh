@@ -15,11 +15,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#if defined CONFIG_BASE_X11
+#if defined CONFIG_PACKAGE_X11
 #include <imagine/base/x11/XWindow.hh>
 #elif defined __ANDROID__
 #include <imagine/base/android/AndroidWindow.hh>
-#elif defined CONFIG_BASE_IOS
+#elif defined CONFIG_OS_IOS
 #include <imagine/base/iphone/IOSWindow.hh>
 #elif defined CONFIG_BASE_MACOSX
 #include <imagine/base/osx/CocoaWindow.hh>

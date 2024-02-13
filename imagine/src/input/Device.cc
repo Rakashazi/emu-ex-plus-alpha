@@ -121,7 +121,7 @@ static const char *keyButtonName(Key b)
 		case Keycode::NUMPAD_COMMA: return "Numpad ,";
 		case Keycode::NUMPAD_ENTER: return "Numpad Enter";
 		case Keycode::NUMPAD_EQUALS: return "Numpad =";
-		#if defined CONFIG_BASE_X11 || defined __ANDROID__
+		#if CONFIG_PACKAGE_X11 || defined __ANDROID__
 		case Keycode::AT: return "@";
 		case Keycode::STAR: return "*";
 		case Keycode::PLUS: return "+";
@@ -135,7 +135,7 @@ static const char *keyButtonName(Key b)
 		case Keycode::VOL_UP: return "Vol Up";
 		case Keycode::VOL_DOWN: return "Vol Down";
 		#endif
-		#ifdef CONFIG_BASE_X11
+		#if CONFIG_PACKAGE_X11
 		case Keycode::NUMPAD_INSERT: return "Numpad Insert";
 		case Keycode::NUMPAD_DELETE: return "Numpad Delete";
 		case Keycode::NUMPAD_BEGIN: return "Numpad Begin";

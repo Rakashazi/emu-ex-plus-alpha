@@ -29,6 +29,7 @@ ifdef RELEASE
 endif
 
 OBJCFLAGS += -fobjc-arc
+CFLAGS_WARN += -Wno-error=deprecated-declarations
 
 ifdef CCTOOLS_TOOCHAIN_PATH
 AR := llvm-ar

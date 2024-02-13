@@ -20,7 +20,7 @@
 
 struct pa_context;
 struct pa_stream;
-#ifdef CONFIG_AUDIO_PULSEAUDIO_GLIB
+#ifdef CONFIG_PACKAGE_PULSEAUDIO_GLIB
 struct pa_glib_mainloop;
 #else
 struct pa_threaded_mainloop;
@@ -52,7 +52,7 @@ public:
 private:
 	pa_context* context{};
 	pa_stream* stream{};
-	#ifdef CONFIG_AUDIO_PULSEAUDIO_GLIB
+	#ifdef CONFIG_PACKAGE_PULSEAUDIO_GLIB
 	pa_glib_mainloop* mainloop{};
 	bool mainLoopSignaled = false;
 	#else

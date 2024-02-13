@@ -319,6 +319,26 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		}
 	};
 
+	TextMenuItem deinterlaceModeItems[2]
+	{
+		{"Bob",   attachParams(), {.id = DeinterlaceMode::Bob}},
+		{"Weave", attachParams(), {.id = DeinterlaceMode::Weave}},
+	};
+
+	MultiChoiceMenuItem deinterlaceMode
+	{
+		"Deinterlace Mode", attachParams(),
+		MenuId{system().deinterlaceMode},
+		deinterlaceModeItems,
+		{
+			.defaultItemOnSelect = [this](TextMenuItem &item)
+			{
+				system().sessionOptionSet();
+				system().deinterlaceMode = DeinterlaceMode(item.id.val);
+			}
+		}
+	};
+
 	TextMenuItem contentRotationItems[5]
 	{
 		{"Auto",        attachParams(), {.id = Rotation::ANY}},
@@ -457,6 +477,7 @@ public:
 		menuItems.emplace_back(&videoHeading);
 		menuItems.emplace_back(&showHOverscan);
 		menuItems.emplace_back(&visibleVideoLines);
+		menuItems.emplace_back(&deinterlaceMode);
 		menuItems.emplace_back(&contentRotation);
 		menuItems.emplace_back(&inputHeading);
 		menuItems.emplace_back(&multitaps[0]);
@@ -561,7 +582,7 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 		{
 			.defaultItemOnSelect = [this](TextMenuItem &item)
 			{
-				system().defaultNtscLines = std::bit_cast<VideoLineRange>(item.id);
+				system().defaultNtscLines = std::bit_cast<VideoLineRange>(item.id.val);
 			}
 		}
 	};

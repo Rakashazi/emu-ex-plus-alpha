@@ -26,6 +26,7 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/Vec3.hh>
+#include <imagine/gfx/Mat4.hh>
 #include <imagine/glm/common.hpp>
 #include <imagine/glm/gtc/color_space.hpp>
 #include <imagine/logger/logger.h>
@@ -176,7 +177,13 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds)
 	}
 	if(srgbOutput)
 		cmds.setSrgbFramebufferWrite(true);
-	cmds.basicEffect().drawSprite(cmds, quad, 0, texture);
+	auto &basicEffect = cmds.basicEffect();
+	if(video.isOddField) // shift image by half a line to reduce interlace flicker
+	{
+		float fieldOffset = (contentRect_.size().y / float(video.size().y)) / 2.f;
+		basicEffect.setModelView(cmds, Mat4::makeTranslate({0, fieldOffset, 0}));
+	}
+	basicEffect.drawSprite(cmds, quad, 0, texture);
 	vidImgOverlay.draw(cmds, c);
 	if(srgbOutput)
 		cmds.setSrgbFramebufferWrite(false);

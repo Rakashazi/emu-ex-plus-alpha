@@ -54,6 +54,7 @@ namespace IG
 class BluetoothAdapter;
 class FileIO;
 class BasicNavView;
+class YesNoAlertView;
 }
 
 namespace EmuEx
@@ -252,6 +253,7 @@ public:
 	Gfx::TextureSpan asset(AssetDesc) const;
 	VController &defaultVController() { return inputManager.vController; }
 	static std::unique_ptr<View> makeView(ViewAttachParams, ViewID);
+	std::unique_ptr<YesNoAlertView> makeCloseContentView();
 	void applyOSNavStyle(IG::ApplicationContext, bool inGame);
 	void setCPUNeedsLowLatency(IG::ApplicationContext, bool needed);
 	bool advanceFrames(FrameParams, EmuSystemTask *);

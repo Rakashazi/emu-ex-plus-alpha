@@ -30,7 +30,7 @@ else
  LDFLAGS_SYSTEM += -fno-lto
 endif
 
-CFLAGS_WARN += $(if $(ccNoStrictAliasing),,-Werror=strict-aliasing) -fmax-errors=15
+CFLAGS_WARN += -fmax-errors=15
 
 ifdef RELEASE
  CXXFLAGS_LANG += -fno-enforce-eh-specs

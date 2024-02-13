@@ -4,7 +4,7 @@
 
 // Header Locations For Platform
 
-#if defined CONFIG_BASE_IOS
+#if defined CONFIG_OS_IOS
 	#if CONFIG_GFX_OPENGL_ES == 1
 	#import <OpenGLES/ES1/gl.h>
 	#import <OpenGLES/ES1/glext.h>
@@ -29,9 +29,6 @@
 	#else
 	#include <GLES2/gl2.h>
 	#include <GLES2/gl2ext.h>
-		#ifdef CONFIG_MACHINE_PANDORA
-		#include <GLES2/gl2extimg.h> // missing extensions
-		#endif
 	#endif
 #undef GL_GLEXT_PROTOTYPES
 #else // Generic OpenGL headers
@@ -39,15 +36,6 @@
 #include <GL/gl.h>
 #include <GL/glext.h>
 #undef GL_GLEXT_PROTOTYPES
-#endif
-
-#ifdef CONFIG_MACHINE_PANDORA
-// missing types & symbols
-typedef char GLchar;
-typedef struct __GLsync *GLsync;
-typedef uint64_t GLuint64;
-typedef void (GL_APIENTRY *GLDEBUGPROCKHR)(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const void *userParam);
-#define GL_DEBUG_OUTPUT_KHR 0x92E0
 #endif
 
 // Symbol Re-mapping

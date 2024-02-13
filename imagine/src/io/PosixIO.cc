@@ -28,15 +28,6 @@
 #include <sys/mman.h>
 #include <system_error>
 
-#if defined __ANDROID__ && ANDROID_MIN_API < 24
-#include <sys/syscall.h>
-
-static ssize_t pwritev(int fd, const struct iovec* _Nonnull iov, int count, off_t offset)
-{
-	return syscall(__NR_pwritev, fd, iov, count, offset);
-}
-#endif
-
 namespace IG
 {
 
@@ -156,13 +147,34 @@ ssize_t PosixIO::write(const void *buff, size_t bytes, std::optional<off_t> offs
 	}
 }
 
+#if defined __ANDROID__ && ANDROID_MIN_API < 24
+#include <sys/syscall.h>
+
+static ssize_t pwritevWrapper(PosixIO &io, std::span<const OutVector> buffs, off_t offset)
+{
+	return syscall(__NR_pwritev, io.fd(), buffs.data()->iovecPtr(), buffs.size(), offset);
+}
+#else
+static ssize_t pwritevWrapper(PosixIO &io, std::span<const OutVector> buffs, off_t offset)
+{
+	#ifdef CONFIG_OS_IOS
+	if(__builtin_available(iOS 14, *))
+		return ::pwritev(io.fd(), buffs.data()->iovecPtr(), buffs.size(), offset);
+	else
+		return io.genericWriteVector(buffs, offset);
+	#else
+	return ::pwritev(io.fd(), buffs.data()->iovecPtr(), buffs.size(), offset);
+	#endif
+}
+#endif
+
 ssize_t PosixIO::writeVector(std::span<const OutVector> buffs, std::optional<off_t> offset)
 {
 	if(!buffs.size())
 		return 0;
 	if(offset)
 	{
-		auto bytesWritten = ::pwritev(fd(), buffs.data()->iovecPtr(), buffs.size(), *offset);
+		auto bytesWritten = pwritevWrapper(*this, buffs, *offset);
 		if(bytesWritten == -1)
 		{
 			log.error("error writing {} buffers at offset {}", buffs.size(), *offset);

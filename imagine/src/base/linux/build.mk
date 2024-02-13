@@ -9,14 +9,11 @@ LDLIBS += -lpthread -ldl
 
 SRC += base/linux/Application.cc \
  base/linux/ApplicationContext.cc \
- base/linux/DRMFrameTimer.cc \
  base/linux/FBDevFrameTimer.cc \
  base/common/SimpleFrameTimer.cc \
  base/common/timer/TimerFD.cc \
  base/common/PosixPipe.cc \
  base/common/eventloop/FDCustomEvent.cc
-
-include $(IMAGINE_PATH)/make/package/libdrm.mk
 
 linuxWinSystem ?= x11
 
@@ -27,9 +24,11 @@ endif
 SRC += base/common/eventloop/GlibEventLoop.cc
 include $(IMAGINE_PATH)/make/package/glib.mk
 
-ifneq ($(SUBENV), pandora)
- configDefs += CONFIG_BASE_DBUS
- SRC += base/linux/dbus.cc
+ifeq ($(SUBENV), pandora)
+ SRC += base/linux/compat.c
+else # Linux Desktop
+ SRC += base/linux/dbus.cc base/linux/DRMFrameTimer.cc
+ include $(IMAGINE_PATH)/make/package/libdrm.mk
  include $(IMAGINE_PATH)/make/package/gio.mk
 endif
 

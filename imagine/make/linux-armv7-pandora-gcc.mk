@@ -5,11 +5,11 @@ CROSS_COMPILE := 1
 ARCH := arm
 SUBARCH := armv7
 ifeq ($(origin CC), default)
- CC := arm-none-linux-gnueabi-gcc
- CXX := arm-none-linux-gnueabi-g++
  CHOST := arm-none-linux-gnueabi
+ CC := $(CHOST)-gcc
+ CXX := $(CHOST)-g++
 endif
-configDefs += CONFIG_MACHINE_PANDORA
+configEnable += CONFIG_MACHINE_PANDORA
 IMAGINE_SDK_PLATFORM = $(ENV)-$(SUBARCH)-$(SUBENV)
 
 ifndef buildName
@@ -26,24 +26,25 @@ staticLibcxx := 1
 include $(buildSysPath)/linux-gcc.mk
 
 CFLAGS_WARN += -Wno-register -Wno-psabi
-# fix warning from old DBUS & libpng headers
-CXXFLAGS_LANG += -Wno-literal-suffix
 
-CFLAGS_CODEGEN += -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
-LDFLAGS_SYSTEM += -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
+CFLAGS_CODEGEN += -mcpu=cortex-a8 -mfpu=neon -fno-stack-protector
+LDFLAGS_SYSTEM += -mcpu=cortex-a8 -mfpu=neon -fno-stack-protector --sysroot=$(pandoraSDKSysroot) -s
 
-pandoraSDKSysroot := $(PNDSDK)/usr
-PKG_CONFIG_PATH := $(PKG_CONFIG_PATH):$(pandoraSDKSysroot)/lib/pkgconfig
-PKG_CONFIG_SYSTEM_INCLUDE_PATH := $(pandoraSDKSysroot)/include
-PKG_CONFIG_SYSTEM_LIBRARY_PATH := $(pandoraSDKSysroot)/lib
+pandoraSDKSysroot := $(PNDSDK)
+PKG_CONFIG_PATH := $(PKG_CONFIG_PATH):$(pandoraSDKSysroot)/usr/lib/pkgconfig
+PKG_CONFIG_SYSTEM_INCLUDE_PATH := $(pandoraSDKSysroot)/usr/include
+PKG_CONFIG_SYSTEM_LIBRARY_PATH := $(pandoraSDKSysroot)/usr/lib
 
 # don't use FORTIFY_SOURCE to avoid linking in newer glibc symbols
-CPPFLAGS += -I$(pandoraSDKSysroot)/include \
+CPPFLAGS += --sysroot=$(pandoraSDKSysroot) \
+ -isystem /usr/lib/gcc/$(CHOST)/13/include/g++-v13 \
+ -isystem /usr/$(CHOST)/usr/include \
+ -isystem $(pandoraSDKSysroot)/usr/include \
+ -I$(IMAGINE_SDK_PLATFORM_PATH)/include \
  -include $(buildSysPath)/include/glibc29Symver.h \
  -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0
 
-# link librt to avoid pulling in GLIBC 2.17+ clock functions
-LDLIBS += -L$(pandoraSDKSysroot)/lib -Wl,-rpath-link=$(pandoraSDKSysroot)/lib -lrt
+LDLIBS += -Wl,-rpath-link=$(pandoraSDKSysroot)/usr/lib -lrt
 
 ifneq ($(ltoMode),off)
  # -flto-partition=none seems to help .symver issues

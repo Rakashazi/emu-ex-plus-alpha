@@ -22,6 +22,7 @@
 #include <imagine/audio/SampleFormat.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/memory/DynArray.hh>
+#include <imagine/util/enum.hh>
 #include <emuframework/EmuTiming.hh>
 #include <emuframework/VController.hh>
 #include <emuframework/EmuInput.hh>
@@ -127,6 +128,11 @@ enum class VideoSystem: uint8_t
 {
 	NATIVE_NTSC, PAL
 };
+
+WISE_ENUM_CLASS((DeinterlaceMode, uint8_t),
+	Bob,
+	Weave
+);
 
 using FrameTime = Nanoseconds;
 

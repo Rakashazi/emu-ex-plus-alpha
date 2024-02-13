@@ -49,6 +49,7 @@ bool SaturnSystem::resetSessionOptions(EmuApp &app)
 	sysContentRotation = Rotation::ANY;
 	videoLines = {};
 	showHOverscan = defaultShowHOverscan;
+	deinterlaceMode = DeinterlaceMode::Bob;
 	onSessionOptionsLoaded(app);
 	return true;
 }
@@ -88,6 +89,7 @@ bool SaturnSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t r
 			case CFGKEY_SYSTEM_CONTENT_ROTATION: return readOptionValue(io, readSize, sysContentRotation);
 			case CFGKEY_VIDEO_LINES: return readOptionValue(io, readSize, videoLines);
 			case CFGKEY_SHOW_H_OVERSCAN: return readOptionValue(io, readSize, showHOverscan);
+			case CFGKEY_DEINTERLACE_MODE: return readOptionValue(io, readSize, deinterlaceMode);
 		}
 	}
 	return false;
@@ -105,7 +107,7 @@ void SaturnSystem::writeConfig(ConfigType type, FileIO &io)
 		writeOptionValueIfNotDefault(io, CFGKEY_AUTO_RTC_TIME, autoRTCTime, true);
 		writeOptionValueIfNotDefault(io, CFGKEY_DEFAULT_NTSC_VIDEO_LINES, defaultNtscLines, safeNtscLines);
 		writeOptionValueIfNotDefault(io, CFGKEY_DEFAULT_PAL_VIDEO_LINES, defaultPalLines, safePalLines);
-		writeOptionValueIfNotDefault(io, CFGKEY_DEFAULT_SHOW_H_OVERSCAN, defaultShowHOverscan, false);;
+		writeOptionValueIfNotDefault(io, CFGKEY_DEFAULT_SHOW_H_OVERSCAN, defaultShowHOverscan, false);
 	}
 	else if(type == ConfigType::SESSION)
 	{
@@ -115,6 +117,7 @@ void SaturnSystem::writeConfig(ConfigType type, FileIO &io)
 		writeOptionValueIfNotDefault(io, CFGKEY_SYSTEM_CONTENT_ROTATION, sysContentRotation, Rotation::ANY);
 		writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_LINES, videoLines, MDFN_IEN_SS::VDP2::PAL ? defaultPalLines : defaultNtscLines);
 		writeOptionValueIfNotDefault(io, CFGKEY_SHOW_H_OVERSCAN, showHOverscan, defaultShowHOverscan);
+		writeOptionValueIfNotDefault(io, CFGKEY_DEINTERLACE_MODE, deinterlaceMode, DeinterlaceMode::Bob);
 	}
 }
 

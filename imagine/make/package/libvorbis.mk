@@ -10,7 +10,7 @@ endif
 ifeq ($(vorbisLib), tremor)
  include $(buildSysPath)/package/tremor.mk
 else
- configDefs += CONFIG_PACKAGE_LIBVORBIS
+ configEnable += CONFIG_PACKAGE_LIBVORBIS
  ifeq ($(ENV), linux)
   pkgConfigDeps += vorbisfile
  else

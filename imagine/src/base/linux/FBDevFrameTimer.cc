@@ -63,9 +63,11 @@ FBDevFrameTimer::FBDevFrameTimer(Screen &screen, EventLoop loop)
 				cancelled = false;
 				return true; // frame request was cancelled
 			}
-			assert(screen.isPosted());
-			if(screen.frameUpdate(SteadyClockTimePoint{Nanoseconds{timestamp}}))
-				scheduleVSync();
+			if(screen.isPosted())
+			{
+				if(screen.frameUpdate(SteadyClockTimePoint{Nanoseconds{timestamp}}))
+					scheduleVSync();
+			}
 			return true;
 		}};
 	thread = std::thread(

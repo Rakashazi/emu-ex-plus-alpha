@@ -136,6 +136,26 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		}
 	};
 
+	TextMenuItem deinterlaceModeItems[2]
+	{
+		{"Bob",   attachParams(), {.id = DeinterlaceMode::Bob}},
+		{"Weave", attachParams(), {.id = DeinterlaceMode::Weave}},
+	};
+
+	MultiChoiceMenuItem deinterlaceMode
+	{
+		"Deinterlace Mode", attachParams(),
+		MenuId{system().deinterlaceMode},
+		deinterlaceModeItems,
+		{
+			.defaultItemOnSelect = [this](TextMenuItem &item)
+			{
+				system().sessionOptionSet();
+				system().deinterlaceMode = DeinterlaceMode(item.id.val);
+			}
+		}
+	};
+
 	#ifndef SNES9X_VERSION_1_4
 	TextHeadingMenuItem emulationHacks{"Emulation Hacks", attachParams()};
 
@@ -218,13 +238,14 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	};
 	#endif
 
-	std::array<MenuItem*, IS_SNES9X_VERSION_1_4 ? 5 : 9> menuItem
+	std::array<MenuItem*, IS_SNES9X_VERSION_1_4 ? 6 : 10> menuItem
 	{
 		&inputPorts,
 		&multitap,
 		&videoHeading,
 		&videoSystem,
 		&allowExtendedLines,
+		&deinterlaceMode,
 		#ifndef SNES9X_VERSION_1_4
 		&emulationHacks,
 		&blockInvalidVRAMAccess,

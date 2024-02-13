@@ -26,18 +26,22 @@ FrameTimer XApplication::makeFrameTimer(Screen &screen)
 	switch(supportedFrameTimer)
 	{
 		default: return FrameTimer{std::in_place_type<SimpleFrameTimer>, screen};
+		#if CONFIG_PACKAGE_LIBDRM
 		case SupportedFrameTimer::DRM: return FrameTimer{std::in_place_type<DRMFrameTimer>, screen};
+		#endif
 		case SupportedFrameTimer::FBDEV: return FrameTimer{std::in_place_type<FBDevFrameTimer>, screen};
 	}
 }
 
 SupportedFrameTimer XApplication::testFrameTimers()
 {
+	#if CONFIG_PACKAGE_LIBDRM
 	if(DRMFrameTimer::testSupport())
 	{
 		logMsg("using DRM frame timer");
 		return SupportedFrameTimer::DRM;
 	}
+	#endif
 	if(FBDevFrameTimer::testSupport())
 	{
 		logMsg("using FBDev frame timer");

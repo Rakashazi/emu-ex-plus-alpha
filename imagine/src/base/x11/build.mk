@@ -5,13 +5,12 @@ include $(imagineSrcDir)/input/build.mk
 include $(IMAGINE_PATH)/make/package/x11.mk
 include $(IMAGINE_PATH)/make/package/xinput.mk
 include $(IMAGINE_PATH)/make/package/xfixes.mk
-include $(IMAGINE_PATH)/make/package/xrandr.mk
 
 ifeq ($(SUBENV), pandora)
  pkgConfigDeps += xext xcb xdmcp xau
+else
+ include $(IMAGINE_PATH)/make/package/xrandr.mk
 endif
-
-configDefs += CONFIG_BASE_X11
 
 SRC += base/x11/Application.cc \
  base/x11/ApplicationContext.cc \

@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #if !defined __ARM_ARCH_6K__
-#define CONFIG_INPUT_APPLE_GAME_CONTROLLER
+#define CONFIG_INPUT_APPLE_GAME_CONTROLLER 1
 #endif
 
 namespace IG::Input

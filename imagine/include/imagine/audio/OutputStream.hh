@@ -23,10 +23,10 @@
 #elif defined __APPLE__
 #include <imagine/audio/coreaudio/CAOutputStream.hh>
 #else
-	#ifdef CONFIG_AUDIO_PULSEAUDIO
+	#if CONFIG_PACKAGE_PULSEAUDIO
 	#include <imagine/audio/pulseaudio/PAOutputStream.hh>
 	#endif
-	#ifdef CONFIG_AUDIO_ALSA
+	#if CONFIG_PACKAGE_ALSA
 	#include <imagine/audio/alsa/ALSAOutputStream.hh>
 	#endif
 #endif
@@ -73,10 +73,10 @@ using OutputStreamVariant = std::variant<AAudioOutputStream, OpenSLESOutputStrea
 using OutputStreamVariant = std::variant<CAOutputStream, NullOutputStream>;
 #else
 	using OutputStreamVariant = std::variant<
-	#ifdef CONFIG_AUDIO_PULSEAUDIO
+	#ifdef CONFIG_PACKAGE_PULSEAUDIO
 	PAOutputStream,
 	#endif
-	#ifdef CONFIG_AUDIO_ALSA
+	#ifdef CONFIG_PACKAGE_ALSA
 	ALSAOutputStream,
 	#endif
 	NullOutputStream>;

@@ -217,6 +217,7 @@ public:
 	}
 
 	FILE *toFileStream(const char *opentype);
+	ssize_t genericWriteVector(std::span<const OutVector>, std::optional<off_t>);
 };
 
 }

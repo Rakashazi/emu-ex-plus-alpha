@@ -48,10 +48,10 @@ void Manager::endSession() {}
 
 static constexpr ApiDesc apiDesc[]
 {
-	#ifdef CONFIG_AUDIO_PULSEAUDIO
+	#ifdef CONFIG_PACKAGE_PULSEAUDIO
 	{"PulseAudio", Api::PULSEAUDIO},
 	#endif
-	#ifdef CONFIG_AUDIO_ALSA
+	#ifdef CONFIG_PACKAGE_ALSA
 	{"ALSA", Api::ALSA},
 	#endif
 };

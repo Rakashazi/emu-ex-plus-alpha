@@ -47,30 +47,30 @@ static constexpr bool BASE_SUPPORTS_ORIENTATION_SENSOR = true;
 static constexpr bool BASE_SUPPORTS_ORIENTATION_SENSOR = false;
 #endif
 
-#if defined __ANDROID__ || defined CONFIG_BASE_IOS
+#if defined __ANDROID__ || defined CONFIG_OS_IOS
 #define CONFIG_BASE_MULTI_SCREEN
 static constexpr bool BASE_MULTI_SCREEN = true;
 #else
 static constexpr bool BASE_MULTI_SCREEN = false;
 #endif
 
-#if defined CONFIG_BASE_IOS
+#if defined CONFIG_OS_IOS
 #define CONFIG_BASE_SCREEN_FRAME_INTERVAL
 static constexpr bool SCREEN_FRAME_INTERVAL = true;
 #else
 static constexpr bool SCREEN_FRAME_INTERVAL = false;
 #endif
 
-#if (defined CONFIG_BASE_X11 && !defined CONFIG_MACHINE_PANDORA) || defined CONFIG_BASE_MULTI_SCREEN
+#if (defined CONFIG_PACKAGE_X11 && !defined CONFIG_MACHINE_PANDORA) || defined CONFIG_BASE_MULTI_SCREEN
 #define CONFIG_BASE_MULTI_WINDOW
 static constexpr bool BASE_MULTI_WINDOW = true;
 #else
 static constexpr bool BASE_MULTI_WINDOW = false;
 #endif
 
-#if defined CONFIG_BASE_IOS && defined __ARM_ARCH_6K__
+#if defined CONFIG_OS_IOS && defined __ARM_ARCH_6K__
 #define CONFIG_GFX_SOFT_ORIENTATION 1
-#elif !defined __ANDROID__ && !defined CONFIG_BASE_IOS
+#elif !defined __ANDROID__ && !defined CONFIG_OS_IOS
 #define CONFIG_GFX_SOFT_ORIENTATION 1
 #endif
 

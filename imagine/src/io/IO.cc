@@ -58,19 +58,7 @@ ssize_t IO::writeVector(std::span<const OutVector> buffs, std::optional<off_t> o
 		if constexpr(requires {io.writeVector(buffs, offset);})
 			return io.writeVector(buffs, offset);
 		else
-		{
-			ssize_t totalSize{};
-			for(auto buff : buffs)
-			{
-				auto written = write(buff.data(), buff.size(), offset);
-				if(written == -1)
-					return -1;
-				totalSize += written;
-				if(offset)
-					*offset += written;
-			}
-			return totalSize;
-		}
+			return io.genericWriteVector(buffs, offset);
 	}, *this);
 }
 

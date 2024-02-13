@@ -17,11 +17,11 @@
 
 #include <imagine/config/defs.hh>
 
-#if defined CONFIG_BASE_X11
+#if defined CONFIG_PACKAGE_X11
 #include <imagine/base/x11/XApplication.hh>
 #elif defined __ANDROID__
 #include <imagine/base/android/AndroidApplication.hh>
-#elif defined CONFIG_BASE_IOS
+#elif defined CONFIG_OS_IOS
 #include <imagine/base/iphone/IOSApplication.hh>
 #endif
 

@@ -80,6 +80,7 @@ enum
 	CFGKEY_VIDEO_LINES = 285, CFGKEY_CORRECT_LINE_ASPECT = 286,
 	CFGKEY_DEFAULT_NTSC_VIDEO_LINES = 287, CFGKEY_DEFAULT_PAL_VIDEO_LINES = 288,
 	CFGKEY_DEFAULT_SHOW_H_OVERSCAN = 289, CFGKEY_SHOW_H_OVERSCAN = 290,
+	CFGKEY_DEINTERLACE_MODE = 291,
 };
 
 struct VideoLineRange
@@ -120,6 +121,7 @@ public:
 	int8_t region{};
 	int8_t biosLanguage{MDFN_IEN_SS::SMPC_RTC_LANG_ENGLISH};
 	InputConfig inputConfig{};
+	DeinterlaceMode deinterlaceMode{DeinterlaceMode::Bob};
 	bool defaultShowHOverscan{};
 	bool showHOverscan{};
 	bool correctLineAspect{};

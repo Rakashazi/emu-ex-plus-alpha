@@ -227,7 +227,7 @@ Key BaseEvent::key() const
 	return key_;
 }
 
-#ifdef CONFIG_BASE_X11
+#if CONFIG_PACKAGE_X11
 void KeyEvent::setX11RawKey(Key key)
 {
 	rawKey = key;

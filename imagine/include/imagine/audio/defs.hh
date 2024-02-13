@@ -46,10 +46,10 @@ constexpr std::array systemApis{Api::AAUDIO, Api::OPENSL_ES};
 constexpr std::array systemApis{Api::COREAUDIO};
 #else
 	constexpr std::array systemApis{
-	#ifdef CONFIG_AUDIO_PULSEAUDIO
+	#ifdef CONFIG_PACKAGE_PULSEAUDIO
 	Api::PULSEAUDIO,
 	#endif
-	#ifdef CONFIG_AUDIO_ALSA
+	#ifdef CONFIG_PACKAGE_ALSA
 	Api::ALSA,
 	#endif
 	};

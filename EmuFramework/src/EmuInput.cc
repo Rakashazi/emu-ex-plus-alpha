@@ -323,6 +323,7 @@ std::string_view toString(AppKeyCode code)
 	switch(code)
 	{
 		case AppKeyCode::openContent: return "Open Content";
+		case AppKeyCode::closeContent: return "Close Content";
 		case AppKeyCode::openSystemActions: return "Open System Actions";
 		case AppKeyCode::saveState: return "Save State";
 		case AppKeyCode::loadState: return "Load State";

@@ -1,6 +1,27 @@
 include $(buildSysPath)/imagineCommonTarget.mk
 include $(buildSysPath)/evalPkgConfigCFlags.mk
 
+LDFLAGS += $(LDFLAGS_SYSTEM)
+
+allConfigDefs := $(configEnable) $(configDisable) $(configInc)
+
+ifneq ($(strip $(allConfigDefs)),)
+ ifdef configFilename
+  makeConfigH := 1
+ endif
+endif
+
+ifdef makeConfigH
+genConfigH = $(genPath)/$(configFilename)
+
+# config file is only built if not present, needs manual deletion to update
+$(genConfigH) :
+	@mkdir -p $(@D)
+	$(PRINT_CMD)bash $(IMAGINE_PATH)/make/writeConfig.sh $@ "$(configEnable)" "$(configDisable)" "$(configInc)"
+
+config : $(genConfigH)
+endif
+
 $(OBJ) : $(genConfigH)
 
 targetFile := $(target).a

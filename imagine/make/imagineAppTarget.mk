@@ -10,7 +10,26 @@ ifeq ($(ENV), android)
  target := lib$(android_metadata_soName).so
 endif
 
-LDFLAGS += $(STDCXXLIB)
+LDFLAGS += $(STDCXXLIB) $(LDFLAGS_SYSTEM)
+
+allConfigDefs := $(configEnable) $(configDisable) $(configInc)
+
+ifneq ($(strip $(allConfigDefs)),)
+ ifdef configFilename
+  makeConfigH := 1
+ endif
+endif
+
+ifdef makeConfigH
+genConfigH = $(genPath)/config.h
+
+# config.h is only built if not present, needs manual deletion to update
+$(genConfigH) :
+	@mkdir -p $(@D)
+	$(PRINT_CMD)bash $(IMAGINE_PATH)/make/writeConfig.sh $@ "$(configEnable)" "$(configDisable)" "$(configInc)"
+
+config : $(genConfigH)
+endif
 
 $(OBJ) : $(genConfigH) $(genMetaH)
 

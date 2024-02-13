@@ -45,6 +45,7 @@ enum class AppKeyCode : KeyCode
 	softReset,
 	hardReset,
 	resetMenu,
+	closeContent,
 };
 
 constexpr struct AppKeys
@@ -52,6 +53,7 @@ constexpr struct AppKeys
 	KeyInfo
 	openMenu = KeyInfo::appKey(AppKeyCode::openMenu),
 	openContent = KeyInfo::appKey(AppKeyCode::openContent),
+	closeContent = KeyInfo::appKey(AppKeyCode::closeContent),
 	openSystemActions = KeyInfo::appKey(AppKeyCode::openSystemActions),
 	saveState = KeyInfo::appKey(AppKeyCode::saveState),
 	loadState = KeyInfo::appKey(AppKeyCode::loadState),

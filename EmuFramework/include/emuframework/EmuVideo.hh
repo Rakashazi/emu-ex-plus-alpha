@@ -83,6 +83,7 @@ public:
 	IG::PixelFormat renderPixelFormat() const;
 	IG::PixelFormat internalRenderPixelFormat() const;
 	static Gfx::TextureSamplerConfig samplerConfigForLinearFilter(bool useLinearFilter);
+	static MutablePixmapView takeInterlacedFields(MutablePixmapView, bool isOddField);
 
 protected:
 	Gfx::RendererTask *rTask{};
@@ -98,6 +99,9 @@ protected:
 	void doScreenshot(EmuSystemTaskContext, IG::PixmapView pix);
 	void postFrameFinished(EmuSystemTaskContext);
 	Gfx::TextureSamplerConfig samplerConfig() const { return samplerConfigForLinearFilter(useLinearFilter); }
+
+public:
+	bool isOddField{};
 };
 
 }

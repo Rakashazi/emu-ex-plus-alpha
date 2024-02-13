@@ -168,7 +168,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 			FS::rename(oldConfigFilePath, configFilePath);
 		}
 	}
-	#ifdef CONFIG_BASE_IOS
+	#ifdef CONFIG_OS_IOS
 	if(ctx.isSystemApp())
 	{
 		const char *oldConfigDir = "/User/Library/Preferences/explusalpha.com";

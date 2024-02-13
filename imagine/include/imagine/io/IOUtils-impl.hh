@@ -172,6 +172,23 @@ FILE *IOUtils<IO>::toFileStream(const char *opentype)
 	return f;
 }
 
+template <class IO>
+ssize_t IOUtils<IO>::genericWriteVector(std::span<const OutVector> buffs, std::optional<off_t> offset)
+{
+	auto &io = *static_cast<IO*>(this);
+	ssize_t totalSize{};
+	for(auto buff : buffs)
+	{
+		auto written = io.write(buff.data(), buff.size(), offset);
+		if(written == -1)
+			return -1;
+		totalSize += written;
+		if(offset)
+			*offset += written;
+	}
+	return totalSize;
+}
+
 inline auto transformOffsetToAbsolute(IOSeekMode mode, auto offset, auto startPos, auto endPos, auto currentPos)
 {
 	switch(mode)

@@ -42,7 +42,11 @@ struct XIDeviceInfo;
 
 enum class SupportedFrameTimer : uint8_t
 {
-	SIMPLE, DRM, FBDEV
+	SIMPLE,
+	#if CONFIG_PACKAGE_LIBDRM
+	DRM,
+	#endif
+	FBDEV
 };
 
 class XApplication : public LinuxApplication

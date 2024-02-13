@@ -36,7 +36,7 @@ VController::VController(IG::ApplicationContext ctx):
 	alphaF{defaultAlpha / 255.},
 	defaultButtonSize
 	{
-		#ifdef CONFIG_BASE_IOS
+		#ifdef CONFIG_OS_IOS
 		int16_t(ctx.deviceIsIPad() ? 1400 : 850)
 		#else
 		850
@@ -85,6 +85,7 @@ static void updateTexture(const EmuApp &app, VControllerElement &e, Gfx::Rendere
 					{
 						case openMenu: return app.asset(AssetID::more);
 						case openContent: return app.asset(AssetID::openFile);
+						case closeContent: return app.asset(AssetID::close);
 						case saveState: return app.asset(AssetID::save);
 						case loadState: return app.asset(AssetID::load);
 						case decStateSlot: return app.asset(AssetID::leftSwitch);

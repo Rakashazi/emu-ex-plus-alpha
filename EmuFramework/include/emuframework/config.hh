@@ -29,7 +29,7 @@ namespace EmuEx
 {
 
 #if defined __ANDROID__ || \
-	defined CONFIG_BASE_IOS || \
+	defined CONFIG_OS_IOS || \
 	(defined CONFIG_BASE_X11 && !defined CONFIG_MACHINE_PANDORA)
 #define CONFIG_VCONTROLS_GAMEPAD
 constexpr bool VCONTROLS_GAMEPAD = true;

@@ -334,4 +334,11 @@ Gfx::TextureSamplerConfig EmuVideo::samplerConfigForLinearFilter(bool useLinearF
 	return useLinearFilter ? Gfx::SamplerConfigs::noMipClamp : Gfx::SamplerConfigs::noLinearNoMipClamp;
 }
 
+MutablePixmapView EmuVideo::takeInterlacedFields(MutablePixmapView pix, bool isOddField)
+{
+	// Take half the image on the Y axis and double the pitch to isolate the even/odd fields
+	WSize size = {pix.w(), pix.h() / 2};
+	return {pix.desc().makeNewSize(size), pix.data({0, isOddField}), {pix.pitchBytes() * 2, PixmapUnits::BYTE}};
+}
+
 }

@@ -17,6 +17,15 @@
 #include <soundux.h>
 #endif
 
+#ifdef SNES9X_VERSION_1_4
+bool8 S9xDeinitUpdate(int width, int height);
+bool8 S9xDeinitUpdate(int width, int height, bool8) { return S9xDeinitUpdate(width, height); }
+static bool S9xInterlaceField()
+{
+	return (Memory.FillRAM[0x213F] & 0x80) >> 7;
+}
+#endif
+
 namespace EmuEx
 {
 
@@ -56,11 +65,6 @@ const BundledGameInfo &EmuSystem::bundledGameInfo(int idx) const
 	return info[0];
 }
 
-static PixmapView snesPixmapView(WSize size)
-{
-	return {{size, srcPixFmt}, GFX.Screen, {(int)GFX.Pitch, PixmapView::Units::BYTE}};
-}
-
 const char *EmuSystem::shortSystemName() const
 {
 	return "SFC-SNES";
@@ -71,9 +75,20 @@ const char *EmuSystem::systemName() const
 	return "Super Famicom (SNES)";
 }
 
+MutablePixmapView Snes9xSystem::fbPixmapView(WSize size, bool useInterlaceFields)
+{
+	MutablePixmapView pix{{size, srcPixFmt}, GFX.Screen, {int(GFX.Pitch), PixmapView::Units::BYTE}};
+	if(useInterlaceFields)
+	{
+		return EmuVideo::takeInterlacedFields(pix, S9xInterlaceField());
+	}
+	return pix;
+}
+
 void Snes9xSystem::renderFramebuffer(EmuVideo &video)
 {
-	video.startFrameWithFormat({}, snesPixmapView(video.image().size()));
+	emuSysTask = {};
+	S9xDeinitUpdate(IPPU.RenderedScreenWidth, IPPU.RenderedScreenHeight);
 }
 
 void Snes9xSystem::reset(EmuApp &, ResetMode mode)
@@ -387,11 +402,7 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 
 }
 
-#ifndef SNES9X_VERSION_1_4
 bool8 S9xDeinitUpdate (int width, int height)
-#else
-bool8 S9xDeinitUpdate(int width, int height, bool8)
-#endif
 {
 	using namespace EmuEx;
 	auto &sys = gSnes9xSystem();
@@ -399,10 +410,11 @@ bool8 S9xDeinitUpdate(int width, int height, bool8)
 	if((height == SNES_HEIGHT_EXTENDED || height == SNES_HEIGHT_EXTENDED_480i)
 		&& !sys.optionAllowExtendedVideoLines)
 	{
-		bool is480i = height >= SNES_HEIGHT_480i;
-		height = is480i ? SNES_HEIGHT_480i : SNES_HEIGHT;
+		height = IPPU.Interlace ? SNES_HEIGHT_480i : SNES_HEIGHT;
 	}
-	emuVideo->startFrameWithFormat(emuSysTask, snesPixmapView({width, height}));
+	bool useInterlaceFields = IPPU.Interlace && sys.deinterlaceMode == EmuEx::DeinterlaceMode::Bob;
+	emuVideo->isOddField = useInterlaceFields ? S9xInterlaceField() : 0;
+	emuVideo->startFrameWithFormat(emuSysTask, sys.fbPixmapView({width, height}, useInterlaceFields));
 	#ifndef SNES9X_VERSION_1_4
 	memset(GFX.ZBuffer, 0, GFX.ScreenSize);
 	memset(GFX.SubZBuffer, 0, GFX.ScreenSize);
