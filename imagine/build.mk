@@ -63,13 +63,19 @@ install : main
 	$(PRINT_CMD)mkdir -p $(prefix)/lib/pkgconfig $(prefix)/include/
 	$(PRINT_CMD)cp lib/$(buildName)/lib$(libName).a $(prefix)/lib/
 	$(PRINT_CMD)cp lib/$(buildName)/$(libName).pc $(prefix)/lib/pkgconfig/
-	$(PRINT_CMD)cp -r $(projectPath)/include/imagine build/$(buildName)/gen/$(configFilename) $(prefix)/include/
+	$(PRINT_CMD)cp -r $(projectPath)/include/imagine $(prefix)/include/
+ifdef makeConfigH
+	$(PRINT_CMD)cp build/$(buildName)/gen/$(configFilename) $(prefix)/include/
+endif
 
 install-links : main
 	@echo "Installing symlink lib & headers to $(prefix)"
 	$(PRINT_CMD)mkdir -p $(prefix)/lib/pkgconfig $(prefix)/include/
 	$(PRINT_CMD)$(LN) -srf lib/$(buildName)/lib$(libName).a $(prefix)/lib/
 	$(PRINT_CMD)$(LN) -srf lib/$(buildName)/$(libName).pc $(prefix)/lib/pkgconfig/
-	$(PRINT_CMD)$(LN) -srf $(projectPath)/include/imagine build/$(buildName)/gen/$(configFilename) $(prefix)/include/
+	$(PRINT_CMD)$(LN) -srf $(projectPath)/include/imagine $(prefix)/include/
+ifdef makeConfigH
+	$(PRINT_CMD)$(LN) -srf build/$(buildName)/gen/$(configFilename) $(prefix)/include/
+endif
 
 endif
