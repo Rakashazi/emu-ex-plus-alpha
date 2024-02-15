@@ -25,9 +25,6 @@ public:
 
 	struct GLStateCaps
 	{
-		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-		int8_t GL_TEXTURE_2D_state = -1;
-		#endif
 		int8_t GL_BLEND_state = -1;
 		int8_t GL_SCISSOR_TEST_state = -1;
 	};
@@ -52,13 +49,4 @@ public:
 	void enable(GLenum cap);
 	void disable(GLenum cap);
 	GLboolean isEnabled(GLenum cap);
-
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	GLClientStateCaps clientStateCap;
-	int8_t *getClientCap(GLenum cap);
-	void enableClientState(GLenum cap);
-	void disableClientState(GLenum cap);
-	std::array<GLfloat, 4> colorState{1, 1, 1, 1};
-	void color4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
-	#endif
 };

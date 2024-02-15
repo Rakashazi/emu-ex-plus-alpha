@@ -1,4 +1,4 @@
-The following sections supplement the ones in the main INSTALL text for the iOS port. An ARMv7 device running at least iOS 5.0 is required to run Imagine. However, it's possible to use an ARMv6 device with at least iOS 4.0 using the sysroot from Xcode 4.4 and some extra toolchain modifications, to be detailed in a future version of this document.
+The following sections supplement the ones in the main INSTALL text for the iOS port. An ARMv7 device running at least iOS 5.0 is required to run Imagine.
 
 1. Tools and Environment Setup
 ==============================
@@ -16,4 +16,4 @@ ios_arch : Optional, default set by app
 
 --------------------------------
 
-Copyright 2014-2022 by Robert Broglia
+Copyright 2014-2024 by Robert Broglia

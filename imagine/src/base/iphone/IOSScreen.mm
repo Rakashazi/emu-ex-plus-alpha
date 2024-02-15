@@ -94,31 +94,22 @@ IOSScreen::IOSScreen(ApplicationContext, InitParams initParams)
 			logMsg("has mode: %dx%d", (int)mode.size.width, (int)mode.size.height);
 		}
 		logMsg("current mode: %dx%d", (int)screen.currentMode.size.width, (int)screen.currentMode.size.height);
-		if(hasAtLeastIOS5())
-			logMsg("preferred mode: %dx%d", (int)screen.preferredMode.size.width, (int)screen.preferredMode.size.height);
+		logMsg("preferred mode: %dx%d", (int)screen.preferredMode.size.width, (int)screen.preferredMode.size.height);
 	}
 	uiScreen_ = (void*)CFBridgingRetain(screen);
 	displayLink_ = (void*)CFBridgingRetain([screen displayLinkWithTarget:[[DisplayLinkHelper alloc] initWithScreen:(Screen*)this]
 	                                       selector:@selector(onFrame:)]);
 	displayLink().paused = YES;
 
-	if(hasAtLeastIOS5())
+	// note: the _refreshRate value is actually time per frame in seconds
+	auto frameTime = [uiScreen() _refreshRate];
+	if(!frameTime || 1. / frameTime < 20. || 1. / frameTime > 200.)
 	{
-		// note: the _refreshRate value is actually time per frame in seconds
-		auto frameTime = [uiScreen() _refreshRate];
-		if(!frameTime || 1. / frameTime < 20. || 1. / frameTime > 200.)
-		{
-			logWarn("ignoring unusual refresh rate: %f", 1. / frameTime);
-			frameTime = 1. / 60.;
-		}
-		frameTime_ = fromSeconds<SteadyClockTime>(frameTime);
-		frameRate_ = 1. / frameTime;
+		logWarn("ignoring unusual refresh rate: %f", 1. / frameTime);
+		frameTime = 1. / 60.;
 	}
-	else
-	{
-		frameTime_ = fromHz<SteadyClockTime>(60.);
-		frameRate_ = 60;
-	}
+	frameTime_ = fromSeconds<SteadyClockTime>(frameTime);
+	frameRate_ = 1. / frameTime;
 }
 
 IOSScreen::~IOSScreen()

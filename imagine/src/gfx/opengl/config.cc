@@ -58,23 +58,17 @@ static void printFeatures(DrawContextSupport support)
 	featuresStr.append(" [Texture Size:");
 	featuresStr.append(std::format("{}", support.textureSizeSupport.maxXSize));
 	featuresStr.append("]");
-	if(support.textureSizeSupport.nonPow2)
-	{
-		featuresStr.append(" [NPOT Textures");
-		if(support.textureSizeSupport.nonPow2CanRepeat)
-			featuresStr.append(" w/ Mipmap+Repeat]");
-		else if(support.textureSizeSupport.nonPow2CanMipmap)
-			featuresStr.append(" w/ Mipmap]");
-		else
-			featuresStr.append("]");
-	}
+	if(support.textureSizeSupport.nonPow2CanRepeat)
+		featuresStr.append("[NPOT Textures w/ Mipmap+Repeat]");
+	else if(support.textureSizeSupport.nonPow2CanMipmap)
+		featuresStr.append("[NPOT Textures w/ Mipmap]");
 	#ifdef CONFIG_GFX_OPENGL_ES
 	if(support.hasBGRPixels)
 	{
 		featuresStr.append(" [BGRA Format]");
 	}
 	#endif
-	if(support.hasTextureSwizzle)
+	if(Config::Gfx::OPENGL_ES && support.hasTextureSwizzle)
 	{
 		featuresStr.append(" [Texture Swizzle]");
 	}
@@ -90,19 +84,19 @@ static void printFeatures(DrawContextSupport support)
 	{
 		featuresStr.append(" [Memory Barriers]");
 	}
-	if(Config::Gfx::OPENGL_ES >= 2 && support.hasUnpackRowLength)
+	if(Config::Gfx::OPENGL_ES && support.hasUnpackRowLength)
 	{
 		featuresStr.append(" [Unpack Sub-Images]");
 	}
-	if(support.hasSamplerObjects)
+	if(Config::Gfx::OPENGL_ES && support.hasSamplerObjects)
 	{
 		featuresStr.append(" [Sampler Objects]");
 	}
-	if(Config::Gfx::OPENGL_ES >= 2 && support.hasVAOFuncs())
+	if(Config::Gfx::OPENGL_ES && support.hasVAOFuncs())
 	{
 		featuresStr.append(" [VAOs]");
 	}
-	if(support.hasPBOFuncs)
+	if(Config::Gfx::OPENGL_ES && support.hasPBOFuncs)
 	{
 		featuresStr.append(" [PBOs]");
 	}
@@ -124,16 +118,13 @@ static void printFeatures(DrawContextSupport support)
 			featuresStr.append(" [Sync Fences]");
 		}
 	}
-	if(support.hasSrgbWriteControl)
+	if(Config::Gfx::OPENGL_ES && support.hasSrgbWriteControl)
 	{
 		featuresStr.append(" [sRGB FB Write Control]");
 	}
-	if(!support.useFixedFunctionPipeline)
-	{
-		featuresStr.append(" [GLSL:");
-		featuresStr.append((const char*)glGetString(GL_SHADING_LANGUAGE_VERSION));
-		featuresStr.append("]");
-	}
+	featuresStr.append(" [GLSL:");
+	featuresStr.append((const char*)glGetString(GL_SHADING_LANGUAGE_VERSION));
+	featuresStr.append("]");
 
 	logMsg("features:%s", featuresStr.c_str());
 }
@@ -154,42 +145,10 @@ EGLImageKHR makeAndroidNativeBufferEGLImage(EGLDisplay dpy, EGLClientBuffer clie
 }
 #endif
 
-void GLRenderer::setupNonPow2Textures()
-{
-	support.textureSizeSupport.nonPow2 = true;
-}
-
-void GLRenderer::setupNonPow2MipmapTextures()
-{
-	support.textureSizeSupport.nonPow2 = true;
-	support.textureSizeSupport.nonPow2CanMipmap = true;
-}
-
 void GLRenderer::setupNonPow2MipmapRepeatTextures()
 {
-	support.textureSizeSupport.nonPow2 = true;
 	support.textureSizeSupport.nonPow2CanMipmap = true;
 	support.textureSizeSupport.nonPow2CanRepeat = true;
-}
-
-void GLRenderer::setupBGRPixelSupport()
-{
-	support.hasBGRPixels = true;
-}
-
-void GLRenderer::setupFBOFuncs(bool &useFBOFuncs)
-{
-	useFBOFuncs = true;
-	#if defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES == 1
-	support.generateMipmaps = glGenerateMipmapOES;
-	#elif !defined CONFIG_GFX_OPENGL_ES
-	support.generateMipmaps = glGenerateMipmap;
-	#endif
-}
-
-void GLRenderer::setupTextureSwizzle()
-{
-	support.hasTextureSwizzle = true;
 }
 
 void GLRenderer::setupImmutableTexStorage(bool extSuffix)
@@ -224,11 +183,6 @@ void GLRenderer::setupSamplerObjects()
 	support.glBindSampler = (typeof(support.glBindSampler))glManager.procAddress("glBindSampler");
 	support.glSamplerParameteri = (typeof(support.glSamplerParameteri))glManager.procAddress("glSamplerParameteri");
 	#endif
-}
-
-void GLRenderer::setupPBO()
-{
-	support.hasPBOFuncs = true;
 }
 
 void GLRenderer::setupSpecifyDrawReadBuffers()
@@ -281,7 +235,7 @@ bool DrawContextSupport::hasVAOFuncs() const
 	#ifdef CONFIG_GFX_OPENGL_ES
 	return glBindVertexArray;
 	#else
-	return !useFixedFunctionPipeline;
+	return true;
 	#endif
 }
 
@@ -351,17 +305,11 @@ void GLRenderer::setupVAOFuncs(bool oes)
 	#endif
 }
 
-void GLRenderer::checkExtensionString(std::string_view extStr, bool &useFBOFuncs)
+void GLRenderer::checkExtensionString(std::string_view extStr)
 {
 	//logMsg("checking %s", extStr);
-	if(extStr == "GL_ARB_texture_non_power_of_two"
-		|| (Config::Gfx::OPENGL_ES && extStr == "GL_OES_texture_npot"))
-	{
-		// allows mipmaps and repeat modes
-		setupNonPow2MipmapRepeatTextures();
-	}
 	#ifdef CONFIG_GFX_OPENGL_DEBUG_CONTEXT
-	else if(Config::DEBUG_BUILD && extStr == "GL_KHR_debug")
+	if(Config::DEBUG_BUILD && extStr == "GL_KHR_debug")
 	{
 		support.hasDebugOutput = true;
 		#ifdef __ANDROID__
@@ -375,31 +323,24 @@ void GLRenderer::checkExtensionString(std::string_view extStr, bool &useFBOFuncs
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_ES
-	else if(Config::Gfx::OPENGL_ES == 1
-		&& (extStr == "GL_APPLE_texture_2D_limited_npot" || extStr == "GL_IMG_texture_npot"))
+	if(extStr == "GL_OES_texture_npot")
 	{
-		// no mipmaps or repeat modes
-		setupNonPow2Textures();
+		// allows mipmaps and repeat modes
+		setupNonPow2MipmapRepeatTextures();
 	}
-	else if(Config::Gfx::OPENGL_ES >= 2
-		&& !Config::envIsIOS && extStr == "GL_NV_texture_npot_2D_mipmap")
+	else if(!Config::envIsIOS && extStr == "GL_NV_texture_npot_2D_mipmap")
 	{
 		// no repeat modes
-		setupNonPow2MipmapTextures();
+		support.textureSizeSupport.nonPow2CanMipmap = true;
 	}
-	else if(Config::Gfx::OPENGL_ES >= 2 && extStr == "GL_EXT_unpack_subimage")
+	else if(extStr == "GL_EXT_unpack_subimage")
 	{
 		support.hasUnpackRowLength = true;
 	}
 	else if((!Config::envIsIOS && extStr == "GL_EXT_texture_format_BGRA8888")
 			|| (Config::envIsIOS && extStr == "GL_APPLE_texture_format_BGRA8888"))
 	{
-		setupBGRPixelSupport();
-	}
-	else if(Config::Gfx::OPENGL_ES == 1 && extStr == "GL_OES_framebuffer_object")
-	{
-		if(!useFBOFuncs)
-			setupFBOFuncs(useFBOFuncs);
+		support.hasBGRPixels = true;
 	}
 	else if(extStr == "GL_EXT_texture_storage")
 	{
@@ -413,23 +354,22 @@ void GLRenderer::checkExtensionString(std::string_view extStr, bool &useFBOFuncs
 	{
 		support.hasEGLImages = true;
 	}
-	else if(Config::Gfx::OPENGL_ES >= 2 &&
-		Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL &&
+	else if(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL &&
 		extStr == "GL_OES_EGL_image_external")
 	{
 		support.hasExternalEGLImages = true;
 	}
 	#ifdef __ANDROID__
-	else if(Config::Gfx::OPENGL_ES >= 2 && extStr == "GL_EXT_EGL_image_storage")
+	else if(extStr == "GL_EXT_EGL_image_storage")
 	{
 		support.glEGLImageTargetTexStorageEXT = (typeof(support.glEGLImageTargetTexStorageEXT))glManager.procAddress("glEGLImageTargetTexStorageEXT");
 	}
 	#endif
-	else if(Config::Gfx::OPENGL_ES >= 2 && extStr == "GL_NV_pixel_buffer_object")
+	else if(extStr == "GL_NV_pixel_buffer_object")
 	{
-		setupPBO();
+		support.hasPBOFuncs = true;
 	}
-	else if(Config::Gfx::OPENGL_ES >= 2 && extStr == "GL_NV_map_buffer_range")
+	else if(extStr == "GL_NV_map_buffer_range")
 	{
 		if(!support.glMapBufferRange)
 			support.glMapBufferRange = (typeof(support.glMapBufferRange))glManager.procAddress("glMapBufferRangeNV");
@@ -444,7 +384,7 @@ void GLRenderer::checkExtensionString(std::string_view extStr, bool &useFBOFuncs
 		//	support.glFlushMappedBufferRange = (typeof(support.glFlushMappedBufferRange))glManager.procAddress("glFlushMappedBufferRangeEXT");
 		setupUnmapBufferFunc();
 	}
-	else if(Config::Gfx::OPENGL_ES >= 2 && extStr == "GL_EXT_buffer_storage")
+	else if(extStr == "GL_EXT_buffer_storage")
 	{
 		setupImmutableBufferStorage();
 	}
@@ -452,11 +392,11 @@ void GLRenderer::checkExtensionString(std::string_view extStr, bool &useFBOFuncs
 	{
 		// handled in *_map_buffer_range currently
 	}*/
-	else if(Config::Gfx::OPENGL_ES >= 2 && extStr == "GL_EXT_sRGB_write_control")
+	else if(extStr == "GL_EXT_sRGB_write_control")
 	{
 		support.hasSrgbWriteControl = true;
 	}
-	else if(Config::Gfx::OPENGL_ES >= 2 && extStr == "GL_OES_vertex_array_object")
+	else if(extStr == "GL_OES_vertex_array_object")
 	{
 		setupVAOFuncs(true);
 	}
@@ -474,32 +414,9 @@ void GLRenderer::checkExtensionString(std::string_view extStr, bool &useFBOFuncs
 	{
 		setupMultisampleHints();
 	}*/
-	else if(extStr == "GL_EXT_framebuffer_object")
-	{
-		#ifndef __APPLE__
-		if(!useFBOFuncs)
-		{
-			setupFBOFuncs(useFBOFuncs);
-			support.generateMipmaps = glGenerateMipmapEXT;
-		}
-		#endif
-	}
-	else if(extStr == "GL_ARB_framebuffer_object")
-	{
-		if(!useFBOFuncs)
-			setupFBOFuncs(useFBOFuncs);
-	}
 	else if(extStr == "GL_ARB_texture_storage")
 	{
 		setupImmutableTexStorage(false);
-	}
-	else if(extStr == "GL_ARB_pixel_buffer_object")
-	{
-		setupPBO();
-	}
-	else if(!Config::GL_PLATFORM_EGL && extStr == "GL_ARB_sync")
-	{
-		setupFenceSync();
 	}
 	else if(extStr == "GL_ARB_buffer_storage")
 	{
@@ -517,10 +434,9 @@ void GLRenderer::checkFullExtensionString(const char *fullExtStr)
 	std::string fullExtStrTemp{fullExtStr};
 	char *savePtr;
 	auto extStr = strtok_r(fullExtStrTemp.data(), " ", &savePtr);
-	bool useFBOFuncs = false;
 	while(extStr)
 	{
-		checkExtensionString(extStr, useFBOFuncs);
+		checkExtensionString(extStr);
 		extStr = strtok_r(nullptr, " ", &savePtr);
 	}
 }
@@ -562,100 +478,50 @@ void Renderer::configureRenderer()
 			}
 			#endif
 
-			bool useFBOFuncs = false;
 			#ifndef CONFIG_GFX_OPENGL_ES
-			// core functionality
-			support.useFixedFunctionPipeline = glVer < 33;
-			if(glVer >= 15)
-			{
-				// safe to use VBOs
-			}
-			if(glVer >= 20)
-			{
-				setupNonPow2MipmapRepeatTextures();
-				setupSpecifyDrawReadBuffers();
-			}
-			if(glVer >= 21)
-			{
-				setupPBO();
-			}
-			if(glVer >= 30)
-			{
-				if(!support.useFixedFunctionPipeline)
-				{
-					setupTextureSwizzle();
-					setupRGFormats();
-					setupSamplerObjects();
-				}
-				setupFBOFuncs(useFBOFuncs);
-				support.hasSrgbWriteControl = true;
-			}
-			if(glVer >= 32 && !Config::GL_PLATFORM_EGL)
-			{
-				setupFenceSync();
-			}
-
+			assert(glVer >= 33);
 			// extension functionality
-			if(glVer >= 30)
+			GLint numExtensions;
+			glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
+			if(Config::DEBUG_BUILD)
 			{
-				GLint numExtensions;
-				glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
-				if(Config::DEBUG_BUILD)
-				{
-					logMsgNoBreak("extensions: ");
-					for(auto i : iotaCount(numExtensions))
-					{
-						logger_printf(LOG_M, "%s ", (const char*)glGetStringi(GL_EXTENSIONS, i));
-					}
-					logger_printf(LOG_M, "\n");
-				}
+				logMsgNoBreak("extensions: ");
 				for(auto i : iotaCount(numExtensions))
 				{
-					checkExtensionString((const char*)glGetStringi(GL_EXTENSIONS, i), useFBOFuncs);
+					logger_printf(LOG_M, "%s ", (const char*)glGetStringi(GL_EXTENSIONS, i));
 				}
+				logger_printf(LOG_M, "\n");
 			}
-			else
+			for(auto i : iotaCount(numExtensions))
 			{
-				auto extensions = (const char*)glGetString(GL_EXTENSIONS);
-				assert(extensions);
-				logMsg("extensions: %s", extensions);
-				checkFullExtensionString(extensions);
+				checkExtensionString((const char*)glGetStringi(GL_EXTENSIONS, i));
 			}
 			#else
 			// core functionality
-			if(Config::Gfx::OPENGL_ES == 1 && glVer >= 11)
+			assumeExpr(glVer >= 20);
+			if(glVer >= 30)
+				setupNonPow2MipmapRepeatTextures();
+			if(glVer >= 30)
 			{
-				// safe to use VBOs
+				support.glMapBufferRange = (typeof(support.glMapBufferRange))glManager.procAddress("glMapBufferRange");
+				support.glUnmapBuffer = (typeof(support.glUnmapBuffer))glManager.procAddress("glUnmapBuffer");
+				support.glFlushMappedBufferRange = (typeof(support.glFlushMappedBufferRange))glManager.procAddress("glFlushMappedBufferRange");
+				setupImmutableTexStorage(false);
+				support.hasTextureSwizzle = true;
+				setupRGFormats();
+				setupSamplerObjects();
+				support.hasPBOFuncs = true;
+				setupVAOFuncs();
+				if(!Config::GL_PLATFORM_EGL)
+					setupFenceSync();
+				if(!Config::envIsIOS)
+					setupSpecifyDrawReadBuffers();
+				support.hasUnpackRowLength = true;
+				support.useLegacyGLSL = false;
 			}
-			if(Config::Gfx::OPENGL_ES > 1)
+			if(glVer >= 31)
 			{
-				if(glVer >= 30)
-					setupNonPow2MipmapRepeatTextures();
-				else
-					setupNonPow2Textures();
-				setupFBOFuncs(useFBOFuncs);
-				if(glVer >= 30)
-				{
-					support.glMapBufferRange = (typeof(support.glMapBufferRange))glManager.procAddress("glMapBufferRange");
-					support.glUnmapBuffer = (typeof(support.glUnmapBuffer))glManager.procAddress("glUnmapBuffer");
-					support.glFlushMappedBufferRange = (typeof(support.glFlushMappedBufferRange))glManager.procAddress("glFlushMappedBufferRange");
-					setupImmutableTexStorage(false);
-					setupTextureSwizzle();
-					setupRGFormats();
-					setupSamplerObjects();
-					setupPBO();
-					setupVAOFuncs();
-					if(!Config::GL_PLATFORM_EGL)
-						setupFenceSync();
-					if(!Config::envIsIOS)
-						setupSpecifyDrawReadBuffers();
-					support.hasUnpackRowLength = true;
-					support.useLegacyGLSL = false;
-				}
-				if(glVer >= 31)
-				{
-					setupMemoryBarrier();
-				}
+				setupMemoryBarrier();
 			}
 
 			// extension functionality
@@ -704,16 +570,13 @@ void Renderer::setWindowValidOrientations(Window &win, Orientations validO)
 
 void GLRenderer::addEventHandlers(ApplicationContext ctx, RendererTask &task)
 {
-	if(!support.useFixedFunctionPipeline)
+	releaseShaderCompilerEvent.attach([&task, ctx]()
 	{
-		releaseShaderCompilerEvent.attach([&task, ctx]()
-		{
-			if(!ctx.isRunning())
-				return;
-			logMsg("automatically releasing shader compiler");
-			task.releaseShaderCompiler();
-		});
-	}
+		if(!ctx.isRunning())
+			return;
+		logMsg("automatically releasing shader compiler");
+		task.releaseShaderCompiler();
+	});
 	if constexpr(Config::envIsIOS)
 		task.setIOSDrawableDelegates();
 }
@@ -728,7 +591,7 @@ std::optional<GLBufferConfig> GLRenderer::makeGLBufferConfig(ApplicationContext 
 			pixelFormat = ctx.defaultWindowPixelFormat();
 	}
 	GLBufferConfigAttributes glBuffAttr{.pixelFormat = pixelFormat};
-	if constexpr(Config::Gfx::OPENGL_ES >= 2)
+	if constexpr(Config::Gfx::OPENGL_ES)
 	{
 		if(auto config = glManager.makeBufferConfig(ctx, glBuffAttr, glAPI, 3);
 			config)
@@ -740,7 +603,7 @@ std::optional<GLBufferConfig> GLRenderer::makeGLBufferConfig(ApplicationContext 
 	}
 	else
 	{
-		// OpenGL ES 1.0 or full OpenGL
+		// full OpenGL
 		return glManager.makeBufferConfig(ctx, glBuffAttr, glAPI);
 	}
 }

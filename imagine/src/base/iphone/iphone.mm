@@ -89,7 +89,7 @@ void releaseCFObject(void *ptr)
 static Screen &setupUIScreen(ApplicationContext ctx, UIScreen *screen, bool setOverscanCompensation)
 {
 	// prevent overscan compensation
-	if(hasAtLeastIOS5() && setOverscanCompensation)
+	if(setOverscanCompensation)
 		screen.overscanCompensation = UIScreenOverscanCompensationInsetApplicationFrame;
 	IOSScreen::InitParams initParams{(__bridge void*)screen};
 	auto s = std::make_unique<Screen>(ctx, initParams);
@@ -107,7 +107,7 @@ IOSApplication::IOSApplication(ApplicationInitParams initParams):
 		//logMsg("in didFinishLaunchingWithOptions(), UUID %s", [[[UIDevice currentDevice] uniqueIdentifier] cStringUsingEncoding: NSASCIIStringEncoding]);
 		logMsg("iOS version %s", [[[UIDevice currentDevice] systemVersion] cStringUsingEncoding: NSASCIIStringEncoding]);
 	}
-	if(!Config::MACHINE_IS_GENERIC_ARMV6 && UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
+	if(UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
 	{
 		isIPad = 1;
 		logMsg("running on iPad");
@@ -538,21 +538,14 @@ bool IOSApplicationContext::isSystemApp() const
 	return isRunningAsSystemApp;
 }
 
-bool hasAtLeastIOS5()
-{
-	return !Config::MACHINE_IS_GENERIC_ARMV6;
-}
-
 bool hasAtLeastIOS7()
 {
-	return !Config::MACHINE_IS_GENERIC_ARMV6 &&
-			kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_7_0;
+	return kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_7_0;
 }
 
 bool hasAtLeastIOS8()
 {
-	return !Config::MACHINE_IS_GENERIC_ARMV6 &&
-			kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_8_0;
+	return kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_8_0;
 }
 
 void ApplicationContext::exitWithMessage(int exitVal, const char *msg)

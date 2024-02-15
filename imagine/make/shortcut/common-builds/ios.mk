@@ -2,10 +2,6 @@ include $(IMAGINE_PATH)/make/config.mk
 
 ios_arch ?= armv7 arm64
 
-ifneq ($(filter armv6, $(ios_arch)),)
- armv6Target := ios-armv6$(targetExt)
- targets += $(armv6Target)
-endif
 ifneq ($(filter armv7, $(ios_arch)),)
  armv7Target := ios-armv7$(targetExt)
  targets += $(armv7Target)

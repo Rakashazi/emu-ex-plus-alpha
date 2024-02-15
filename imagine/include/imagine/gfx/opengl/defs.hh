@@ -16,6 +16,11 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/base/GLContext.hh>
+#include <imagine/util/memory/UniqueResource.hh>
+#include <imagine/util/used.hh>
+#include <variant>
+#include <span>
 
 namespace Config
 {
@@ -31,24 +36,6 @@ namespace Config
 	static constexpr int OPENGL_ES = CONFIG_GFX_OPENGL_ES;
 	#else
 	static constexpr int OPENGL_ES = 0;
-	#endif
-
-	#if (defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES == 1) || (!defined __APPLE__ && !defined CONFIG_GFX_OPENGL_ES)
-	#define CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	static constexpr bool OPENGL_FIXED_FUNCTION_PIPELINE = true;
-	#else
-	static constexpr bool OPENGL_FIXED_FUNCTION_PIPELINE = false;
-	#endif
-
-	#if (defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES == 2) || !defined CONFIG_GFX_OPENGL_ES
-	#define CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	static constexpr bool OPENGL_SHADER_PIPELINE = true;
-	#else
-	static constexpr bool OPENGL_SHADER_PIPELINE = false;
-	#endif
-
-	#if !defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE && !defined CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	#error "Configuration error, OPENGL_FIXED_FUNCTION_PIPELINE & OPENGL_SHADER_PIPELINE both unset"
 	#endif
 
 	#ifdef CONFIG_GFX_ANDROID_SURFACE_TEXTURE
@@ -71,4 +58,132 @@ namespace Config
 	static constexpr bool GLDRAWABLE_NEEDS_FRAMEBUFFER = false;
 	#endif
 	}
+}
+
+// Header Locations For Platform
+
+#if defined CONFIG_OS_IOS
+#import <OpenGLES/ES2/gl.h>
+#import <OpenGLES/ES2/glext.h>
+#elif defined CONFIG_BASE_MACOSX
+#import <OpenGL/gl3.h>
+#import <OpenGL/gl3ext.h>
+#elif defined CONFIG_BASE_WIN32
+#include <util/windows/windows.h>
+#define GLEW_STATIC
+#include <GL/glew.h>
+#include <GL/wglew.h>
+#elif defined CONFIG_GFX_OPENGL_ES // Generic OpenGL ES headers
+#define GL_GLEXT_PROTOTYPES
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#undef GL_GLEXT_PROTOTYPES
+#else // Generic OpenGL headers
+#define GL_GLEXT_PROTOTYPES
+#include <GL/gl.h>
+#include <GL/glext.h>
+#undef GL_GLEXT_PROTOTYPES
+#endif
+
+// Symbol Re-mapping
+
+#if defined CONFIG_GFX_OPENGL_ES
+	#ifndef GL_BGRA
+	#define GL_BGRA GL_BGRA_EXT
+	#endif
+	#ifndef GL_ALPHA8
+	#define GL_ALPHA8 0x803C
+	#endif
+	#ifndef GL_LUMINANCE8
+	#define GL_LUMINANCE8 0x8040
+	#endif
+	#ifndef GL_LUMINANCE8_ALPHA8
+	#define GL_LUMINANCE8_ALPHA8 0x8045
+	#endif
+	#ifndef GL_SYNC_FLUSH_COMMANDS_BIT
+	#define GL_SYNC_FLUSH_COMMANDS_BIT 0x00000001
+	#endif
+#endif
+
+#ifndef GL_APIENTRY
+#define GL_APIENTRY GLAPIENTRY
+#endif
+
+namespace IG::Gfx
+{
+
+class RendererTask;
+
+using TextureRef = GLuint;
+
+using VertexIndexSpan = std::variant<std::span<const uint8_t>, std::span<const uint16_t>>;
+
+static constexpr int TRIANGLE_IMPL = GL_TRIANGLES;
+static constexpr int TRIANGLE_STRIP_IMPL = GL_TRIANGLE_STRIP;
+
+static constexpr int ZERO_IMPL = GL_ZERO;
+static constexpr int ONE_IMPL = GL_ONE;
+static constexpr int SRC_COLOR_IMPL = GL_SRC_COLOR;
+static constexpr int ONE_MINUS_SRC_COLOR_IMPL = GL_ONE_MINUS_SRC_COLOR;
+static constexpr int DST_COLOR_IMPL = GL_DST_COLOR;
+static constexpr int ONE_MINUS_DST_COLOR_IMPL = GL_ONE_MINUS_DST_COLOR;
+static constexpr int SRC_ALPHA_IMPL = GL_SRC_ALPHA;
+static constexpr int ONE_MINUS_SRC_ALPHA_IMPL = GL_ONE_MINUS_SRC_ALPHA;
+static constexpr int DST_ALPHA_IMPL = GL_DST_ALPHA;
+static constexpr int ONE_MINUS_DST_ALPHA_IMPL = GL_ONE_MINUS_DST_ALPHA;
+static constexpr int CONSTANT_COLOR_IMPL = GL_CONSTANT_COLOR;
+static constexpr int ONE_MINUS_CONSTANT_COLOR_IMPL = GL_ONE_MINUS_CONSTANT_COLOR;
+static constexpr int CONSTANT_ALPHA_IMPL = GL_CONSTANT_ALPHA;
+static constexpr int ONE_MINUS_CONSTANT_ALPHA_IMPL = GL_ONE_MINUS_CONSTANT_ALPHA;
+
+static constexpr int SYNC_FLUSH_COMMANDS_BIT = GL_SYNC_FLUSH_COMMANDS_BIT;
+
+using ClipRect = WRect;
+using Drawable = NativeGLDrawable;
+
+enum class ShaderType : uint16_t
+{
+	VERTEX = GL_VERTEX_SHADER,
+	FRAGMENT = GL_FRAGMENT_SHADER
+};
+
+enum class ColorSpace : uint8_t
+{
+	LINEAR = (uint8_t)GLColorSpace::LINEAR,
+	SRGB = (uint8_t)GLColorSpace::SRGB,
+};
+
+using NativeBuffer = GLuint;
+
+void destroyGLBuffer(RendererTask &, NativeBuffer);
+
+struct GLBufferDeleter
+{
+	RendererTask *rTask{};
+
+	void operator()(NativeBuffer s) const
+	{
+		destroyGLBuffer(*rTask, s);
+	}
+};
+using UniqueGLBuffer = UniqueResource<NativeBuffer, GLBufferDeleter>;
+
+struct TextureBinding
+{
+	TextureRef name{};
+	GLenum target{};
+};
+
+struct TextureSizeSupport
+{
+	int maxXSize{}, maxYSize{};
+	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, bool, true, nonPow2CanMipmap){};
+	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, bool, true, nonPow2CanRepeat){};
+
+	constexpr bool supportsMipmaps(int x, int y) const
+	{
+		return x && y && (nonPow2CanMipmap || (isPowerOf2(x) && isPowerOf2(y)));
+	}
+};
+
 }

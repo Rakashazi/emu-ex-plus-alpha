@@ -43,19 +43,6 @@ bool GLBasicEffect::setShaders(RendererTask &task, std::span<std::string_view> v
 
 void GLBasicEffect::updateTextureType(RendererCommands &cmds, TextureType newTexType)
 {
-	if(cmds.renderer().support.useFixedFunctionPipeline)
-	{
-		if(newTexType == TextureType::UNSET)
-		{
-			cmds.glcDisable(GL_TEXTURE_2D);
-		}
-		else
-		{
-			cmds.glcEnable(GL_TEXTURE_2D);
-		}
-		return;
-	}
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	cmds.setProgram(program);
 	if(texType != newTexType)
 	{
@@ -73,7 +60,6 @@ void GLBasicEffect::updateTextureType(RendererCommands &cmds, TextureType newTex
 		}
 		texType = newTexType;
 	}
-	#endif
 }
 
 void BasicEffect::enableTexture(RendererCommands &cmds, const Texture &tex)
@@ -105,32 +91,12 @@ void BasicEffect::disableTexture(RendererCommands &cmds)
 
 void GLBasicEffect::setModelView(RendererCommands &cmds, Mat4 mat)
 {
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(cmds.renderer().support.useFixedFunctionPipeline)
-	{
-		glLoadMatrixf(&mat[0][0]);
-		return;
-	}
-	#endif
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	cmds.uniform(modelViewUniform, mat);
-	#endif
 }
 
 void GLBasicEffect::setProjection(RendererCommands &cmds, Mat4 mat)
 {
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(cmds.renderer().support.useFixedFunctionPipeline)
-	{
-		glMatrixMode(GL_PROJECTION);
-		glLoadMatrixf(&mat[0][0]);
-		glMatrixMode(GL_MODELVIEW);
-		return;
-	}
-	#endif
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	cmds.uniform(projUniform, mat);
-	#endif
 }
 
 void BasicEffect::setModelView(RendererCommands &cmds, Mat4 mat)
@@ -154,10 +120,6 @@ void BasicEffect::setModelViewProjection(RendererCommands &cmds, Mat4 modelView,
 
 void BasicEffect::prepareDraw(RendererCommands &cmds)
 {
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(cmds.renderer().support.useFixedFunctionPipeline)
-		return;
-	#endif
 	cmds.setProgram(program);
 }
 

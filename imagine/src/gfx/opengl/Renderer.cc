@@ -31,6 +31,7 @@
 namespace IG::Gfx
 {
 
+static_assert(!Config::Gfx::OPENGL_ES || Config::Gfx::OPENGL_ES >= 2);
 static_assert((uint8_t)TextureBufferMode::DEFAULT == 0, "TextureBufferMode::DEFAULT != 0");
 
 Renderer::Renderer(ApplicationContext ctx):
@@ -235,14 +236,12 @@ bool Renderer::canRenderToMultiplePixelFormats() const
 
 void Renderer::releaseShaderCompiler()
 {
-	if(!support.useFixedFunctionPipeline)
-		task().releaseShaderCompiler();
+	task().releaseShaderCompiler();
 }
 
 void Renderer::autoReleaseShaderCompiler()
 {
-	if(!support.useFixedFunctionPipeline)
-		releaseShaderCompilerEvent.notify();
+	releaseShaderCompilerEvent.notify();
 }
 
 ClipRect Renderer::makeClipRect(const Window &win, IG::WindowRect rect)
@@ -420,8 +419,6 @@ bool Renderer::hasBgraFormat(TextureBufferMode mode) const
 
 bool GLRenderer::initBasicEffect()
 {
-	if(support.useFixedFunctionPipeline)
-		return true;
 	auto &rTask = mainTask;
 
 	std::string_view vertShaderSrc =

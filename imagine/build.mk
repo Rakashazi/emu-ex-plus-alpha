@@ -11,12 +11,6 @@ include $(IMAGINE_PATH)/make/imagineStaticLibBase.mk
 
 imagineSrcDir := $(projectPath)/src
 
-ifeq ($(SUBARCH),armv6)
- openGLESVersion ?= 1
-else
- openGLESVersion ?= 2
-endif
-
 include $(imagineSrcDir)/audio/system.mk
 include $(imagineSrcDir)/input/system.mk
 include $(imagineSrcDir)/gfx/system.mk

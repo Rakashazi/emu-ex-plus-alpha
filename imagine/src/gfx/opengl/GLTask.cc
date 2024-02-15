@@ -178,38 +178,23 @@ GLContext GLTask::makeGLContext(GLManager &mgr, GLBufferConfig bufferConf)
 {
 	if constexpr((bool)Config::Gfx::OPENGL_ES)
 	{
-		if constexpr(Config::Gfx::OPENGL_ES == 1)
+		if(bufferConf.maySupportGLES(mgr.display(), 3))
 		{
-			return makeVersionedGLContext(mgr, bufferConf, 1, 0);
-		}
-		else
-		{
-			if(bufferConf.maySupportGLES(mgr.display(), 3))
-			{
-				auto ctx = makeVersionedGLContext(mgr, bufferConf, 3, 0);
-				if(ctx)
-				{
-					return ctx;
-				}
-			}
-			// fall back to OpenGL ES 2.0
-			return makeVersionedGLContext(mgr, bufferConf, 2, 0);
-		}
-	}
-	else
-	{
-		if(Config::Gfx::OPENGL_SHADER_PIPELINE)
-		{
-			auto ctx = makeVersionedGLContext(mgr, bufferConf, 3, 3);
+			auto ctx = makeVersionedGLContext(mgr, bufferConf, 3, 0);
 			if(ctx)
 			{
 				return ctx;
 			}
 		}
-		if(Config::Gfx::OPENGL_FIXED_FUNCTION_PIPELINE)
+		// fall back to OpenGL ES 2.0
+		return makeVersionedGLContext(mgr, bufferConf, 2, 0);
+	}
+	else
+	{
+		auto ctx = makeVersionedGLContext(mgr, bufferConf, 3, 3);
+		if(ctx)
 		{
-			// fall back to OpenGL 1.3
-			return makeVersionedGLContext(mgr, bufferConf, 1, 3);
+			return ctx;
 		}
 	}
 	return {};

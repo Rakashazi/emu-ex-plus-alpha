@@ -283,52 +283,20 @@ void RendererCommands::setClearColor(Color4F c)
 void RendererCommands::setColor(Color4F c)
 {
 	rTask->verifyCurrentContext();
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(renderer().support.useFixedFunctionPipeline)
-	{
-		glcColor4f(c.r, c.g, c.b, c.a);
-		return;
-	}
-	#endif
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	// !support.useFixedFunctionPipeline
 	if(vColor == c)
 		return;
 	vColor = c;
 	glVertexAttrib4f(VATTR_COLOR, c.r, c.g, c.b, c.a);
 	//logMsg("set color: %f:%f:%f:%f", (double)r, (double)g, (double)b, (double)a);
-	#endif
 }
 
 Color RendererCommands::color() const
 {
-	rTask->verifyCurrentContext();
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(renderer().support.useFixedFunctionPipeline)
-	{
-		return glState.colorState;
-	}
-	#endif
-	// !support.useFixedFunctionPipeline
 	return vColor;
 }
 
 void RendererCommands::setImgMode(EnvMode mode)
 {
-	rTask->verifyCurrentContext();
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(renderer().support.useFixedFunctionPipeline)
-	{
-		switch(mode)
-		{
-			case EnvMode::REPLACE: return glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-			case EnvMode::MODULATE: return glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-			case EnvMode::ADD: return glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD);
-			case EnvMode::BLEND: return glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
-		}
-		return;
-	}
-	#endif
 	// TODO
 }
 
@@ -457,36 +425,9 @@ void RendererCommands::drawPrimitiveElements(Primitive mode, int start, int coun
 	}, "glDrawElements()");
 }
 
-bool GLRendererCommands::useFixedFunctionPipeline() const { return r->support.useFixedFunctionPipeline; }
-
 bool GLRendererCommands::hasVAOFuncs() const { return r->support.hasVAOFuncs(); }
 
-#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-void GLRendererCommands::setupVertexArrayPointers(int stride,
-	AttribDesc textureAttrib, AttribDesc colorAttrib, AttribDesc posAttrib)
-{
-	glcEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(posAttrib.size, asGLType(posAttrib.type), stride, (const void*)posAttrib.offset);
-	if(textureAttrib.size)
-	{
-		glcEnableClientState(GL_TEXTURE_COORD_ARRAY);
-		glTexCoordPointer(textureAttrib.size, asGLType(textureAttrib.type), stride, (const void*)textureAttrib.offset);
-	}
-	else
-		glcDisableClientState(GL_TEXTURE_COORD_ARRAY);
-	if(colorAttrib.size)
-	{
-		glcEnableClientState(GL_COLOR_ARRAY);
-		glColorPointer(colorAttrib.size, asGLType(colorAttrib.type), stride, (const void*)colorAttrib.offset);
-		glState.colorState[0] = -1; //invalidate glColor state cache
-	}
-	else
-		glcDisableClientState(GL_COLOR_ARRAY);
-}
-#endif
-
-#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-void GLRendererCommands::setupShaderVertexArrayPointers(int stride, VertexLayoutFlags enabledLayout, VertexLayoutDesc layoutDesc)
+void GLRendererCommands::setupVertexArrayPointers(int stride, VertexLayoutFlags enabledLayout, VertexLayoutDesc layoutDesc)
 {
 	assert(!hasVAOFuncs());
 	if(currentEnabledVertexLayout != enabledLayout)
@@ -514,20 +455,17 @@ void GLRendererCommands::setupShaderVertexArrayPointers(int stride, VertexLayout
 			layoutDesc.color.normalize, stride, (const void*)layoutDesc.color.offset);
 	}
 }
-#endif
 
 // shaders
 
 void RendererCommands::setProgram(NativeProgram program)
 {
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	rTask->verifyCurrentContext();
 	if(currProgram != program)
 	{
 		glUseProgram(program);
 		currProgram = program;
 	}
-	#endif
 }
 
 void RendererCommands::setProgram(const Program &program)
@@ -535,7 +473,6 @@ void RendererCommands::setProgram(const Program &program)
 	setProgram(program.glProgram());
 }
 
-#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 void RendererCommands::uniform(int loc, float v1){ glUniform1f(loc, v1); }
 void RendererCommands::uniform(int loc, float v1, float v2){ glUniform2f(loc, v1, v2); }
 void RendererCommands::uniform(int loc, float v1, float v2, float v3){ glUniform3f(loc, v1, v2, v3); }
@@ -549,7 +486,6 @@ void RendererCommands::uniform(int loc, Mat4 mat)
 {
 	glUniformMatrix4fv(loc, 1, GL_FALSE, &mat[0][0]);
 }
-#endif
 
 BasicEffect &RendererCommands::basicEffect() { return renderer().basicEffect(); }
 
@@ -569,23 +505,6 @@ GLboolean GLRendererCommands::glcIsEnabled(GLenum cap)
 	else
 		return glIsEnabled(cap);
 }
-
-#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-void GLRendererCommands::glcEnableClientState(GLenum cap)
-{ if(useGLCache) glState.enableClientState(cap); else glEnableClientState(cap); }
-void GLRendererCommands::glcDisableClientState(GLenum cap)
-{ if(useGLCache) glState.disableClientState(cap); else glDisableClientState(cap); }
-void GLRendererCommands::glcColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
-{
-	if(useGLCache)
-		glState.color4f(red, green, blue, alpha);
-	else
-	{
-		glColor4f(red, green, blue, alpha);
-		glState.colorState[0] = red; glState.colorState[1] = green; glState.colorState[2] = blue; glState.colorState[3] = alpha; // for color()
-	}
-}
-#endif
 
 const GLContext &GLRendererCommands::glContext() const
 {

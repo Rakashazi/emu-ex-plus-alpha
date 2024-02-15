@@ -22,6 +22,7 @@ endif
 
 targetDir ?= target/$(buildName)
 
+openGLAPI := gles
 staticLibcxx := 1
 include $(buildSysPath)/linux-gcc.mk
 

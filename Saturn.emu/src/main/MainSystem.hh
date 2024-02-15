@@ -63,6 +63,11 @@ enum class InputDeviceType : int8_t
 	jpkeyboard
 };
 
+enum class WidescreenMode : uint8_t
+{
+	Auto, On, Off
+};
+
 struct InputConfig
 {
 	std::array<bool, 2> multitaps{};
@@ -80,7 +85,7 @@ enum
 	CFGKEY_VIDEO_LINES = 285, CFGKEY_CORRECT_LINE_ASPECT = 286,
 	CFGKEY_DEFAULT_NTSC_VIDEO_LINES = 287, CFGKEY_DEFAULT_PAL_VIDEO_LINES = 288,
 	CFGKEY_DEFAULT_SHOW_H_OVERSCAN = 289, CFGKEY_SHOW_H_OVERSCAN = 290,
-	CFGKEY_DEINTERLACE_MODE = 291,
+	CFGKEY_DEINTERLACE_MODE = 291, CFGKEY_WIDESCREEN_MODE = 292,
 };
 
 struct VideoLineRange
@@ -128,6 +133,7 @@ public:
 	bool autoRTCTime{true};
 	bool noMD5InFilenames{};
 	Rotation sysContentRotation{Rotation::ANY};
+	WidescreenMode widescreenMode{WidescreenMode::Auto};
 
 	SaturnSystem(ApplicationContext ctx):
 		EmuSystem{ctx}

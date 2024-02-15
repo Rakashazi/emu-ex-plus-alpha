@@ -16,7 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include "glIncludes.h"
 #include "defs.hh"
 #include <chrono>
 

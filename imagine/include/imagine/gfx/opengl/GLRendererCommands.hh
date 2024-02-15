@@ -41,22 +41,14 @@ public:
 	void bindGLVertexArray(GLuint vao);
 	void bindGLArrayBuffer(GLuint vbo);
 	void bindGLIndexBuffer(GLuint ibo);
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	void glcMatrixMode(GLenum mode);
-	#endif
 	void glcBlendFunc(GLenum sfactor, GLenum dfactor);
 	void glcBlendEquation(GLenum mode);
 	void glcEnable(GLenum cap);
 	void glcDisable(GLenum cap);
 	GLboolean glcIsEnabled(GLenum cap);
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	void glcEnableClientState(GLenum cap);
-	void glcDisableClientState(GLenum cap);
-	void glcColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
-	#endif
 	void setupVertexArrayPointers(int stride,
 		AttribDesc textureAttrib, AttribDesc colorAttrib, AttribDesc posAttrib);
-	void setupShaderVertexArrayPointers(int stride, VertexLayoutFlags enabledLayout, VertexLayoutDesc);
+	void setupVertexArrayPointers(int stride, VertexLayoutFlags enabledLayout, VertexLayoutDesc);
 
 protected:
 	bool setCurrentDrawable(Drawable win);
@@ -66,7 +58,6 @@ protected:
 	void notifyDrawComplete();
 	void notifyPresentComplete();
 	const GLContext &glContext() const;
-	bool useFixedFunctionPipeline() const;
 	bool hasVAOFuncs() const;
 
 	template<VertexLayout V>
@@ -77,24 +68,9 @@ protected:
 	}
 
 	template<VertexLayout V>
-	void setupShaderVertexArrayPointers()
-	{
-		setupShaderVertexArrayPointers(sizeof(V), vertexLayoutEnableMask<V>(), vertexLayoutDesc<V>());
-	}
-
-	template<VertexLayout V>
 	void setVertexAttribs()
 	{
-		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-		if(useFixedFunctionPipeline())
-		{
-			setupVertexArrayPointers<V>();
-			return;
-		}
-		#endif
-		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-		setupShaderVertexArrayPointers<V>();
-		#endif
+		setupVertexArrayPointers(sizeof(V), vertexLayoutEnableMask<V>(), vertexLayoutDesc<V>());
 	}
 
 	template<class V>
@@ -129,10 +105,8 @@ protected:
 	GLuint currSamplerName{};
 	GLuint currVertexArrayName{};
 	GLuint currIndexBufferName{};
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	NativeProgram currProgram{};
 	VertexLayoutFlags currentEnabledVertexLayout{};
-	#endif
 	GLStateCache glState{};
 	Color4F vColor{}; // color when using shader pipeline
 };

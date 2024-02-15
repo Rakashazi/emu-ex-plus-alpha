@@ -19,7 +19,6 @@
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/CustomEvent.hh>
 #include <imagine/gfx/defs.hh>
-#include <imagine/gfx/TextureSizeSupport.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/BasicEffect.hh>
@@ -31,6 +30,22 @@
 #ifdef CONFIG_BASE_GL_PLATFORM_EGL
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
+#endif
+
+#ifndef GL_R8
+#define GL_R8 0x8229
+#endif
+
+#ifndef GL_RG
+#define GL_RG 0x8227
+#endif
+
+#ifndef GL_RG8
+#define GL_RG8 0x822B
+#endif
+
+#ifndef GL_RED
+#define GL_RED 0x1903
 #endif
 
 namespace IG
@@ -116,33 +131,26 @@ public:
 	void GL_APIENTRY (*glDebugMessageCallback)(GLDEBUGPROC callback, const void *userParam){};
 	static constexpr auto DEBUG_OUTPUT = GL_DEBUG_OUTPUT;
 	#endif
-	#if defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES > 1
-	static void generateMipmaps(GLenum target) { ::glGenerateMipmap(target); };
-	#else
-	using GenerateMipmapsProto = void (* GL_APIENTRY)(GLenum target);
-	GenerateMipmapsProto generateMipmaps{}; // set via extensions
-	#endif
-	GLenum luminanceFormat = GL_LUMINANCE;
-	GLenum luminanceInternalFormat = GL_LUMINANCE8;
-	GLenum luminanceAlphaFormat = GL_LUMINANCE_ALPHA;
-	GLenum luminanceAlphaInternalFormat = GL_LUMINANCE8_ALPHA8;
-	GLenum alphaFormat = GL_ALPHA;
-	GLenum alphaInternalFormat = GL_ALPHA8;
-	TextureSizeSupport textureSizeSupport{};
+	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, GLenum, GL_RED, luminanceFormat){GL_LUMINANCE};
+	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, GLenum, GL_R8,  luminanceInternalFormat){GL_LUMINANCE8};
+	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, GLenum, GL_RG,  luminanceAlphaFormat){GL_LUMINANCE_ALPHA};
+	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, GLenum, GL_RG8, luminanceAlphaInternalFormat){GL_LUMINANCE8_ALPHA8};
+	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, GLenum, GL_RED, alphaFormat){GL_ALPHA};
+	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, GLenum, GL_R8,  alphaInternalFormat){GL_ALPHA8};
+	TextureSizeSupport textureSizeSupport;
 	//bool hasMemoryBarrier = false;
-	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, bool, true, hasBGRPixels){};
-	bool hasTextureSwizzle{};
-	bool hasUnpackRowLength = !Config::Gfx::OPENGL_ES;
-	bool hasSamplerObjects = !Config::Gfx::OPENGL_ES;
 	bool hasImmutableTexStorage{};
-	bool hasPBOFuncs{};
-	bool useLegacyGLSL = Config::Gfx::OPENGL_ES;
+	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, bool, true, hasBGRPixels){};
+	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, bool, true, hasTextureSwizzle){};
+	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, bool, true, hasUnpackRowLength){};
+	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, bool, true, hasSamplerObjects){};
+	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, bool, true, hasPBOFuncs){};
+	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, bool, false, useLegacyGLSL){true};
+	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, bool, true, hasSrgbWriteControl){};
 	IG_UseMemberIf(Config::Gfx::OPENGL_DEBUG_CONTEXT, bool, hasDebugOutput){};
 	IG_UseMemberIf(!Config::Gfx::OPENGL_ES, bool, hasBufferStorage){};
 	IG_UseMemberIf(Config::envIsAndroid, bool, hasEGLImages){};
 	IG_UseMemberIf(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL, bool, hasExternalEGLImages){};
-	IG_UseMemberIf(Config::Gfx::OPENGL_FIXED_FUNCTION_PIPELINE, bool, useFixedFunctionPipeline){true};
-	bool hasSrgbWriteControl{};
 	bool isConfigured{};
 
 	bool hasDrawReadBuffers() const;
@@ -178,16 +186,10 @@ protected:
 	void addEventHandlers(ApplicationContext, RendererTask &);
 	std::optional<GLBufferConfig> makeGLBufferConfig(ApplicationContext, PixelFormat, const Window * = {});
 	void setCurrentDrawable(GLDisplay, GLContext, Drawable);
-	void setupNonPow2Textures();
-	void setupNonPow2MipmapTextures();
 	void setupNonPow2MipmapRepeatTextures();
-	void setupBGRPixelSupport();
-	void setupFBOFuncs(bool &useFBOFuncs);
-	void setupTextureSwizzle();
 	void setupImmutableTexStorage(bool extSuffix);
 	void setupRGFormats();
 	void setupSamplerObjects();
-	void setupPBO();
 	void setupSpecifyDrawReadBuffers();
 	void setupUnmapBufferFunc();
 	void setupImmutableBufferStorage();
@@ -196,7 +198,7 @@ protected:
 	void setupFenceSync();
 	void setupAppleFenceSync();
 	void setupEglFenceSync(std::string_view eglExtenstionStr);
-	void checkExtensionString(std::string_view extStr, bool &useFBOFuncs);
+	void checkExtensionString(std::string_view extStr);
 	void checkFullExtensionString(const char *fullExtStr);
 	bool attachWindow(Window &, GLBufferConfig, GLColorSpace);
 	NativeWindowFormat nativeWindowFormat(GLBufferConfig) const;

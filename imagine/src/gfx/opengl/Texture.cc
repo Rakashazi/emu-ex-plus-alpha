@@ -298,11 +298,11 @@ bool Texture::generateMipmaps()
 	if(!canUseMipmaps())
 		return false;
 	task().run(
-		[&r = std::as_const(renderer()), texName = texName()]()
+		[texName = texName()]()
 		{
 			glBindTexture(GL_TEXTURE_2D, texName);
 			log.info("generating mipmaps for texture:0x{:X}", texName);
-			r.support.generateMipmaps(GL_TEXTURE_2D);
+			glGenerateMipmap(GL_TEXTURE_2D);
 		});
 	updateLevelsForMipmapGeneration();
 	return true;
@@ -431,7 +431,7 @@ void Texture::writeAligned(int level, PixmapView pixmap, WPt destPos, int assume
 				if(makeMipmaps)
 				{
 					log.info("generating mipmaps for texture:0x{:X}", texName);
-					r.support.generateMipmaps(GL_TEXTURE_2D);
+					glGenerateMipmap(GL_TEXTURE_2D);
 				}
 			}, writeFlags.async ? MessageReplyMode::none : MessageReplyMode::wait);
 		if(makeMipmaps)
@@ -554,7 +554,7 @@ void Texture::unlock(LockedTextureBuffer lockBuff, TextureWriteFlags writeFlags)
 			if(makeMipmaps)
 			{
 				log.info("generating mipmaps for texture:0x{:X}", texName);
-				r.support.generateMipmaps(GL_TEXTURE_2D);
+				glGenerateMipmap(GL_TEXTURE_2D);
 			}
 		});
 }
@@ -643,7 +643,7 @@ static void verifyCurrentTexture2D(TextureRef tex)
 
 void GLTexture::setSwizzleForFormatInGL(const Renderer &r, PixelFormatID format, GLuint tex)
 {
-	if(r.support.useFixedFunctionPipeline || !r.support.hasTextureSwizzle)
+	if(!r.support.hasTextureSwizzle)
 		return;
 	verifyCurrentTexture2D(tex);
 	const GLint swizzleMaskRGBA[] {GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA};
@@ -788,12 +788,6 @@ LockedTextureBuffer GLTexture::lockedBuffer(void *data, int pitchBytes, TextureB
 	if(bufferFlags.clear)
 		pix.clear();
 	return {nullptr, pix, fullRect, 0, false};
-}
-
-bool TextureSizeSupport::supportsMipmaps(int imageX, int imageY) const
-{
-	return imageX && imageY &&
-		(nonPow2CanMipmap || (IG::isPowerOf2(imageX) && IG::isPowerOf2(imageY)));
 }
 
 TextureSpan::operator bool() const

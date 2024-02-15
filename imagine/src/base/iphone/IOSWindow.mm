@@ -108,7 +108,7 @@ Window *IOSApplicationContext::deviceWindow() const
 
 IG::PixelFormat ApplicationContext::defaultWindowPixelFormat() const
 {
-	return Config::MACHINE_IS_GENERIC_ARMV6 ? PIXEL_RGB565 : PIXEL_RGBA8888;
+	return PIXEL_RGBA8888;
 }
 
 bool Window::hasSurface() const

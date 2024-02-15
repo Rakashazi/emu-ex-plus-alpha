@@ -86,8 +86,7 @@ protected:
 	UniqueGLTextureRef texName_{};
 	PixmapDesc pixDesc{};
 	int8_t levels_{};
-	IG_UseMemberIfOrConstant(Config::Gfx::OPENGL_SHADER_PIPELINE,
-		TextureType, TextureType::T2D_4, type_){TextureType::UNSET};
+	TextureType type_{TextureType::UNSET};
 
 	void init(RendererTask &r, TextureConfig config);
 	TextureConfig baseInit(RendererTask &r, TextureConfig config);

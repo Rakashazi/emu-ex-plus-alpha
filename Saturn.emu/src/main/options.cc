@@ -50,6 +50,7 @@ bool SaturnSystem::resetSessionOptions(EmuApp &app)
 	videoLines = {};
 	showHOverscan = defaultShowHOverscan;
 	deinterlaceMode = DeinterlaceMode::Bob;
+	widescreenMode = WidescreenMode::Auto;
 	onSessionOptionsLoaded(app);
 	return true;
 }
@@ -90,6 +91,7 @@ bool SaturnSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t r
 			case CFGKEY_VIDEO_LINES: return readOptionValue(io, readSize, videoLines);
 			case CFGKEY_SHOW_H_OVERSCAN: return readOptionValue(io, readSize, showHOverscan);
 			case CFGKEY_DEINTERLACE_MODE: return readOptionValue(io, readSize, deinterlaceMode);
+			case CFGKEY_WIDESCREEN_MODE: return readOptionValue(io, readSize, widescreenMode);
 		}
 	}
 	return false;
@@ -118,6 +120,7 @@ void SaturnSystem::writeConfig(ConfigType type, FileIO &io)
 		writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_LINES, videoLines, MDFN_IEN_SS::VDP2::PAL ? defaultPalLines : defaultNtscLines);
 		writeOptionValueIfNotDefault(io, CFGKEY_SHOW_H_OVERSCAN, showHOverscan, defaultShowHOverscan);
 		writeOptionValueIfNotDefault(io, CFGKEY_DEINTERLACE_MODE, deinterlaceMode, DeinterlaceMode::Bob);
+		writeOptionValueIfNotDefault(io, CFGKEY_WIDESCREEN_MODE, widescreenMode, WidescreenMode::Auto);
 	}
 }
 

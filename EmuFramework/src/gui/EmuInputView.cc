@@ -59,6 +59,8 @@ bool EmuInputView::toggleAltSpeedMode(AltSpeedMode mode)
 
 bool EmuInputView::setAltSpeedMode(AltSpeedMode mode, bool on)
 {
+	if(speedToggleActive == on)
+		return speedToggleActive;
 	speedToggleActive = on;
 	vController->updateAltSpeedModeInput(mode, on);
 	updateRunSpeed(mode);

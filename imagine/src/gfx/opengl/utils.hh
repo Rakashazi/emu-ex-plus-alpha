@@ -1,6 +1,6 @@
 #pragma once
 
-#include <imagine/gfx/opengl/gfx-globals.hh>
+#include <imagine/gfx/opengl/defs.hh>
 #include <imagine/logger/logger.h>
 
 #ifndef GL_RGB8
@@ -69,11 +69,6 @@ static const char *glErrorToString(GLenum err)
 		case GL_INVALID_ENUM: return "Invalid Enum";
 		case GL_INVALID_VALUE: return "Invalid Value";
 		case GL_INVALID_OPERATION: return "Invalid Operation";
-		#if (!defined CONFIG_GFX_OPENGL_ES && defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE) \
-			|| (defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES == 1)
-		case GL_STACK_OVERFLOW: return "Stack Overflow";
-		case GL_STACK_UNDERFLOW: return "Stack Underflow";
-		#endif
 		case GL_OUT_OF_MEMORY: return "Out of Memory";
 		default: return "Unknown Error";
 	}
@@ -116,22 +111,12 @@ static const char *glImageFormatToString(int format)
 		case GL_R8: return "R8";
 		case GL_RG: return "RG";
 		case GL_RG8: return "RG8";
-		#if !defined CONFIG_GFX_OPENGL_ES && defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-		case GL_COMPRESSED_RGBA: return "COMPRESSED_RGBA";
-		case GL_COMPRESSED_RGB: return "COMPRESSED_RGB";
-		case GL_COMPRESSED_LUMINANCE: return "COMPRESSED_LUMINANCE";
-		case GL_COMPRESSED_LUMINANCE_ALPHA: return "COMPRESSED_LUMINANCE_ALPHA";
-		#endif
 		case GL_LUMINANCE8: return "LUMINANCE8";
 		case GL_LUMINANCE8_ALPHA8: return "LUMINANCE8_ALPHA8";
 		case GL_ALPHA8: return "ALPHA8";
 		case GL_RGBA: return "RGBA";
 		case GL_BGRA: return "BGRA";
 		case GL_RGB: return "RGB";
-		#if defined CONFIG_GFX_OPENGL_ES || defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-		case GL_LUMINANCE: return "LUMINANCE";
-		case GL_LUMINANCE_ALPHA: return "LUMINANCE_ALPHA";
-		#endif
 		case GL_ALPHA: return "ALPHA";
 		default: bug_unreachable("format == %d", format);
 	}

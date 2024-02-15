@@ -3,28 +3,6 @@ inc_gfx := 1
 
 include $(imagineSrcDir)/base/system.mk
 include $(imagineSrcDir)/pixmap/build.mk
-
-ifndef openGLAPI
- ifneq ($(filter ios android,$(ENV)),)
-  openGLAPI := gles
- else ifeq ($(SUBENV), pandora)
-  openGLAPI := gles
- else
-  openGL := gl
- endif
-endif
-
-ifeq ($(openGLAPI), gles)
- ifndef openGLESVersion
-  openGLESVersion := 2
-  ifneq ($(filter ios android,$(ENV)),)
-   ifeq ($(SUBARCH), armv6)
-    openGLESVersion := 1
-   endif
-  endif
- endif
-endif
-
 include $(IMAGINE_PATH)/make/package/opengl.mk
 
 SRC += gfx/common/GfxText.cc \

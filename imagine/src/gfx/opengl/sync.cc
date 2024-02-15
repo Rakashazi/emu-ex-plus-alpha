@@ -77,49 +77,37 @@ void GLRenderer::setupEglFenceSync(std::string_view eglExtenstionStr)
 
 bool DrawContextSupport::hasSyncFences() const
 {
-	#ifdef CONFIG_BASE_GL_PLATFORM_EGL
 	if constexpr((bool)Config::Gfx::OPENGL_ES)
 	{
+		#ifdef CONFIG_BASE_GL_PLATFORM_EGL
 		return eglCreateSync;
+		#else
+		return glFenceSync;
+		#endif
 	}
 	else
 	{
 		return true;
 	}
-	#else
-	if constexpr((bool)Config::Gfx::OPENGL_ES)
-	{
-		return glFenceSync;
-	}
-	else
-	{
-		return Config::Gfx::OPENGL_SHADER_PIPELINE;
-	}
-	#endif
 }
 
 bool DrawContextSupport::hasServerWaitSync() const
 {
 	return false;
-	/*#ifdef CONFIG_BASE_GL_PLATFORM_EGL
+	/*
 	if constexpr(Config::Gfx::OPENGL_ES)
 	{
+		#ifdef CONFIG_BASE_GL_PLATFORM_EGL
 		return eglWaitSync;
+		#else
+		return glWaitSync;
+		#endif
 	}
 	else
 	{
 		return true;
 	}
-	#else
-	if constexpr(Config::Gfx::OPENGL_ES)
-	{
-		return glWaitSync;
-	}
-	else
-	{
-		return Config::Gfx::OPENGL_SHADER_PIPELINE;
-	}
-	#endif*/
+	*/
 }
 
 GLsync DrawContextSupport::fenceSync(GLDisplay dpy)

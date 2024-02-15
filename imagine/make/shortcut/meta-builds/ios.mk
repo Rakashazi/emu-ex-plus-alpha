@@ -35,9 +35,6 @@ ifdef LTO_MODE
 endif
 
 ios_arch ?= armv7 arm64
-ifeq ($(filter armv6, $(ios_arch)),)
- ios_noARMv6 := 1
-endif
 ifeq ($(filter armv7, $(ios_arch)),)
  ios_noARMv7 := 1
 endif
@@ -49,39 +46,6 @@ ifeq ($(filter arm64, $(ios_arch)),)
 endif
 ifeq ($(filter x86, $(ios_arch)),)
  ios_noX86 := 1
-endif
-
-ifndef ios_noARMv6
-
-ios_armv6Makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/ios-armv6.mk
-ios_armv6ExecName := $(iOS_metadata_exec)-armv6
-ios_armv6Exec := $(ios_targetBinPath)/$(ios_armv6ExecName)
-ios_armv6MakeArgs = -f $(ios_armv6Makefile) $(ios_makefileOpts)\
- targetDir=$(ios_targetBinPath) targetFile=$(ios_armv6ExecName) \
- buildName=$(ios_buildName)-armv6 $(ios_CFLAGS_OPTIMIZE_param) \
- projectPath=$(projectPath)
-ios_execs += $(ios_armv6Exec)
-.PHONY: ios-armv6
-ios-armv6 :
-	@echo "Building ARMv6 Executable"
-	$(PRINT_CMD)$(MAKE) $(ios_armv6MakeArgs)
-$(ios_armv6Exec) : ios-armv6
-
-.PHONY: ios-armv6-clean
-ios-armv6-clean :
-	@echo "Cleaning ARMv6 Build"
-	$(PRINT_CMD)$(MAKE) $(ios_armv6MakeArgs) clean
-ios_cleanTargets += ios-armv6-clean
-
-.PHONY: ios-armv6-install
-ios-armv6-install : $(ios_armv6Exec)
-	ssh root@$(ios_installHost) rm -f $(ios_deviceExecPath)
-	scp $^ root@$(ios_installHost):$(ios_deviceExecPath)
-	ssh root@$(ios_installHost) chmod a+x $(ios_deviceExecPath)
-ifdef iOS_metadata_setuid
-	ssh root@$(ios_installHost) chmod gu+s $(ios_deviceExecPath)
-endif
-
 endif
 
 ifndef ios_noARMv7
@@ -194,28 +158,12 @@ $(ios_setuidLauncher) :
 
 endif
 
-ifdef ios_metadata_setuidPermissionHelper
-
-ios_setuidPermissionHelperDir := $(IMAGINE_PATH)/tools/ios
-ios_setuidPermissionHelper := $(ios_setuidPermissionHelperDir)/fixMobilePermission
-
-$(ios_setuidPermissionHelper) :
-	$(MAKE) -C $(@D) -f ios-armv6.mk
-
-endif
-
 .PHONY: ios-resources-install
-ios-resources-install : $(ios_plist) $(ios_setuidLauncher) $(ios_setuidPermissionHelper)
+ios-resources-install : $(ios_plist) $(ios_setuidLauncher)
 	ssh root@$(ios_installHost) mkdir -p $(ios_deviceAppBundlePath)
 	scp -r $(ios_resourcePath)/* root@$(ios_installHost):$(ios_deviceAppBundlePath)/
 	scp $(ios_icons) root@$(ios_installHost):$(ios_deviceAppBundlePath)/
 	ssh root@$(ios_installHost) chmod -R a+r $(ios_deviceAppBundlePath)
-ifdef ios_metadata_setuidPermissionHelper
-	ssh root@$(ios_installHost) rm -f $(ios_deviceAppBundlePath)/fixMobilePermission
-	scp $(ios_setuidPermissionHelper) root@$(ios_installHost):$(ios_deviceAppBundlePath)/
-	ssh root@$(ios_installHost) chmod a+x $(ios_deviceAppBundlePath)/fixMobilePermission
-	ssh root@$(ios_installHost) chmod gu+s $(ios_deviceAppBundlePath)/fixMobilePermission
-endif
 
 .PHONY: ios-plist-install
 ios-plist-install : $(ios_plist)
@@ -258,17 +206,13 @@ ios-metadata : $(ios_plist)
 
 # Note: a version of tar with proper --transform support is needed for this rule (gnutar from MacPorts)
 ios_tar := $(ios_targetPath)/$(iOS_metadata_bundleName)-$(iOS_metadata_version)-iOS.tar.gz
-$(ios_tar) : # depends on $(ios_fatExec) $(ios_plist) $(ios_setuidLauncher) $(ios_setuidPermissionHelper)
+$(ios_tar) : # depends on $(ios_fatExec) $(ios_plist) $(ios_setuidLauncher)
 	chmod a+x $(ios_fatExec)
 ifdef iOS_metadata_setuid
 	chmod gu+s $(ios_fatExec)
 endif
-ifdef ios_metadata_setuidPermissionHelper
-	chmod a+x $(ios_setuidPermissionHelper)
-	chmod gu+s $(ios_setuidPermissionHelper)
-endif
-	gnutar -cPhzf $@ $(ios_fatExec) $(ios_resourcePath)/* $(ios_icons)  $(ios_plist) $(ios_setuidPermissionHelper) \
-	--transform='s,^$(ios_targetBinPath)/,$(ios_bundleDirectory)/,;s,^$(ios_resourcePath)/,$(ios_bundleDirectory)/,;s,^$(ios_iconPath)/,$(ios_bundleDirectory)/,;s,^$(ios_setuidPermissionHelperDir)/,$(ios_bundleDirectory)/,;s,^$(ios_targetPath)/,$(ios_bundleDirectory)/,'
+	gnutar -cPhzf $@ $(ios_fatExec) $(ios_resourcePath)/* $(ios_icons)  $(ios_plist) \
+	--transform='s,^$(ios_targetBinPath)/,$(ios_bundleDirectory)/,;s,^$(ios_resourcePath)/,$(ios_bundleDirectory)/,;s,^$(ios_iconPath)/,$(ios_bundleDirectory)/,;s,^$(ios_targetPath)/,$(ios_bundleDirectory)/,'
 .PHONY: ios-tar
 ios-tar : $(ios_tar)
 

@@ -70,11 +70,6 @@ endif
 CPPFLAGS += $(IOS_FLAGS)
 LDFLAGS_SYSTEM += $(IOS_FLAGS)
 
-ifeq ($(SUBARCH),armv6)
- ifdef iosNoDeadStripArmv6
-  ios_noDeadStrip := 1
- endif
-endif
 ifndef ios_noDeadStrip
  LDFLAGS_SYSTEM += -dead_strip
 endif

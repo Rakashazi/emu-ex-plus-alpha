@@ -183,14 +183,14 @@ void GLRendererTask::runInitialCommandsInGL(TaskContext ctx, DrawContextSupport 
 		support.setGLDebugOutput(true);
 	}
 	ctx.notifySemaphore();
-	if(!support.useFixedFunctionPipeline && !Config::Gfx::OPENGL_ES && !support.hasVAOFuncs())
+	if(!Config::Gfx::OPENGL_ES && !support.hasVAOFuncs())
 	{
 		log.debug("creating global VAO for testing non-VAO code paths");
 		GLuint name;
 		support.glGenVertexArrays(1, &name);
 		support.glBindVertexArray(name);
 	}
-	if(!support.useFixedFunctionPipeline && !support.hasVAOFuncs())
+	if(!support.hasVAOFuncs())
 	{
 		runGLCheckedVerbose([&]()
 		{

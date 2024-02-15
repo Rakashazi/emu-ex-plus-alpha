@@ -17,7 +17,6 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
-#include "glIncludes.h"
 #include "defs.hh"
 #include <imagine/util/memory/UniqueResource.hh>
 #include <utility>

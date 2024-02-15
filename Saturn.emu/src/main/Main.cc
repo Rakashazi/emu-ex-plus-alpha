@@ -406,12 +406,15 @@ void SaturnSystem::renderFramebuffer(EmuVideo &video)
 
 double SaturnSystem::videoAspectRatioScale() const
 {
-	double horizontalScaler = 352. / 341.; // full pixel width / cropped width
-	double baseLines = 224.;
+	const double horizontalScaler = 352. / 341.; // full pixel width / cropped width
+	const double widescreenScaler = 4. / 3.; // scale 4:3 to 16:9
+	const bool isWidescreen = widescreenMode == WidescreenMode::On;
+	const double baseLines = 224.;
 	assumeExpr(videoLines.size() != 0);
-	double lineAspectScaler = baseLines / videoLines.size();
+	const double lineAspectScaler = baseLines / videoLines.size();
 	return (correctLineAspect ? lineAspectScaler : 1.)
-		* (showHOverscan ? horizontalScaler : 1.);
+		* (showHOverscan ? horizontalScaler : 1.)
+		* (isWidescreen ? widescreenScaler : 1.);
 }
 
 size_t SaturnSystem::stateSize() { return currStateSize; }

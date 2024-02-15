@@ -49,9 +49,6 @@ struct TextureBufferModeDesc
 {
 	const char *name = "";
 	TextureBufferMode mode{};
-
-	constexpr TextureBufferModeDesc() {}
-	constexpr TextureBufferModeDesc(const char *name, TextureBufferMode mode):name{name}, mode{mode} {}
 	constexpr bool operator ==(TextureBufferMode mode_) const { return mode == mode_; }
 
 };

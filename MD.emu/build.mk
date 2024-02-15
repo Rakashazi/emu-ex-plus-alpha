@@ -70,9 +70,7 @@ input_hw/paddle.cc
 
 # Sega CD support
 
-ifneq ($(SUBARCH), armv6)
- hasSCD := 1
-endif
+hasSCD := 1
 
 ifdef hasSCD
  include $(EMUFRAMEWORK_PATH)/make/mednafenCommon.mk
