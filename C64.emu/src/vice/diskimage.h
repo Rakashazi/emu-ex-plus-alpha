@@ -58,7 +58,7 @@
 #define D9060_FILE_SIZE   (153*4*32*256) /* D90 image, 153 tracks, 32 sectors, 4 heads */
 
 #define DISK_IMAGE_DEVICE_FS   0
-#define DISK_IMAGE_DEVICE_REAL 1
+#define DISK_IMAGE_DEVICE_REAL 1    /* opencbm */
 #define DISK_IMAGE_DEVICE_RAW  2
 
 #ifdef HAVE_X64_IMAGE
@@ -92,7 +92,7 @@ struct disk_image_s {
         struct rawimage_s *rawimage;
     } media;
     unsigned int read_only;
-    unsigned int device;
+    unsigned int device; /* FS/REAL/RAW */
     unsigned int type;
     unsigned int tracks;
     unsigned int sectors; /* for D9090/D9060 */
@@ -108,57 +108,50 @@ struct disk_addr_s {
 };
 typedef struct disk_addr_s disk_addr_t;
 
-extern void disk_image_init(void);
-extern int disk_image_resources_init(void);
-extern int disk_image_cmdline_options_init(void);
-extern void disk_image_resources_shutdown(void);
+void disk_image_init(void);
+int disk_image_resources_init(void);
+int disk_image_cmdline_options_init(void);
+void disk_image_resources_shutdown(void);
 
-extern void disk_image_fsimage_name_set(disk_image_t *image, const char *name);
-extern const char *disk_image_fsimage_name_get(const disk_image_t *image);
-extern void *disk_image_fsimage_fd_get(const disk_image_t *image);
-extern int disk_image_fsimage_create(const char *name, unsigned int type);
-extern int disk_image_fsimage_create_dxm(const char *name, const char *diskname, unsigned int type);
+void disk_image_fsimage_name_set(disk_image_t *image, const char *name);
+const char *disk_image_fsimage_name_get(const disk_image_t *image);
+void *disk_image_fsimage_fd_get(const disk_image_t *image);
+int disk_image_fsimage_create(const char *name, unsigned int type);
+int disk_image_fsimage_create_dxm(const char *name, const char *diskname, unsigned int type);
+int disk_image_fsimage_create_dhd(const char *name, const char *diskname, unsigned int type);
 
-extern void disk_image_rawimage_name_set(disk_image_t *image, const char *name);
-extern void disk_image_rawimage_driver_name_set(disk_image_t *image);
+void disk_image_rawimage_name_set(disk_image_t *image, const char *name);
+void disk_image_rawimage_driver_name_set(disk_image_t *image);
 
-extern void disk_image_name_set(disk_image_t *image, const char *name);
-extern const char *disk_image_name_get(const disk_image_t *image);
+void disk_image_name_set(disk_image_t *image, const char *name);
+const char *disk_image_name_get(const disk_image_t *image);
 
-extern disk_image_t *disk_image_create(void);
-extern void disk_image_destroy(disk_image_t *image);
+disk_image_t *disk_image_create(void);
+void disk_image_destroy(disk_image_t *image);
 
-extern void disk_image_media_create(disk_image_t *image);
-extern void disk_image_media_destroy(disk_image_t *image);
+void disk_image_media_create(disk_image_t *image);
+void disk_image_media_destroy(disk_image_t *image);
 
-extern int disk_image_open(disk_image_t *image);
-extern int disk_image_close(disk_image_t *image);
+int disk_image_open(disk_image_t *image);
+int disk_image_close(disk_image_t *image);
 
-extern int disk_image_read_sector(const disk_image_t *image, uint8_t *buf,
-                                  const disk_addr_t *dadr);
-extern int disk_image_write_sector(disk_image_t *image, const uint8_t *buf,
-                                   const disk_addr_t *dadr);
-extern int disk_image_check_sector(const disk_image_t *image, unsigned int track,
-                                   unsigned int sector);
-extern unsigned int disk_image_sector_per_track(unsigned int format,
-                                                unsigned int track);
-extern unsigned int disk_image_raw_track_size(unsigned int format,
-                                              unsigned int track);
-extern unsigned int disk_image_gap_size(unsigned int format, unsigned int track);
-extern unsigned int disk_image_header_gap_size(unsigned int format, unsigned int track);
-extern unsigned int disk_image_sync_size(unsigned int format, unsigned int track);
+int disk_image_read_sector(const disk_image_t *image, uint8_t *buf, const disk_addr_t *dadr);
+int disk_image_write_sector(disk_image_t *image, const uint8_t *buf, const disk_addr_t *dadr);
+int disk_image_check_sector(const disk_image_t *image, unsigned int track, unsigned int sector);
+unsigned int disk_image_sector_per_track(unsigned int format, unsigned int track);
+unsigned int disk_image_raw_track_size(unsigned int format, unsigned int track);
+unsigned int disk_image_gap_size(unsigned int format, unsigned int track);
+unsigned int disk_image_header_gap_size(unsigned int format, unsigned int track);
+unsigned int disk_image_sync_size(unsigned int format, unsigned int track);
 
-extern int disk_image_read_image(const disk_image_t *image);
-extern int disk_image_write_p64_image(const disk_image_t *image);
-extern int disk_image_write_half_track(disk_image_t *image, unsigned int half_track,
-                                       const struct disk_track_s *raw);
+int disk_image_read_image(const disk_image_t *image);
+int disk_image_write_p64_image(const disk_image_t *image);
+int disk_image_write_half_track(disk_image_t *image, unsigned int half_track, const struct disk_track_s *raw);
 
-extern unsigned int disk_image_speed_map(unsigned int format, unsigned int track);
+unsigned int disk_image_speed_map(unsigned int format, unsigned int track);
 
-extern void disk_image_attach_log(const disk_image_t *image, signed int lognum,
-                                  unsigned int unit, unsigned int drive);
-extern void disk_image_detach_log(const disk_image_t *image, signed int lognum,
-                                  unsigned int unit, unsigned int drive);
-extern off_t disk_image_size(const disk_image_t *image);
+void disk_image_attach_log(const disk_image_t *image, signed int lognum, unsigned int unit, unsigned int drive);
+void disk_image_detach_log(const disk_image_t *image, signed int lognum, unsigned int unit, unsigned int drive);
+off_t disk_image_size(const disk_image_t *image);
 
 #endif

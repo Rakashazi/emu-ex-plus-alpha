@@ -85,8 +85,8 @@
 #define ALLOW_UNALIGNED_ACCESS
 #endif
 
-/* Allow unaligned access for ARMv6 and newer, or ARMv7 and newer when on Android */
-#if __ARM_ARCH >= 6 && (!defined __ANDROID__ || __ARM_ARCH >= 7)
+/* Allow unaligned access for ARMv6 and newer
+#if __ARM_ARCH >= 6
 #define ALLOW_UNALIGNED_ACCESS
 #endif
 

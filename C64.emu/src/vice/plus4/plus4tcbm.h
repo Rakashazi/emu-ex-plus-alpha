@@ -29,12 +29,12 @@
 
 #include "types.h"
 
-extern void plus4tcbm1_reset(void);
-extern void plus4tcbm2_reset(void);
+void plus4tcbm1_reset(void);
+void plus4tcbm2_reset(void);
 
-extern uint8_t plus4tcbm1_read(uint16_t addr);
-extern void plus4tcbm1_store(uint16_t addr, uint8_t value);
-extern uint8_t plus4tcbm2_read(uint16_t addr);
-extern void plus4tcbm2_store(uint16_t addr, uint8_t value);
+uint8_t plus4tcbm1_read(uint16_t addr);
+void plus4tcbm1_store(uint16_t addr, uint8_t value);
+uint8_t plus4tcbm2_read(uint16_t addr);
+void plus4tcbm2_store(uint16_t addr, uint8_t value);
 
 #endif

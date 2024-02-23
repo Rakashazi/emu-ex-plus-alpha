@@ -521,6 +521,12 @@ int tape_image_detach(unsigned int unit)
     return tape_image_detach_internal(unit);
 }
 
+void tape_image_detach_all(void)
+{
+    tape_image_detach(1);
+    tape_image_detach(2);
+}
+
 /* Attach.  */
 static int tape_image_attach_internal(unsigned int unit, const char *name)
 {

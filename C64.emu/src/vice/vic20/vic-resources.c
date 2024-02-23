@@ -42,20 +42,30 @@
 vic_resources_t vic_resources = { 0 };
 static video_chip_cap_t video_chip_cap;
 
-static int next_border_mode;
-
 static void on_vsync_set_border_mode(void *unused)
 {
     int sync;
+    int pf;
 
     if (resources_get_int("MachineVideoStandard", &sync) < 0) {
         sync = MACHINE_SYNC_PAL;
     }
-
-    if (vic_resources.border_mode != next_border_mode) {
-        vic_resources.border_mode = next_border_mode;
-        machine_change_timing(sync, vic_resources.border_mode);
+#if 0
+    if (resources_get_int("MachinePowerFrequency", &pf) < 0)
+#endif
+    {
+        switch (sync) {
+            case MACHINE_SYNC_PAL:
+            case MACHINE_SYNC_PALN:
+                pf = 50;
+            break;
+            default:
+                pf = 60;
+            break;
+        }
     }
+
+    machine_change_timing(sync, pf, vic_resources.border_mode);
 }
 
 static int set_border_mode(int val, void *param)
@@ -70,7 +80,7 @@ static int set_border_mode(int val, void *param)
             return -1;
     }
 
-    next_border_mode = val;
+    vic_resources.border_mode = val;
     vsync_on_vsync_do(on_vsync_set_border_mode, NULL);
 
     return 0;
@@ -93,13 +103,13 @@ int vic_resources_init(void)
     video_chip_cap.dscan_allowed = ARCHDEP_VIC_DSCAN;
     video_chip_cap.interlace_allowed = 1;
     video_chip_cap.external_palette_name = "mike-pal";
-    video_chip_cap.double_buffering_allowed = ARCHDEP_VIC_DBUF;
     video_chip_cap.single_mode.sizex = 1;
     video_chip_cap.single_mode.sizey = 1;
     video_chip_cap.single_mode.rmode = VIDEO_RENDER_PAL_NTSC_1X1;
     video_chip_cap.double_mode.sizex = 2;
     video_chip_cap.double_mode.sizey = 2;
     video_chip_cap.double_mode.rmode = VIDEO_RENDER_PAL_NTSC_2X2;
+    video_chip_cap.video_has_palntsc = 1;
 
     fullscreen_capability(&(video_chip_cap.fullscreen));
 

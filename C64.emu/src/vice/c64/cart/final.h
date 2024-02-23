@@ -32,18 +32,18 @@
 
 #include "types.h"
 
-extern void final_v1_freeze(void);
-extern uint8_t final_v1_roml_read(uint16_t addr);
-extern uint8_t final_v1_romh_read(uint16_t addr);
-extern void final_v1_config_init(void);
-extern void final_v1_config_setup(uint8_t *rawcart);
-extern int final_v1_bin_attach(const char *filename, uint8_t *rawcart);
-extern int final_v1_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void final_v1_detach(void);
+void final_v1_freeze(void);
+uint8_t final_v1_roml_read(uint16_t addr);
+uint8_t final_v1_romh_read(uint16_t addr);
+void final_v1_config_init(void);
+void final_v1_config_setup(uint8_t *rawcart);
+int final_v1_bin_attach(const char *filename, uint8_t *rawcart);
+int final_v1_crt_attach(FILE *fd, uint8_t *rawcart);
+void final_v1_detach(void);
 
 struct snapshot_s;
 
-extern int final_v1_snapshot_write_module(struct snapshot_s *s);
-extern int final_v1_snapshot_read_module(struct snapshot_s *s);
+int final_v1_snapshot_write_module(struct snapshot_s *s);
+int final_v1_snapshot_read_module(struct snapshot_s *s);
 
 #endif

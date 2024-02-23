@@ -29,9 +29,9 @@
 
 #include "types.h"
 
-extern int debugcart_cmdline_options_init(void);
-extern int debugcart_resources_init(void);
-extern void debugcart_resources_shutdown(void);
-extern void debugcart_store(uint16_t addr, uint8_t value);
+int debugcart_cmdline_options_init(void);
+int debugcart_resources_init(void);
+void debugcart_resources_shutdown(void);
+void debugcart_store(uint16_t addr, uint8_t value);
 
 #endif

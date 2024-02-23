@@ -29,21 +29,21 @@
 
 #include "types.h"
 
-extern void vicii_irq_raster_set(CLOCK mclk);
-extern void vicii_irq_raster_clear(CLOCK mclk);
-extern void vicii_irq_sbcoll_set(void);
-extern void vicii_irq_sbcoll_clear(void);
-extern void vicii_irq_sscoll_set(void);
-extern void vicii_irq_sscoll_clear(void);
-extern void vicii_irq_lightpen_set(CLOCK mclk);
-extern void vicii_irq_lightpen_clear(CLOCK mclk);
+void vicii_irq_raster_set(CLOCK mclk);
+void vicii_irq_raster_clear(CLOCK mclk);
+void vicii_irq_sbcoll_set(void);
+void vicii_irq_sbcoll_clear(void);
+void vicii_irq_sscoll_set(void);
+void vicii_irq_sscoll_clear(void);
+void vicii_irq_lightpen_set(CLOCK mclk);
+void vicii_irq_lightpen_clear(CLOCK mclk);
 
-extern void vicii_irq_set_raster_line(unsigned int line);
-extern void vicii_irq_check_state(uint8_t value, unsigned int high);
-extern void vicii_irq_set_line(void);
-extern void vicii_irq_next_frame(void);
-extern void vicii_irq_alarm_handler(CLOCK offset, void *data);
+void vicii_irq_set_raster_line(unsigned int line);
+void vicii_irq_check_state(uint8_t value, unsigned int high);
+void vicii_irq_set_line(void);
+void vicii_irq_next_frame(void);
+void vicii_irq_alarm_handler(CLOCK offset, void *data);
 
-extern void vicii_irq_init(void);
+void vicii_irq_init(void);
 
 #endif

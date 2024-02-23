@@ -142,6 +142,7 @@ static uint8_t serialcommand(unsigned int device, uint8_t secondary)
             DBG(("Fx: OPEN FILE, SA = %d", secondary & 0x0F));
             if (p->isopen[channel] != ISOPEN_CLOSED) {
 #ifndef DELAYEDCLOSE
+                /* old code */
                 if (p->isopen[channel] == ISOPEN_OPEN) {
                     log_warning(fsdrive_log, "Bogus close?");
                     (*(p->closef))(vdrive, channel);
@@ -170,7 +171,7 @@ static uint8_t serialcommand(unsigned int device, uint8_t secondary)
                         p->isopen[channel] = ISOPEN_CLOSED;
                         (*(p->closef))(vdrive, channel);
 
-                        log_error(fsdrive_log, "Cannot open file. Status $%02x.", st);
+                        log_error(fsdrive_log, "Cannot open file '%s'. Status $%02x.", SerialBuffer, st);
                     }
                 }
 #endif
@@ -195,12 +196,14 @@ void fsdrive_open(unsigned int device, uint8_t secondary, void (*st_func)(uint8_
 {
     serial_t *p;
 #ifndef DELAYEDCLOSE
+    /* old code */
     void *vdrive;
 #endif
 
     p = serial_device_get(device & 0x0f);
     DBG(("fsdrive_open %u,%d p:%p", device & 0xF, secondary & 0xF, (void*)p));
 #ifndef DELAYEDCLOSE
+    /* old code */
     if (p->isopen[secondary & 0x0f] == ISOPEN_OPEN) {
         if ((device & 0x0f) >= 8) {
             vdrive = (void *)file_system_get_vdrive(device & 0x0f);

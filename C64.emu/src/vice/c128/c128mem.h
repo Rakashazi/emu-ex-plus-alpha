@@ -51,91 +51,102 @@
 #define C128_KERNAL64_ROM_SIZE      0x2000
 #define C128_BASIC64_ROM_SIZE       0x2000
 
-extern int c128_mem_init_resources(void);
-extern int c128_mem_init_cmdline_options(void);
+int c128_mem_init_resources(void);
+int c128_mem_init_cmdline_options(void);
 
-extern void mem_update_config(int config);
-extern void mem_set_machine_type(unsigned type);
-extern void mem_set_ram_config(uint8_t value);
-extern void mem_set_ram_bank(uint8_t value);
-extern void mem_set_vbank(int new_vbank);
-extern void mem_set_tape_sense(int sense);
-extern void mem_pla_config_changed(void);
+void mem_update_config(int config);
+void mem_set_machine_type(unsigned type);
+void mem_set_ram_config(uint8_t value);
+void mem_set_ram_bank(uint8_t value);
+void mem_set_vbank(int new_vbank);
+void mem_set_tape_sense(int sense);
+void mem_pla_config_changed(void);
 
-extern void mem_set_write_hook(int config, int page, store_func_t *f);
-extern void mem_read_tab_set(unsigned int base, unsigned int index, read_func_ptr_t read_func);
-extern void mem_read_base_set(unsigned int base, unsigned int index, uint8_t *mem_ptr);
+void mem_set_write_hook(int config, int page, store_func_t *f);
+void mem_read_tab_set(unsigned int base, unsigned int index, read_func_ptr_t read_func);
+void mem_read_base_set(unsigned int base, unsigned int index, uint8_t *mem_ptr);
+void mem_read_limit_set(unsigned int base, unsigned int index, uint32_t limit);
 
-extern uint8_t ram_read(uint16_t addr);
-extern void ram_store(uint16_t addr, uint8_t value);
+uint8_t ram_read(uint16_t addr);
+void ram_store(uint16_t addr, uint8_t value);
+uint8_t ram_peek(uint16_t addr);
 
-extern uint8_t one_read(uint16_t addr);
-extern void one_store(uint16_t addr, uint8_t value);
+uint8_t one_read(uint16_t addr);
+void one_store(uint16_t addr, uint8_t value);
+uint8_t one_peek(uint16_t addr);
 
-extern void colorram_store(uint16_t addr, uint8_t value);
-extern uint8_t colorram_read(uint16_t addr);
+uint8_t z80_read_zero(uint16_t addr);
+void z80_store_zero(uint16_t addr, uint8_t value);
+uint8_t z80_peek_zero(uint16_t addr);
 
-extern uint8_t d7xx_read(uint16_t addr);
-extern void d7xx_store(uint16_t addr, uint8_t value);
+void colorram_store(uint16_t addr, uint8_t value);
+uint8_t colorram_read(uint16_t addr);
+uint8_t colorram_peek(uint16_t addr);
 
-extern uint8_t lo_read(uint16_t addr);
-extern void lo_store(uint16_t addr, uint8_t value);
+uint8_t d7xx_read(uint16_t addr);
+void d7xx_store(uint16_t addr, uint8_t value);
 
-extern uint8_t hi_read(uint16_t addr);
-extern void hi_store(uint16_t addr, uint8_t value);
+uint8_t lo_read(uint16_t addr);
+void lo_store(uint16_t addr, uint8_t value);
+uint8_t lo_peek(uint16_t addr);
 
-extern uint8_t top_shared_read(uint16_t addr);
-extern void top_shared_store(uint16_t addr, uint8_t value);
+uint8_t hi_read(uint16_t addr);
+void hi_store(uint16_t addr, uint8_t value);
 
-extern uint8_t editor_read(uint16_t addr);
-extern void editor_store(uint16_t addr, uint8_t value);
+uint8_t top_shared_read(uint16_t addr);
+void top_shared_store(uint16_t addr, uint8_t value);
+uint8_t top_shared_peek(uint16_t addr);
 
-extern uint8_t basic_read(uint16_t addr);
-extern void basic_store(uint16_t addr, uint8_t value);
-extern uint8_t kernal_read(uint16_t addr);
-extern void kernal_store(uint16_t addr, uint8_t value);
-extern uint8_t chargen_read(uint16_t addr);
-extern void chargen_store(uint16_t addr, uint8_t value);
+uint8_t editor_read(uint16_t addr);
+void editor_store(uint16_t addr, uint8_t value);
 
-extern uint8_t basic_lo_read(uint16_t addr);
-extern void basic_lo_store(uint16_t addr, uint8_t value);
-extern uint8_t basic_hi_read(uint16_t addr);
-extern void basic_hi_store(uint16_t addr, uint8_t value);
+uint8_t basic_read(uint16_t addr);
+void basic_store(uint16_t addr, uint8_t value);
+uint8_t kernal_read(uint16_t addr);
+void kernal_store(uint16_t addr, uint8_t value);
+uint8_t chargen_read(uint16_t addr);
+void chargen_store(uint16_t addr, uint8_t value);
+
+uint8_t basic_lo_read(uint16_t addr);
+void basic_lo_store(uint16_t addr, uint8_t value);
+uint8_t basic_hi_read(uint16_t addr);
+void basic_hi_store(uint16_t addr, uint8_t value);
 
 extern uint8_t *ram_bank;
 extern uint8_t *dma_bank;
 
 extern uint8_t mem_chargen_rom[C128_CHARGEN_ROM_SIZE];
 
-extern uint8_t c128_c64io_d000_read(uint16_t addr);
-extern void c128_c64io_d000_store(uint16_t addr, uint8_t value);
-extern uint8_t c128_c64io_d100_read(uint16_t addr);
-extern void c128_c64io_d100_store(uint16_t addr, uint8_t value);
-extern uint8_t c128_c64io_d200_read(uint16_t addr);
-extern void c128_c64io_d200_store(uint16_t addr, uint8_t value);
-extern uint8_t c128_c64io_d300_read(uint16_t addr);
-extern void c128_c64io_d300_store(uint16_t addr, uint8_t value);
-extern uint8_t c128_c64io_d400_read(uint16_t addr);
-extern void c128_c64io_d400_store(uint16_t addr, uint8_t value);
-extern uint8_t c128_d5xx_read(uint16_t addr);
-extern void c128_d5xx_store(uint16_t addr, uint8_t value);
-extern uint8_t c128_mmu_read(uint16_t addr);
-extern void c128_mmu_store(uint16_t addr, uint8_t value);
-extern uint8_t c128_c64io_d600_read(uint16_t addr);
-extern void c128_c64io_d600_store(uint16_t addr, uint8_t value);
-extern uint8_t c128_c64io_d700_read(uint16_t addr);
-extern void c128_c64io_d700_store(uint16_t addr, uint8_t value);
-extern uint8_t c128_colorram_read(uint16_t addr);
-extern void c128_colorram_store(uint16_t addr, uint8_t value);
-extern uint8_t c128_cia1_read(uint16_t addr);
-extern void c128_cia1_store(uint16_t addr, uint8_t value);
-extern uint8_t c128_cia2_read(uint16_t addr);
-extern void c128_cia2_store(uint16_t addr, uint8_t value);
-extern uint8_t c128_c64io_de00_read(uint16_t addr);
-extern void c128_c64io_de00_store(uint16_t addr, uint8_t value);
-extern uint8_t c128_c64io_df00_read(uint16_t addr);
-extern void c128_c64io_df00_store(uint16_t addr, uint8_t value);
+uint8_t c128_c64io_d000_read(uint16_t addr);
+void c128_c64io_d000_store(uint16_t addr, uint8_t value);
+uint8_t c128_c64io_d100_read(uint16_t addr);
+void c128_c64io_d100_store(uint16_t addr, uint8_t value);
+uint8_t c128_c64io_d200_read(uint16_t addr);
+void c128_c64io_d200_store(uint16_t addr, uint8_t value);
+uint8_t c128_c64io_d300_read(uint16_t addr);
+void c128_c64io_d300_store(uint16_t addr, uint8_t value);
+uint8_t c128_c64io_d400_read(uint16_t addr);
+void c128_c64io_d400_store(uint16_t addr, uint8_t value);
+uint8_t c128_d5xx_read(uint16_t addr);
+void c128_d5xx_store(uint16_t addr, uint8_t value);
+uint8_t c128_mmu_read(uint16_t addr);
+void c128_mmu_store(uint16_t addr, uint8_t value);
+uint8_t c128_c64io_d600_read(uint16_t addr);
+void c128_c64io_d600_store(uint16_t addr, uint8_t value);
+uint8_t c128_c64io_d700_read(uint16_t addr);
+void c128_c64io_d700_store(uint16_t addr, uint8_t value);
+uint8_t c128_colorram_read(uint16_t addr);
+void c128_colorram_store(uint16_t addr, uint8_t value);
+uint8_t c128_cia1_read(uint16_t addr);
+void c128_cia1_store(uint16_t addr, uint8_t value);
+uint8_t c128_cia2_read(uint16_t addr);
+void c128_cia2_store(uint16_t addr, uint8_t value);
+uint8_t c128_c64io_de00_read(uint16_t addr);
+void c128_c64io_de00_store(uint16_t addr, uint8_t value);
+uint8_t c128_c64io_df00_read(uint16_t addr);
+void c128_c64io_df00_store(uint16_t addr, uint8_t value);
 
+void mem_initialize_go64_memory_bank(uint8_t shared_mem);
 
 /* add due to incompatibilities with c64mem.h */
 

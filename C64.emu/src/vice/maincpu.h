@@ -84,28 +84,28 @@ extern struct monitor_interface_s *maincpu_monitor_interface;
 /* Return the number of write accesses in the last opcode emulated. */
 #define maincpu_num_write_cycles() maincpu_opcode_write_cycles[OPINFO_NUMBER(last_opcode_info)]
 
-extern void maincpu_resync_limits(void);
-extern void maincpu_init(void);
-extern void maincpu_early_init(void);
-extern void maincpu_shutdown(void);
-extern void maincpu_reset(void);
-extern void maincpu_mainloop(void);
-extern struct monitor_interface_s *maincpu_monitor_interface_get(void);
-extern int maincpu_snapshot_read_module(struct snapshot_s *s);
-extern int maincpu_snapshot_write_module(struct snapshot_s *s);
+void maincpu_resync_limits(void);
+void maincpu_init(void);
+void maincpu_early_init(void);
+void maincpu_shutdown(void);
+void maincpu_reset(void);
+void maincpu_mainloop(void);
+struct monitor_interface_s *maincpu_monitor_interface_get(void);
+int maincpu_snapshot_read_module(struct snapshot_s *s);
+int maincpu_snapshot_write_module(struct snapshot_s *s);
 
-extern void maincpu_set_pc(int);
-extern void maincpu_set_a(int);
-extern void maincpu_set_x(int);
-extern void maincpu_set_y(int);
-extern void maincpu_set_sign(int);
-extern void maincpu_set_zero(int);
-extern void maincpu_set_carry(int);
-extern void maincpu_set_interrupt(int);
-extern unsigned int maincpu_get_pc(void);
-extern unsigned int maincpu_get_a(void);
-extern unsigned int maincpu_get_x(void);
-extern unsigned int maincpu_get_y(void);
-extern unsigned int maincpu_get_sp(void);
+void maincpu_set_pc(int);
+void maincpu_set_a(int);
+void maincpu_set_x(int);
+void maincpu_set_y(int);
+void maincpu_set_sign(int);
+void maincpu_set_zero(int);
+void maincpu_set_carry(int);
+void maincpu_set_interrupt(int);
+unsigned int maincpu_get_pc(void);
+unsigned int maincpu_get_a(void);
+unsigned int maincpu_get_x(void);
+unsigned int maincpu_get_y(void);
+unsigned int maincpu_get_sp(void);
 
 #endif

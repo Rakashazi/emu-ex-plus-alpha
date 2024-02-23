@@ -32,16 +32,16 @@
 
 typedef struct rtc_ds1202_1302_s rtc_ds1202_1302_t;
 
-extern void ds1202_1302_reset(rtc_ds1202_1302_t *context);
-extern rtc_ds1202_1302_t *ds1202_1302_init(char *device, int rtc_type);
-extern void ds1202_1302_destroy(rtc_ds1202_1302_t *context, int save);
+void ds1202_1302_reset(rtc_ds1202_1302_t *context);
+rtc_ds1202_1302_t *ds1202_1302_init(char *device, int rtc_type);
+void ds1202_1302_destroy(rtc_ds1202_1302_t *context, int save);
 
-extern void ds1202_1302_set_lines(rtc_ds1202_1302_t *context, unsigned int ce_line, unsigned int sclk_line, unsigned int input_bit);
-extern uint8_t ds1202_1302_read_data_line(rtc_ds1202_1302_t *context);
+void ds1202_1302_set_lines(rtc_ds1202_1302_t *context, unsigned int ce_line, unsigned int sclk_line, unsigned int input_bit);
+uint8_t ds1202_1302_read_data_line(rtc_ds1202_1302_t *context);
 
-extern int ds1202_1302_dump(rtc_ds1202_1302_t *context);
+int ds1202_1302_dump(rtc_ds1202_1302_t *context);
 
-extern int ds1202_1302_write_snapshot(rtc_ds1202_1302_t *context, snapshot_t *s);
-extern int ds1202_1302_read_snapshot(rtc_ds1202_1302_t *context, snapshot_t *s);
+int ds1202_1302_write_snapshot(rtc_ds1202_1302_t *context, snapshot_t *s);
+int ds1202_1302_read_snapshot(rtc_ds1202_1302_t *context, snapshot_t *s);
 
 #endif

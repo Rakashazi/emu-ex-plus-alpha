@@ -38,17 +38,13 @@
      4   | HQ-pulse      |  I
      5   | middle button |  I
      6   | left button   |  I
+     7   | +5VDC         |  Power
+     8   | GND           |  Ground
      9   | right button  |  I
 
    Works on:
-   - native joystick port(s) (x64/x64sc/xscpu64/x128/x64dtv/xcbm5x0/xplus4/xvic)
-   - cga userport joystick adapater ports (x64/x64sc/xscpu64/x128)
-   - hit userport joystick adaper ports (x64/x64sc/xscpu64/x128)
-   - kingsoft userport joystick adapter ports (x64/x64sc/xscpu64/x128)
-   - starbyte userport joystick adapter ports (x64/x64sc/xscpu64/x128)
-   - hummer userport joystick adapter port (x64dtv)
-   - pet userport joystick adapter ports (xcbm2/xpet)
-   - oem userport joystick adapter port (xvic)
+   - native joystick port(s) (x64/x64sc/xscpu64/x128/xvic/xcbm5x0/xplus4)
+   - inception joystick adapter ports (x64/x64sc/xscpu64/x128/xvic/xcbm5x0)
    - sidcart joystick adapter port (xplus4)
 
    cport | cx22        | I/O
@@ -58,16 +54,12 @@
      3   | Y direction |  I
      4   | Y motion    |  I
      6   | button      |  I
+     7   | +5VDC       |  Power
+     8   | GND         |  Ground
 
    Works on:
-   - native joystick port(s) (x64/x64sc/xscpu64/x128/x64dtv/xcbm5x0/xplus4/xvic)
-   - cga userport joystick adapater ports (x64/x64sc/xscpu64/x128)
-   - hit userport joystick adaper ports (x64/x64sc/xscpu64/x128)
-   - kingsoft userport joystick adapter ports (x64/x64sc/xscpu64/x128)
-   - starbyte userport joystick adapter ports (x64/x64sc/xscpu64/x128)
-   - hummer userport joystick adapter port (x64dtv)
-   - pet userport joystick adapter ports (xcbm2/xpet)
-   - oem userport joystick adapter port (xvic)
+   - native joystick port(s) (x64/x64sc/xscpu64/x128/xvic/xcbm5x0/xplus4)
+   - inception joystick adapter ports (x64/x64sc/xscpu64/x128/xvic/xcbm5x0)
    - sidcart joystick adapter port (xplus4)
 
    cport | atari-st     | I/O
@@ -77,17 +69,13 @@
      3   | YA           |  I
      4   | YB           |  I
      6   | left button  |  I
+     7   | +5VDC        |  Power
+     8   | GND          |  Ground
      9   | right button |  I
 
    Works on:
-   - native joystick port(s) (x64/x64sc/xscpu64/x128/x64dtv/xcbm5x0/xplus4/xvic)
-   - cga userport joystick adapater ports (x64/x64sc/xscpu64/x128)
-   - hit userport joystick adaper ports (x64/x64sc/xscpu64/x128)
-   - kingsoft userport joystick adapter ports (x64/x64sc/xscpu64/x128)
-   - starbyte userport joystick adapter ports (x64/x64sc/xscpu64/x128)
-   - hummer userport joystick adapter port (x64dtv)
-   - pet userport joystick adapter ports (xcbm2/xpet)
-   - oem userport joystick adapter port (xvic)
+   - native joystick port(s) (x64/x64sc/xscpu64/x128/xvic/xcbm5x0/xplus4)
+   - inception joystick adapter ports (x64/x64sc/xscpu64/x128/xvic/xcbm5x0)
    - sidcart joystick adapter port (xplus4)
 */
 
@@ -255,6 +243,7 @@ static joyport_t mouse_amiga_joyport_device = {
     JOYPORT_RES_ID_MOUSE,             /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,          /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,             /* device uses the potentiometer lines for the right and middle buttons, but could work without it */
+    JOYPORT_5VDC_REQUIRED,            /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,         /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_MOUSE,             /* device is a Mouse */
     0,                                /* NO output bits */
@@ -279,6 +268,7 @@ static joyport_t mouse_cx22_joyport_device = {
     JOYPORT_RES_ID_MOUSE,      /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,   /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,      /* device does NOT use the potentiometer lines */
+    JOYPORT_5VDC_REQUIRED,     /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,  /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_MOUSE,      /* device is a Mouse/Trackball */
     0,                         /* NO output bits */
@@ -304,6 +294,7 @@ static joyport_t mouse_st_joyport_device = {
     JOYPORT_RES_ID_MOUSE,             /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,          /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,             /* device uses the potentiometer lines for the right button, but could work without it */
+    JOYPORT_5VDC_REQUIRED,            /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,         /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_MOUSE,             /* device is a Mouse */
     0,                                /* NO output bits */
@@ -321,14 +312,18 @@ static joyport_t mouse_st_joyport_device = {
 
 /* --------------------------------------------------------- */
 
-int mouse_quadrature_register(void)
+int mouse_amiga_register(void)
 {
-    if (joyport_device_register(JOYPORT_ID_MOUSE_AMIGA, &mouse_amiga_joyport_device) < 0) {
-        return -1;
-    }
-    if (joyport_device_register(JOYPORT_ID_MOUSE_CX22, &mouse_cx22_joyport_device) < 0) {
-        return -1;
-    }
+    return joyport_device_register(JOYPORT_ID_MOUSE_AMIGA, &mouse_amiga_joyport_device);
+}
+
+int mouse_cx22_register(void)
+{
+    return joyport_device_register(JOYPORT_ID_MOUSE_CX22, &mouse_cx22_joyport_device);
+}
+
+int mouse_st_register(void)
+{
     return joyport_device_register(JOYPORT_ID_MOUSE_ST, &mouse_st_joyport_device);
 }
 

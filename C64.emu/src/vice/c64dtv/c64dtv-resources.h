@@ -27,8 +27,8 @@
 #ifndef VICE_C64DTV_RESOURCES_H
 #define VICE_C64DTV_RESOURCES_H
 
-extern int c64dtv_resources_init(void);
-extern void c64dtv_resources_shutdown(void);
+int c64dtv_resources_init(void);
+void c64dtv_resources_shutdown(void);
 
 extern int c64dtv_hummer_adc_enabled;
 

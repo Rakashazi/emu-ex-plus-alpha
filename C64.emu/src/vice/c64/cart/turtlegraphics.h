@@ -31,15 +31,15 @@
 
 #include "types.h"
 
-extern void turtlegraphics_config_init(void);
-extern void turtlegraphics_config_setup(uint8_t *rawcart);
-extern int turtlegraphics_bin_attach(const char *filename, uint8_t *rawcart);
-extern int turtlegraphics_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void turtlegraphics_detach(void);
+void turtlegraphics_config_init(void);
+void turtlegraphics_config_setup(uint8_t *rawcart);
+int turtlegraphics_bin_attach(const char *filename, uint8_t *rawcart);
+int turtlegraphics_crt_attach(FILE *fd, uint8_t *rawcart);
+void turtlegraphics_detach(void);
 
 struct snapshot_s;
 
-extern int turtlegraphics_snapshot_write_module(struct snapshot_s *s);
-extern int turtlegraphics_snapshot_read_module(struct snapshot_s *s);
+int turtlegraphics_snapshot_write_module(struct snapshot_s *s);
+int turtlegraphics_snapshot_read_module(struct snapshot_s *s);
 
 #endif

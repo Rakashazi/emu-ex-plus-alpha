@@ -54,7 +54,8 @@ static io_source_t sidcart_device = {
     sid_dump,                     /* device state information dump function */
     CARTRIDGE_VIC20_SIDCART,      /* cartridge ID */
     IO_PRIO_NORMAL,               /* normal priority, device read needs to be checked for collisions */
-    0                             /* insertion order, gets filled in by the registration function */
+    0,                            /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                /* NO mirroring */
 };
 
 static io_source_list_t *sidcart_list_item = NULL;
@@ -74,6 +75,16 @@ static int sidcart_sound_machine_init(sound_t *psid, int speed, int cycles_per_s
     }
 }
 
+#ifdef SOUND_SYSTEM_FLOAT
+/* stereo mixing placement of the VIC20 SID cartridge sound */
+static sound_chip_mixing_spec_t sidcart_sound_mixing_spec[SOUND_CHIP_CHANNELS_MAX] = {
+    {
+        100, /* left channel volume % in case of stereo output, default output to both */
+        100  /* right channel volume % in case of stereo output, default output to both */
+    }
+};
+#endif
+
 /* VIC20 SID cartridge sound chip */
 static sound_chip_t sidcart_sound_chip = {
     sid_sound_machine_open,              /* sound chip open function */
@@ -85,6 +96,9 @@ static sound_chip_t sidcart_sound_chip = {
     sid_sound_machine_reset,             /* sound chip reset function */
     sid_sound_machine_cycle_based,       /* sound chip 'is_cycle_based()' function, RESID engine is cycle based, all other engines are NOT */
     sid_sound_machine_channels,          /* sound chip 'get_amount_of_channels()' function, sound chip has 1 channel */
+#ifdef SOUND_SYSTEM_FLOAT
+    sidcart_sound_mixing_spec,           /* stereo mixing placement specs */
+#endif
     0                                    /* sound chip enabled flag, toggled upon device (de-)activation */
 };
 

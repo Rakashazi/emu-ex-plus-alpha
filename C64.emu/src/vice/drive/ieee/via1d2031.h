@@ -33,13 +33,13 @@
 struct diskunit_context_s;
 struct via_context_s;
 
-extern void via1d2031_setup_context(struct diskunit_context_s *ctxptr);
+void via1d2031_setup_context(struct diskunit_context_s *ctxptr);
 
-extern void via1d2031_init(struct diskunit_context_s *ctxptr);
-extern void via1d2031_store(struct diskunit_context_s *ctxptr, uint16_t addr, uint8_t byte);
-extern uint8_t via1d2031_read(struct diskunit_context_s *ctxptr, uint16_t addr);
-extern uint8_t via1d2031_peek(struct diskunit_context_s *ctxptr, uint16_t addr);
+void via1d2031_init(struct diskunit_context_s *ctxptr);
+void via1d2031_store(struct diskunit_context_s *ctxptr, uint16_t addr, uint8_t byte);
+uint8_t via1d2031_read(struct diskunit_context_s *ctxptr, uint16_t addr);
+uint8_t via1d2031_peek(struct diskunit_context_s *ctxptr, uint16_t addr);
 
-extern void via1d2031_set_atn(struct via_context_s *via_context, int state);
+void via1d2031_set_atn(struct via_context_s *via_context, int state);
 
 #endif

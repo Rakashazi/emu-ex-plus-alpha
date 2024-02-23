@@ -1184,6 +1184,18 @@ static int keyboard_set_keyboard_statusbar(int val, void *param)
     return 0;   /* Okidoki */
 }
 
+/** \brief  Get "KbdStatusbar" directly
+ *
+ * For UIs: get "KbdStatusbar" resource value without going through the
+ * resource system.
+ *
+ * \return  current value of "KbdStatusbar" resource
+ */
+int keyboard_statusbar_enabled(void)
+{
+    return kbd_statusbar_enabled;
+}
+
 /*-----------------------------------------------------------------------*/
 
 static void keyboard_event_record(void)

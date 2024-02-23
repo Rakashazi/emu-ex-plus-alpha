@@ -31,6 +31,6 @@
 
 struct drive_s;
 
-extern uint8_t drive_writeprotect_sense(struct drive_s *dptr);
+uint8_t drive_writeprotect_sense(struct drive_s *dptr);
 
 #endif

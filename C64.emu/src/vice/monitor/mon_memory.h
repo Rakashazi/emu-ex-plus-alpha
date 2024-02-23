@@ -34,17 +34,11 @@ typedef enum mon_display_format_e {
     DF_SCREEN_CODE
 } mon_display_format_t;
 
-extern void mon_memory_move(MON_ADDR start_addr, MON_ADDR end_addr,
-                            MON_ADDR dest);
-extern void mon_memory_compare(MON_ADDR start_addr, MON_ADDR end_addr,
-                               MON_ADDR dest);
-extern void mon_memory_fill(MON_ADDR start_addr, MON_ADDR end_addr,
-                            unsigned char *data);
-extern void mon_memory_hunt(MON_ADDR start_addr, MON_ADDR end_addr,
-                            unsigned char *data);
-extern void mon_memory_display(int radix_type, MON_ADDR start_addr,
-                               MON_ADDR end_addr, mon_display_format_t format);
-extern void mon_memory_display_data(MON_ADDR start_addr, MON_ADDR end_addr,
-                                    unsigned int x, unsigned int y);
+void mon_memory_move(MON_ADDR start_addr, MON_ADDR end_addr, MON_ADDR dest);
+void mon_memory_compare(MON_ADDR start_addr, MON_ADDR end_addr, MON_ADDR dest);
+void mon_memory_fill(MON_ADDR start_addr, MON_ADDR end_addr, unsigned char *data);
+void mon_memory_hunt(MON_ADDR start_addr, MON_ADDR end_addr, unsigned char *data);
+void mon_memory_display(int radix_type, MON_ADDR start_addr, MON_ADDR end_addr, mon_display_format_t format);
+void mon_memory_display_data(MON_ADDR start_addr, MON_ADDR end_addr, unsigned int x, unsigned int y);
 
 #endif

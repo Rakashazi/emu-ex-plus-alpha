@@ -30,8 +30,8 @@
 #include "types.h"
 #include "sound.h"
 
-extern int userport_dac_resources_init(void);
+int userport_dac_resources_init(void);
 
-extern void userport_dac_sound_chip_init(void);
+void userport_dac_sound_chip_init(void);
 
 #endif

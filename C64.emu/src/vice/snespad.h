@@ -29,24 +29,26 @@
 
 #include "types.h"
 
-#define SNESPAD_BUTTON_B        0
-#define SNESPAD_BUTTON_Y        1
-#define SNESPAD_BUTTON_SELECT   2
-#define SNESPAD_BUTTON_START    3
-#define SNESPAD_UP              4
-#define SNESPAD_DOWN            5
-#define SNESPAD_LEFT            6
-#define SNESPAD_RIGHT           7
-#define SNESPAD_BUTTON_A        8
-#define SNESPAD_BUTTON_X        9
-#define SNESPAD_BUMPER_LEFT    10
-#define SNESPAD_BUMPER_RIGHT   11
-#define SNESPAD_BIT_12_1       12
-#define SNESPAD_BIT_13_1       13
-#define SNESPAD_BIT_14_1       14
-#define SNESPAD_BIT_15_1       15
+enum {
+    SNESPAD_BUTTON_B = 0,
+    SNESPAD_BUTTON_Y,
+    SNESPAD_BUTTON_SELECT,
+    SNESPAD_BUTTON_START,
+    SNESPAD_UP,
+    SNESPAD_DOWN,
+    SNESPAD_LEFT,
+    SNESPAD_RIGHT,
+    SNESPAD_BUTTON_A,
+    SNESPAD_BUTTON_X,
+    SNESPAD_BUMPER_LEFT,
+    SNESPAD_BUMPER_RIGHT,
+    SNESPAD_BIT_12_1,
+    SNESPAD_BIT_13_1,
+    SNESPAD_BIT_14_1,
+    SNESPAD_BIT_15_1,
 
-/* End Of Sequence */
-#define SNESPAD_EOS            16
+    /* This item always needs to be at the end */
+    SNESPAD_EOS
+};
 
 #endif

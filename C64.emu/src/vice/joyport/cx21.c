@@ -52,7 +52,6 @@ Works on:
 - native port(s) (x64/x64sc/xscpu64/xvic)
 - sidcart joystick adapter port (xplus4)
 
-
 The keypad has the following layout:
 
 KEYPAD          KEYMAP KEYS
@@ -265,6 +264,7 @@ static joyport_t joyport_cx21_device = {
     JOYPORT_RES_ID_KEYPAD,    /* device is a keypad, only 1 keypad can be active at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,  /* device is NOT a lightpen */
     JOYPORT_POT_REQUIRED,     /* device uses the potentiometer lines */
+    JOYPORT_5VDC_NOT_NEEDED,  /* device does NOT need +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE, /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_KEYPAD,    /* device is a Keypad */
     0x0F,                     /* bits 3, 2, 1 and 0 are output bits */

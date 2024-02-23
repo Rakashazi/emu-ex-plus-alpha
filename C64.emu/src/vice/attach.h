@@ -44,19 +44,20 @@
 
 struct vdrive_s;
 
-extern void file_system_init(void);
-extern void file_system_shutdown(void);
-extern int file_system_resources_init(void);
-extern int file_system_cmdline_options_init(void);
+void file_system_init(void);
+void file_system_shutdown(void);
+int file_system_resources_init(void);
+int file_system_cmdline_options_init(void);
 
-extern const char *file_system_get_disk_name(unsigned int unit, unsigned int drive);
-extern int file_system_attach_disk(unsigned int unit, unsigned int drive, const char *filename);
-extern void file_system_detach_disk(unsigned int unit, unsigned int drive);
-extern void file_system_detach_disk_shutdown(void);
-extern struct vdrive_s *file_system_get_vdrive(unsigned int unit);
-extern struct disk_image_s *file_system_get_image(unsigned int unit, unsigned int drive);
-extern int file_system_bam_get_disk_id(unsigned int unit, unsigned int drive, uint8_t *id);
-extern int file_system_bam_set_disk_id(unsigned int unit, unsigned int drive, uint8_t *id);
-extern void file_system_event_playback(unsigned int unit, unsigned int drive, const char *filename);
+const char *file_system_get_disk_name(unsigned int unit, unsigned int drive);
+int file_system_attach_disk(unsigned int unit, unsigned int drive, const char *filename);
+void file_system_detach_disk(unsigned int unit, unsigned int drive);
+void file_system_detach_disk_all(void);
+void file_system_detach_disk_shutdown(void);
+struct vdrive_s *file_system_get_vdrive(unsigned int unit);
+struct disk_image_s *file_system_get_image(unsigned int unit, unsigned int drive);
+int file_system_bam_get_disk_id(unsigned int unit, unsigned int drive, uint8_t *id);
+int file_system_bam_set_disk_id(unsigned int unit, unsigned int drive, uint8_t *id);
+void file_system_event_playback(unsigned int unit, unsigned int drive, const char *filename);
 
 #endif

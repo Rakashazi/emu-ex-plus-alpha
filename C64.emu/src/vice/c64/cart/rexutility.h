@@ -31,16 +31,16 @@
 
 #include "types.h"
 
-extern void rex_config_init(void);
-extern void rex_config_setup(uint8_t *rawcart);
-extern int rex_crt_attach(FILE *fd, uint8_t *rawbyte);
-extern int rex_bin_attach(const char *filename, uint8_t *rawcart);
-extern void rex_detach(void);
-extern void rex_config_init(void);
+void rex_config_init(void);
+void rex_config_setup(uint8_t *rawcart);
+int rex_crt_attach(FILE *fd, uint8_t *rawbyte);
+int rex_bin_attach(const char *filename, uint8_t *rawcart);
+void rex_detach(void);
+void rex_config_init(void);
 
 struct snapshot_s;
 
-extern int rex_snapshot_write_module(struct snapshot_s *s);
-extern int rex_snapshot_read_module(struct snapshot_s *s);
+int rex_snapshot_write_module(struct snapshot_s *s);
+int rex_snapshot_read_module(struct snapshot_s *s);
 
 #endif

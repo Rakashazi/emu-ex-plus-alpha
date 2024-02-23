@@ -29,8 +29,8 @@
 
 #include <stdio.h>
 
-extern int drv_1520_init_resources(void);
-extern int drv_1520_init(void);
-extern void drv_1520_shutdown(void);
+int drv_1520_init_resources(void);
+int drv_1520_init(void);
+void drv_1520_shutdown(void);
 
 #endif

@@ -38,21 +38,21 @@
 
 struct fileio_info_s;
 
-extern struct fileio_info_s *p00_open(const char *file_name, const char *path,
-                                      unsigned int command, unsigned int type,
-                                      int *reclenp);
-extern void p00_close(struct fileio_info_s *info);
-extern unsigned int p00_read(struct fileio_info_s *info, uint8_t *buf,
-                             unsigned int len);
-extern unsigned int p00_write(struct fileio_info_s *info, uint8_t *buf,
-                              unsigned int len);
-extern unsigned int p00_ferror(struct fileio_info_s *info);
-extern unsigned int p00_rename(const char *src_name, const char *dest_name,
-                               const char *path);
-extern unsigned int p00_scratch(const char *file_name, const char *path);
-extern unsigned int p00_get_bytes_left(struct fileio_info_s *info);
-extern unsigned int p00_seek(struct fileio_info_s *info, off_t offset, int whence);
-extern unsigned int p00_tell(struct fileio_info_s *info);
+struct fileio_info_s *p00_open(const char *file_name, const char *path,
+                               unsigned int command, unsigned int type,
+                               int *reclenp);
+void p00_close(struct fileio_info_s *info);
+unsigned int p00_read(struct fileio_info_s *info, uint8_t *buf,
+                      unsigned int len);
+unsigned int p00_write(struct fileio_info_s *info, uint8_t *buf,
+                       unsigned int len);
+unsigned int p00_ferror(struct fileio_info_s *info);
+unsigned int p00_rename(const char *src_name, const char *dest_name,
+                        const char *path);
+unsigned int p00_scratch(const char *file_name, const char *path);
+unsigned int p00_get_bytes_left(struct fileio_info_s *info);
+unsigned int p00_seek(struct fileio_info_s *info, off_t offset, int whence);
+unsigned int p00_tell(struct fileio_info_s *info);
 
 char *p00_filename_create(const char *filename, unsigned int type);
 

@@ -753,6 +753,7 @@ static int vice_network_address_generate_ipv6(vice_network_socket_address_t * so
 #endif /* #ifdef HAVE_IPV6 */
 }
 
+#if 0
 /*! \internal \brief Generate a unix domain socket address
 
   Initialises a socket address with a unix domain socket address
@@ -811,6 +812,7 @@ static int vice_network_address_generate_local(vice_network_socket_address_t * s
     return -1;
 #endif /* #ifdef HAVE_UNIX_DOMAIN_SOCKETS */
 }
+#endif
 
 /*! \brief Generate a socket address
 
@@ -853,12 +855,15 @@ vice_network_socket_address_t * vice_network_address_generate(const char * addre
         if (socket_address == NULL) {
             break;
         }
-
+#if 0 /* FIXME: "|" as first character indicates that we want to pipe through an external process - if we
+                want to support unix domain socket, this has to use another syntax! */
         if (address_string && address_string[0] == '|') {
             if (vice_network_address_generate_local(socket_address, &address_string[1])) {
                 break;
             }
-        } else if (address_string && strncmp("ip6://", address_string, sizeof "ip6://" - 1) == 0) {
+        } else
+#endif
+        if (address_string && strncmp("ip6://", address_string, sizeof "ip6://" - 1) == 0) {
             if (vice_network_address_generate_ipv6(socket_address, &address_string[sizeof "ip6://" - 1], port)) {
                 break;
             }

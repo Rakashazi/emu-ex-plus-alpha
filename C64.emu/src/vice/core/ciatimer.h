@@ -88,7 +88,7 @@ typedef struct ciat_s {
 
 extern ciat_tstate_t ciat_table[CIAT_TABLEN];
 
-extern void ciat_init_table(void);
+void ciat_init_table(void);
 
 
 /***************************************************************************/
@@ -114,11 +114,11 @@ extern void ciat_init_table(void);
 
 #ifdef CIAT_NEED_LOG
 
-extern void ciat_login(const char *format, ...) VICE_ATTR_PRINTF;
-extern void ciat_logout(const char *format, ...) VICE_ATTR_PRINTF;
-extern void ciat_log(const char *format, ...) VICE_ATTR_PRINTF;
+void ciat_login(const char *format, ...) VICE_ATTR_PRINTF;
+void ciat_logout(const char *format, ...) VICE_ATTR_PRINTF;
+void ciat_log(const char *format, ...) VICE_ATTR_PRINTF;
 
-extern void ciat_print_state(const ciat_t *state);
+void ciat_print_state(const ciat_t *state);
 
 #endif
 
@@ -449,30 +449,30 @@ _CIAT_FUNC void ciat_ack_alarm(ciat_t *state, CLOCK cclk)
 
 /* We don't want inline definitions: just provide the prototypes.  */
 
-extern void ciat_ack_alarm(ciat_t *state, CLOCK cclk);
-extern void ciat_set_ctrl(ciat_t *state, CLOCK cclk, uint8_t byte);
-extern void ciat_set_latchlo(ciat_t *state, CLOCK cclk, uint8_t byte);
-extern void ciat_set_latchhi(ciat_t *state, CLOCK cclk, uint8_t byte);
-extern int ciat_single_step(ciat_t *state, CLOCK cclk);
-extern uint16_t ciat_read_timer(ciat_t *state, CLOCK cclk);
-extern uint16_t ciat_read_latch(ciat_t *state, CLOCK cclk);
-extern int ciat_update(ciat_t *state, CLOCK cclk);
-extern CLOCK ciat_alarm_clk(ciat_t *state);
-extern void ciat_set_alarm(ciat_t *state, CLOCK clk);
+void ciat_ack_alarm(ciat_t *state, CLOCK cclk);
+void ciat_set_ctrl(ciat_t *state, CLOCK cclk, uint8_t byte);
+void ciat_set_latchlo(ciat_t *state, CLOCK cclk, uint8_t byte);
+void ciat_set_latchhi(ciat_t *state, CLOCK cclk, uint8_t byte);
+int ciat_single_step(ciat_t *state, CLOCK cclk);
+uint16_t ciat_read_timer(ciat_t *state, CLOCK cclk);
+uint16_t ciat_read_latch(ciat_t *state, CLOCK cclk);
+int ciat_update(ciat_t *state, CLOCK cclk);
+CLOCK ciat_alarm_clk(ciat_t *state);
+void ciat_set_alarm(ciat_t *state, CLOCK clk);
 
-extern uint16_t ciat_is_underflow_clk(ciat_t *state, CLOCK cclk);
-extern uint16_t ciat_is_running(ciat_t *state, CLOCK cclk);
+uint16_t ciat_is_underflow_clk(ciat_t *state, CLOCK cclk);
+uint16_t ciat_is_running(ciat_t *state, CLOCK cclk);
 
 #endif  /* defined INLINE_CIAT_FUNCS || defined _CIATIMER_C */
 
-extern void ciat_init(ciat_t *state, const char *name, CLOCK cclk,
-                      alarm_t *alarm);
-extern void ciat_reset(ciat_t *state, CLOCK cclk);
-extern void ciat_prevent_clock_overflow(ciat_t *state, CLOCK sub);
+void ciat_init(ciat_t *state, const char *name, CLOCK cclk,
+               alarm_t *alarm);
+void ciat_reset(ciat_t *state, CLOCK cclk);
+void ciat_prevent_clock_overflow(ciat_t *state, CLOCK sub);
 
-extern void ciat_save_snapshot(ciat_t *cia_state, CLOCK cclk,
-                               struct snapshot_module_s *m, int ver);
-extern void ciat_load_snapshot(ciat_t *state, CLOCK cclk, uint16_t cnt, uint16_t latch,
-                               uint8_t cr, struct snapshot_module_s *m, int ver);
+void ciat_save_snapshot(ciat_t *cia_state, CLOCK cclk,
+                        struct snapshot_module_s *m, int ver);
+void ciat_load_snapshot(ciat_t *state, CLOCK cclk, uint16_t cnt, uint16_t latch,
+                        uint8_t cr, struct snapshot_module_s *m, int ver);
 
 #endif

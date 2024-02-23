@@ -750,7 +750,13 @@ void C64System::onVKeyboardShown(VControllerKeyboard &kb, bool shown)
 void C64System::setJoystickMode(JoystickMode mode)
 {
 	optionSwapJoystickPorts = mode;
-	if(mode == JoystickMode::KEYBOARD)
+	updateJoystickDevices();
+}
+
+void C64System::updateJoystickDevices()
+{
+	enterCPUTrap();
+	if(optionSwapJoystickPorts == JoystickMode::KEYBOARD)
 	{
 		setIntResource("JoyPort1Device", JOYPORT_ID_NONE);
 		setIntResource("JoyPort2Device", JOYPORT_ID_NONE);

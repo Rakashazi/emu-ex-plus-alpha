@@ -29,6 +29,6 @@
 
 struct diskunit_context_s;
 
-extern void mem1551_init(struct diskunit_context_s *drv, unsigned int type);
+void mem1551_init(struct diskunit_context_s *drv, unsigned int type);
 
 #endif

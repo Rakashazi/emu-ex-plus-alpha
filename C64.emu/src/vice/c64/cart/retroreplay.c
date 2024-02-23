@@ -169,7 +169,8 @@ static io_source_t retroreplay_io1_device = {
     retroreplay_dump,            /* device state information dump function */
     CARTRIDGE_RETRO_REPLAY,      /* cartridge ID */
     IO_PRIO_NORMAL,              /* normal priority, device read needs to be checked for collisions */
-    0                            /* insertion order, gets filled in by the registration function */
+    0,                           /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE               /* NO mirroring */
 };
 
 static io_source_t retroreplay_io2_device = {
@@ -185,7 +186,8 @@ static io_source_t retroreplay_io2_device = {
     retroreplay_dump,            /* device state information dump function */
     CARTRIDGE_RETRO_REPLAY,      /* cartridge ID */
     IO_PRIO_NORMAL,              /* normal priority, device read needs to be checked for collisions */
-    0                            /* insertion order, gets filled in by the registration function */
+    0,                           /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE               /* NO mirroring */
 };
 
 static io_source_t retroreplay_clockport_io1_device = {
@@ -201,7 +203,8 @@ static io_source_t retroreplay_clockport_io1_device = {
     retroreplay_clockport_dump,               /* device state information dump function */
     CARTRIDGE_RETRO_REPLAY,                   /* cartridge ID */
     IO_PRIO_NORMAL,                           /* normal priority, device read needs to be checked for collisions */
-    0                                         /* insertion order, gets filled in by the registration function */
+    0,                                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                            /* NO mirroring */
 };
 
 static io_source_list_t *retroreplay_io1_list_item = NULL;

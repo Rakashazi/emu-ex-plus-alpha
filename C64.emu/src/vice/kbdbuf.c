@@ -150,7 +150,7 @@ static void kbd_buf_parse_string(const char *string)
                 kbd_buf_string[j] = charset_p_topetcii('\n');
                 i += 1;
                 j++;
-            } else if((i < (len - 3)) && (string[i + 1] == 'x') && isxdigit((int)string[i + 2]) && isxdigit((int)string[i + 3])) {
+            } else if((i < (len - 3)) && (string[i + 1] == 'x') && isxdigit((unsigned char)string[i + 2]) && isxdigit((unsigned char)string[i + 3])) {
                 /* escaped hex value in c-style format "\x00" */
                 char hexvalue[3];
 
@@ -366,13 +366,13 @@ void kbdbuf_flush(void)
             kbdbuf_flush_alarm_time = maincpu_clk + (CLOCK)machine_get_cycles_per_frame();
             kbdbuf_flush_alarm_time += lib_unsigned_rand(1, (unsigned int)machine_get_cycles_per_frame());
             alarm_set(kbdbuf_flush_alarm, kbdbuf_flush_alarm_time);
-            
+
             prevent_recursion = false;
             return;
         }
         tokbdbuffer(queue[head_idx]);
         removefromqueue();
     }
-    
+
     prevent_recursion = false;
 }

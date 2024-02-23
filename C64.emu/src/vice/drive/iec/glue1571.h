@@ -29,6 +29,6 @@
 
 struct drive_s;
 
-extern void glue1571_side_set(unsigned int side, struct drive_s *drive);
+void glue1571_side_set(unsigned int side, struct drive_s *drive);
 
 #endif

@@ -44,17 +44,14 @@ typedef struct autostart_prg_s autostart_prg_t;
 #define AUTOSTART_PRG_MODE_LAST     2
 #define AUTOSTART_PRG_MODE_DEFAULT  AUTOSTART_PRG_MODE_DISK
 
-extern void autostart_prg_init(void);
-extern void autostart_prg_shutdown(void);
+void autostart_prg_init(void);
+void autostart_prg_shutdown(void);
 
-extern int autostart_prg_with_virtual_fs(int unit, int drive, const char *file_name,
-                                         fileio_info_t *fh, log_t log);
-extern int autostart_prg_with_ram_injection(const char *file_name,
-                                            fileio_info_t *fh, log_t log);
-extern int autostart_prg_with_disk_image(int unit, int drive, const char *file_name,
-                                         fileio_info_t *fh, log_t log,
-                                         const char *image_name);
+int autostart_prg_with_virtual_fs(int unit, int drive, const char *file_name, fileio_info_t *fh, log_t log);
+int autostart_prg_with_ram_injection(const char *file_name, fileio_info_t *fh, log_t log);
+int autostart_prg_with_disk_image(int unit, int drive, const char *file_name, fileio_info_t *fh, log_t log,
+                                  const char *image_name);
 
-extern int autostart_prg_perform_injection(log_t log);
+int autostart_prg_perform_injection(log_t log);
 
 #endif

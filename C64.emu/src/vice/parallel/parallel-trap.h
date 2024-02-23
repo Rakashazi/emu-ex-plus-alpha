@@ -29,9 +29,9 @@
 
 #include "types.h"
 
-extern int parallel_trap_attention(int b);
-extern int parallel_trap_sendbyte(uint8_t data);
-extern int parallel_trap_receivebyte(uint8_t *data, int fake);
+int parallel_trap_attention(int b);
+int parallel_trap_sendbyte(uint8_t data);
+int parallel_trap_receivebyte(uint8_t *data, int fake);
 
 /* Same as SERIAL_EOF and SERIAL_DEVICE_NOT_PRESENT */
 #define PAR_STATUS_TIME_OUT_ON_WRITE    0x01

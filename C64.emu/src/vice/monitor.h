@@ -140,6 +140,7 @@ struct monitor_interface_s {
 
     uint8_t (*mem_bank_read)(int bank, uint16_t addr, void *context);
     uint8_t (*mem_bank_peek)(int bank, uint16_t addr, void *context);
+    uint8_t (*mem_peek_with_config)(int config, uint16_t addr, void *context);
     void (*mem_bank_write)(int bank, uint16_t addr, uint8_t byte, void *context);
     void (*mem_bank_poke)(int bank, uint16_t addr, uint8_t byte, void *context);
 
@@ -162,68 +163,70 @@ extern unsigned monitor_mask[NUM_MEMSPACES];
 
 
 /* Prototypes */
-extern monitor_cpu_type_t* monitor_find_cpu_type_from_string(const char *cpu_type);
+monitor_cpu_type_t* monitor_find_cpu_type_from_string(const char *cpu_type);
 
-extern void monitor_init(monitor_interface_t * maincpu_interface,
-                         monitor_interface_t * drive_interface_init[],
-                         struct monitor_cpu_type_s **asmarray);
-extern void monitor_shutdown(void);
-extern int monitor_cmdline_options_init(void);
-extern int monitor_resources_init(void);
-extern void monitor_resources_shutdown(void);
+void monitor_init(monitor_interface_t * maincpu_interface,
+                  monitor_interface_t * drive_interface_init[],
+                  struct monitor_cpu_type_s **asmarray);
+void monitor_shutdown(void);
+int monitor_cmdline_options_init(void);
+int monitor_resources_init(void);
+void monitor_resources_shutdown(void);
 void monitor_startup(MEMSPACE mem);
-extern void monitor_startup_trap(void);
-extern bool monitor_is_inside_monitor(void);
+void monitor_startup_trap(void);
+bool monitor_is_inside_monitor(void);
 
-extern void monitor_reset_hook(void);
-extern void monitor_vsync_hook(void);
+void monitor_reset_hook(void);
+void monitor_vsync_hook(void);
 
-extern void monitor_abort(void);
+void monitor_abort(void);
 
-extern int monitor_force_import(MEMSPACE mem);
-extern void monitor_check_icount(uint16_t a);
-extern void monitor_check_icount_interrupt(void);
-extern void monitor_check_watchpoints(unsigned int lastpc, unsigned int pc);
+int monitor_force_import(MEMSPACE mem);
+void monitor_check_icount(uint16_t a);
+void monitor_check_icount_interrupt(void);
+void monitor_check_watchpoints(unsigned int lastpc, unsigned int pc);
 
-extern void monitor_cpu_type_set(const char *cpu_type);
+void monitor_cpu_type_set(const char *cpu_type);
+void monitor_cpu_type_set_value(int searchcpu);
 
-extern void monitor_watch_push_load_addr(uint16_t addr, MEMSPACE mem);
-extern void monitor_watch_push_store_addr(uint16_t addr, MEMSPACE mem);
+void monitor_watch_push_load_addr(uint16_t addr, MEMSPACE mem);
+void monitor_watch_push_store_addr(uint16_t addr, MEMSPACE mem);
 
-extern monitor_interface_t *monitor_interface_new(void);
-extern void monitor_interface_destroy(monitor_interface_t *monitor_interface);
+monitor_interface_t *monitor_interface_new(void);
+void monitor_interface_destroy(monitor_interface_t *monitor_interface);
 
-extern int monitor_diskspace_dnr(int mem);
-extern int monitor_diskspace_mem(int dnr);
+int monitor_diskspace_dnr(int mem);
+int monitor_diskspace_mem(int dnr);
 
-extern int mon_out(const char *format, ...) VICE_ATTR_PRINTF;
+int mon_out(const char *format, ...) VICE_ATTR_PRINTF;
 
 /** Breakpoint interface.  */
 
 #define MONITOR_MAX_CHECKPOINTS 9
 
 /* Prototypes */
-extern int monitor_check_breakpoints(MEMSPACE mem, uint16_t addr);
+int monitor_check_breakpoints(MEMSPACE mem, uint16_t addr);
 
 /** Disassemble interace */
 /* Prototypes */
-extern const char *mon_disassemble_to_string(MEMSPACE, unsigned int addr, unsigned int x,
+const char *mon_disassemble_to_string(MEMSPACE, unsigned int addr, unsigned int x,
                                              unsigned int p1, unsigned int p2, unsigned int p3,
                                              int hex_mode,
                                              const char *cpu_type);
+unsigned mon_disassemble_oneline(MEMSPACE memspace, uint16_t mem_config, uint16_t addr);
 
 /** Register interface.  */
-extern struct mon_reg_list_s *mon_register_list_get(int mem);
-extern void mon_ioreg_add_list(struct mem_ioreg_list_s **list, const char *name,
-                               int start, int end, void *dump, void *context, int mirror_mode);
+struct mon_reg_list_s *mon_register_list_get(int mem);
+void mon_ioreg_add_list(struct mem_ioreg_list_s **list, const char *name,
+                        int start, int end, void *dump, void *context, int mirror_mode);
 
 /* Assembler initialization.  */
-extern void asm6502_init(struct monitor_cpu_type_s *monitor_cpu_type);
-extern void asmR65C02_init(struct monitor_cpu_type_s *monitor_cpu_type);
-extern void asm65816_init(struct monitor_cpu_type_s *monitor_cpu_type);
-extern void asm6502dtv_init(struct monitor_cpu_type_s *monitor_cpu_type);
-extern void asm6809_init(struct monitor_cpu_type_s *monitor_cpu_type);
-extern void asmz80_init(struct monitor_cpu_type_s *monitor_cpu_type);
+void asm6502_init(struct monitor_cpu_type_s *monitor_cpu_type);
+void asmR65C02_init(struct monitor_cpu_type_s *monitor_cpu_type);
+void asm65816_init(struct monitor_cpu_type_s *monitor_cpu_type);
+void asm6502dtv_init(struct monitor_cpu_type_s *monitor_cpu_type);
+void asm6809_init(struct monitor_cpu_type_s *monitor_cpu_type);
+void asmz80_init(struct monitor_cpu_type_s *monitor_cpu_type);
 
 struct monitor_cartridge_commands_s {
     int (*cartridge_attach_image)(int type, const char *filename);
@@ -237,11 +240,11 @@ typedef struct monitor_cartridge_commands_s monitor_cartridge_commands_t;
 extern monitor_cartridge_commands_t mon_cart_cmd;
 
 /* CPU history/memmap prototypes */
-extern void monitor_cpuhistory_store(CLOCK cycle, unsigned int addr, unsigned int op, unsigned int p1, unsigned int p2,
-                                     uint8_t reg_a, uint8_t reg_x, uint8_t reg_y,
-                                     uint8_t reg_sp, unsigned int reg_st, uint8_t origin);
-extern void monitor_cpuhistory_fix_p2(unsigned int p2);
-extern void monitor_memmap_store(unsigned int addr, unsigned int type);
+void monitor_cpuhistory_store(CLOCK cycle, unsigned int addr, unsigned int op, unsigned int p1, unsigned int p2,
+                              uint8_t reg_a, uint8_t reg_x, uint8_t reg_y,
+                              uint8_t reg_sp, unsigned int reg_st, uint8_t origin);
+void monitor_cpuhistory_fix_p2(unsigned int p2);
+void monitor_memmap_store(unsigned int addr, unsigned int type);
 
 /* memmap defines */
 #define MEMMAP_I_O_R    (1 << 8)

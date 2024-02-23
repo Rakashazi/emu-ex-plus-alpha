@@ -45,6 +45,14 @@ static const cmdline_option_t cmdline_options[] =
     { "-ntsc", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "MachineVideoStandard", (void *)MACHINE_SYNC_NTSC,
       NULL, "Use NTSC sync factor" },
+#if 0
+    { "-power50", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "MachinePowerFrequency", (void *)50,
+      NULL, "Use 50Hz Power-grid frequency" },
+    { "-power60", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "MachinePowerFrequency", (void *)60,
+      NULL, "Use 60Hz Power-grid frequency" },
+#endif
     { "-model", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       pet_set_model, NULL, NULL, NULL,
       "<modelnumber>", "Specify PET model to emulate. (2001/3008/3016/3032/3032B/4016/4032/4032B/8032/8096/8296/SuperPET)" },
@@ -134,7 +142,7 @@ static const cmdline_option_t cmdline_options[] =
       "<Name>", "Specify 4KiB ROM file name at $F000 for 6809" },
     { "-cb2lowpass", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "CB2Lowpass", NULL,
-      NULL, "Low-pass filter setting for CB2 sound" },
+      "<Freq>", "Low-pass filter setting for CB2 sound" },
     { "-colour-rgbi", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "PETColour", (void *)PET_COLOUR_TYPE_RGBI,
       NULL, "RGBI colour extension to PET 4032" },

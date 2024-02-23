@@ -30,6 +30,6 @@
 
 #include "vice.h"
 
-extern char *clipboard_read_screen_output(const char *line_ending);
+char *clipboard_read_screen_output(const char *line_ending);
 
 #endif

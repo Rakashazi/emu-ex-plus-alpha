@@ -33,22 +33,22 @@
 struct machine_context_s;
 struct tpi_context_s;
 
-extern void tpi1_setup_context(struct machine_context_s *machine_context);
-extern void tpi1_init(struct tpi_context_s *tpi_context);
-extern void tpi1_store(uint16_t addr, uint8_t byte);
-extern uint8_t tpi1_read(uint16_t addr);
-extern uint8_t tpi1_peek(uint16_t addr);
+void tpi1_setup_context(struct machine_context_s *machine_context);
+void tpi1_init(struct tpi_context_s *tpi_context);
+void tpi1_store(uint16_t addr, uint8_t byte);
+uint8_t tpi1_read(uint16_t addr);
+uint8_t tpi1_peek(uint16_t addr);
 
-extern void tpi1_set_tape_sense(int v);
-extern void tpi1_set_tape_write_in(int v);
-extern void tpi1_set_tape_motor_in(int v);
+void tpi1_set_tape_sense(int v);
+void tpi1_set_tape_write_in(int v);
+void tpi1_set_tape_motor_in(int v);
 
-extern void tpi2_setup_context(struct machine_context_s *machine_context);
-extern void tpi2_init(struct tpi_context_s *tpi_context);
-extern void tpi2_store(uint16_t addr, uint8_t byte);
-extern uint8_t tpi2_read(uint16_t addr);
-extern uint8_t tpi2_peek(uint16_t addr);
+void tpi2_setup_context(struct machine_context_s *machine_context);
+void tpi2_init(struct tpi_context_s *tpi_context);
+void tpi2_store(uint16_t addr, uint8_t byte);
+uint8_t tpi2_read(uint16_t addr);
+uint8_t tpi2_peek(uint16_t addr);
 
-extern void set_cbm2_model_port_mask(uint8_t);
+void set_cbm2_model_port_mask(uint8_t);
 
 #endif

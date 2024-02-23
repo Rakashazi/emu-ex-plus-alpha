@@ -55,10 +55,6 @@
 #include "parsid.h"
 #endif
 
-#ifdef HAVE_SSI2001
-#include "ssi2001.h"
-#endif
-
 static char *sid2_address_range = NULL;
 static char *sid3_address_range = NULL;
 static char *sid4_address_range = NULL;
@@ -116,15 +112,12 @@ static const struct engine_s engine_match[] = {
     { "hs", SID_HARDSID },
 #endif
 #ifdef HAVE_PARSID
+#if !defined(WINDOWS_COMPILE) || (defined(WINDOWS_COMPILE) && defined(HAVE_LIBIEEE1284))
     { "1024", SID_PARSID },
     { "parsid", SID_PARSID },
     { "par", SID_PARSID },
     { "lpt", SID_PARSID },
 #endif
-#ifdef HAVE_SSI2001
-    { "1280", SID_SSI2001 },
-    { "ssi2001", SID_SSI2001 },
-    { "ssi", SID_SSI2001 },
 #endif
     { NULL, -1 }
 };
@@ -159,8 +152,10 @@ int sid_common_set_engine_model(const char *param, void *extra_param)
 
 static cmdline_option_t sidengine_cmdline_options[] =
 {
+    /* NOTE: although we use CALL_FUNCTION, we put the resource that will be
+             modified into the array - this helps reconstructing the cmdline */
     { "-sidenginemodel", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
-      sid_common_set_engine_model, NULL, NULL, NULL,
+      sid_common_set_engine_model, NULL, "SidModel", NULL,
       "<engine and model>", NULL },
     CMDLINE_LIST_END
 };
@@ -168,8 +163,10 @@ static cmdline_option_t sidengine_cmdline_options[] =
 #ifdef HAVE_RESID
 static cmdline_option_t siddtvengine_cmdline_options[] =
 {
+    /* NOTE: although we use CALL_FUNCTION, we put the resource that will be
+             modified into the array - this helps reconstructing the cmdline */
     { "-sidenginemodel", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
-      sid_common_set_engine_model, NULL, NULL, NULL,
+      sid_common_set_engine_model, NULL, "SidModel", NULL,
       "<engine and model>", NULL },
     CMDLINE_LIST_END
 };
@@ -370,6 +367,7 @@ static char *build_sid_cmdline_option(int sid_type)
 #endif
 
 #ifdef HAVE_PARSID
+#if !defined(WINDOWS_COMPILE) || (defined(WINDOWS_COMPILE) && defined(HAVE_LIBIEEE1284))
     /* add parsid options if available */
     if (parsid_available()) {
         new = util_concat(old, ", 1024: ParSID in par port 1, 1280: ParSID in par port 2, 1536: ParSID in par port 3", NULL);
@@ -377,14 +375,6 @@ static char *build_sid_cmdline_option(int sid_type)
         old = new;
     }
 #endif
-
-#ifdef HAVE_SSI2001
-    /* add ssi2001 options if available */
-    if (ssi2001_available()) {
-        new = util_concat(old, ", 1792: SSI2001", NULL);
-        lib_free(old);
-        old = new;
-    }
 #endif
 
     /* add ending bracket */

@@ -27,6 +27,6 @@
 #ifndef VIC20RSUSER_H
 #define VIC20RSUSER_H
 
-extern void vic20_rsuser_init(void);
+void vic20_rsuser_init(void);
 
 #endif

@@ -54,6 +54,9 @@
    calculated as 65536 * drive_clk / clk_[main machine] */
 static int sync_factor;
 
+/* Frequency of the power grid in Hz */
+static int power_freq = 1;
+
 /* Type of machine.  */
 static int machine_type;
 
@@ -74,6 +77,12 @@ static char *chargen_ch_rom_name = NULL;
 
 /* Name of the Norwegian character ROM.  */
 static char *chargen_no_rom_name = NULL;
+
+/* Name of the Italian character ROM.  */
+static char *chargen_it_rom_name = NULL;
+
+/* Name of the Finnish character ROM.  */
+static char *chargen_fi_rom_name = NULL;
 
 /* Name of the BASIC LO ROM.  */
 static char *basiclo_rom_name = NULL;
@@ -174,7 +183,7 @@ static int set_board_type(int val, void *param)
     }
     board_type = val;
     if (old_board_type != board_type) {
-        machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+        machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
     }
     return 0;
 }
@@ -271,6 +280,40 @@ static int set_chargen_no_rom_name(const char *val, void *param)
     }
 
     if (c128rom_load_chargen_no(chargen_no_rom_name) < 0) {
+        return -1;
+    }
+
+    if (c128rom_chargen_setup() < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+static int set_chargen_fi_rom_name(const char *val, void *param)
+{
+    if (util_string_set(&chargen_fi_rom_name, val)) {
+        return 0;
+    }
+
+    if (c128rom_load_chargen_fi(chargen_fi_rom_name) < 0) {
+        return -1;
+    }
+
+    if (c128rom_chargen_setup() < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+static int set_chargen_it_rom_name(const char *val, void *param)
+{
+    if (util_string_set(&chargen_it_rom_name, val)) {
+        return 0;
+    }
+
+    if (c128rom_load_chargen_it(chargen_it_rom_name) < 0) {
         return -1;
     }
 
@@ -503,19 +546,42 @@ static int set_sync_factor(int val, void *param)
 
     switch (val) {
         case MACHINE_SYNC_PAL:
-            sync_factor = val;
-            if (change_timing) {
-                machine_change_timing(MACHINE_SYNC_PAL, vicii_resources.border_mode);
-            }
-            break;
         case MACHINE_SYNC_NTSC:
-            sync_factor = val;
-            if (change_timing) {
-                machine_change_timing(MACHINE_SYNC_NTSC, vicii_resources.border_mode);
-            }
             break;
         default:
             return -1;
+    }
+
+    sync_factor = val;
+    if (change_timing) {
+        if (power_freq > 0) {
+            machine_change_timing(val, power_freq, vicii_resources.border_mode);
+        }
+    }
+
+    return 0;
+}
+
+static int set_power_freq(int val, void *param)
+{
+    int change_timing = 0;
+
+    if (power_freq != val) {
+        change_timing = 1;
+    }
+
+    switch (val) {
+        case 50:
+        case 60:
+            break;
+        default:
+            return -1;
+    }
+    power_freq = val;
+    if (change_timing) {
+        if (sync_factor > 0) {
+            machine_change_timing(sync_factor, val, vicii_resources.border_mode);
+        }
     }
 
     return 0;
@@ -535,16 +601,20 @@ static int set_c128_hide_vdc(int val, void *param)
 static const resource_string_t resources_string[] = {
     { "ChargenIntName", C128_CHARGEN_NAME, RES_EVENT_NO, NULL,
       &chargen_int_rom_name, set_chargen_int_rom_name, NULL },
-    { "ChargenDEName", C128_CHARGEN_DE_NAME, RES_EVENT_NO, NULL,
-      &chargen_de_rom_name, set_chargen_de_rom_name, NULL },
-    { "ChargenFRName", C128_CHARGEN_FR_NAME, RES_EVENT_NO, NULL,
-      &chargen_fr_rom_name, set_chargen_fr_rom_name, NULL },
-    { "ChargenSEName", C128_CHARGEN_SE_NAME, RES_EVENT_NO, NULL,
-      &chargen_se_rom_name, set_chargen_se_rom_name, NULL },
     { "ChargenCHName", C128_CHARGEN_CH_NAME, RES_EVENT_NO, NULL,
       &chargen_ch_rom_name, set_chargen_ch_rom_name, NULL },
+    { "ChargenDEName", C128_CHARGEN_DE_NAME, RES_EVENT_NO, NULL,
+      &chargen_de_rom_name, set_chargen_de_rom_name, NULL },
+    { "ChargenFIName", C128_CHARGEN_FI_NAME, RES_EVENT_NO, NULL,
+      &chargen_fi_rom_name, set_chargen_fi_rom_name, NULL },
+    { "ChargenFRName", C128_CHARGEN_FR_NAME, RES_EVENT_NO, NULL,
+      &chargen_fr_rom_name, set_chargen_fr_rom_name, NULL },
+    { "ChargenITName", C128_CHARGEN_IT_NAME, RES_EVENT_NO, NULL,
+      &chargen_it_rom_name, set_chargen_it_rom_name, NULL },
     { "ChargenNOName", C128_CHARGEN_NO_NAME, RES_EVENT_NO, NULL,
       &chargen_no_rom_name, set_chargen_no_rom_name, NULL },
+    { "ChargenSEName", C128_CHARGEN_SE_NAME, RES_EVENT_NO, NULL,
+      &chargen_se_rom_name, set_chargen_se_rom_name, NULL },
     { "BasicLoName", C128_BASICLO_NAME, RES_EVENT_NO, NULL,
       &basiclo_rom_name, set_basiclo_rom_name, NULL },
     { "BasicHiName", C128_BASICHI_NAME, RES_EVENT_NO, NULL,
@@ -555,6 +625,8 @@ static const resource_string_t resources_string[] = {
       &basic64_rom_name, set_basic64_rom_name, NULL },
     { "KernalIntName", C128_KERNAL_NAME, RES_EVENT_NO, NULL,
       &kernal_int_rom_name, set_kernal_int_rom_name, NULL },
+    { "KernalCHName", C128_KERNAL_CH_NAME, RES_EVENT_NO, NULL,
+      &kernal_ch_rom_name, set_kernal_ch_rom_name, NULL },
     { "KernalDEName", C128_KERNAL_DE_NAME, RES_EVENT_NO, NULL,
       &kernal_de_rom_name, set_kernal_de_rom_name, NULL },
     { "KernalFIName", C128_KERNAL_FI_NAME, RES_EVENT_NO, NULL,
@@ -567,14 +639,14 @@ static const resource_string_t resources_string[] = {
       &kernal_no_rom_name, set_kernal_no_rom_name, NULL },
     { "KernalSEName", C128_KERNAL_SE_NAME, RES_EVENT_NO, NULL,
       &kernal_se_rom_name, set_kernal_se_rom_name, NULL },
-    { "KernalCHName", C128_KERNAL_CH_NAME, RES_EVENT_NO, NULL,
-      &kernal_ch_rom_name, set_kernal_ch_rom_name, NULL },
     RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
     { "MachineVideoStandard", MACHINE_SYNC_PAL, RES_EVENT_SAME, NULL,
       &sync_factor, set_sync_factor, NULL },
+    { "MachinePowerFrequency", 50, RES_EVENT_SAME, NULL,
+      &power_freq, set_power_freq, NULL },
     { "BoardType", BOARD_C128D, RES_EVENT_SAME, NULL,
       &board_type, set_board_type, NULL },
     { "MachineType", C128_MACHINE_INT, RES_EVENT_SAME, NULL,

@@ -34,31 +34,31 @@
 */
 
 /* expansion port memory read/write hooks */
-extern uint8_t roml_read(uint16_t addr);
-extern void roml_store(uint16_t addr, uint8_t value);
-extern uint8_t romh_read(uint16_t addr);
-extern uint8_t ultimax_romh_read_hirom(uint16_t addr);
-extern void romh_store(uint16_t addr, uint8_t value);
-extern void roml_no_ultimax_store(uint16_t addr, uint8_t value);
-extern void raml_no_ultimax_store(uint16_t addr, uint8_t value);
-extern void romh_no_ultimax_store(uint16_t addr, uint8_t value);
-extern void ramh_no_ultimax_store(uint16_t addr, uint8_t value);
+uint8_t roml_read(uint16_t addr);
+void roml_store(uint16_t addr, uint8_t value);
+uint8_t romh_read(uint16_t addr);
+uint8_t ultimax_romh_read_hirom(uint16_t addr);
+void romh_store(uint16_t addr, uint8_t value);
+void roml_no_ultimax_store(uint16_t addr, uint8_t value);
+void raml_no_ultimax_store(uint16_t addr, uint8_t value);
+void romh_no_ultimax_store(uint16_t addr, uint8_t value);
+void ramh_no_ultimax_store(uint16_t addr, uint8_t value);
 
-extern uint8_t ultimax_0800_0fff_read(uint16_t addr);
-extern void ultimax_0800_0fff_store(uint16_t addr, uint8_t value);
-extern uint8_t ultimax_1000_7fff_read(uint16_t addr);
-extern void ultimax_1000_7fff_store(uint16_t addr, uint8_t value);
-extern uint8_t ultimax_a000_bfff_read(uint16_t addr);
-extern void ultimax_a000_bfff_store(uint16_t addr, uint8_t value);
-extern uint8_t ultimax_c000_cfff_read(uint16_t addr);
-extern void ultimax_c000_cfff_store(uint16_t addr, uint8_t value);
-extern uint8_t ultimax_d000_dfff_read(uint16_t addr);
-extern void ultimax_d000_dfff_store(uint16_t addr, uint8_t value);
+uint8_t ultimax_0800_0fff_read(uint16_t addr);
+void ultimax_0800_0fff_store(uint16_t addr, uint8_t value);
+uint8_t ultimax_1000_7fff_read(uint16_t addr);
+void ultimax_1000_7fff_store(uint16_t addr, uint8_t value);
+uint8_t ultimax_a000_bfff_read(uint16_t addr);
+void ultimax_a000_bfff_store(uint16_t addr, uint8_t value);
+uint8_t ultimax_c000_cfff_read(uint16_t addr);
+void ultimax_c000_cfff_store(uint16_t addr, uint8_t value);
+uint8_t ultimax_d000_dfff_read(uint16_t addr);
+void ultimax_d000_dfff_store(uint16_t addr, uint8_t value);
 
 /* VIC-II reads. the _ptr functions are for the old vic implementation (x64) */
-extern uint8_t *ultimax_romh_phi1_ptr(uint16_t addr);
-extern uint8_t *ultimax_romh_phi2_ptr(uint16_t addr);
-extern int ultimax_romh_phi1_read(uint16_t addr, uint8_t *value);
-extern int ultimax_romh_phi2_read(uint16_t addr, uint8_t *value);
+uint8_t *ultimax_romh_phi1_ptr(uint16_t addr);
+uint8_t *ultimax_romh_phi2_ptr(uint16_t addr);
+int ultimax_romh_phi1_read(uint16_t addr, uint8_t *value);
+int ultimax_romh_phi2_read(uint16_t addr, uint8_t *value);
 
 #endif

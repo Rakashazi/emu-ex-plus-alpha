@@ -30,9 +30,9 @@
 
 struct snapshot_s;
 
-extern void vdrive_snapshot_init(void);
+void vdrive_snapshot_init(void);
 
-extern int vdrive_snapshot_module_write(struct snapshot_s *s);
-extern int vdrive_snapshot_module_read(struct snapshot_s *s);
+int vdrive_snapshot_module_write(struct snapshot_s *s);
+int vdrive_snapshot_module_read(struct snapshot_s *s);
 
 #endif

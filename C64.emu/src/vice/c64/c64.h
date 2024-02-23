@@ -97,4 +97,7 @@ typedef struct machine_context_s {
 
 extern machine_context_t machine_context;
 
+void c64_cia2_enable(int val);
+int c64_cia2_get_active_state(void);
+
 #endif

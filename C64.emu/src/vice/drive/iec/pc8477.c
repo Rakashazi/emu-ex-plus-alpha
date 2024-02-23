@@ -39,6 +39,7 @@
 #include "alarm.h"
 #include "drivesync.h"
 #include "fdd.h"
+#include "monitor.h"
 
 /* #define PC8477_DEBUG */
 
@@ -250,7 +251,7 @@ void pc8477_setup_context(diskunit_context_t *drv)
 {
     int i;
     drv->pc8477 = lib_calloc(1, sizeof(pc8477_t));
-    drv->pc8477->myname = lib_msprintf("PC8477_%d", drv->mynumber);
+    drv->pc8477->myname = lib_msprintf("PC8477_%u", drv->mynumber);
     for (i = 0; i < 4; i++) {
         drv->pc8477->fdds[i].num = i;
         drv->pc8477->fdds[i].fdd = NULL;
@@ -645,7 +646,7 @@ static pc8477_state_t pc8477_execute(pc8477_t *drv)
                         /* fall through */
                     case 5:
                         if (drv->fifo_fill) {
-                            drv->clk += fdd_rotate(drv->fdd, (int)((*drv->mycontext->clk_ptr - drv->clk) / BYTE_RATE)) * BYTE_RATE;
+                            drv->clk += fdd_rotate(drv->fdd, (*drv->mycontext->clk_ptr - drv->clk) / BYTE_RATE) * BYTE_RATE;
                             return PC8477_READ;
                         }
                         if (drv->cmd[6] != drv->sector) {
@@ -960,7 +961,7 @@ static pc8477_state_t pc8477_execute(pc8477_t *drv)
                         break;
                 }
                 if (fdd_index_count(drv->fdd) > 1) {
-                    drv->clk += fdd_rotate(drv->fdd, (int)((*drv->mycontext->clk_ptr - drv->clk) / BYTE_RATE)) * BYTE_RATE;
+                    drv->clk += fdd_rotate(drv->fdd, (*drv->mycontext->clk_ptr - drv->clk) / BYTE_RATE) * BYTE_RATE;
                     drv->cmd[3] = drv->sector;
                     drv->st[0] |= 0x40;
                     return PC8477_RESULT;
@@ -994,7 +995,7 @@ static void pc8477_store(pc8477_t *drv, uint16_t addr, uint8_t byte)
                 pc8477_software_reset(drv);
             }
             drv->dor = byte;
-            drv->clk += fdd_rotate(drv->fdd, (int)((*drv->mycontext->clk_ptr - drv->clk) / BYTE_RATE)) * BYTE_RATE;
+            drv->clk += fdd_rotate(drv->fdd, (*drv->mycontext->clk_ptr - drv->clk) / BYTE_RATE) * BYTE_RATE;
             for (i = 0; i < 4; i++) {
                 if ((byte & (0x10 << i)) != drv->fdds[i].motor_on_out && drv->fdds[i].motor_on) {
                     (drv->fdds[i].motor_on)(drv->fdds[i].motor_on_data, drv->fdds[i].motor_on_out ? 0 : 1);
@@ -1050,7 +1051,7 @@ static void pc8477_store(pc8477_t *drv, uint16_t addr, uint8_t byte)
                     drv->int_step = 0;
                     drv->fifo_fill = 0;
                     drv->fifop2 = drv->fifop;
-                    drv->clk += fdd_rotate(drv->fdd, (int)((*drv->mycontext->clk_ptr - drv->clk) / BYTE_RATE)) * BYTE_RATE;
+                    drv->clk += fdd_rotate(drv->fdd, (*drv->mycontext->clk_ptr - drv->clk) / BYTE_RATE) * BYTE_RATE;
                     fdd_index_count_reset(drv->fdd);
                     drv->state = pc8477_execute(drv);
                     break;
@@ -1231,6 +1232,19 @@ static uint8_t pc8477_peek(pc8477_t *drv, uint16_t addr)
     return result;
 }
 
+void pc8477d_dump(diskunit_context_t *ctx)
+{
+    int i;
+    pc8477_t *drv = ctx->pc8477;
+    mon_out("Type: %s\n", drv->is8477 ? "pc8477" : "dp8473");
+    mon_out("Rate: %dkHz\n", drv->rate);
+    for (i = 0; i < 4; i++) {
+        mon_out("FDD #%d:\n", i);
+        mon_out(" Track:%d (seeking:%s)\n", drv->fdds[i].track, drv->fdds[i].seeking ? "yes" : "no");
+        mon_out(" Motor:%s\n", drv->fdds[i].motor_on_out ? "on" : "off");
+    }
+}
+
 void pc8477_reset(pc8477_t *drv, int is8477)
 {
     int i;
@@ -1262,12 +1276,13 @@ int pc8477_irq(pc8477_t *drv)
 
 void pc8477d_store(diskunit_context_t *drv, uint16_t addr, uint8_t byte)
 {
+    drv->cpu->cpu_last_data = byte;
     pc8477_store(drv->pc8477, (uint16_t)(addr & 7), byte);
 }
 
 uint8_t pc8477d_read(diskunit_context_t *drv, uint16_t addr)
 {
-    return pc8477_read(drv->pc8477, (uint16_t)(addr & 7));
+    return drv->cpu->cpu_last_data = pc8477_read(drv->pc8477, (uint16_t)(addr & 7));
 }
 
 uint8_t pc8477d_peek(diskunit_context_t *drv, uint16_t addr)

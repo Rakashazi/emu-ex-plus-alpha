@@ -101,6 +101,7 @@
 #include "userport_8bss.h"
 #include "userport_dac.h"
 #include "userport_digimax.h"
+#include "userport_hummer_joystick.h"
 #include "userport_io_sim.h"
 #include "userport_joystick.h"
 #include "userport_petscii_snespad.h"
@@ -108,6 +109,8 @@
 #include "userport_rtc_ds1307.h"
 #include "userport_spt_joystick.h"
 #include "userport_superpad64.h"
+#include "userport_synergy_joystick.h"
+#include "userport_woj_joystick.h"
 #include "vice-event.h"
 #include "video.h"
 #include "video-sound.h"
@@ -177,6 +180,7 @@ static joyport_port_props_t joy_adapter_control_port_1 =
     0,                      /* has NO lightpen support on this port */
     0,                      /* has NO joystick adapter on this port */
     1,                      /* has output support on this port */
+    0,                      /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                       /* port can be switched on/off */
 };
 
@@ -187,6 +191,7 @@ static joyport_port_props_t joy_adapter_control_port_2 =
     0,                      /* has NO lightpen support on this port */
     0,                      /* has NO joystick adapter on this port */
     1,                      /* has output support on this port */
+    0,                      /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                       /* port can be switched on/off */
 };
 
@@ -197,6 +202,7 @@ static joyport_port_props_t joy_adapter_control_port_3 =
     0,                      /* has NO lightpen support on this port */
     0,                      /* has NO joystick adapter on this port */
     1,                      /* has output support on this port */
+    0,                      /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                       /* port can be switched on/off */
 };
 
@@ -207,6 +213,7 @@ static joyport_port_props_t joy_adapter_control_port_4 =
     0,                      /* has NO lightpen support on this port */
     0,                      /* has NO joystick adapter on this port */
     1,                      /* has output support on this port */
+    0,                      /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                       /* port can be switched on/off */
 };
 
@@ -217,6 +224,7 @@ static joyport_port_props_t joy_adapter_control_port_5 =
     0,                      /* has NO lightpen support on this port */
     0,                      /* has NO joystick adapter on this port */
     1,                      /* has output support on this port */
+    0,                      /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                       /* port can be switched on/off */
 };
 
@@ -227,6 +235,7 @@ static joyport_port_props_t joy_adapter_control_port_6 =
     0,                      /* has NO lightpen support on this port */
     0,                      /* has NO joystick adapter on this port */
     1,                      /* has output support on this port */
+    0,                      /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                       /* port can be switched on/off */
 };
 
@@ -237,6 +246,7 @@ static joyport_port_props_t joy_adapter_control_port_7 =
     0,                      /* has NO lightpen support on this port */
     0,                      /* has NO joystick adapter on this port */
     1,                      /* has output support on this port */
+    0,                      /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                       /* port can be switched on/off */
 };
 
@@ -247,6 +257,7 @@ static joyport_port_props_t joy_adapter_control_port_8 =
     0,                      /* has NO lightpen support on this port */
     0,                      /* has NO joystick adapter on this port */
     1,                      /* has output support on this port */
+    0,                      /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                       /* port can be switched on/off */
 };
 
@@ -345,18 +356,6 @@ int machine_resources_init(void)
         init_resource_fail("joyport devices");
         return -1;
     }
-    if (joyport_sampler2bit_resources_init() < 0) {
-        init_resource_fail("joyport 2bit sampler");
-        return -1;
-    }
-    if (joyport_sampler4bit_resources_init() < 0) {
-        init_resource_fail("joyport 4bit sampler");
-        return -1;
-    }
-    if (joyport_bbrtc_resources_init() < 0) {
-        init_resource_fail("joyport bbrtc");
-        return -1;
-    }
     if (joystick_resources_init() < 0) {
         init_resource_fail("joystick");
         return -1;
@@ -432,6 +431,10 @@ int machine_resources_init(void)
         init_resource_fail("userport synergy joystick");
         return -1;
     }
+    if (userport_joystick_woj_resources_init() < 0) {
+        init_resource_fail("userport woj joystick");
+        return -1;
+    }
     if (userport_spt_joystick_resources_init() < 0) {
         init_resource_fail("userport stupid pet tricks joystick");
         return -1;
@@ -492,10 +495,10 @@ void machine_resources_shutdown(void)
     cartio_shutdown();
     userport_rtc_58321a_resources_shutdown();
     userport_rtc_ds1307_resources_shutdown();
-    joyport_bbrtc_resources_shutdown();
     tapeport_resources_shutdown();
     debugcart_resources_shutdown();
     cartridge_resources_shutdown();
+    joyport_resources_shutdown();
 }
 
 /* CBM-II-specific command-line option initialization.  */
@@ -551,10 +554,6 @@ int machine_cmdline_options_init(void)
     }
     if (joyport_cmdline_options_init() < 0) {
         init_cmdline_options_fail("joyport");
-        return -1;
-    }
-    if (joyport_bbrtc_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("bbrtc");
         return -1;
     }
     if (joystick_cmdline_options_init() < 0) {
@@ -640,12 +639,12 @@ int machine_cmdline_options_init(void)
 /* ------------------------------------------------------------------------- */
 /* ... while the other CBM-II use the CRTC retrace signal. */
 
-static void cbm2_crtc_signal(unsigned int signal)
+static void cbm2_crtc_signal(unsigned int signal, CLOCK offset)
 {
     if (signal) {
-        SIGNAL_VERT_BLANK_ON
+        SIGNAL_VERT_BLANK_ON    /* TODO: use offset */
     } else {
-        SIGNAL_VERT_BLANK_OFF
+        SIGNAL_VERT_BLANK_OFF   /* TODO: use offset */
     }
 }
 
@@ -713,8 +712,12 @@ int machine_specific_init(void)
         return -1;
     }
     crtc_set_retrace_callback(cbm2_crtc_signal);
-    crtc_set_retrace_type(0);
-    crtc_set_hw_options(1, 0x7ff, 0x1000, 512, -0x2000);
+    crtc_set_retrace_type(CRTC_RETRACE_TYPE_CRTC);
+    crtc_set_hw_options(CRTC_HW_CURSOR,
+                        0x7ff,          /* vmask */
+                        0x1000,         /* vchar */
+                        512,            /* vcoffset */
+                        -0x2000);       /* vrevmask */
 
     cia1_init(machine_context.cia1);
     acia1_init();
@@ -944,7 +947,7 @@ void machine_get_line_cycle(unsigned int *line, unsigned int *cycle, int *half_c
     *half_cycle = (int)-1;
 }
 
-void machine_change_timing(int timeval, int border_mode)
+void machine_change_timing(int timeval, int powerfreq, int border_mode)
 {
     /* log_message(LOG_DEFAULT, "machine_change_timing_c610 %d", timeval); */
 
@@ -955,7 +958,7 @@ void machine_change_timing(int timeval, int border_mode)
             machine_timing.rfsh_per_sec = C610_PAL_RFSH_PER_SEC;
             machine_timing.cycles_per_line = C610_PAL_CYCLES_PER_LINE;
             machine_timing.screen_lines = C610_PAL_SCREEN_LINES;
-            machine_timing.power_freq = 50;
+            machine_timing.power_freq = powerfreq;
             break;
         case MACHINE_SYNC_NTSC:
             machine_timing.cycles_per_sec = C610_NTSC_CYCLES_PER_SEC;
@@ -963,7 +966,7 @@ void machine_change_timing(int timeval, int border_mode)
             machine_timing.rfsh_per_sec = C610_NTSC_RFSH_PER_SEC;
             machine_timing.cycles_per_line = C610_NTSC_CYCLES_PER_LINE;
             machine_timing.screen_lines = C610_NTSC_SCREEN_LINES;
-            machine_timing.power_freq = 60;
+            machine_timing.power_freq = powerfreq;
             break;
         default:
             log_error(LOG_DEFAULT, "Unknown machine timing.");

@@ -30,22 +30,22 @@
 #include "types.h"
 #include "sound.h"
 
-extern int ds12c887rtc_cart_enabled(void);
+int ds12c887rtc_cart_enabled(void);
 
-extern void ds12c887rtc_reset(void);
+void ds12c887rtc_reset(void);
 
-extern int ds12c887rtc_enable(void);
+int ds12c887rtc_enable(void);
 int ds12c887rtc_disable(void);
-extern void ds12c887rtc_detach(void);
+void ds12c887rtc_detach(void);
 
-extern int ds12c887rtc_resources_init(void);
-extern void ds12c887rtc_resources_shutdown(void);
+int ds12c887rtc_resources_init(void);
+void ds12c887rtc_resources_shutdown(void);
 
-extern int ds12c887rtc_cmdline_options_init(void);
+int ds12c887rtc_cmdline_options_init(void);
 
 struct snapshot_s;
 
-extern int ds12c887rtc_snapshot_write_module(struct snapshot_s *s);
-extern int ds12c887rtc_snapshot_read_module(struct snapshot_s *s);
+int ds12c887rtc_snapshot_write_module(struct snapshot_s *s);
+int ds12c887rtc_snapshot_read_module(struct snapshot_s *s);
 
 #endif

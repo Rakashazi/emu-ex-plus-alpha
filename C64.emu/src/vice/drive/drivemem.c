@@ -41,12 +41,14 @@
 #include "machine-drive.h"
 #include "mem.h"
 #include "monitor.h"
-#include "riotd.h"
+#include "riot.h"
 #include "tpid.h"
 #include "types.h"
 #include "via1d1541.h"
 #include "via4000.h"
 #include "viad.h"
+#include "pc8477.h"
+#include "wd1770.h"
 #include "cmdhd.h"
 
 static drive_read_func_t *read_tab_watch[0x101];
@@ -64,11 +66,12 @@ static int watchpoints_active = 0;
 
 static uint8_t drive_read_free(diskunit_context_t *drv, uint16_t address)
 {
-    return address >> 8;
+    return drv->cpu->cpu_last_data;
 }
 
 static void drive_store_free(diskunit_context_t *drv, uint16_t address, uint8_t value)
 {
+    drv->cpu->cpu_last_data = value;
     return;
 }
 
@@ -84,12 +87,13 @@ static uint8_t drive_zero_read_watch(diskunit_context_t *drv, uint16_t addr)
 {
     addr &= 0xff;
     monitor_watch_push_load_addr(addr, drv->cpu->monspace);
-    return drv->cpud->read_tab[0][0](drv, addr);
+    return drv->cpu->cpu_last_data = drv->cpud->read_tab[0][0](drv, addr);
 }
 
 static void drive_zero_store_watch(diskunit_context_t *drv, uint16_t addr, uint8_t value)
 {
     addr &= 0xff;
+    drv->cpu->cpu_last_data = value;
     monitor_watch_push_store_addr(addr, drv->cpu->monspace);
     drv->cpud->store_tab[0][0](drv, addr, value);
 }
@@ -97,11 +101,12 @@ static void drive_zero_store_watch(diskunit_context_t *drv, uint16_t addr, uint8
 static uint8_t drive_read_watch(diskunit_context_t *drv, uint16_t address)
 {
     monitor_watch_push_load_addr(address, drv->cpu->monspace);
-    return drv->cpud->read_tab[0][address >> 8](drv, address);
+    return drv->cpu->cpu_last_data = drv->cpud->read_tab[0][address >> 8](drv, address);
 }
 
 static void drive_store_watch(diskunit_context_t *drv, uint16_t address, uint8_t value)
 {
+    drv->cpu->cpu_last_data = value;
     monitor_watch_push_store_addr(address, drv->cpu->monspace);
     drv->cpud->store_tab[0][address >> 8](drv, address, value);
 }
@@ -187,7 +192,6 @@ uint8_t drivemem_bank_peek(int bank, uint16_t addr, void *context)
 void drivemem_bank_store(int bank, uint16_t addr, uint8_t value, void *context)
 {
     diskunit_context_t *drv = (diskunit_context_t *)context;
-
     drv->cpud->store_func_ptr[addr >> 8](drv, addr, value);
 }
 
@@ -251,23 +255,28 @@ mem_ioreg_list_t *drivemem_ioreg_list_get(void *context)
             break;
         case DRIVE_TYPE_1570:
         case DRIVE_TYPE_1571:
+            mon_ioreg_add_list(&drivemem_ioreg_list, "VIA1", 0x1800, 0x180f, via1d1541_dump, context, IO_MIRROR_NONE);
+            mon_ioreg_add_list(&drivemem_ioreg_list, "VIA2", 0x1c00, 0x1c0f, via2d_dump, context, IO_MIRROR_NONE);
+            mon_ioreg_add_list(&drivemem_ioreg_list, "WD1770", 0x2000, 0x2003, wd1770d_dump, context, IO_MIRROR_NONE); /* FIXME: register dump function */
+            mon_ioreg_add_list(&drivemem_ioreg_list, "CIA", 0x4000, 0x400f, cia1571_dump, context, IO_MIRROR_NONE);
+            break;
         case DRIVE_TYPE_1571CR:
             mon_ioreg_add_list(&drivemem_ioreg_list, "VIA1", 0x1800, 0x180f, via1d1541_dump, context, IO_MIRROR_NONE);
             mon_ioreg_add_list(&drivemem_ioreg_list, "VIA2", 0x1c00, 0x1c0f, via2d_dump, context, IO_MIRROR_NONE);
-            mon_ioreg_add_list(&drivemem_ioreg_list, "WD1770", 0x2000, 0x2003, NULL, context, IO_MIRROR_NONE); /* FIXME: register dump function */
-            mon_ioreg_add_list(&drivemem_ioreg_list, "CIA", 0x4000, 0x400f, cia1571_dump, context, IO_MIRROR_NONE);
+            mon_ioreg_add_list(&drivemem_ioreg_list, "WD1770", 0x2000, 0x2003, wd1770d_dump, context, IO_MIRROR_NONE); /* FIXME: register dump function */
+            mon_ioreg_add_list(&drivemem_ioreg_list, "MOS5710", 0x4000, 0x401f, mos5710_dump, context, IO_MIRROR_NONE);
             break;
         case DRIVE_TYPE_1581:
             mon_ioreg_add_list(&drivemem_ioreg_list, "CIA", 0x4000, 0x400f, cia1581_dump, context, IO_MIRROR_NONE);
-            mon_ioreg_add_list(&drivemem_ioreg_list, "WD1770", 0x6000, 0x6003, NULL, context, IO_MIRROR_NONE); /* FIXME: register dump function */
+            mon_ioreg_add_list(&drivemem_ioreg_list, "WD1770", 0x6000, 0x6003, wd1770d_dump, context, IO_MIRROR_NONE); /* FIXME: register dump function */
             break;
         case DRIVE_TYPE_2000:
             mon_ioreg_add_list(&drivemem_ioreg_list, "VIA", 0x4000, 0x400f, via4000_dump, context, IO_MIRROR_NONE);
-            mon_ioreg_add_list(&drivemem_ioreg_list, "DP8473", 0x4e00, 0x4e07, NULL, context, IO_MIRROR_NONE); /* FIXME: register dump function */
+            mon_ioreg_add_list(&drivemem_ioreg_list, "DP8473", 0x4e00, 0x4e07, pc8477d_dump, context, IO_MIRROR_NONE); /* FIXME: register dump function */
             break;
         case DRIVE_TYPE_4000:
             mon_ioreg_add_list(&drivemem_ioreg_list, "VIA", 0x4000, 0x400f, via4000_dump, context, IO_MIRROR_NONE);
-            mon_ioreg_add_list(&drivemem_ioreg_list, "PC8477", 0x4e00, 0x4e07, NULL, context, IO_MIRROR_NONE); /* FIXME: register dump function */
+            mon_ioreg_add_list(&drivemem_ioreg_list, "PC8477", 0x4e00, 0x4e07, pc8477d_dump, context, IO_MIRROR_NONE); /* FIXME: register dump function */
             break;
         case DRIVE_TYPE_CMDHD:
             mon_ioreg_add_list(&drivemem_ioreg_list, "VIA", 0x8000, 0x800f, viacore_dump, ((diskunit_context_t *)context)->cmdhd->via10, IO_MIRROR_NONE);
@@ -281,8 +290,8 @@ mem_ioreg_list_t *drivemem_ioreg_list_get(void *context)
         case DRIVE_TYPE_8050:
         case DRIVE_TYPE_8250:
         case DRIVE_TYPE_9000:
-            mon_ioreg_add_list(&drivemem_ioreg_list, "RIOT1", 0x0200, 0x021f, riot1_dump, context, IO_MIRROR_NONE);
-            mon_ioreg_add_list(&drivemem_ioreg_list, "RIOT2", 0x0280, 0x029f, riot2_dump, context, IO_MIRROR_NONE);
+            mon_ioreg_add_list(&drivemem_ioreg_list, "RIOT1", 0x0200, 0x021f, riotcore_dump, ((diskunit_context_t *)context)->riot1, IO_MIRROR_NONE);
+            mon_ioreg_add_list(&drivemem_ioreg_list, "RIOT2", 0x0280, 0x029f, riotcore_dump, ((diskunit_context_t *)context)->riot2, IO_MIRROR_NONE);
             break;
         default:
             log_error(LOG_ERR, "DRIVEMEM: Unknown drive type `%u'.", type);

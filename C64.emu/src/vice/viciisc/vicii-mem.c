@@ -35,6 +35,7 @@
 #include "debug.h"
 #include "types.h"
 #include "vicii-chip-model.h"
+#include "vicii-colorram.h"
 #include "vicii-draw-cycle.h"
 #include "vicii-fetch.h"
 #include "vicii-irq.h"
@@ -766,4 +767,9 @@ uint8_t vicii_peek(uint16_t addr)
         default:
             return vicii.regs[addr] | unused_bits_in_registers[addr];
     }
+}
+
+void vicii_init_colorram(uint8_t *colorram)
+{
+    memcpy(colorram, colorram_data, 0x400);
 }

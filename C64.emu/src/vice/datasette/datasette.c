@@ -59,7 +59,8 @@
 #define DBG(x)
 #endif
 
-#define MOTOR_DELAY         32000
+#define MOTOR_DELAY         32000   /* for PLAY and RECORD */
+#define MOTOR_DELAY_FAST     1000   /* for fast forward/reverse */
 #define TAP_BUFFER_LENGTH   100000
 
 /* at least every DATASETTE_MAX_GAP cycle there should be an alarm */
@@ -80,6 +81,9 @@ static int datasette_motor[TAPEPORT_MAX_PORTS];
 
 /* Last time we have recorded a flux change.  */
 static CLOCK last_write_clk[TAPEPORT_MAX_PORTS];
+
+/* last state of the write line */
+static int last_write_bit[TAPEPORT_MAX_PORTS] = { -1, -1 };
 
 /* Motor stop is delayed.  */
 static CLOCK motor_stop_clk[TAPEPORT_MAX_PORTS];
@@ -182,7 +186,7 @@ static int set_reset_datasette_with_maincpu(int val, void *param)
 
 static int set_datasette_zero_gap_delay(int val, void *param)
 {
-    if (val < 0) {
+    if ((val < 0) || (val > TAP_ZERO_GAP_DELAY_MAX)) {
         return -1;
     }
     datasette_zero_gap_delay = val;
@@ -192,7 +196,7 @@ static int set_datasette_zero_gap_delay(int val, void *param)
 
 static int set_datasette_speed_tuning(int val, void *param)
 {
-    if (val < 0) {
+    if ((val < -TAP_SPEED_TUNING_MAX) || (val > TAP_SPEED_TUNING_MAX)) {
         return -1;
     }
 
@@ -203,7 +207,7 @@ static int set_datasette_speed_tuning(int val, void *param)
 
 static int set_datasette_tape_wobble_frequency(int val, void *param)
 {
-    if (val < 0) {
+    if ((val < 0) || (val > TAP_WOBBLE_FREQ_MAX)) {
         return -1;
     }
 
@@ -214,7 +218,7 @@ static int set_datasette_tape_wobble_frequency(int val, void *param)
 
 static int set_datasette_tape_wobble_amplitude(int val, void *param)
 {
-    if (val < 0) {
+    if ((val < 0) || (val > TAP_WOBBLE_AMPLITUDE_MAX)) {
         return -1;
     }
 
@@ -225,7 +229,7 @@ static int set_datasette_tape_wobble_amplitude(int val, void *param)
 
 static int set_datasette_tape_azimuth_error(int val, void *param)
 {
-    if (val < 0) {
+    if ((val < 0) || (val > TAP_AZIMUTH_ERROR_MAX)) {
         return -1;
     }
 
@@ -254,7 +258,7 @@ static int set_datasette_sound_emulation(int val, void *param)
 
 static int set_datasette_sound_emulation_volume(int val, void *param)
 {
-    if (val < 0) {
+    if ((val < 0) || (val > TAPE_SOUND_VOLUME_MAX)) {
         return -1;
     }
 
@@ -267,27 +271,26 @@ static const resource_int_t resources_int[] = {
     { "DatasetteResetWithCPU", 1, RES_EVENT_SAME, NULL,
       &reset_datasette_with_maincpu,
       set_reset_datasette_with_maincpu, NULL },
-    { "DatasetteZeroGapDelay", 20000, RES_EVENT_SAME, NULL,
+    /* mtap uses 2500, so we use the same */
+    { "DatasetteZeroGapDelay", TAP_ZERO_GAP_DELAY_DEFAULT, RES_EVENT_SAME, NULL,
       &datasette_zero_gap_delay,
       set_datasette_zero_gap_delay, NULL },
-    /* .tap v0 gap tuning value - apparently needs to be 1 for some .tap files,
-       see bug #1477 https://sourceforge.net/p/vice-emu/bugs/1477/ */
-    { "DatasetteSpeedTuning", 1, RES_EVENT_SAME, NULL,
+    { "DatasetteSpeedTuning", TAP_SPEED_TUNING_DEFAULT, RES_EVENT_SAME, NULL,
       &datasette_speed_tuning,
       set_datasette_speed_tuning, NULL },
-    { "DatasetteTapeWobbleFrequency", 1000, RES_EVENT_SAME, NULL,
+    { "DatasetteTapeWobbleFrequency", TAP_WOBBLE_FREQ_DEFAULT, RES_EVENT_SAME, NULL,
       &datasette_tape_wobble_frequency,
       set_datasette_tape_wobble_frequency, NULL },
-    { "DatasetteTapeWobbleAmplitude", 1000, RES_EVENT_SAME, NULL,
+    { "DatasetteTapeWobbleAmplitude", TAP_WOBBLE_AMPLITUDE_DEFAULT, RES_EVENT_SAME, NULL,
       &datasette_tape_wobble_amplitude,
       set_datasette_tape_wobble_amplitude, NULL },
-    { "DatasetteTapeAzimuthError", 0, RES_EVENT_SAME, NULL,
+    { "DatasetteTapeAzimuthError", TAP_AZIMUTH_ERROR_DEFAULT, RES_EVENT_SAME, NULL,
       &datasette_tape_azimuth_error,
       set_datasette_tape_azimuth_error, NULL },
     { "DatasetteSound", 0, RES_EVENT_SAME, NULL,
       &datasette_sound_emulation,
       set_datasette_sound_emulation, NULL },
-    { "DatasetteSoundVolume", 1024, RES_EVENT_SAME, NULL,
+    { "DatasetteSoundVolume", TAPE_SOUND_VOLUME_DEFAULT, RES_EVENT_SAME, NULL,
       &datasette_sound_emulation_volume,
       set_datasette_sound_emulation_volume, NULL },
     RESOURCE_INT_LIST_END
@@ -319,7 +322,7 @@ static const cmdline_option_t cmdline_options[] =
       "<value>", "Set delay in cycles for a zero in a v0 tap file" },
     { "-dsspeedtuning", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "DatasetteSpeedTuning", NULL,
-      "<value>", "Set number of cycles added to each gap in a v0 tap file" },
+      "<value>", "Set constant deviation from correct motor speed" },
     { "-dstapewobblefreq", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "DatasetteTapeWobbleFrequency", NULL,
       "<value>", "Set tape wobble frequency" },
@@ -429,36 +432,37 @@ inline static int datasette_move_buffer_back(int port, int offset)
     return 1;
 }
 
-/* calculate tape wobble */
+/* calculate tape wobble, add speed tuning */
 static CLOCK tape_do_wobble(int port, CLOCK gap)
 {
     /* cpu cycles since last call */
-    static CLOCK last_cycle_counter;
     static float wobble_sin_count;
     float wobble_factor;
-    CLOCK curr_cycle_counter = current_image[port]->cycle_counter_total;
-    CLOCK cpu_cycles;
+    CLOCK cpu_cycles = current_image[port]->cycle_counter_total;
     signed long newgap;
     float newgapf;
     static float restf = 0.0f;
-    float amplitude = (float)datasette_tape_wobble_amplitude / 200000.0f;
+    float amplitude;
+    float tuning;
+    float freq;
 
-    /* handle wraparound */
-    if (last_cycle_counter > curr_cycle_counter) {
-        cpu_cycles = last_cycle_counter - curr_cycle_counter;
-    } else {
-        cpu_cycles = curr_cycle_counter - last_cycle_counter;
-    }
-
-    if ((cpu_cycles == 0) || (datasette_tape_wobble_frequency == 0) || (datasette_tape_wobble_amplitude == 0)) {
+    if (((datasette_tape_wobble_frequency == 0) || (datasette_tape_wobble_amplitude == 0)) &&
+        (datasette_speed_tuning == 0)) {
         return gap;
     }
 
-    wobble_sin_count += ((uint64_t)cpu_cycles * (datasette_tape_wobble_frequency)) / 10000000000000.0f;
+    /* convert resource values to floats */
+    freq = (float)datasette_tape_wobble_frequency / (float)TAP_WOBBLE_FREQ_ONE;
+    amplitude = (float)datasette_tape_wobble_amplitude / (float)TAP_WOBBLE_AMPLITUDE_ONE;
+    tuning = (float)datasette_speed_tuning / (float)TAP_SPEED_TUNING_ONE;
+
+    wobble_sin_count += freq * (((uint64_t)cpu_cycles / ((float)datasette_cycles_per_second / 1000000.0f)) / (10000000000.0f * (2.0f * M_PI)));
+
     if (wobble_sin_count > (2 * M_PI)) {
         wobble_sin_count -= (2 * M_PI);
     }
-    wobble_factor = 1.0f + (sinf(wobble_sin_count) * amplitude);
+
+    wobble_factor = 1.0f + (sinf(wobble_sin_count) * amplitude) + tuning;
 
     newgapf = restf + (wobble_factor * gap);
     newgap = (int)(newgapf + 0.5f);
@@ -468,8 +472,9 @@ static CLOCK tape_do_wobble(int port, CLOCK gap)
     }
     restf = newgapf - newgap;
 #if 0
-    printf("gap: %4d factor: % 1.4f newgapf: % 3.2f rest: % 3.2f newgap: %4d cycles: %8d sincnt: % 2.2f\n",
-           (int)gap, (float)wobble_factor, (float)newgapf, (float)restf, (int)newgap, (int)cpu_cycles, (float)wobble_sin_count);
+    printf("gap: %4d factor: % 1.4f newgapf: % 3.2f rest: % 4.2f newgap: %4d cycles: %8d sincnt: % 2.2f  freq: % 2.2f amplitude:% 2.2f tuning:% 2.2f\r",
+           (int)gap, (float)wobble_factor, (float)newgapf, (float)restf, (int)newgap,
+           (int)cpu_cycles, (float)wobble_sin_count, (float)freq, amplitude, tuning);
 #endif
     return (CLOCK)newgap;
 }
@@ -484,12 +489,12 @@ static CLOCK tape_do_misalignment(CLOCK gap)
     }
 
     tapeerror = lib_unsigned_rand(-datasette_tape_azimuth_error, datasette_tape_azimuth_error);
-    newgapf = (gap * 1000) + tapeerror + resterror;
-    newgap = (newgapf + 500) / 1000;
+    newgapf = (gap * TAP_AZIMUTH_ERROR_ONE) + tapeerror + resterror;
+    newgap = (newgapf + 500) / TAP_AZIMUTH_ERROR_ONE;
     if (newgap < 1) {
         newgap = 1;
     }
-    resterror = newgapf - (newgap * 1000);
+    resterror = newgapf - (newgap * TAP_AZIMUTH_ERROR_ONE);
 #if 0
     printf("gap: %4d tapeerror: % 4d resterror: % 4d newgap: %4d\n", (int)gap, tapeerror, resterror, newgap);
 #endif
@@ -506,12 +511,12 @@ inline static int fetch_gap(int port, CLOCK *gap, int *direction, long read_tap)
 
     if ((current_image[port]->version == 0) || *gap) {
         /* in v0 tap files gaps > 255 produced an overflow and generally
-           produced 0 - which needs to be reinterpreted as a "long" gap. The
-           "commonly agreed on" value for this seems to be 20000 cycles.
+           produced 0 - which needs to be reinterpreted as a "long" gap.
+           "mtap" by Marcus Brenner, which probably the majority of tap v0 files
+           are created with, uses 2500.
            We also add a constant number of cycles (default:1) to compensate
            for tape speed variations. */
-        *gap = (*gap ? (CLOCK)(*gap * 8) : (CLOCK)datasette_zero_gap_delay)
-               + (CLOCK)datasette_speed_tuning;
+        *gap = (*gap ? (CLOCK)(*gap * 8) : (CLOCK)datasette_zero_gap_delay);
     } else {
         if (read_tap >= last_tap[port] - 3) {
             return -1;
@@ -687,6 +692,32 @@ static CLOCK datasette_read_gap(int port, int direction)
     return gap;
 }
 
+static void datasette_alarm_set(int port, CLOCK offset)
+{
+#ifdef DEBUG_TAPE
+    if (!datasette_alarm_pending[port]) {
+        log_debug("datasette_alarm_set: %"PRIu64"", offset);
+    } else {
+        log_debug("datasette_alarm_set: %"PRIu64" (WARNING: another alarm was pending!)", offset);
+    }
+#endif
+    alarm_set(datasette_alarm[port], offset);
+    datasette_alarm_pending[port] = 1;
+}
+
+static void datasette_alarm_unset(int port)
+{
+    alarm_unset(datasette_alarm[port]);
+    datasette_alarm_pending[port] = 0;
+}
+
+/* FIXME: the .tap header specifies the system and video system of the computer
+          the .tap was captured with, which implicitly tells the clockrate a
+          "tap byte" refers to. this is no problem as long as the .tap is played
+          on the same system it was created with - however when eg a PAL tap is
+          played back on a NTSC machine, the pulses must be scaled accordingly
+          - which is not happening right now. */
+
 /* this is the alarm function */
 static void datasette_read_bit(CLOCK offset, void *data)
 {
@@ -695,16 +726,22 @@ static void datasette_read_bit(CLOCK offset, void *data)
     long gap;
     int port = vice_ptr_to_int(data);
 
-    alarm_unset(datasette_alarm[port]);
-    datasette_alarm_pending[port] = 0;
+    datasette_alarm_unset(port);
 
-    DBG(("datasette_read_bit(motor:%d) %lu>=%lu (image present:%s)", datasette_motor[port], maincpu_clk, motor_stop_clk[port], current_image[port] ? "yes" : "no"));
+    DBG(("datasette_read_bit(motor:%d) maincpu_clk: 0x%"PRIx64" motor_stop_clk: 0x%"PRIx64" (image present:%s)",
+         datasette_motor[port], maincpu_clk, motor_stop_clk[port], current_image[port] ? "yes" : "no"));
 
     /* check for delay of motor stop */
-    if (motor_stop_clk[port] > 0 && maincpu_clk >= motor_stop_clk[port]) {
-        motor_stop_clk[port] = 0;
-        ui_display_tape_motor_status(port, 0);
-        datasette_motor[port] = 0;
+    if (motor_stop_clk[port] > 0) {
+        if (maincpu_clk >= motor_stop_clk[port]) {
+            motor_stop_clk[port] = 0;
+            ui_display_tape_motor_status(port, 0);
+            datasette_motor[port] = 0;
+        } else {
+            /* we cleared the alarm above, setup a new one further into the
+               future that will trigger the motor stop */
+            datasette_alarm_set(port, motor_stop_clk[port]);
+        }
     }
     DBG(("datasette_read_bit(motor:%d)", datasette_motor[port]));
 
@@ -712,6 +749,7 @@ static void datasette_read_bit(CLOCK offset, void *data)
         return;
     }
 
+    /* there is no image attached */
     if (current_image[port] == NULL) {
         switch (notape_mode[port]) {
             case DATASETTE_CONTROL_START:
@@ -721,8 +759,7 @@ static void datasette_read_bit(CLOCK offset, void *data)
                 break;
             case DATASETTE_CONTROL_STOP:
                 if (motor_stop_clk[port] > 0) {
-                    alarm_set(datasette_alarm[port], motor_stop_clk[port]);
-                    datasette_alarm_pending[port] = 1;
+                    datasette_alarm_set(port, motor_stop_clk[port]);
                 }
                 break;
         }
@@ -730,6 +767,7 @@ static void datasette_read_bit(CLOCK offset, void *data)
         return;
     }
 
+    /* an image is attached */
     switch (current_image[port]->mode) {
         case DATASETTE_CONTROL_START:
             direction = 1;
@@ -805,14 +843,11 @@ static void datasette_read_bit(CLOCK offset, void *data)
     gap -= offset;
 
     if (gap > 0) {
-        alarm_set(datasette_alarm[port], maincpu_clk +
-                  (CLOCK)(gap * (DS_V_PLAY / speed_of_tape)));
-        datasette_alarm_pending[port] = 1;
+        datasette_alarm_set(port, maincpu_clk + (CLOCK)(gap * (DS_V_PLAY / speed_of_tape)));
     } else {
         /* If the offset is geater than the gap to the next flux
            change, the change happend during DMA.  Schedule it now.  */
-        alarm_set(datasette_alarm[port], maincpu_clk);
-        datasette_alarm_pending[port] = 1;
+        datasette_alarm_set(port, maincpu_clk);
     }
     datasette_update_ui_counter(port);
 }
@@ -880,11 +915,9 @@ static void datasette_forward(int port)
 
     if (mode == DATASETTE_CONTROL_START ||
         mode == DATASETTE_CONTROL_REWIND) {
-        alarm_unset(datasette_alarm[port]);
-        datasette_alarm_pending[port] = 0;
+        datasette_alarm_unset(port);
     }
-    alarm_set(datasette_alarm[port], maincpu_clk + 1000);
-    datasette_alarm_pending[port] = 1;
+    datasette_alarm_set(port, maincpu_clk + MOTOR_DELAY_FAST);
 }
 
 static void datasette_rewind(int port)
@@ -895,11 +928,9 @@ static void datasette_rewind(int port)
 
     if (mode == DATASETTE_CONTROL_START ||
         mode == DATASETTE_CONTROL_FORWARD) {
-        alarm_unset(datasette_alarm[port]);
-        datasette_alarm_pending[port] = 0;
+        datasette_alarm_unset(port);
     }
-    alarm_set(datasette_alarm[port], maincpu_clk + 1000);
-    datasette_alarm_pending[port] = 1;
+    datasette_alarm_set(port, maincpu_clk + MOTOR_DELAY_FAST);
 }
 
 
@@ -916,8 +947,7 @@ static void datasette_internal_reset(int port)
     if (mode == DATASETTE_CONTROL_START ||
         mode == DATASETTE_CONTROL_FORWARD ||
         mode == DATASETTE_CONTROL_REWIND) {
-        alarm_unset(datasette_alarm[port]);
-        datasette_alarm_pending[port] = 0;
+        datasette_alarm_unset(port);
     }
     datasette_control(port, current_image[port] ? DATASETTE_CONTROL_STOP : notape_mode[port]);
     if (current_image[port] != NULL) {
@@ -931,10 +961,11 @@ static void datasette_internal_reset(int port)
     datasette_long_gap_elapsed[port] = 0;
     datasette_last_direction[port] = 0;
     motor_stop_clk[port] = 0;
+    fullwave[port] = 0;
+    /* update the UI */
     datasette_update_ui_counter(port);
     ui_display_tape_motor_status(port, 0);
     ui_display_reset(port + 1, 0);
-    fullwave[port] = 0;
 }
 
 void datasette_reset(void)
@@ -958,8 +989,19 @@ static void datasette_start_motor(int port)
         fseek(current_image[port]->fd, current_image[port]->current_file_seek_position + current_image[port]->offset, SEEK_SET);
     }
     if (!datasette_alarm_pending[port]) {
-        alarm_set(datasette_alarm[port], maincpu_clk + MOTOR_DELAY);
-        datasette_alarm_pending[port] = 1;
+        datasette_alarm_set(port, maincpu_clk + MOTOR_DELAY);
+    }
+
+    if (last_write_clk[port] == (CLOCK)0) {
+        /* FIXME: the first pulse should start when the motor is actually running
+                  (after the MOTOR_DELAY - however, due to how the delay is currently
+                  implemented at motor start, this causes weird side effects) */
+        DBG(("datasette_start_motor: first pulse starts at maincpu_clk: 0x%"PRIx64"", maincpu_clk));
+        last_write_clk[port] = maincpu_clk;
+        /* HACK: we start "as if" the write line was 0 when recording started, this
+                 way the first written 1 will always produce a (likely "long") gap
+                 at the start of the tape */
+        last_write_bit[port] = 0;
     }
 }
 
@@ -975,6 +1017,12 @@ static char *cmdstr[8] = {
 };
 #endif
 
+static void tap_reset_gap(int port)
+{
+    last_write_clk[port] = (CLOCK)0;
+}
+
+/* "press" the buttons on the c2n */
 static void datasette_control_internal(int port, int command)
 {
     DBG(("datasette_control_internal (%s) (image present:%s)", cmdstr[command], current_image[port] ? "yes" : "no"));
@@ -991,14 +1039,14 @@ static void datasette_control_internal(int port, int command)
                 if (datasette_enabled[port]) {
                     tapeport_set_tape_sense(0, port);
                 }
-                last_write_clk[port] = (CLOCK)0;
+                tap_reset_gap(port);
                 break;
             case DATASETTE_CONTROL_START:
                 current_image[port]->mode = DATASETTE_CONTROL_START;
                 if (datasette_enabled[port]) {
                     tapeport_set_tape_sense(1, port);
                 }
-                last_write_clk[port] = (CLOCK)0;
+                tap_reset_gap(port);
                 if (datasette_motor[port]) {
                     datasette_start_motor(port);
                 }
@@ -1009,7 +1057,7 @@ static void datasette_control_internal(int port, int command)
                 if (datasette_enabled[port]) {
                     tapeport_set_tape_sense(1, port);
                 }
-                last_write_clk[port] = (CLOCK)0;
+                tap_reset_gap(port);
                 if (datasette_motor[port]) {
                     datasette_start_motor(port);
                 }
@@ -1020,7 +1068,7 @@ static void datasette_control_internal(int port, int command)
                 if (datasette_enabled[port]) {
                     tapeport_set_tape_sense(1, port);
                 }
-                last_write_clk[port] = (CLOCK)0;
+                tap_reset_gap(port);
                 if (datasette_motor[port]) {
                     datasette_start_motor(port);
                 }
@@ -1031,7 +1079,7 @@ static void datasette_control_internal(int port, int command)
                     if (datasette_enabled[port]) {
                         tapeport_set_tape_sense(1, port);
                     }
-                    last_write_clk[port] = (CLOCK)0;
+                    tap_reset_gap(port);
                 }
                 break;
         }
@@ -1049,14 +1097,14 @@ static void datasette_control_internal(int port, int command)
                 if (datasette_enabled[port]) {
                     tapeport_set_tape_sense(0, port);
                 }
-                last_write_clk[port] = (CLOCK)0;
+                tap_reset_gap(port);
                 break;
             case DATASETTE_CONTROL_START:
                 notape_mode[port] = DATASETTE_CONTROL_START;
                 if (datasette_enabled[port]) {
                     tapeport_set_tape_sense(1, port);
                 }
-                last_write_clk[port] = (CLOCK)0;
+                tap_reset_gap(port);
                 if (datasette_motor[port]) {
                     datasette_start_motor(port);
                 }
@@ -1067,7 +1115,7 @@ static void datasette_control_internal(int port, int command)
                 if (datasette_enabled[port]) {
                     tapeport_set_tape_sense(1, port);
                 }
-                last_write_clk[port] = (CLOCK)0;
+                tap_reset_gap(port);
                 if (datasette_motor[port]) {
                     datasette_start_motor(port);
                 }
@@ -1078,7 +1126,7 @@ static void datasette_control_internal(int port, int command)
                 if (datasette_enabled[port]) {
                     tapeport_set_tape_sense(1, port);
                 }
-                last_write_clk[port] = (CLOCK)0;
+                tap_reset_gap(port);
                 if (datasette_motor[port]) {
                     datasette_start_motor(port);
                 }
@@ -1105,22 +1153,23 @@ void datasette_control(int port, int command)
     }
 }
 
-static void datasette_set_motor(int port, int flag)
+/* "set motor line" function used by tapeport API */
+static void datasette_set_motor(int port, int motor)
 {
-    DBG(("datasette_set_motor(%d) (image present:%s) datasette_motor: %d motor_stop_clk: %lu",
-         flag, current_image[port] ? "yes" : "no", datasette_motor[port], motor_stop_clk[port]));
+    DBG(("datasette_set_motor(%d) (image present:%s) datasette_motor: %d motor_stop_clk: 0x%"PRIx64"",
+         motor, current_image[port] ? "yes" : "no", datasette_motor[port], motor_stop_clk[port]));
 
     if (datasette_alarm[port] == NULL) {
         DBG(("datasette_set_motor (datasette_alarm[port] == NULL)"));
         return;
     }
 
-    if (flag) {
+    if (motor) {
         /* abort pending motor stop */
         motor_stop_clk[port] = 0;
-        DBG(("datasette_set_motor(flag=1 maincpu_clk:%lu motor_stop_clk:%lu)", maincpu_clk, motor_stop_clk[port]));
+        DBG(("datasette_set_motor(motor=1 maincpu_clk: 0x%"PRIx64" motor_stop_clk: 0x%"PRIx64")", maincpu_clk, motor_stop_clk[port]));
         if (!datasette_motor[port]) {
-            last_write_clk[port] = (CLOCK)0;
+            tap_reset_gap(port);
             datasette_start_motor(port);
             ui_display_tape_motor_status(port, 1);
             datasette_motor[port] = 1;
@@ -1130,11 +1179,10 @@ static void datasette_set_motor(int port, int flag)
     } else {
         if (datasette_motor[port] && motor_stop_clk[port] == 0) {
             motor_stop_clk[port] = maincpu_clk + MOTOR_DELAY;
-            DBG(("datasette_set_motor(flag=0 maincpu_clk:%lu motor_stop_clk:%lu)", maincpu_clk, motor_stop_clk[port]));
+            DBG(("datasette_set_motor(motor=0 maincpu_clk: 0x%"PRIx64" motor_stop_clk: 0x%"PRIx64")", maincpu_clk, motor_stop_clk[port]));
             if (!datasette_alarm_pending[port]) {
                 /* make sure that the motor will stop */
-                alarm_set(datasette_alarm[port], motor_stop_clk[port]);
-                datasette_alarm_pending[port] = 1;
+                datasette_alarm_set(port, motor_stop_clk[port]);
             }
         } else {
             DBG(("datasette_set_motor() not stopping motor"));
@@ -1142,12 +1190,17 @@ static void datasette_set_motor(int port, int flag)
     }
 }
 
+/* FIXME: right now we always write v1 .tap files (falling edges only), even for xplus4 */
+
 inline static void bit_write(int port)
 {
     CLOCK write_time;
     uint8_t write_gap;
 
     write_time = maincpu_clk - last_write_clk[port];
+    DBG(("bit_write last_write_clk: 0x%"PRIx64" maincpu_clk: 0x%"PRIx64" write_time: 0x%"PRIx64" tap: 0x%"PRIx64"",
+         last_write_clk[port], maincpu_clk, write_time,
+         (write_time / (CLOCK)8) > 0xff ? write_time : (write_time / (CLOCK)8)));
     last_write_clk[port] = maincpu_clk;
 
     /* C16 TAPs use half the machine clock as base cycle */
@@ -1160,18 +1213,27 @@ inline static void bit_write(int port)
     }
 
     if (write_time < (CLOCK)(255 * 8 + 7)) {
+        /* this is a normal short/one byte gap */
         write_gap = (uint8_t)(write_time / (CLOCK)8);
         if (fwrite(&write_gap, 1, 1, current_image[port]->fd) < 1) {
+            log_error(datasette_log, "datasette bit_write failed (stopping tape).");
+            datasette_control(port, DATASETTE_CONTROL_STOP);
+            return;
+        }
+        DBG(("bit_write v0 value 0x%02x at position 0x%04x",
+             write_gap, (unsigned int)current_image[port]->current_file_seek_position));
+        current_image[port]->current_file_seek_position++;
+    } else {
+        /* this is a long gap, v0 tap only stores a zero for this, in v1 the zero
+           is followed by the exact length - so write the zero first */
+        write_gap = 0;
+        if (fwrite(&write_gap, 1, 1, current_image[port]->fd) != 1) {
+            log_error(datasette_log, "datasette bit_write failed (stopping tape).");
             datasette_control(port, DATASETTE_CONTROL_STOP);
             return;
         }
         current_image[port]->current_file_seek_position++;
-    } else {
-        write_gap = 0;
-        if (fwrite(&write_gap, 1, 1, current_image[port]->fd) != 1) {
-            log_debug("datasette bit_write failed.");
-        }
-        current_image[port]->current_file_seek_position++;
+        /* in v1/v2 .tap the next 3 bytes are the exact length of the gap in cycles */
         if (current_image[port]->version >= 1) {
             uint8_t long_gap[3];
             int bytes_written;
@@ -1180,13 +1242,17 @@ inline static void bit_write(int port)
             long_gap[2] = (uint8_t)((write_time >> 16) & 0xff);
             write_time &= 0xffffff;
             bytes_written = (int)fwrite(long_gap, 1, 3, current_image[port]->fd);
+            DBG(("bit_write v1 gap 0x%"PRIx64" at position 0x%04x",
+                write_time, (unsigned int)current_image[port]->current_file_seek_position - 1));
             current_image[port]->current_file_seek_position += bytes_written;
             if (bytes_written < 3) {
+                log_error(datasette_log, "datasette bit_write failed (stopping tape).");
                 datasette_control(port, DATASETTE_CONTROL_STOP);
                 return;
             }
         }
     }
+    /* adjust file size */
     if (current_image[port]->size < current_image[port]->current_file_seek_position) {
         current_image[port]->size = current_image[port]->current_file_seek_position;
     }
@@ -1205,18 +1271,34 @@ inline static void bit_write(int port)
     datasette_update_ui_counter(port);
 }
 
+/* BUG: when the motor is started when the write line is 0, then the first
+        pulse will not end up in the .tap file
+
+        see https://sourceforge.net/p/vice-emu/bugs/1598/ */
+
 static void datasette_toggle_write_bit(int port, int write_bit)
 {
-    if (current_image[port] != NULL && write_bit
-        && current_image[port]->mode == DATASETTE_CONTROL_RECORD) {
-        if (datasette_motor[port]) {
-            if (last_write_clk[port] == (CLOCK)0) {
+    DBG(("datasette_toggle_write_bit: last_write_bit:%d write_bit:%d maincpu_clk: 0x%"PRIx64"",
+         last_write_bit[port] ? 1 : 0, write_bit ? 1 : 0, maincpu_clk));
+    if ((current_image[port] != NULL) && /* there is a tape image */
+        (current_image[port]->mode == DATASETTE_CONTROL_RECORD) && /* record is pressed */
+        (datasette_motor[port] != 0)) { /* motor is running */
+
+        /* FIXME: right now we always write v1 .tap files (falling edges only),
+                  even for xplus4 */
+
+        /* check if this is a falling edge (0->1 transtion on the write line) */
+        if ((last_write_bit[port] == 0) && (write_bit != 0)) {
+            if (last_write_clk[port] >= maincpu_clk) {
+                /* HACK: should the last write time be in the future, adjust it to be now */
+                DBG(("datasette_toggle_write_bit: first pulse starts at maincpu_clk: 0x%"PRIx64"", maincpu_clk));
                 last_write_clk[port] = maincpu_clk;
             } else {
                 bit_write(port);
             }
         }
     }
+    last_write_bit[port] = write_bit;
 }
 
 /*******************************************************************************

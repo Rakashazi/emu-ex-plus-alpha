@@ -65,10 +65,15 @@ struct crtc_s {
     int hw_cursor;
     int hw_cols;        /* 1 or 2, number of chars per cycle */
     int hw_blank;
-    int vaddr_mask;
-    int vaddr_charswitch;
+    int beam_offset;    /* mystery correction offset... */
+    int vaddr_mask;     /* how many bits (mask) in the video base address are
+                         * connected to hardware. */
+    int vaddr_mask_eff;     /* how many effective address bits we can generate;
+                             * when 2 chars per cycle, this is 1 more bit. */
+    int vaddr_charswitch;   /* which bit (mask) in vaddr selects the other
+                             * half of the character generator. */
     int vaddr_charoffset;
-    int vaddr_revswitch;
+    int vaddr_revswitch;    /* which bit (mask) in vaddr inverts the screen */
 
     /* screen and charset memory options (almost) as given to
        crtc_set_chargen_addr() and crtc_set_screen_addr() */
@@ -89,7 +94,7 @@ struct crtc_s {
        Some effects need better timing, though */
 
     /* rasterline variables */
-    CLOCK rl_start;     /* clock when the current rasterline starts */
+    CLOCK rl_start;     /* clock when the current rasterline starts (left edge of text area) */
     int rl_visible;     /* number of visible chars in this line */
     int rl_sync;        /* character in line when the sync starts */
     int rl_len;         /* length of line in cycles */
@@ -116,6 +121,7 @@ struct crtc_s {
                            decreasing till end */
     int venable;        /* flagged when vertical enable flipflop has not
                            been reset in frame */
+    bool off_screen;    /* set when the crt ray is considered off-screen */
     int vsync;          /* number of rasterlines till end of vsync */
 
     int current_charline; /* state of the current character line counter */
@@ -160,8 +166,21 @@ struct crtc_s {
     /* Alarm to update a raster line.  */
     struct alarm_s *raster_draw_alarm;
 
+
     /* Video chip capabilities.  */
     struct video_chip_cap_s *video_chip_cap;
+
+#if CRTC_BEAM_RACING
+    /*
+     * On real 2001s, the retrace interrupt is triggered at the END of the
+     * last scan line of the visible text area. The normal raster alarm runs
+     * at the start of the next line, which is too late.
+     */
+    struct alarm_s *adjusted_retrace_alarm;
+
+    uint8_t prefetch[256*2];    /* maximum theoretical size */
+#endif
+
 };
 
 /* internal registers */
@@ -196,10 +215,5 @@ extern crtc_t crtc;
    to allow effects like open borders etc. */
 #define CRTC_EXTRA_COLS         6
 #define CRTC_EXTRA_RASTERLINES  16
-
-/* Private function calls, used by the other VIC-II modules.  FIXME:
-   Prepend names with `_'?  */
-extern int crtc_load_palette(const char *name);
-extern void crtc_resize(void);
 
 #endif

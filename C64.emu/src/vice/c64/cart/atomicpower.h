@@ -31,25 +31,25 @@
 
 #include "types.h"
 
-extern uint8_t atomicpower_roml_read(uint16_t addr);
-extern void atomicpower_roml_store(uint16_t addr, uint8_t value);
-extern uint8_t atomicpower_romh_read(uint16_t addr);
-extern void atomicpower_romh_store(uint16_t addr, uint8_t value);
-extern void atomicpower_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
+uint8_t atomicpower_roml_read(uint16_t addr);
+void atomicpower_roml_store(uint16_t addr, uint8_t value);
+uint8_t atomicpower_romh_read(uint16_t addr);
+void atomicpower_romh_store(uint16_t addr, uint8_t value);
+void atomicpower_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
 
-extern void atomicpower_freeze(void);
-extern void atomicpower_reset(void);
-extern void atomicpower_powerup(void);
+void atomicpower_freeze(void);
+void atomicpower_reset(void);
+void atomicpower_powerup(void);
 
-extern void atomicpower_config_init(void);
-extern void atomicpower_config_setup(uint8_t *rawcart);
-extern int atomicpower_bin_attach(const char *filename, uint8_t *rawcart);
-extern int atomicpower_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void atomicpower_detach(void);
+void atomicpower_config_init(void);
+void atomicpower_config_setup(uint8_t *rawcart);
+int atomicpower_bin_attach(const char *filename, uint8_t *rawcart);
+int atomicpower_crt_attach(FILE *fd, uint8_t *rawcart);
+void atomicpower_detach(void);
 
 struct snapshot_s;
 
-extern int atomicpower_snapshot_write_module(struct snapshot_s *s);
-extern int atomicpower_snapshot_read_module(struct snapshot_s *s);
+int atomicpower_snapshot_write_module(struct snapshot_s *s);
+int atomicpower_snapshot_read_module(struct snapshot_s *s);
 
 #endif

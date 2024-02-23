@@ -27,12 +27,14 @@
 #ifndef VICE_QUADRATURE_H
 #define VICE_QUADRATURE_H
 
-extern int mouse_quadrature_register(void);
+int mouse_amiga_register(void);
+int mouse_cx22_register(void);
+int mouse_st_register(void);
 
-extern void mouse_amiga_st_init(void);
+void mouse_amiga_st_init(void);
 
-extern void mouse_amiga_st_button_left(int pressed);
-extern void mouse_amiga_st_button_right(int pressed);
-extern void mouse_amiga_st_button_middle(int pressed);
+void mouse_amiga_st_button_left(int pressed);
+void mouse_amiga_st_button_right(int pressed);
+void mouse_amiga_st_button_middle(int pressed);
 
 #endif

@@ -31,24 +31,25 @@
 
 extern int plus60k_enabled;
 extern int plus60k_base;
-extern int plus60k_resources_init(void);
-extern void plus60k_resources_shutdown(void);
-extern int plus60k_cmdline_options_init(void);
-extern void plus60k_init(void);
-extern void plus60k_reset(void);
-extern void plus60k_shutdown(void);
 
-extern void plus60k_ram_inject(uint16_t addr, uint8_t value);
-extern void plus60k_vicii_mem_vbank_store(uint16_t addr, uint8_t value);
-extern void plus60k_vicii_mem_vbank_39xx_store(uint16_t addr, uint8_t value);
-extern void plus60k_vicii_mem_vbank_3fxx_store(uint16_t addr, uint8_t value);
-extern void plus60k_ram_hi_store(uint16_t addr, uint8_t value);
-extern uint8_t plus60k_ram_read(uint16_t addr);
-extern void plus60k_ram_store(uint16_t addr, uint8_t value);
+int plus60k_resources_init(void);
+void plus60k_resources_shutdown(void);
+int plus60k_cmdline_options_init(void);
+void plus60k_init(void);
+void plus60k_reset(void);
+void plus60k_shutdown(void);
 
-extern int set_plus60k_enabled(int value, int disable_reset);
+void plus60k_ram_inject(uint16_t addr, uint8_t value);
+void plus60k_vicii_mem_vbank_store(uint16_t addr, uint8_t value);
+void plus60k_vicii_mem_vbank_39xx_store(uint16_t addr, uint8_t value);
+void plus60k_vicii_mem_vbank_3fxx_store(uint16_t addr, uint8_t value);
+void plus60k_ram_hi_store(uint16_t addr, uint8_t value);
+uint8_t plus60k_ram_read(uint16_t addr);
+void plus60k_ram_store(uint16_t addr, uint8_t value);
 
-extern int plus60k_snapshot_write(struct snapshot_s *s);
-extern int plus60k_snapshot_read(struct snapshot_s *s);
+int set_plus60k_enabled(int value, int disable_reset);
+
+int plus60k_snapshot_write(struct snapshot_s *s);
+int plus60k_snapshot_read(struct snapshot_s *s);
 
 #endif

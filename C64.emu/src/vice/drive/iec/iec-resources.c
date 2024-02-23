@@ -187,7 +187,7 @@ static int set_drive_fixed(const char *val, void *param)
         /* now check if the left over string is a number */
         len = strlen(check_string);
         for (i = 0; i < len; i++) {
-            if (!isdigit(check_string[i])) {
+            if (!isdigit((unsigned char)check_string[i])) {
                 lib_free(check_string);
                 return -1;
             }
@@ -352,7 +352,7 @@ static resource_int_t res_drive[] = {
 };
 
 static resource_string_t res_string[] = {
-    { NULL, "8G", RES_EVENT_NO, NULL,
+    { NULL, "8G", RES_EVENT_SAME, NULL,
       NULL, set_drive_fixed, NULL },
     RESOURCE_STRING_LIST_END
 };

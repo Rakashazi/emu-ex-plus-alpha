@@ -38,15 +38,12 @@
      4   | D3           |  I
      6   | strobe       |  O
      6   | left button  |  I    ("Fire")
+     7   | +5VDC        |  Power
+     8   | GND          |  Ground
      9   | right button |  I    ("POTX")
 
    Works on:
-   - native joystick port(s) (x64/x64sc/xscpu64/x128/x64dtv/xcbm5x0/xvic)
-   - hit userport joystick adaper port 1 (x64/x64sc/xscpu64/x128)
-   - kingsoft userport joystick adapter port 1 (x64/x64sc/xscpu64/x128)
-   - starbyte userport joystick adapter port 2 (x64/x64sc/xscpu64/x128)
-   - hummer userport joystick adapter port (x64dtv)
-   - oem userport joystick adapter port (xvic)
+   - native joystick port(s) (x64/x64sc/xscpu64/x128/xvic/xcbm5x0)
    - sidcart joystick adapter port (xplus4)
 */
 
@@ -282,6 +279,7 @@ static joyport_t mouse_neos_joyport_device = {
     JOYPORT_RES_ID_MOUSE,           /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,        /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,           /* device uses the potentiometer line for the right button, but could work without it */
+    JOYPORT_5VDC_REQUIRED,          /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,       /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_MOUSE,           /* device is a Mouse */
     0x10,                           /* bit 4 is an output bit */

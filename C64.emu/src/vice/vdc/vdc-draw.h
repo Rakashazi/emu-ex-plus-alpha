@@ -29,6 +29,6 @@
 #ifndef VICE_VDC_DRAW_H
 #define VICE_VDC_DRAW_H
 
-extern void vdc_draw_init(void);
+void vdc_draw_init(void);
 
 #endif

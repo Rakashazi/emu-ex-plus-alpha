@@ -41,6 +41,7 @@
 #include "log.h"
 #include "raster-resources.h"
 #include "resources.h"
+#include "vdc.h"
 #include "vdc-resources.h"
 #include "vdctypes.h"
 #include "video.h"
@@ -91,6 +92,7 @@ static void vdc_update_renderer(void)
         video_chip_cap.double_mode.sizey = 2;
         video_chip_cap.double_mode.rmode = VIDEO_RENDER_RGBI_2X2;
     }
+    video_chip_cap.video_has_palntsc = 0;
 }
 
 static int set_stretch(int val, void *param)
@@ -123,7 +125,6 @@ int vdc_resources_init(void)
     video_chip_cap.dscan_allowed = ARCHDEP_VDC_DSCAN;
     video_chip_cap.interlace_allowed = 1;
     video_chip_cap.external_palette_name = "vdc_deft";
-    video_chip_cap.double_buffering_allowed = ARCHDEP_VDC_DBUF;
 
     vdc_update_renderer();
 

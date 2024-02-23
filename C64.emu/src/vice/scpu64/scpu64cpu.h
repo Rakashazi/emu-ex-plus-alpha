@@ -48,6 +48,7 @@ void scpu64_clock_read_ioram(void);
 void maincpu_steal_cycles(void);
 int scpu64_snapshot_write_cpu_state(struct snapshot_module_s *m);
 int scpu64_snapshot_read_cpu_state(struct snapshot_module_s *m);
+
 extern int scpu64_emulation_mode;
 extern uint8_t scpu64_fastmode;
 

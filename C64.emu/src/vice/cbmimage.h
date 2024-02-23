@@ -31,7 +31,8 @@
 #ifndef VICE_CBMIMAGE_H
 #define VICE_CBMIMAGE_H
 
-extern int cbmimage_create_image(const char *name, unsigned int type);
-extern int cbmimage_create_dxm_image(const char *name, const char *diskname, unsigned int type);
+int cbmimage_create_image(const char *name, unsigned int type);
+int cbmimage_create_dxm_image(const char *name, const char *diskname, unsigned int type);
+int cbmimage_create_dhd_image(const char *name, const char *diskname, unsigned int type);
 
 #endif

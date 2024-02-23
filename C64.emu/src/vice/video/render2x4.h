@@ -31,21 +31,21 @@
 #include "types.h"
 #include "video.h"
 
-extern void render_32_2x4_interlaced(const video_render_color_tables_t *color_tab,
-                                     const uint8_t *src, uint8_t *trg,
-                                     unsigned int width, const unsigned int height,
-                                     const unsigned int xs, const unsigned int ys,
-                                     const unsigned int xt, const unsigned int yt,
-                                     const unsigned int pitchs, const unsigned int pitcht,
-                                     video_render_config_t *config, const uint32_t scanline_color);
+void render_32_2x4_interlaced(const video_render_color_tables_t *color_tab,
+                              const uint8_t *src, uint8_t *trg,
+                              unsigned int width, const unsigned int height,
+                              const unsigned int xs, const unsigned int ys,
+                              const unsigned int xt, const unsigned int yt,
+                              const unsigned int pitchs, const unsigned int pitcht,
+                              video_render_config_t *config, const uint32_t scanline_color);
 
-extern void render_32_2x4(const video_render_color_tables_t *color_tab,
-                          const uint8_t *src, uint8_t *trg,
-                          unsigned int width, const unsigned int height,
-                          const unsigned int xs, const unsigned int ys,
-                          const unsigned int xt, const unsigned int yt,
-                          const unsigned int pitchs,
-                          const unsigned int pitcht,
-                          const unsigned int doublescan,
-                          video_render_config_t *config);
+void render_32_2x4(const video_render_color_tables_t *color_tab,
+                   const uint8_t *src, uint8_t *trg,
+                   unsigned int width, const unsigned int height,
+                   const unsigned int xs, const unsigned int ys,
+                   const unsigned int xt, const unsigned int yt,
+                   const unsigned int pitchs,
+                   const unsigned int pitcht,
+                   const unsigned int doublescan,
+                   video_render_config_t *config);
 #endif

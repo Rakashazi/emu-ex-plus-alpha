@@ -79,12 +79,11 @@ static const pet_table_t pet_table[] = {
         .IOSize = IO_2048,
         .crtc = NO_CRTC,
         .video = COLS_40,
-        .ramsel9 = NO_RAM_9,
-        .ramselA = NO_RAM_A,
         .kbd_type = KBD_TYPE_GRAPHICS_US,
         .pet2k = PATCH_2K_KERNAL,
         .eoiblank = EOI_BLANKS,
         .screenmirrors2001 = SCREEN_MIRRORS_2001,
+        .palette2001 = true,
         .superpet = NORMAL_IO,
         .chargenName = PET_CHARGEN1_NAME,
         .kernalName = PET_KERNAL1NAME,
@@ -99,12 +98,11 @@ static const pet_table_t pet_table[] = {
         .IOSize = IO_2048,
         .crtc = NO_CRTC,
         .video = COLS_40,
-        .ramsel9 = NO_RAM_9,
-        .ramselA = NO_RAM_A,
         .kbd_type = KBD_TYPE_GRAPHICS_US,
         .pet2k = NO_KERNAL_PATCH,
         .eoiblank = NO_EOI,
         .screenmirrors2001 = NO_MIRRORS_2001,
+        .palette2001 = false,
         .superpet = NORMAL_IO,
         .chargenName = PET_CHARGEN2_NAME,
         .kernalName = PET_KERNAL2NAME,
@@ -119,12 +117,11 @@ static const pet_table_t pet_table[] = {
         .IOSize = IO_2048,
         .crtc = NO_CRTC,
         .video = COLS_40,
-        .ramsel9 = NO_RAM_9,
-        .ramselA = NO_RAM_A,
         .kbd_type = KBD_TYPE_GRAPHICS_US,
         .pet2k = NO_KERNAL_PATCH,
         .eoiblank = NO_EOI,
         .screenmirrors2001 = NO_MIRRORS_2001,
+        .palette2001 = false,
         .superpet = NORMAL_IO,
         .chargenName = PET_CHARGEN2_NAME,
         .kernalName = PET_KERNAL2NAME,
@@ -139,12 +136,11 @@ static const pet_table_t pet_table[] = {
         .IOSize = IO_2048,
         .crtc = NO_CRTC,
         .video = COLS_40,
-        .ramsel9 = NO_RAM_9,
-        .ramselA = NO_RAM_A,
         .kbd_type = KBD_TYPE_GRAPHICS_US,
         .pet2k = NO_KERNAL_PATCH,
         .eoiblank = NO_EOI,
         .screenmirrors2001 = NO_MIRRORS_2001,
+        .palette2001 = false,
         .superpet = NORMAL_IO,
         .chargenName = PET_CHARGEN2_NAME,
         .kernalName = PET_KERNAL2NAME,
@@ -159,12 +155,11 @@ static const pet_table_t pet_table[] = {
         .IOSize = IO_2048,
         .crtc = NO_CRTC,
         .video = COLS_40,
-        .ramsel9 = NO_RAM_9,
-        .ramselA = NO_RAM_A,
         .kbd_type = KBD_TYPE_BUSINESS_UK,
         .pet2k = NO_KERNAL_PATCH,
         .eoiblank = NO_EOI,
         .screenmirrors2001 = NO_MIRRORS_2001,
+        .palette2001 = false,
         .superpet = NORMAL_IO,
         .chargenName = PET_CHARGEN2_NAME,
         .kernalName = PET_KERNAL2NAME,
@@ -179,12 +174,11 @@ static const pet_table_t pet_table[] = {
         .IOSize = IO_256,
         .crtc = HAS_CRTC,
         .video = COLS_40,
-        .ramsel9 = NO_RAM_9,
-        .ramselA = NO_RAM_A,
         .kbd_type = KBD_TYPE_GRAPHICS_US,
         .pet2k = NO_KERNAL_PATCH,
         .eoiblank = NO_EOI,
         .screenmirrors2001 = NO_MIRRORS_2001,
+        .palette2001 = false,
         .superpet = NORMAL_IO,
         .chargenName = PET_CHARGEN2_NAME,
         .kernalName = PET_KERNAL4NAME,
@@ -199,12 +193,11 @@ static const pet_table_t pet_table[] = {
         .IOSize = IO_256,
         .crtc = HAS_CRTC,
         .video = COLS_40,
-        .ramsel9 = NO_RAM_9,
-        .ramselA = NO_RAM_A,
         .kbd_type = KBD_TYPE_GRAPHICS_US,
         .pet2k = NO_KERNAL_PATCH,
         .eoiblank = NO_EOI,
         .screenmirrors2001 = NO_MIRRORS_2001,
+        .palette2001 = false,
         .superpet = NORMAL_IO,
         .chargenName = PET_CHARGEN2_NAME,
         .kernalName = PET_KERNAL4NAME,
@@ -219,12 +212,11 @@ static const pet_table_t pet_table[] = {
         .IOSize = IO_256,
         .crtc = HAS_CRTC,
         .video = COLS_40,
-        .ramsel9 = NO_RAM_9,
-        .ramselA = NO_RAM_A,
         .kbd_type = KBD_TYPE_BUSINESS_UK,
         .pet2k = NO_KERNAL_PATCH,
         .eoiblank = NO_EOI,
         .screenmirrors2001 = NO_MIRRORS_2001,
+        .palette2001 = false,
         .superpet = NORMAL_IO,
         .chargenName = PET_CHARGEN2_NAME,
         .kernalName = PET_KERNAL4NAME,
@@ -239,12 +231,11 @@ static const pet_table_t pet_table[] = {
         .IOSize = IO_256,
         .crtc = HAS_CRTC,
         .video = COLS_80,
-        .ramsel9 = NO_RAM_9,
-        .ramselA = NO_RAM_A,
         .kbd_type = KBD_TYPE_BUSINESS_UK,
         .pet2k = NO_KERNAL_PATCH,
         .eoiblank = NO_EOI,
         .screenmirrors2001 = NO_MIRRORS_2001,
+        .palette2001 = false,
         .superpet = NORMAL_IO,
         .chargenName = PET_CHARGEN2_NAME,
         .kernalName = PET_KERNAL4NAME,
@@ -259,12 +250,11 @@ static const pet_table_t pet_table[] = {
         .IOSize = IO_256,
         .crtc = HAS_CRTC,
         .video = COLS_80,
-        .ramsel9 = NO_RAM_9,
-        .ramselA = NO_RAM_A,
         .kbd_type = KBD_TYPE_BUSINESS_UK,
         .pet2k = NO_KERNAL_PATCH,
         .eoiblank = NO_EOI,
         .screenmirrors2001 = NO_MIRRORS_2001,
+        .palette2001 = false,
         .superpet = NORMAL_IO,
         .chargenName = PET_CHARGEN2_NAME,
         .kernalName = PET_KERNAL4NAME,
@@ -279,12 +269,11 @@ static const pet_table_t pet_table[] = {
         .IOSize = IO_256,
         .crtc = HAS_CRTC,
         .video = COLS_80,
-        .ramsel9 = NO_RAM_9,
-        .ramselA = NO_RAM_A,
         .kbd_type = KBD_TYPE_BUSINESS_UK,
         .pet2k = NO_KERNAL_PATCH,
         .eoiblank = NO_EOI,
         .screenmirrors2001 = NO_MIRRORS_2001,
+        .palette2001 = false,
         .superpet = NORMAL_IO,
         .chargenName = PET_CHARGEN2_NAME,
         .kernalName = PET_KERNAL4NAME,
@@ -299,12 +288,11 @@ static const pet_table_t pet_table[] = {
         .IOSize = IO_2048,
         .crtc = HAS_CRTC,
         .video = COLS_80,
-        .ramsel9 = NO_RAM_9,
-        .ramselA = NO_RAM_A,
         .kbd_type = KBD_TYPE_BUSINESS_UK,
         .pet2k = NO_KERNAL_PATCH,
         .eoiblank = NO_EOI,
         .screenmirrors2001 = NO_MIRRORS_2001,
+        .palette2001 = false,
         .superpet = SUPERPET_IO,
         .chargenName = SUPERPET_CHARGEN_NAME,
         .kernalName = PET_KERNAL4NAME,
@@ -328,18 +316,22 @@ static const pet_table_t pet_table[] = {
 static int petmem_get_conf_info(petinfo_t *pi)
 {
     int ktype;
+    int externalPalette;
+    const char *paletteFile;
 
     if ((resources_get_int("RamSize", &pi->ramSize) < 0)
         || (resources_get_int("IOSize", &pi->IOSize) < 0)
         || (resources_get_int("Crtc", &pi->crtc) < 0)
-        || (resources_get_int("Ram9", &pi->ramsel9) < 0)
-        || (resources_get_int("RamA", &pi->ramselA) < 0)
         || (resources_get_int("EoiBlank", &pi->eoiblank) < 0)
         || (resources_get_int("Screen2001", &pi->screenmirrors2001) < 0)
         || (resources_get_int("SuperPET", &pi->superpet) < 0)
-        || (resources_get_int("KeyboardType", &ktype) < 0)) {
+        || (resources_get_int("KeyboardType", &ktype) < 0)
+        || (resources_get_int("CrtcExternalPalette", &externalPalette) < 0)
+        || (resources_get_string("CrtcPaletteFile", &paletteFile) < 0)) {
         return -1;
     }
+
+    pi->palette2001 = externalPalette && !strcmp(paletteFile, PALETTE_2001);
 
     pi->video = petmem_get_screen_columns();
     pi->kbd_type = ktype;
@@ -352,12 +344,17 @@ int petmem_set_conf_info(const petinfo_t *pi)
     resources_set_int("IOSize", pi->IOSize);
     resources_set_int("Crtc", pi->crtc);
     resources_set_int("VideoSize", pi->video);
-    resources_set_int("Ram9", pi->ramsel9);
-    resources_set_int("RamA", pi->ramselA);
     resources_set_int("EoiBlank", pi->eoiblank);
     resources_set_int("Screen2001", pi->screenmirrors2001);
     resources_set_int("SuperPET", pi->superpet);
     resources_set_int("KeyboardType", pi->kbd_type);
+
+    if (pi->palette2001) {
+        resources_set_int("CrtcExternalPalette", 1);
+        resources_set_string("CrtcPaletteFile", PALETTE_2001);
+    } else {
+        resources_set_int("CrtcExternalPalette", 0);
+    }
     return 0;
 }
 
@@ -404,7 +401,7 @@ int pet_set_model(const char *model_name, void *extra)
 
     i = 0;
     while (pet_table[i].model) {
-        if (!strcmp(pet_table[i].model, model_name)) {
+        if (!strcasecmp(pet_table[i].model, model_name)) {
             petmodel_set(i);
             return 0;
         }
@@ -427,14 +424,6 @@ static int petmodel_get_temp(petinfo_t *pi)
             && (pet_table[i].info.screenmirrors2001 == pi->screenmirrors2001)
             && (pet_table[i].info.superpet == pi->superpet)
             && (pet_table[i].info.kbd_type == pi->kbd_type)) {
-            if ((pet_table[i].info.ramsel9 != pi->ramsel9)
-                && (i != PETMODEL_8296)) {
-                continue;
-            }
-            if ((pet_table[i].info.ramselA != pi->ramselA)
-                && (i != PETMODEL_8296)) {
-                continue;
-            }
             return i;
         }
     }
@@ -461,13 +450,13 @@ void petmodel_set(int model)
         return;
     }
 
-    petres.video = -1; /* force reinitialization in pet-resources.c:set_video, see bug #3496413 */
+    petres.model.video = -1; /* force reinitialization in pet-resources.c:set_video, see bug #3496413 */
     pet_set_model_info(&pet_table[model].info);
 
     /* we have to wait until we have done enough initialization */
     if (pet_init_ok) {
         /* mem_load(); - not needed as resources now load */
         vsync_suspend_speed_eval();
-        machine_trigger_reset(MACHINE_RESET_MODE_SOFT);
+        machine_trigger_reset(MACHINE_RESET_MODE_RESET_CPU);
     }
 }

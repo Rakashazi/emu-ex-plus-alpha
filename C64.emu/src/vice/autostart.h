@@ -35,44 +35,43 @@
 #define AUTOSTART_MODE_RUN  0
 #define AUTOSTART_MODE_LOAD 1
 
-extern int autostart_resources_init(void);
-extern void autostart_resources_shutdown(void);
-extern int autostart_cmdline_options_init(void);
+int autostart_resources_init(void);
+void autostart_resources_shutdown(void);
+int autostart_cmdline_options_init(void);
 
-extern int autostart_init(int default_seconds, int handle_drive_true_emulation);
-extern void autostart_shutdown(void);
-/* extern void autostart_reinit(int default_seconds, int handle_drive_true_emulation); */
+int autostart_init(int default_seconds, int handle_drive_true_emulation);
+void autostart_shutdown(void);
 
-extern int autostart_autodetect(const char *file_name,
-                                const char *program_name,
-                                unsigned int program_number,
-                                unsigned int runmode);
+/* void autostart_reinit(int default_seconds, int handle_drive_true_emulation); */
 
-extern int autostart_autodetect_opt_prgname(const char *file_prog_name,
-                                            unsigned int alt_prg_number,
-                                            unsigned int runmode);
+int autostart_autodetect(const char *file_name, const char *program_name, unsigned int program_number,
+                         unsigned int runmode);
 
-extern int autostart_disk(int unit, int drive, const char *file_name, const char *program_name,
-                          unsigned int program_number, unsigned int runmode);
-extern int autostart_tape(const char *file_name, const char *program_name,
-                          unsigned int program_number, unsigned int runmode,
-                          unsigned int tapeport);
-extern int autostart_prg(const char *file_name, unsigned int runmode);
-extern int autostart_snapshot(const char *file_name, const char *program_name);
-extern int autostart_tapecart(const char *file_name, void *unused);
+int autostart_autodetect_opt_prgname(const char *file_prog_name, unsigned int alt_prg_number,
+                                     unsigned int runmode);
 
-extern void autostart_disable(void);
-extern void autostart_advance(void);
+int autostart_disk(int unit, int drive, const char *file_name, const char *program_name,
+                   unsigned int program_number, unsigned int runmode);
+int autostart_tape(const char *file_name, const char *program_name,
+                   unsigned int program_number, unsigned int runmode,
+                   unsigned int tapeport);
+int autostart_prg(const char *file_name, unsigned int runmode);
+int autostart_snapshot(const char *file_name, const char *program_name);
+int autostart_tapecart(const char *file_name, void *unused);
 
-/* extern int autostart_device(int unit); */
-extern void autostart_reset(void);
+void autostart_disable(void);
+void autostart_advance(void);
+
+/* int autostart_device(int unit); */
+
+void autostart_reset(void);
 
 extern int autostart_ignore_reset;
 
-extern int autostart_in_progress(void);
+int autostart_in_progress(void);
 
-extern void autostart_trigger_monitor(int enable);
+void autostart_trigger_monitor(int enable);
 
-extern int autostart_set_initial_tap_offset(unsigned long offset);
+int autostart_set_initial_tap_offset(unsigned long offset);
 
 #endif

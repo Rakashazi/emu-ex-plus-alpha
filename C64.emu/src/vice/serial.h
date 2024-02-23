@@ -75,43 +75,41 @@ typedef struct serial_s {
 #define ISOPEN_AWAITING_NAME    1
 #define ISOPEN_OPEN             2
 
-extern int serial_init(const struct trap_s *trap_list);
-extern int serial_resources_init(void);
-extern int serial_cmdline_options_init(void);
-extern void serial_shutdown(void);
-extern int serial_install_traps(void);
-extern int serial_remove_traps(void);
+int serial_init(const struct trap_s *trap_list);
+int serial_resources_init(void);
+int serial_cmdline_options_init(void);
+void serial_shutdown(void);
+int serial_install_traps(void);
+int serial_remove_traps(void);
 
-extern void serial_trap_init(uint16_t tmpin);
-extern int serial_trap_attention(void);
-extern int serial_trap_send(void);
-extern int serial_trap_receive(void);
-extern int serial_trap_ready(void);
-extern void serial_traps_reset(void);
-extern void serial_trap_eof_callback_set(void (*func)(void));
-extern void serial_trap_attention_callback_set(void (*func)(void));
-extern void serial_trap_truedrive_set(unsigned int unit, unsigned int flag);
+void serial_trap_init(uint16_t tmpin);
+int serial_trap_attention(void);
+int serial_trap_send(void);
+int serial_trap_receive(void);
+int serial_trap_ready(void);
+void serial_traps_reset(void);
+void serial_trap_eof_callback_set(void (*func)(void));
+void serial_trap_attention_callback_set(void (*func)(void));
+void serial_trap_truedrive_set(unsigned int unit, unsigned int flag);
 
-extern int serial_realdevice_enable(void);
-extern void serial_realdevice_disable(void);
+int serial_realdevice_enable(void);
+void serial_realdevice_disable(void);
 
-extern int serial_iec_lib_directory(unsigned int unit, const char *pattern,
-                                    uint8_t **buf);
-extern int serial_iec_lib_read_sector(unsigned int unit, unsigned int track,
-                                      unsigned int sector, uint8_t *buf);
-extern int serial_iec_lib_write_sector(unsigned int unit, unsigned int track,
-                                       unsigned int sector, uint8_t *buf);
+int serial_iec_lib_directory(unsigned int unit, const char *pattern, uint8_t **buf);
+int serial_iec_lib_read_sector(unsigned int unit, unsigned int track, unsigned int sector, uint8_t *buf);
+int serial_iec_lib_write_sector(unsigned int unit, unsigned int track, unsigned int sector, uint8_t *buf);
 
-extern serial_t *serial_device_get(unsigned int unit);
-extern unsigned int serial_device_type_get(unsigned int unit);
-extern void serial_device_type_set(unsigned int type, unsigned int unit);
+serial_t *serial_device_get(unsigned int unit);
+unsigned int serial_device_type_get(unsigned int unit);
+void serial_device_type_set(unsigned int type, unsigned int unit);
 
-extern void serial_iec_device_set_machine_parameter(long cycles_per_sec);
-extern void serial_iec_device_exec(CLOCK clk_value);
+void serial_iec_device_set_machine_parameter(long cycles_per_sec);
+void serial_iec_device_exec(CLOCK clk_value);
 
-extern void serial_iec_bus_init(void);
+void serial_iec_bus_init(void);
 
-extern void fsdrive_snapshot_prepare(void);
-extern int fsdrive_snapshot_write_module(struct snapshot_s *s);
-extern int fsdrive_snapshot_read_module(struct snapshot_s *s);
+void fsdrive_snapshot_prepare(void);
+int fsdrive_snapshot_write_module(struct snapshot_s *s);
+int fsdrive_snapshot_read_module(struct snapshot_s *s);
+
 #endif

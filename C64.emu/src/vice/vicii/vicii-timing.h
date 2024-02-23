@@ -129,6 +129,6 @@ NTSC display ranges:
 
 struct machine_timing_s;
 
-extern void vicii_timing_set(struct machine_timing_s *machine_timing, int border_mode);
+void vicii_timing_set(struct machine_timing_s *machine_timing, int border_mode);
 
 #endif

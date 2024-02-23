@@ -79,7 +79,7 @@
 #define PET_COLOUR_TYPE_RGBI    1
 #define PET_COLOUR_TYPE_ANALOG  2
 
-extern void pet_crtc_set_screen(void);
+void pet_crtc_set_screen(void);
 
 struct printer_context_s;
 struct via_context_s;

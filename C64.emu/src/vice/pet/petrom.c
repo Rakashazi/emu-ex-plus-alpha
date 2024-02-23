@@ -269,7 +269,7 @@ void petrom_patch_2001(void)
     }
 
     /* check whether patch enabled */
-    if (!petres.pet2k) {
+    if (!petres.model.pet2k) {
         log_warning(petrom_log,
                     "PET2001 ROM loaded, but patches not enabled! "
                     "IEEE488 will not work.");
@@ -491,7 +491,7 @@ int petrom_load_chargen(void)
         return 0;
     }
 
-    if (util_check_null_string(petres.chargenName)) {
+    if (util_check_null_string(petres.model.chargenName)) {
         return 0;
     }
 
@@ -503,10 +503,10 @@ int petrom_load_chargen(void)
      */
 
     /* memset(mem_chargen_rom, 1, 0x1000); */
-    rsize = sysfile_load(petres.chargenName, machine_name, mem_chargen_rom, -0x800, 0x1000);
+    rsize = sysfile_load(petres.model.chargenName, machine_name, mem_chargen_rom, -0x800, 0x1000);
     if (rsize < 0) {
         log_error(petrom_log,
-                  "Couldn't load character ROM (%s).", petres.chargenName);
+                  "Couldn't load character ROM (%s).", petres.model.chargenName);
         return -1;
     }
 
@@ -528,8 +528,8 @@ int petrom_load_basic(void)
     }
 
     /* Load Kernal ROM.  */
-    if (!util_check_null_string(petres.basicName)) {
-        const char *name = petres.basicName;
+    if (!util_check_null_string(petres.model.basicName)) {
+        const char *name = petres.model.basicName;
 
         if ((krsize = sysfile_load(name, machine_name, mem_rom + 0x3000, 0x2000, 0x3000)) < 0) {
             log_error(petrom_log, "Couldn't load ROM `%s'.", name);
@@ -575,8 +575,8 @@ int petrom_load_kernal(void)
     tape_deinstall();
 
     /* Load Kernal ROM.  */
-    if (!util_check_null_string(petres.kernalName)) {
-        const char *name = petres.kernalName;
+    if (!util_check_null_string(petres.model.kernalName)) {
+        const char *name = petres.model.kernalName;
 
         if ((krsize = sysfile_load(name, machine_name, mem_rom + 0x7000, 0x1000, 0x1000)) < 0) {
             log_error(petrom_log, "Couldn't load ROM `%s'.", name);
@@ -606,8 +606,8 @@ int petrom_load_editor(void)
     autostart_init(0, 0);
     tape_deinstall();
 
-    if (!util_check_null_string(petres.editorName)) {
-        const char *name = petres.editorName;
+    if (!util_check_null_string(petres.model.editorName)) {
+        const char *name = petres.model.editorName;
 
         if ((rsize = sysfile_load(name, machine_name, mem_rom + 0x6000, -0x0800, 0x1000)) < 0) {
             log_error(petrom_log, "Couldn't load ROM `%s'.", name);
@@ -634,9 +634,9 @@ int petrom_load_rom9(void)
         return 0;
     }
 
-    if (!util_check_null_string(petres.mem9name)) {
-        if ((rsize = sysfile_load(petres.mem9name, machine_name, mem_rom + 0x1000, -0x0800, 0x1000)) < 0) {
-            log_error(petrom_log, "Couldn't load ROM `%s'.", petres.mem9name);
+    if (!util_check_null_string(petres.model.mem9name)) {
+        if ((rsize = sysfile_load(petres.model.mem9name, machine_name, mem_rom + 0x1000, -0x0800, 0x1000)) < 0) {
+            log_error(petrom_log, "Couldn't load ROM `%s'.", petres.model.mem9name);
             return -1;
         }
         if (rsize == 0x800) {
@@ -664,9 +664,9 @@ int petrom_load_romA(void)
         return 0;
     }
 
-    if (!util_check_null_string(petres.memAname)) {
-        if ((rsize = sysfile_load(petres.memAname, machine_name, mem_rom + 0x2000, -0x0800, 0x1000)) < 0) {
-            log_error(petrom_log, "Couldn't load ROM `%s'.", petres.memAname);
+    if (!util_check_null_string(petres.model.memAname)) {
+        if ((rsize = sysfile_load(petres.model.memAname, machine_name, mem_rom + 0x2000, -0x0800, 0x1000)) < 0) {
+            log_error(petrom_log, "Couldn't load ROM `%s'.", petres.model.memAname);
             return -1;
         }
         if (rsize == 0x800) {
@@ -694,10 +694,10 @@ int petrom_load_romB(void)
         return 0;
     }
 
-    if (!util_check_null_string(petres.memBname)) {
-        if ((rsize = sysfile_load(petres.memBname, machine_name, mem_rom + 0x3000, -0x0800, 0x1000)) < 0) {
+    if (!util_check_null_string(petres.model.memBname)) {
+        if ((rsize = sysfile_load(petres.model.memBname, machine_name, mem_rom + 0x3000, -0x0800, 0x1000)) < 0) {
             log_error(petrom_log, "Couldn't load ROM `%s'.",
-                      petres.memBname);
+                      petres.model.memBname);
             return -1;
         }
         if (rsize == 0x800) {
@@ -737,16 +737,16 @@ int petrom_load_6809rom(int num)
         return -1;
     }
 
-    if (!util_check_null_string(petres.h6809romName[num])) {
+    if (!util_check_null_string(petres.model.h6809romName[num])) {
         int rsize;
         int startoff = num * 0x1000;
         int startaddr = 0xa000 + startoff;
         int maxsize = 0x10000 - startaddr;
         int minsize = (startaddr == 0xE000) ? -0x800 : -0x1000;
 
-        if ((rsize = sysfile_load(petres.h6809romName[num], machine_name, mem_6809rom + startoff, minsize, maxsize)) < 0) {
+        if ((rsize = sysfile_load(petres.model.h6809romName[num], machine_name, mem_6809rom + startoff, minsize, maxsize)) < 0) {
             log_error(petrom_log, "Couldn't load 6809 ROM `%s'.",
-                      petres.h6809romName[num]);
+                      petres.model.h6809romName[num]);
             return -1;
         }
     }

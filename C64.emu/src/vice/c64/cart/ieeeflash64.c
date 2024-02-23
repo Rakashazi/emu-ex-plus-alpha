@@ -276,7 +276,8 @@ static io_source_t ieeeflash64_io1_device = {
     ieeeflash64_io1_dump,       /* device state information dump function */
     CARTRIDGE_IEEEFLASH64,      /* cartridge ID */
     IO_PRIO_NORMAL,             /* normal priority, device read needs to be checked for collisions */
-    0                           /* insertion order, gets filled in by the registration function */
+    0,                          /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE              /* NO mirroring */
 };
 
 static io_source_list_t *ieeeflash64_io_list_item = NULL;

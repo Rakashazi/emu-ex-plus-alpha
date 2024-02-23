@@ -29,12 +29,12 @@
 
 #include "types.h"
 
-extern void hummeradc_init(void);
-extern void hummeradc_reset(void);
-extern void hummeradc_shutdown(void);
+void hummeradc_init(void);
+void hummeradc_reset(void);
+void hummeradc_shutdown(void);
 
-extern uint8_t hummeradc_read(void);
-extern void hummeradc_store(uint8_t value);
+uint8_t hummeradc_read(void);
+void hummeradc_store(uint8_t value);
 
 extern uint8_t hummeradc_value;
 extern uint8_t hummeradc_channel;

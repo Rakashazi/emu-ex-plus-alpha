@@ -39,29 +39,29 @@
 
 struct snapshot_s;
 
-extern uint8_t gmod3_roml_read(uint16_t addr);
-extern uint8_t gmod3_romh_read(uint16_t addr);
-extern int gmod3_romh_phi1_read(uint16_t addr, uint8_t *value);
-extern int gmod3_romh_phi2_read(uint16_t addr, uint8_t *value);
+uint8_t gmod3_roml_read(uint16_t addr);
+uint8_t gmod3_romh_read(uint16_t addr);
+int gmod3_romh_phi1_read(uint16_t addr, uint8_t *value);
+int gmod3_romh_phi2_read(uint16_t addr, uint8_t *value);
 
-extern int gmod3_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
-extern void gmod3_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
+int gmod3_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
+void gmod3_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
 
-extern void gmod3_config_init(void);
-extern void gmod3_reset(void);
-extern void gmod3_config_setup(uint8_t *rawcart);
-extern int gmod3_bin_attach(const char *filename, uint8_t *rawcart);
-extern int gmod3_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
-extern int gmod3_bin_save(const char *filename);
-extern int gmod3_crt_save(const char *filename);
-extern int gmod3_flush_image(void);
-extern void gmod3_detach(void);
+void gmod3_config_init(void);
+void gmod3_reset(void);
+void gmod3_config_setup(uint8_t *rawcart);
+int gmod3_bin_attach(const char *filename, uint8_t *rawcart);
+int gmod3_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
+int gmod3_bin_save(const char *filename);
+int gmod3_crt_save(const char *filename);
+int gmod3_flush_image(void);
+void gmod3_detach(void);
 
-extern int gmod3_cmdline_options_init(void);
-extern int gmod3_resources_init(void);
-extern void gmod3_resources_shutdown(void);
+int gmod3_cmdline_options_init(void);
+int gmod3_resources_init(void);
+void gmod3_resources_shutdown(void);
 
-extern int gmod3_snapshot_write_module(struct snapshot_s *s);
-extern int gmod3_snapshot_read_module(struct snapshot_s *s);
+int gmod3_snapshot_write_module(struct snapshot_s *s);
+int gmod3_snapshot_read_module(struct snapshot_s *s);
 
 #endif

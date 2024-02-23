@@ -27,8 +27,9 @@
 #ifndef VICE_C64DTV_SNAPSHOT_H
 #define VICE_C64DTV_SNAPSHOT_H
 
-extern int c64dtv_snapshot_write(const char *name, int save_roms, int save_disks,
-                                 int event_mode);
-extern int c64dtv_snapshot_read(const char *name, int event_mode);
+int c64dtv_snapshot_write(const char *name, int save_roms, int save_disks,
+                          int event_mode);
+
+int c64dtv_snapshot_read(const char *name, int event_mode);
 
 #endif

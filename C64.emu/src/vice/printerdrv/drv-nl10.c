@@ -26,6 +26,8 @@
 
 #include "vice.h"
 
+/* #define DEBUG_PRINTER */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,6 +43,12 @@
 #include "sysfile.h"
 #include "types.h"
 #include "lib.h"
+
+#ifdef DEBUG_PRINTER
+#define DBG(x)  log_debug x
+#else
+#define DBG(x)
+#endif
 
 /* MAX_COL must be a multiple of 32 */
 /* 2432 x 3172 */
@@ -406,6 +414,10 @@ static void formfeed(nl10_t *nl10, unsigned int prnr)
 }
 
 
+#define valid_xpos(X)   ((X) >= 0 && (X) < MAX_COL)
+#define valid_ypos(Y)   ((Y) >= 0 && (Y) < BUF_ROW)
+#define valid_pos(X, Y) (valid_xpos(X) && valid_ypos(Y))
+
 inline static void draw_point2(nl10_t *nl10, int x, int y)
 {
 /*
@@ -414,20 +426,22 @@ inline static void draw_point2(nl10_t *nl10, int x, int y)
    **
 */
 
-    nl10->line[y][x] = 1;
-    if (x < MAX_COL - 1) {
+    if (valid_pos(x, y)) {
+        nl10->line[y][x] = 1;
+    }
+    if (valid_pos(x + 1, y)) {
         nl10->line[y][x + 1] = 1;
     }
-    if (y < BUF_ROW - 1) {
+    if (valid_pos(x, y + 1)) {
         nl10->line[y + 1][x] = 1;
     }
-    if (y > 0) {
+    if (valid_pos(x, y - 1)) {
         nl10->line[y - 1][x] = 1;
     }
-    if ((y < BUF_ROW - 1) && (x < MAX_COL - 1)) {
+    if (valid_pos(x + 1, y + 1)) {
         nl10->line[y + 1][x + 1] = 1;
     }
-    if ((y > 0) && (x < MAX_COL - 1)) {
+    if (valid_pos(x + 1, y - 1)) {
         nl10->line[y - 1][x + 1] = 1;
     }
 }
@@ -440,20 +454,19 @@ inline static void draw_point3(nl10_t *nl10, int x, int y)
     *
 */
 
-    if ((x < 0) || (x >= MAX_COL) || (y < 0) || (y >= BUF_ROW)) {
-        return;
+    if (valid_pos(x, y)) {
+        nl10->line[y][x] = 1;
     }
-    nl10->line[y][x] = 1;
-    if (x > 0) {
+    if (valid_pos(x - 1, y)) {
         nl10->line[y][x - 1] = 1;
     }
-    if (x < MAX_COL - 1) {
+    if (valid_pos(x + 1, y)) {
         nl10->line[y][x + 1] = 1;
     }
-    if (y > 0) {
+    if (valid_pos(x, y - 1)) {
         nl10->line[y - 1][x] = 1;
     }
-    if (y < BUF_ROW - 1) {
+    if (valid_pos(x, y + 1)) {
         nl10->line[y + 1][x] = 1;
     }
 }
@@ -1918,6 +1931,7 @@ static int drv_nl10_open(unsigned int prnr, unsigned int secondary)
 {
     nl10_t *nl10 = &(drv_nl10[prnr]);
 
+    DBG(("drv_nl10_open:%u DRIVER_FIRST_OPEN", 4 + prnr));
     if (secondary == DRIVER_FIRST_OPEN) {
         output_parameter_t output_parameter;
 
@@ -1933,6 +1947,7 @@ static int drv_nl10_open(unsigned int prnr, unsigned int secondary)
 
         return output_select_open(prnr, &output_parameter);
     }
+    DBG(("drv_nl10_open:%u", 4+ prnr));
 
     if (secondary == 7) {
         set_mode(nl10, NL10_CBMTEXT);
@@ -1947,6 +1962,7 @@ static int drv_nl10_open(unsigned int prnr, unsigned int secondary)
 
 static void drv_nl10_close(unsigned int prnr, unsigned int secondary)
 {
+    DBG(("drv_nl10_close:%u", 4 + prnr));
     /* cannot call output_select_close() here since it would eject the
        current page, which is not what "close"ing a channel to a real
        printer does */
@@ -1970,11 +1986,13 @@ static int drv_nl10_getc(unsigned int prnr, unsigned int secondary, uint8_t *b)
 
 static int drv_nl10_flush(unsigned int prnr, unsigned int secondary)
 {
+    DBG(("drv_nl10_flush:%u", 4 + prnr));
     return 0;
 }
 
 static int drv_nl10_formfeed(unsigned int prnr)
 {
+    DBG(("drv_nl10_formfeed:%u", 4 + prnr));
     nl10_t *nl10 = &(drv_nl10[prnr]);
     if (nl10->isopen) {
         formfeed(nl10, prnr);
@@ -1982,18 +2000,33 @@ static int drv_nl10_formfeed(unsigned int prnr)
     return 0;
 }
 
+static int drv_nl10_select(unsigned int prnr)
+{
+    DBG(("drv_nl10_select device:%u", 4 + prnr));
+    return 0;
+}
+
 int drv_nl10_init_resources(void)
 {
-    driver_select_t driver_select;
+    driver_select_t driver_select = {
+        .drv_name     = "nl10",
+        .ui_name      = "NL10",
+        .drv_select   = drv_nl10_select,
+        .drv_open     = drv_nl10_open,
+        .drv_close    = drv_nl10_close,
+        .drv_putc     = drv_nl10_putc,
+        .drv_getc     = drv_nl10_getc,
+        .drv_flush    = drv_nl10_flush,
+        .drv_formfeed = drv_nl10_formfeed,
 
-    driver_select.drv_name = "nl10";
-    driver_select.drv_open = drv_nl10_open;
-    driver_select.drv_close = drv_nl10_close;
-    driver_select.drv_putc = drv_nl10_putc;
-    driver_select.drv_getc = drv_nl10_getc;
-    driver_select.drv_flush = drv_nl10_flush;
-    driver_select.drv_formfeed = drv_nl10_formfeed;
-
+        .printer      = true,
+        .plotter      = false,
+        .iec          = true,
+        .ieee488      = false,
+        .userport     = true,
+        .text         = true,
+        .graphics     = true
+    };
     driver_select_register(&driver_select);
 
     return 0;
@@ -2006,6 +2039,8 @@ int drv_nl10_init(void)
     {
         "Black", "White"
     };
+
+    DBG(("drv_nl10_init"));
 
     drvnl10_log = log_open("NL10");
 
@@ -2041,6 +2076,8 @@ void drv_nl10_shutdown(void)
 {
     int i;
     palette_free(palette);
+
+    DBG(("drv_nl10_shutdown"));
 
     for (i = 0; i < NUM_OUTPUT_SELECT; i++) {
         if (drv_nl10[i].isopen) {
@@ -2220,6 +2257,8 @@ static int drv_nl10_init_charset(void)
 {
     char *name = NL10_ROM_NAME;
     int i, j;
+
+    DBG(("drv_nl10_init_charset"));
 
     memset(drv_nl10_charset_nlq, 0, CHARSET_SIZE * 47);
     memset(drv_nl10_charset_nlq_italic, 0, CHARSET_SIZE * 47);

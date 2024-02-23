@@ -67,31 +67,38 @@ static const struct model_s model_match[] = {
     { "6569", VICII_MODEL_6569 },
     { "6569r3", VICII_MODEL_6569 },
     { "pal", VICII_MODEL_6569 },
+    { "0", VICII_MODEL_6569 },
 
     /* PAL, 63 cycle, 9 luma, "new" */
     { "8565", VICII_MODEL_8565 },
     { "newpal", VICII_MODEL_8565 },
+    { "1", VICII_MODEL_8565 },
 
     /* PAL, 63 cycle, 5 luma, "old" */
     { "6569r1", VICII_MODEL_6569R1 },
     { "oldpal", VICII_MODEL_6569R1 },
+    { "2", VICII_MODEL_6569R1 },
 
     /* NTSC, 65 cycle, 9 luma, "old" */
     { "6567", VICII_MODEL_6567 },
     { "ntsc", VICII_MODEL_6567 },
+    { "3", VICII_MODEL_6567 },
 
     /* NTSC, 65 cycle, 9 luma, "new" */
     { "8562", VICII_MODEL_8562 },
     { "newntsc", VICII_MODEL_8562 },
+    { "4", VICII_MODEL_8562 },
 
     /* NTSC, 64 cycle, ? luma, "old" */
     { "6567r56a", VICII_MODEL_6567R56A },
     { "oldntsc", VICII_MODEL_6567R56A },
+    { "5", VICII_MODEL_6567R56A },
 
     /* PAL-N, 65 cycle, ? luma, "old" */
     { "6572", VICII_MODEL_6572 },
     { "paln", VICII_MODEL_6572 },
     { "drean", VICII_MODEL_6572 },
+    { "6", VICII_MODEL_6572 },
 
     { NULL, -1 }
 };
@@ -122,6 +129,8 @@ static int set_vicii_model(const char *param, void *extra_param)
 /* VIC-II command-line options.  */
 static const cmdline_option_t cmdline_options[] =
 {
+    /* NOTE: although we use CALL_FUNCTION, we put the resource that will be
+             modified into the array - this helps reconstructing the cmdline */
     { "-VICIIborders", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       border_set_func, NULL, "VICIIBorderMode", (void *)0,
       "<Mode>", "Set border display mode (0: normal, 1: full, 2: debug, 3: none)" },
@@ -143,8 +152,10 @@ static const cmdline_option_t cmdline_options[] =
     { "+VICIIvspbug", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "VICIIVSPBug", (void *)0,
       NULL, "Disable VSP bug emulation" },
+    /* NOTE: although we use CALL_FUNCTION, we put the resource that will be
+             modified into the array - this helps reconstructing the cmdline */
     { "-VICIImodel", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
-      set_vicii_model, NULL, NULL, NULL,
+      set_vicii_model, NULL, "VICIIModel", NULL,
       "<Model>", "Set VIC-II model (6569/6569r1/8565/6567/8562/6567r56a/6572)" },
     CMDLINE_LIST_END
 };

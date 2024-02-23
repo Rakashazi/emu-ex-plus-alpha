@@ -219,6 +219,29 @@ void mem_pla_config_changed(void)
     maincpu_resync_limits();
 }
 
+/* reads zeropage, 0/1 comes from RAM */
+uint8_t zero_read_dma(uint16_t addr)
+{
+    addr &= 0xff;
+#ifdef FEATURE_CPUMEMHISTORY
+    if (!(memmap_state & MEMMAP_STATE_IGNORE)) {
+        monitor_memmap_store(addr, (memmap_state & MEMMAP_STATE_OPCODE) ? MEMMAP_RAM_X : (memmap_state & MEMMAP_STATE_INSTR) ? 0 : MEMMAP_RAM_R);
+        memmap_state &= ~(MEMMAP_STATE_OPCODE);
+    }
+#endif
+
+    if (c64_256k_enabled) {
+        return c64_256k_ram_segment0_read(addr);
+    } else {
+        if (plus256k_enabled) {
+            return plus256k_ram_low_read(addr);
+        } else {
+            return mem_ram[addr & 0xff];
+        }
+    }
+}
+
+/* reads zeropage, 0/1 comes from CPU port */
 uint8_t zero_read(uint16_t addr)
 {
     uint8_t retval;
@@ -267,17 +290,32 @@ uint8_t zero_read(uint16_t addr)
             return retval;
     }
 
-    if (c64_256k_enabled) {
-        return c64_256k_ram_segment0_read(addr);
-    } else {
-        if (plus256k_enabled) {
-            return plus256k_ram_low_read(addr);
+    return zero_read_dma(addr);
+}
+
+/* store zeropage, 0/1 goes to RAM */
+void zero_store_dma(uint16_t addr, uint8_t value)
+{
+    addr &= 0xff;
+#ifdef FEATURE_CPUMEMHISTORY
+    monitor_memmap_store(addr, MEMMAP_RAM_W);
+#endif
+    if (vbank == 0) {
+        if (c64_256k_enabled) {
+            c64_256k_ram_segment0_store(addr, value);
         } else {
-            return mem_ram[addr & 0xff];
+            if (plus256k_enabled) {
+                plus256k_ram_low_store(addr, value);
+            } else {
+                vicii_mem_vbank_store(addr, value);
+            }
         }
+    } else {
+        mem_ram[addr] = value;
     }
 }
 
+/* store zeropage, 0/1 goes to CPU port */
 void zero_store(uint16_t addr, uint8_t value)
 {
     addr &= 0xff;
@@ -363,19 +401,8 @@ void zero_store(uint16_t addr, uint8_t value)
             }
             break;
         default:
-            if (vbank == 0) {
-                if (c64_256k_enabled) {
-                    c64_256k_ram_segment0_store(addr, value);
-                } else {
-                    if (plus256k_enabled) {
-                        plus256k_ram_low_store(addr, value);
-                    } else {
-                        vicii_mem_vbank_store(addr, value);
-                    }
-                }
-            } else {
-                mem_ram[addr] = value;
-            }
+            zero_store_dma(addr, value);
+            break;
     }
 }
 
@@ -427,15 +454,25 @@ static void void_store(uint16_t addr, uint8_t value)
 
 /* ------------------------------------------------------------------------- */
 
-/* DMA memory access, on c64 this is the same as generic memory access.  */
+/* DMA memory access, this is the same as generic memory access, but needs to
+   bypass the CPU port, so it accesses RAM at $00/$01 */
 
 void mem_dma_store(uint16_t addr, uint8_t value)
 {
-    _mem_write_tab_ptr[addr >> 8](addr, value);
+    if ((addr & 0xff00) == 0) {
+        /* exception: 0/1 accesses RAM! */
+        zero_store_dma(addr, value);
+    } else {
+        _mem_write_tab_ptr[addr >> 8](addr, value);
+    }
 }
 
 uint8_t mem_dma_read(uint16_t addr)
 {
+    if ((addr & 0xff00) == 0) {
+        /* exception: 0/1 accesses RAM! */
+        return zero_read_dma(addr);
+    }
     return _mem_read_tab_ptr[addr >> 8](addr);
 }
 
@@ -533,7 +570,7 @@ static void c64_256k_init_config(void)
     int i, j, k;
 
     if (c64_256k_enabled) {
-        mem_limit_256k_init(mem_read_limit_tab);
+        mem_limit_256k_init();
         for (i = 0; i < NUM_CONFIGS; i++) {
             for (j = 1; j <= 0xff; j++) {
                 for (k = 0; k < NUM_VBANKS; k++) {
@@ -580,7 +617,7 @@ static void plus256k_init_config(void)
     int i, j, k;
 
     if (plus256k_enabled) {
-        mem_limit_256k_init(mem_read_limit_tab);
+        mem_limit_256k_init();
         for (i = 0; i < NUM_CONFIGS; i++) {
             for (j = 1; j <= 0xff; j++) {
                 for (k = 0; k < NUM_VBANKS; k++) {
@@ -611,7 +648,7 @@ static void plus60k_init_config(void)
     int i, j, k;
 
     if (plus60k_enabled) {
-        mem_limit_plus60k_init(mem_read_limit_tab);
+        mem_limit_plus60k_init();
         for (i = 0; i < NUM_CONFIGS; i++) {
             for (j = 0x10; j <= 0xff; j++) {
                 for (k = 0; k < NUM_VBANKS; k++) {
@@ -672,6 +709,11 @@ void mem_read_base_set(unsigned int base, unsigned int index, uint8_t *mem_ptr)
     mem_read_base_tab[base][index] = mem_ptr;
 }
 
+void mem_read_limit_set(unsigned int base, unsigned int index, uint32_t limit)
+{
+    mem_read_limit_tab[base][index] = limit;
+}
+
 void mem_initialize_memory(void)
 {
     int i, j, k;
@@ -681,7 +723,7 @@ void mem_initialize_memory(void)
     mem_color_ram_cpu = mem_color_ram;
     mem_color_ram_vicii = mem_color_ram;
 
-    mem_limit_init(mem_read_limit_tab);
+    mem_limit_init();
 
     /* setup watchpoint tables */
     mem_read_tab_watch[0] = zero_read_watch;
@@ -798,7 +840,7 @@ void mem_initialize_memory(void)
     c64_256k_init_config();
 
     if (board == 1) {
-        mem_limit_max_init(mem_read_limit_tab);
+        mem_limit_max_init();
     }
 }
 
@@ -823,6 +865,7 @@ void mem_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit
 void mem_powerup(void)
 {
     ram_init(mem_ram, 0x10000);
+    vicii_init_colorram(mem_color_ram);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -981,7 +1024,7 @@ void store_bank_io(uint16_t addr, uint8_t byte)
             cia1_store(addr, byte);
             break;
         case 0xdd00:
-            cia2_store(addr, byte);
+            c64io_dd00_store(addr, byte);
             break;
         case 0xde00:
             c64io_de00_store(addr, byte);
@@ -1020,7 +1063,7 @@ uint8_t read_bank_io(uint16_t addr)
         case 0xdc00:
             return cia1_read(addr);
         case 0xdd00:
-            return cia2_read(addr);
+            return c64io_dd00_read(addr);
         case 0xde00:
             return c64io_de00_read(addr);
         case 0xdf00:
@@ -1056,7 +1099,7 @@ static uint8_t peek_bank_io(uint16_t addr)
         case 0xdc00:
             return cia1_peek(addr);
         case 0xdd00:
-            return cia2_peek(addr);
+            return c64io_dd00_peek(addr);
         case 0xde00:
             return c64io_de00_peek(addr);
         case 0xdf00:
@@ -1134,6 +1177,10 @@ int mem_bank_flags_from_bank(int bank)
     return -1;
 }
 
+int     mem_get_current_bank_config(void) {
+    return mem_config;
+}
+
 /* read memory with side-effects */
 uint8_t mem_bank_read(int bank, uint16_t addr, void *context)
 {
@@ -1165,59 +1212,65 @@ uint8_t mem_bank_read(int bank, uint16_t addr, void *context)
     return mem_ram[addr];
 }
 
+uint8_t mem_peek_with_config(int config, uint16_t addr, void *context) {
+    /* special case to read the CPU port of the 6510 */
+    if (addr < 2) {
+        return mem_read(addr);
+    }
+
+    /* we must check for which bank is currently active */
+    if (c64meminit_io_config[config]) {
+        if ((addr >= 0xd000) && (addr < 0xe000)) {
+            return peek_bank_io(addr);
+        }
+    }
+    if (c64meminit_roml_config[config]) {
+        if (addr >= 0x8000 && addr <= 0x9fff) {
+            return cartridge_peek_mem(addr);
+        }
+    }
+    if (c64meminit_romh_config[config]) {
+        unsigned int romhloc = c64meminit_romh_mapping[config] << 8;
+        if (addr >= romhloc && addr <= (romhloc + 0x1fff)) {
+            return cartridge_peek_mem(addr);
+        }
+    }
+    if (c64meminit_io_config[config] == 2) {
+        /* ultimax mode */
+        if (/*addr >= 0x0000 &&*/ addr <= 0x0fff) {
+            return mem_ram[addr];
+        }
+        return cartridge_peek_mem(addr);
+    }
+    if((config == 3) || (config == 7) ||
+        (config == 11) || (config == 15)) {
+        if (addr >= 0xa000 && addr <= 0xbfff) {
+            return c64memrom_basic64_rom[addr & 0x1fff];
+        }
+    }
+    if((config & 3) > 1) {
+        if (addr >= 0xe000) {
+            return c64memrom_kernal64_rom[addr & 0x1fff];
+        }
+    }
+    if((config & 3) && (config != 0x19)) {
+        if ((addr >= 0xd000) && (addr < 0xdfff)) {
+            return mem_chargen_rom[addr & 0x0fff];
+        }
+    }
+    return mem_ram[addr];
+}
+
 /* used by monitor if sfx off, and when disassembling/tracing. this function
  * can NOT use the generic mem_read stuff, because that DOES have side effects,
  * such as (re)triggering checkpoints in the monitor!
  */
+
 uint8_t mem_bank_peek(int bank, uint16_t addr, void *context)
 {
     switch (bank) {
         case 0: /* CPU */
-            /* special case to read the CPU port of the 6510 */
-            if (addr < 2) {
-                return mem_read(addr);
-            }
-            /* we must check for which bank is currently active */
-            if (c64meminit_io_config[mem_config]) {
-                if ((addr >= 0xd000) && (addr < 0xe000)) {
-                    return peek_bank_io(addr);
-                }
-            }
-            if (c64meminit_roml_config[mem_config]) {
-                if (addr >= 0x8000 && addr <= 0x9fff) {
-                    return cartridge_peek_mem(addr);
-                }
-            }
-            if (c64meminit_romh_config[mem_config]) {
-                unsigned int romhloc = c64meminit_romh_mapping[mem_config] << 8;
-                if (addr >= romhloc && addr <= (romhloc + 0x1fff)) {
-                    return cartridge_peek_mem(addr);
-                }
-            }
-            if (c64meminit_io_config[mem_config] == 2) {
-                /* ultimax mode */
-                if (/*addr >= 0x0000 &&*/ addr <= 0x0fff) {
-                    return mem_ram[addr];
-                }
-                return cartridge_peek_mem(addr);
-            }
-            if((mem_config == 3) || (mem_config == 7) ||
-               (mem_config == 11) || (mem_config == 15)) {
-                if (addr >= 0xa000 && addr <= 0xbfff) {
-                    return c64memrom_basic64_rom[addr & 0x1fff];
-                }
-            }
-            if((mem_config & 3) > 1) {
-                if (addr >= 0xe000) {
-                    return c64memrom_kernal64_rom[addr & 0x1fff];
-                }
-            }
-            if((mem_config & 3) && (mem_config != 0x19)) {
-                if ((addr >= 0xd000) && (addr < 0xdfff)) {
-                    return mem_chargen_rom[addr & 0x0fff];
-                }
-            }
-            break;
+            return mem_peek_with_config(mem_config, addr, context);
         case 3: /* io */
             if (addr >= 0xd000 && addr < 0xe000) {
                 return peek_bank_io(addr);
@@ -1281,8 +1334,6 @@ static int mem_dump_io(void *context, uint16_t addr)
 {
     if ((addr >= 0xdc00) && (addr <= 0xdc3f)) {
         return ciacore_dump(machine_context.cia1);
-    } else if ((addr >= 0xdd00) && (addr <= 0xdd3f)) {
-        return ciacore_dump(machine_context.cia2);
     }
     return -1;
 }
@@ -1294,7 +1345,6 @@ mem_ioreg_list_t *mem_ioreg_list_get(void *context)
     io_source_ioreg_add_list(&mem_ioreg_list);  /* VIC-II, SID first so it's in address order */
 
     mon_ioreg_add_list(&mem_ioreg_list, "CIA1", 0xdc00, 0xdc0f, mem_dump_io, NULL, IO_MIRROR_NONE);
-    mon_ioreg_add_list(&mem_ioreg_list, "CIA2", 0xdd00, 0xdd0f, mem_dump_io, NULL, IO_MIRROR_NONE);
 
     return mem_ioreg_list;
 }

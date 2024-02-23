@@ -29,6 +29,9 @@
 
 #include "types.h"
 
+#define RAM_INIT_RANDOM_CHANCE_MAX      10000  /* 100% */
+#define RAM_INIT_RANDOM_CHANCE_DEFAULT     10  /* 0.1% */
+
 typedef struct _RAMINITPARAM {
     int start_value;/* first value of the base pattern (byte value) */
     int value_invert; /* number of bytes until start value is inverted */
@@ -43,11 +46,11 @@ typedef struct _RAMINITPARAM {
     int random_chance; /* global random chance */
 } RAMINITPARAM;
 
-extern int ram_resources_init(void);
-extern int ram_cmdline_options_init(void);
+int ram_resources_init(void);
+int ram_cmdline_options_init(void);
 
-extern void ram_init(uint8_t *memram, unsigned int ramsize);
-extern void ram_init_with_pattern(uint8_t *memram, unsigned int ramsize, RAMINITPARAM *ramparam);
-extern void ram_init_print_pattern(char *s, int len, char *eol);
+void ram_init(uint8_t *memram, unsigned int ramsize);
+void ram_init_with_pattern(uint8_t *memram, unsigned int ramsize, RAMINITPARAM *ramparam);
+void ram_init_print_pattern(char *s, int len, char *eol);
 
 #endif

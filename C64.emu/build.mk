@@ -55,6 +55,7 @@ CPPFLAGS += \
 -I$(viceSrcPath)/imagecontents \
 -I$(viceSrcPath)/monitor \
 -I$(viceSrcPath)/platform \
+-I$(viceSrcPath)/printerdrv \
 -I$(viceSrcPath)/raster \
 -I$(viceSrcPath)/c64dtv \
 -I$(viceSrcPath)/vicii \
@@ -74,6 +75,7 @@ CPPFLAGS += \
 -I$(viceSrcPath)/datasette \
 -I$(viceSrcPath)/fsdevice \
 -I$(viceSrcPath)/arch/shared \
+-I$(viceSrcPath)/arch/shared/hotkeys \
 -DSTDC_HEADERS=1 \
 -DHAVE_SYS_TYPES_H=1 \
 -DHAVE_SYS_STAT_H=1 \
@@ -105,7 +107,6 @@ gcr.c \
 info.c \
 init.c \
 interrupt.c \
-ioutil.c \
 kbdbuf.c \
 keyboard.c \
 keymap.c \
@@ -115,15 +116,16 @@ machine.c \
 network.c \
 opencbmlib.c \
 palette.c \
+profiler.c \
 ram.c \
 rawfile.c \
 rawnet.c \
 resources.c \
 romset.c \
+sha1.c \
 snapshot.c \
 socket.c \
 sound.c \
-tick.c \
 traps.c \
 util.c \
 vsync.c \
@@ -179,6 +181,7 @@ gamekiller.c \
 gmod2.c \
 gmod3.c \
 gs.c \
+hyperbasic.c \
 ide64.c \
 ieeeflash64.c \
 isepic.c \
@@ -449,6 +452,7 @@ c64iec.c \
 c64io.c \
 c64keyboard.c \
 c64meminit.c \
+c64memlimit.c \
 c64memrom.c \
 c64printer.c \
 c64pla.c \

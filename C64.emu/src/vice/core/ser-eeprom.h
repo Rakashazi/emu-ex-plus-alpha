@@ -29,21 +29,22 @@
 
 #include "types.h"
 
-extern void eeprom_data_readadvance(void);
-extern uint8_t eeprom_data_readbyte(void);
-extern uint8_t eeprom_data_readbit(void);
-extern uint8_t eeprom_data_read(void);
-extern void eeprom_cmd_reset(void);
-extern void eeprom_cmd_write(uint8_t value);
-extern void eeprom_seq_reset(void);
-extern void eeprom_seq_write(uint8_t value);
-extern int  eeprom_execute_command(int eeprom_mode);
-extern void eeprom_port_write(uint8_t clk, uint8_t data, int ddr, int status);
-extern int  eeprom_open_image(char *name, int rw);
-extern void eeprom_close_image(int rw);
+void eeprom_data_readadvance(void);
+uint8_t eeprom_data_readbyte(void);
+uint8_t eeprom_data_readbit(void);
+uint8_t eeprom_data_read(void);
+void eeprom_cmd_reset(void);
+void eeprom_cmd_write(uint8_t value);
+void eeprom_seq_reset(void);
+void eeprom_seq_write(uint8_t value);
+int  eeprom_execute_command(int eeprom_mode);
+void eeprom_port_write(uint8_t clk, uint8_t data, int ddr, int status);
+int  eeprom_open_image(char *name, int rw);
+void eeprom_close_image(int rw);
 
 struct snapshot_s;
-extern int eeprom_snapshot_read_module(struct snapshot_s *s);
-extern int eeprom_snapshot_write_module(struct snapshot_s *s);
+
+int eeprom_snapshot_read_module(struct snapshot_s *s);
+int eeprom_snapshot_write_module(struct snapshot_s *s);
 
 #endif

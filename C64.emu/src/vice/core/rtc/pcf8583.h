@@ -32,17 +32,19 @@
 #include "snapshot.h"
 #include "types.h"
 
-#define PCF8583_IDLE               0
-#define PCF8583_GET_ADDRESS        1
-#define PCF8583_GET_REG_NR         2
-#define PCF8583_READ_REGS          3
-#define PCF8583_WRITE_REGS         4
-#define PCF8583_ADDRESS_READ_ACK   5
-#define PCF8583_ADDRESS_WRITE_ACK  6
-#define PCF8583_REG_NR_ACK         7
-#define PCF8583_WRITE_ACK          8
-#define PCF8583_READ_ACK           9
-#define PCF8583_READ_REGS_TRAIN    10
+enum {
+    PCF8583_IDLE = 0,
+    PCF8583_GET_ADDRESS,
+    PCF8583_GET_REG_NR,
+    PCF8583_READ_REGS,
+    PCF8583_WRITE_REGS,
+    PCF8583_ADDRESS_READ_ACK,
+    PCF8583_ADDRESS_WRITE_ACK,
+    PCF8583_REG_NR_ACK,
+    PCF8583_WRITE_ACK,
+    PCF8583_READ_ACK,
+    PCF8583_READ_REGS_TRAIN
+};
 
 #define PCF8583_RAM_SIZE  240
 #define PCF8583_REG_SIZE   16
@@ -71,15 +73,15 @@ typedef struct rtc_pcf8583_s {
     char *device;
 } rtc_pcf8583_t;
 
-extern rtc_pcf8583_t *pcf8583_init(char *device, int read_bit_shift);
-extern void pcf8583_destroy(rtc_pcf8583_t *context, int save);
+rtc_pcf8583_t *pcf8583_init(char *device, int read_bit_shift);
+void pcf8583_destroy(rtc_pcf8583_t *context, int save);
 
-extern void pcf8583_set_clk_line(rtc_pcf8583_t *context, uint8_t data);
-extern void pcf8583_set_data_line(rtc_pcf8583_t *context, uint8_t data);
+void pcf8583_set_clk_line(rtc_pcf8583_t *context, uint8_t data);
+void pcf8583_set_data_line(rtc_pcf8583_t *context, uint8_t data);
 
-extern uint8_t pcf8583_read_data_line(rtc_pcf8583_t *context);
+uint8_t pcf8583_read_data_line(rtc_pcf8583_t *context);
 
-extern int pcf8583_write_snapshot(rtc_pcf8583_t *context, snapshot_t *s);
-extern int pcf8583_read_snapshot(rtc_pcf8583_t *context, snapshot_t *s);
+int pcf8583_write_snapshot(rtc_pcf8583_t *context, snapshot_t *s);
+int pcf8583_read_snapshot(rtc_pcf8583_t *context, snapshot_t *s);
 
 #endif

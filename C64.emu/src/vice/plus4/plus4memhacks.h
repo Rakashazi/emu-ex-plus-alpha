@@ -41,11 +41,11 @@ typedef enum plus4_memhack_e {
 
 
 
-extern int plus4_memory_hacks_ram_inject(uint16_t addr, uint8_t value);
+int plus4_memory_hacks_ram_inject(uint16_t addr, uint8_t value);
 
-extern int plus4_memory_hacks_resources_init(void);
-extern int plus4_memory_hacks_cmdline_options_init(void);
+int plus4_memory_hacks_resources_init(void);
+int plus4_memory_hacks_cmdline_options_init(void);
 
-extern const char *plus4_memory_hacks_desc(int hack);
+const char *plus4_memory_hacks_desc(int hack);
 
 #endif

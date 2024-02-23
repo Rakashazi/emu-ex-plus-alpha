@@ -55,17 +55,19 @@ static int cmdline_fsdirectory(const char *param, void *extra_param)
 
 static const cmdline_option_t cmdline_options[] =
 {
+    /* NOTE: although we use CALL_FUNCTION, we put the resource that will be
+             modified into the array - this helps reconstructing the cmdline */
     { "-fs8", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
-      cmdline_fsdirectory, (void *)8, NULL, NULL,
+      cmdline_fsdirectory, (void *)8, "FSDevice8Dir", NULL,
       "<Name>", "Use <name> as directory for file system device #8" },
     { "-fs9", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
-      cmdline_fsdirectory, (void *)9, NULL, NULL,
+      cmdline_fsdirectory, (void *)9, "FSDevice9Dir", NULL,
       "<Name>", "Use <name> as directory for file system device #9" },
     { "-fs10", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
-      cmdline_fsdirectory, (void *)10, NULL, NULL,
+      cmdline_fsdirectory, (void *)10, "FSDevice10Dir", NULL,
       "<Name>", "Use <name> as directory for file system device #10" },
     { "-fs11", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
-      cmdline_fsdirectory, (void *)11, NULL, NULL,
+      cmdline_fsdirectory, (void *)11, "FSDevice11Dir", NULL,
       "<Name>", "Use <name> as directory for file system device #11" },
     { "-fs8convertp00", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "FSDevice8ConvertP00", (resource_value_t)1,

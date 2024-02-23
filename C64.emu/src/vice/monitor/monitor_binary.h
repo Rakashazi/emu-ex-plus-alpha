@@ -34,23 +34,23 @@
 #include "mon_breakpoint.h"
 #include "vicesocket.h"
 
-extern int monitor_binary_resources_init(void);
-extern void monitor_binary_resources_shutdown(void);
-extern int monitor_binary_cmdline_options_init(void);
+int monitor_binary_resources_init(void);
+void monitor_binary_resources_shutdown(void);
+int monitor_binary_cmdline_options_init(void);
 
-extern void monitor_binary_response_checkpoint_info(uint32_t request_id, mon_checkpoint_t *checkpt, bool hit);
-extern void monitor_binary_event_opened(void);
-extern void monitor_binary_event_closed(void);
+void monitor_binary_response_checkpoint_info(uint32_t request_id, mon_checkpoint_t *checkpt, bool hit);
+void monitor_binary_event_opened(void);
+void monitor_binary_event_closed(void);
 
-extern void monitor_check_binary(void);
+void monitor_check_binary(void);
 
-extern int monitor_binary_receive(unsigned char *buffer, size_t buffer_length);
-extern int monitor_binary_transmit(const unsigned char *buffer, size_t buffer_length);
-extern int monitor_binary_get_command_line(void);
+int monitor_binary_receive(unsigned char *buffer, size_t buffer_length);
+int monitor_binary_transmit(const unsigned char *buffer, size_t buffer_length);
+int monitor_binary_get_command_line(void);
 
-extern int monitor_is_binary(void);
-extern vice_network_socket_t *monitor_binary_get_connected_socket(void);
+int monitor_is_binary(void);
+vice_network_socket_t *monitor_binary_get_connected_socket(void);
 
-extern ui_jam_action_t monitor_binary_ui_jam_dialog(const char *format, ...) VICE_ATTR_PRINTF;
+ui_jam_action_t monitor_binary_ui_jam_dialog(const char *format, ...) VICE_ATTR_PRINTF;
 
 #endif

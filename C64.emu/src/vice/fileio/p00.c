@@ -76,7 +76,7 @@ static int p00_check_name(const char *name)
         return -1;
     }
 
-    if (!isdigit((int)p[1]) || !isdigit((int)p[2])) {
+    if (!isdigit((unsigned char)p[1]) || !isdigit((unsigned char)p[2])) {
         return -1;
     }
 
@@ -251,7 +251,7 @@ static int p00_reduce_filename_p00(char *filename, int len)
     }
 
     for (i = len - 1; i >= 0; i--) {
-        if (isalpha((int) filename[i])) {
+        if (isalpha((unsigned char) filename[i])) {
             if (p00_eliminate_char_p00(filename, i) <= 8) {
                 return 8;
             }
@@ -281,11 +281,11 @@ static char *p00_evaluate_name(const char *name, int length)
                 filename[j++] = '_';
                 break;
             default:
-                if (islower((int)name[i])) {
+                if (islower((unsigned char)name[i])) {
                     filename[j++] = util_toupper(name[i]);
                     break;
                 }
-                if (isalnum((int)name[i])) {
+                if (isalnum((unsigned char)name[i])) {
                     filename[j++] = name[i];
                     break;
                 }

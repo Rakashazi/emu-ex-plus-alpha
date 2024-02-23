@@ -29,7 +29,7 @@
 
 #include "types.h"
 
-extern void fileaudio_init(void);
-extern void fileaudio_shutdown(void);
+void fileaudio_init(void);
+void fileaudio_shutdown(void);
 
 #endif

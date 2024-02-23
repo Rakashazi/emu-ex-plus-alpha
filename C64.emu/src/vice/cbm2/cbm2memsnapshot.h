@@ -29,7 +29,7 @@
 
 struct snapshot_s;
 
-extern int cbm2_snapshot_write_module(struct snapshot_s *s, int save_roms);
-extern int cbm2_snapshot_read_module(struct snapshot_s *s);
+int cbm2_snapshot_write_module(struct snapshot_s *s, int save_roms);
+int cbm2_snapshot_read_module(struct snapshot_s *s);
 
 #endif

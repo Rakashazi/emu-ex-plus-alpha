@@ -66,9 +66,9 @@ static piareg mypia;
 /* ------------------------------------------------------------------------- */
 /* CPU binding */
 
-static void my_set_int(unsigned int pia_int_num, int a)
+static void my_set_int(unsigned int pia_int_num, int a, CLOCK offset)
 {
-    maincpu_set_irq(pia_int_num, a ? IK_IRQ : IK_NONE);
+    maincpu_set_irq_clk(pia_int_num, a ? IK_IRQ : IK_NONE, maincpu_clk - offset);
 }
 
 static void my_restore_int(unsigned int pia_int_num, int a)
@@ -93,6 +93,7 @@ static int set_diagnostic_pin_enabled(int val, void *param)
 
     return 0;
 }
+
 
 static const resource_int_t resources_int[] = {
     { "DiagPin", 0, RES_EVENT_SAME, NULL,
@@ -164,13 +165,29 @@ void pia1_set_tape2_motor_in(int v)
     tape2_motor_in = v;
 }
 
+/** \brief  Get diagnostic pin status
+ *
+ * Get "DiagPin" resource value without going through the resource interface.
+ *
+ * The Gtk3 status bar code runs each frame, so going through the resource
+ * interface and thus obtaining and releasing the main lock is too expensive.
+ * This function avoids that performance hit.
+ *
+ * \return  state of DiagPin resource
+ */
+bool pia1_get_diagnostic_pin(void)
+{
+    return (bool)diagnostic_pin_enabled;
+}
+
+
 /* ------------------------------------------------------------------------- */
 /* I/O */
 
 static void pia_set_ca2(int a)
 {
     parallel_cpu_set_eoi((uint8_t)((a) ? 0 : 1));
-    if (petres.pet2k) {
+    if (petres.model.pet2k) {
         crtc_screen_enable((a) ? 1 : 0);
     }
 }

@@ -29,6 +29,6 @@
 
 #include "types.h"
 
-extern int joyport_script64_dongle_resources_init(void);
+int joyport_script64_dongle_resources_init(void);
 
 #endif

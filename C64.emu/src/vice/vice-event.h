@@ -68,38 +68,34 @@ typedef struct event_list_state_s event_list_state_t;
 
 struct snapshot_s;
 
-extern void event_init(void);
-extern int event_resources_init(void);
-extern void event_shutdown(void);
-extern int event_cmdline_options_init(void);
-extern void event_register_event_list(event_list_state_t *list);
-extern void event_init_image_list(void);
-extern void event_destroy_image_list(void);
-extern void event_clear_list(event_list_state_t *list);
-extern void event_playback_event_list(event_list_state_t *list);
+void event_init(void);
+int event_resources_init(void);
+void event_shutdown(void);
+int event_cmdline_options_init(void);
+void event_register_event_list(event_list_state_t *list);
+void event_init_image_list(void);
+void event_destroy_image_list(void);
+void event_clear_list(event_list_state_t *list);
+void event_playback_event_list(event_list_state_t *list);
 
-extern int event_record_start(void);
-extern int event_record_stop(void);
-extern int event_playback_start(void);
-extern int event_playback_stop(void);
-extern int event_record_active(void);
-extern int event_playback_active(void);
-extern int event_record_set_milestone(void);
-extern int event_record_reset_milestone(void);
+int event_record_start(void);
+int event_record_stop(void);
+int event_playback_start(void);
+int event_playback_stop(void);
+int event_record_active(void);
+int event_playback_active(void);
+int event_record_set_milestone(void);
+int event_record_reset_milestone(void);
 
-extern void event_reset_ack(void);
+void event_reset_ack(void);
 
-extern void event_record_in_list(event_list_state_t *list, unsigned int type,
-                                 void *data, unsigned int size);
-extern void event_record(unsigned int type, void *data, unsigned int size);
-extern void event_record_attach_in_list(event_list_state_t *list,
-                                        unsigned int unit, unsigned int drive,
-                                        const char *filename,
-                                        unsigned int read_only);
-extern void event_record_attach_image(unsigned int unit, unsigned int drive, 
-                                      const char *filename, unsigned int read_only);
+void event_record_in_list(event_list_state_t *list, unsigned int type, void *data, unsigned int size);
+void event_record(unsigned int type, void *data, unsigned int size);
+void event_record_attach_in_list(event_list_state_t *list, unsigned int unit, unsigned int drive,
+                                 const char *filename, unsigned int read_only);
+void event_record_attach_image(unsigned int unit, unsigned int drive, const char *filename, unsigned int read_only);
 
-extern int event_snapshot_read_module(struct snapshot_s *s, int event_mode);
-extern int event_snapshot_write_module(struct snapshot_s *s, int event_mode);
+int event_snapshot_read_module(struct snapshot_s *s, int event_mode);
+int event_snapshot_write_module(struct snapshot_s *s, int event_mode);
 
 #endif

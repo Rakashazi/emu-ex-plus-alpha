@@ -47,9 +47,9 @@
 
  bit 4 - !game
  bit 3 - !exrom
- bit 2 - loram
+ bit 2 - charen
  bit 1 - hiram
- bit 0 - charen
+ bit 0 - loram
 
          8000      a000      d000      e000
 
@@ -174,10 +174,9 @@ void c64meminit(unsigned int base)
 
             mem_read_tab_set(base + j, 0xdc, cia1_read);
             mem_set_write_hook(base + j, 0xdc, cia1_store);
-            if (board != 1) {
-                mem_read_tab_set(base + j, 0xdd, cia2_read);
-                mem_set_write_hook(base + j, 0xdd, cia2_store);
-            }
+
+            mem_read_tab_set(base + j, 0xdd, c64io_dd00_read);
+            mem_set_write_hook(base + j, 0xdd, c64io_dd00_store);
 
             mem_read_tab_set(base + j, 0xde, c64io_de00_read);
             mem_set_write_hook(base + j, 0xde, c64io_de00_store);

@@ -29,6 +29,6 @@
 
 #include "types.h"
 
-extern int joyport_cx85_resources_init(void);
+int joyport_cx85_resources_init(void);
 
 #endif

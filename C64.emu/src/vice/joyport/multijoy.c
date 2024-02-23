@@ -63,8 +63,10 @@
        9 (O6)   |    JOY7
        7 (O7)   |    JOY8
 
+   Note that the +5VDC is not connected to any of the 8 ports, but it is used to power the 74138.
+
    Works on:
-   - native joystick ports (x64/x64sc/xscpu64/x64dtv/x128/xcbm5x0)
+   - native joystick ports (x64/x64sc/xscpu64/x128/xcbm5x0)
  */
 
 static int multijoy_enabled = 0;
@@ -90,7 +92,9 @@ static int joyport_multijoy_joysticks_set_enabled(int port, int enabled)
     if (new_state) {
         /* enabled, activate joystick adapter, set amount of joystick adapter ports to 8 */
         joystick_adapter_activate(JOYSTICK_ADAPTER_ID_MULTIJOY, joyport_multijoy_joy_device.name);
-        joystick_adapter_set_ports(8);
+
+        /* enable 8 extra ports, no +5VDC support */
+        joystick_adapter_set_ports(8, 0);
 
         /* set other port to multijoy control device */
         if (port == JOYPORT_1) {
@@ -163,9 +167,9 @@ static void multijoy_store(int port, uint8_t val)
 static uint8_t multijoy_read(int port)
 {
     uint8_t retval = 0;
-    uint16_t joyval;
+    uint8_t joyval;
 
-    joyval = get_joystick_value(JOYPORT_3 + multijoy_address);
+    joyval = ~read_joyport_dig(JOYPORT_3 + multijoy_address);
     retval = (uint8_t)(joyval & 0x1f);
 
     return ~(retval);
@@ -181,6 +185,7 @@ static joyport_t joyport_multijoy_joy_device = {
     JOYPORT_RES_ID_NONE,                     /* device can be used in multiple ports at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,                 /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,                    /* device does NOT use the potentiometer lines */
+    JOYPORT_5VDC_REQUIRED,                   /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_MULTIJOY,            /* device is a joystick adapter */
     JOYPORT_DEVICE_JOYSTICK_ADAPTER,         /* device is a Joystick adapter */
     0,                                       /* NO output bits */
@@ -201,6 +206,7 @@ static joyport_t joyport_multijoy_control_device = {
     JOYPORT_RES_ID_NONE,                  /* device can be used in multiple ports at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,              /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,                 /* device does NOT use the potentiometer lines */
+    JOYPORT_5VDC_REQUIRED,                /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,             /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_JOYSTICK_ADAPTER,      /* device is a Joystick adapter */
     0x07,                                 /* bits 2, 1 and 0 are output bits */

@@ -43,7 +43,6 @@
 static int ciat_logfl = 0; /* 0 means logging disabled */
 static int logtab = 0;
 static const char spaces[] = "                                                  ";
-/* extern int traceflg; */
 
 void ciat_login(const char *format, ...)
 {

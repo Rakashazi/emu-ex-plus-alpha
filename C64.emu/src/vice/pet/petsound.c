@@ -48,14 +48,7 @@
 /* #define DBG(...)        fprintf(stderr, __VA_ARGS__) */
 #define DBG(...)
 
-/*
- * Enable a low-pass filter directly on the CB2 output.
- * Disabling this may reduce the CPU usage somewhat.
- * In that case, the CB2 signal is averaged for each output sample
- * and a low-pass filter is applied on that.
- */
-#define LOWPASS_CB2     1
-#define HIGHPASS        0       /* Experimental so far; default off */
+#define HIGHPASS        1       /* Enable a high-pass filter; avoids annoying clicks */
 
 #define MAX_SAMPLE      4095
 
@@ -78,9 +71,14 @@ typedef int64_t big_sample_diff_t; /* Only needs 33 bits, really */
 /* Some prototypes are needed */
 
 static int pet_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec);
-static int pet_sound_machine_calculate_samples(sound_t **psid, sample_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, CLOCK *delta_t);
 static void pet_sound_reset(sound_t *psid, CLOCK cpu_clk);
 static void create_intermediate_samples(CLOCK rclk);
+
+#ifdef SOUND_SYSTEM_FLOAT
+static int pet_sound_machine_calculate_samples(sound_t **psid, float *pbuf, int nr, int sound_chip_channels, CLOCK *delta_t);
+#else
+static int pet_sound_machine_calculate_samples(sound_t **psid, sample_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, CLOCK *delta_t);
+#endif
 
 static int pet_sound_machine_cycle_based(void)
 {
@@ -92,19 +90,31 @@ static int pet_sound_machine_channels(void)
     return 1;
 }
 
+#ifdef SOUND_SYSTEM_FLOAT
+/* stereo mixing placement of the PET sound */
+static sound_chip_mixing_spec_t pet_sound_mixing_spec[SOUND_CHIP_CHANNELS_MAX] = {
+    {
+        100, /* left channel volume % in case of stereo output, default output to both */
+        100  /* right channel volume % in case of stereo output, default output to both */
+    }
+};
+#endif
+
 /* PET userport sound device */
 static sound_chip_t pet_sound_chip = {
-    .open = NULL,                      /* NO sound chip open function */
-    .init = pet_sound_machine_init,    /* sound chip init function */
-    .close = NULL,                     /* NO sound chip close function */
+    .open = NULL,                                       /* NO sound chip open function */
+    .init = pet_sound_machine_init,                     /* sound chip init function */
+    .close = NULL,                                      /* NO sound chip close function */
     .calculate_samples = pet_sound_machine_calculate_samples,
-    .store = NULL,                     /* NO sound chip store function */
-    .read = NULL,                      /* NO sound chip read function */
-    .reset = pet_sound_reset,          /* sound chip reset function */
-    .cycle_based = pet_sound_machine_cycle_based,
-                                       /* chip is NOT cycle based */
-    .channels = pet_sound_machine_channels,/* sound chip has 1 channel */
-    .chip_enabled = false,             /* chip is enabled after init */
+    .store = NULL,                                      /* NO sound chip store function */
+    .read = NULL,                                       /* NO sound chip read function */
+    .reset = pet_sound_reset,                           /* sound chip reset function */
+    .cycle_based = pet_sound_machine_cycle_based,       /* chip is NOT cycle based */
+    .channels = pet_sound_machine_channels,             /* sound chip has 1 channel */
+#ifdef SOUND_SYSTEM_FLOAT
+    .sound_chip_channel_mixing = pet_sound_mixing_spec, /* stereo mixing placement specs */
+#endif
+    .chip_enabled = true,                               /* chip is always enabled */
 };
 
 static uint16_t pet_sound_chip_offset = 0;
@@ -163,12 +173,13 @@ void machine_sid2_enable(int val)
 }
 
 struct pet_sound_s {
-    bool on;            /* are we even making sound? */
 
-    int speed;          /* sample rate * 100 / speed_percent */
-    int cycles_per_sec;
+    int speed;                  /* sample rate * 100 / speed_percent */
+    int32_t cycles_per_sec;     /* around 1 000 000 */
 
-    bool manual;        /* 1 if CB2 set to manual control "high", 0 otherwise */
+    bool on;                    /* are we even making sound? */
+    bool manual;                /* 1 if CB2 set to manual control "high", 0 otherwise */
+    bool initialized;           /* has pet_sound_machine_init() been called? */
 
     CLOCK next_sample_time;     /* start time of sample under construction */
     CLOCK end_of_sample_time;   /* end time of same */
@@ -185,12 +196,8 @@ struct pet_sound_s {
     int lowpass_prev;           /* lowpass filter, prev sample */
 #define NSAMPLES 256            /* 5 is usually enough... */
     big_sample_t samples[NSAMPLES];
-#if LOWPASS_CB2
     /* Increasing weights for the newer sample as time goes on */
     big_sample_t exponential_moving_average[LP_TABLESZ];
-#else
-    int alpha;
-#endif /* LOWPASS_CB2 */
 #if HIGHPASS
     int highpass_alpha;
     int highpass_prev;          /* highpass filter, prev sample;
@@ -201,10 +208,9 @@ struct pet_sound_s {
 static struct pet_sound_s snd = {
     .speed = 48000,
     .on = false,
+    .initialized = false,
     .clocks_per_sample = 20,
 };
-
-#if LOWPASS_CB2
 
 static inline big_sample_t lowpass(big_sample_t alpha, big_sample_t prev, big_sample_t next)
 {
@@ -240,7 +246,7 @@ static void init_lowpass_table(int alpha)
             DBG("%d\t%f\n", i, sample);
         }
 
-        sample = dlowpass(alpha, sample, LP_SCALE);
+        sample = dlowpass(alpha, sample, LP_SCALE - 1);
     }
 }
 
@@ -254,6 +260,8 @@ static void init_lowpass_table(int alpha)
  *
  * Instead of repeating, it uses a table lookup. The table was prepared
  * in init_lowpass_table() for the desired value of ALPHA.
+ * The resulting value isn't always exactly the same as the loop: the loop
+ * suffers from repeated rounding errors and the lookup only once.
  *
  * https://www.embeddedrelated.com/showarticle/779.php
  * https://helpful.knobs-dials.com/index.php/Low-pass_filter
@@ -275,20 +283,56 @@ static inline int lowpass_repeated(big_sample_t prev, big_sample_t next, int tim
     return prev;
 }
 
-#endif /* LOWPASS_CB2 */
-
 /*
  * Collect a sample from the ring buffer.
  *
-#if LOWPASS_CB2
  * The samples have been processed through a low-pass filter when
  * they were created.
  * We need to drop the extra bits used to make the filtering more precise.
-#else
- * The samples have been created by averaging the CB2 signal over
- * the time of the sample. Here we apply a low-pass filter on that.
-#endif
  */
+#ifdef SOUND_SYSTEM_FLOAT
+static float pet_makesample(void)
+{
+    if (snd.first_sample_index != snd.next_sample_index) {
+        int sample = snd.samples[snd.first_sample_index];
+        snd.first_sample_index++;
+        snd.first_sample_index %= NSAMPLES;
+
+#if HIGHPASS
+        /* The highpass value is scaled with the same factor
+         * as the sample. */
+        snd.highpass_prev += (snd.highpass_alpha * (sample - snd.highpass_prev))
+                             / ALPHA_SCALE;
+        /* Subtract highpass value here, so it gets scaled with the
+         * already low-passed sample.
+         * A high-pass filter is like taking the signal and subtracting lower
+         * frequencies, i.e. subtracting a low-pass version of the signal.
+         * That's why the code for both looks so similar! Just this subtract is extra.
+         * Note: the range of sample grows to [-MAX_SAMPLE, +MAX_SAMPLE] this way.
+         * That doesn't seem to matter.
+         */
+        sample -= snd.highpass_prev;
+#endif /* HIGHPASS */
+        /*
+         * Reduce the range from [0, LP_SCALE> to [0, MAX_SAMPLE].
+         */
+        sample = sample * (MAX_SAMPLE+1) / LP_SCALE;
+        snd.lowpass_prev = sample;      /* Only used when samples run out */
+
+        return sample / 32767.0;
+    }
+
+    /* No more samples available... */
+    DBG("*");
+#if HIGHPASS
+    if (snd.lowpass_prev != 0) {
+        snd.lowpass_prev += (snd.highpass_alpha * (0 - snd.lowpass_prev))
+                           / ALPHA_SCALE;
+    }
+#endif /* HIGHPASS */
+    return snd.lowpass_prev / 32767.0;
+}
+#else
 static sample_t pet_makesample(void)
 {
     if (snd.first_sample_index != snd.next_sample_index) {
@@ -301,29 +345,21 @@ static sample_t pet_makesample(void)
          * as the sample. */
         snd.highpass_prev += (snd.highpass_alpha * (sample - snd.highpass_prev))
                              / ALPHA_SCALE;
+        /* Subtract highpass value here, so it gets scaled with the
+         * already low-passed sample.
+         * A high-pass filter is like taking the signal and subtracting lower
+         * frequencies, i.e. subtracting a low-pass version of the signal.
+         * That's why the code for both looks so similar! Just this subtract is extra.
+         * Note: the range of sample grows to [-MAX_SAMPLE, +MAX_SAMPLE] this way.
+         * That doesn't seem to matter.
+         */
+        sample -= snd.highpass_prev;
 #endif /* HIGHPASS */
-#if LOWPASS_CB2
         /*
          * Reduce the range from [0, LP_SCALE> to [0, MAX_SAMPLE].
          */
-# if HIGHPASS
-        /* Subtract highpass value here, so it gets scaled with the
-         * already low-passed sample. */
-        sample -= snd.highpass_prev;
-# endif /* HIGHPASS */
         sample = sample * (MAX_SAMPLE+1) / LP_SCALE;
         snd.lowpass_prev = sample;      /* Only used when samples run out */
-#else /* LOWPASS_CB2 */
-        /* Low-pass filtering on the averaged CB2 signal */
-        snd.lowpass_prev += (snd.alpha * (sample - snd.lowpass_prev))
-                            / ALPHA_SCALE;
-        sample = snd.lowpass_prev;
-# if HIGHPASS
-        /* Now that the sample has been low-passed, subtract the
-         * high-pass value */
-        sample -= snd.highpass_prev;
-# endif /* HIGHPASS */
-#endif /* LOWPASS_CB2 */
 
         return sample;
     }
@@ -338,7 +374,22 @@ static sample_t pet_makesample(void)
 #endif /* HIGHPASS */
     return snd.lowpass_prev;
 }
+#endif
 
+#ifdef SOUND_SYSTEM_FLOAT
+/* FIXME */
+static int pet_sound_machine_calculate_samples(sound_t **psid, float *pbuf, int nr, int scc, CLOCK *delta_t)
+{
+    int i;
+
+    create_intermediate_samples(maincpu_clk);
+
+    for (i = 0; i < nr; i++) {
+        pbuf[i] = pet_makesample();
+    }
+    return nr;
+}
+#else
 static int pet_sound_machine_calculate_samples(sound_t **psid, sample_t *pbuf, int nr, int soc, int scc, CLOCK *delta_t)
 {
     int i;
@@ -351,15 +402,16 @@ static int pet_sound_machine_calculate_samples(sound_t **psid, sample_t *pbuf, i
 
         /* pbuf[i * soc] = v; */
         pbuf[i * soc] = sound_audio_mix(pbuf[i * soc], (sample_t)v);
-#if 0
-        if (soc > 1) {
+
+        /* do stereo as well if needed */
+        if (soc == SOUND_OUTPUT_STEREO) {
             pbuf[(i * soc) + 1] = sound_audio_mix(pbuf[(i * soc) + 1], (sample_t)v);
         }
-#endif
 
     }
     return nr;
 }
+#endif
 
 /*
  * This function works together with petvia.c to turn off the sound
@@ -370,7 +422,7 @@ static int pet_sound_machine_calculate_samples(sound_t **psid, sample_t *pbuf, i
  */
 void petsound_store_onoff(bool value)
 {
-    if (pet_sound_chip.chip_enabled) {
+    if (snd.initialized) {
         create_intermediate_samples(maincpu_clk);
     }
 
@@ -383,7 +435,6 @@ void petsound_store_onoff(bool value)
 static void create_intermediate_samples(CLOCK rclk)
 {
     while (rclk >= snd.end_of_sample_time) {
-#if LOWPASS_CB2
         /*
          * Now that the CB2 signal changes, we know how long
          * the previous state lasted, and can process that period.
@@ -393,32 +444,10 @@ static void create_intermediate_samples(CLOCK rclk)
         big_sample_t newsample = snd.manual ? LP_SCALE-1 : 0;
         sample = lowpass_repeated(sample, newsample, (int)time);
         snd.samples[snd.next_sample_index] = sample;
-#else /* LOWPASS_CB2 */
-        if (snd.manual) {
-            CLOCK time = snd.end_of_sample_time - snd.latest_bit_time;
-            int contribution = time /* * snd.manual */;
-            snd.samples[snd.next_sample_index] += contribution;
-        }
-
-        /*
-         * Because sometimes a sample can be a cycle longer due to
-         * accumulated rounding (fracs_per_sample), we must average and
-         * scale the sample value here, where we still know the real time
-         * in clocks.
-         * fracs_per_sample is significant enough that we can't ignore it.
-         */
-        snd.samples[snd.next_sample_index] =
-            (snd.samples[snd.next_sample_index] * MAX_SAMPLE) /
-            (snd.end_of_sample_time - snd.next_sample_time);
-#endif /* LOWPASS_CB2 */
 
         snd.next_sample_index++;
         snd.next_sample_index %= NSAMPLES;
-#if LOWPASS_CB2
         snd.samples[snd.next_sample_index] = sample;
-#else
-        snd.samples[snd.next_sample_index] = 0;
-#endif
 
         snd.next_sample_time = snd.end_of_sample_time;
         snd.latest_bit_time = snd.end_of_sample_time;
@@ -438,26 +467,18 @@ void petsound_store_manual(bool value, CLOCK rclk)
         return;
     }
 
-    if (pet_sound_chip.chip_enabled) {
+    if (snd.initialized) {
         create_intermediate_samples(rclk);
 
         /*
          * Now that the CB2 signal changes, we know how long
          * the previous state lasted, and can process that period.
          */
-#if LOWPASS_CB2
         CLOCK time = rclk - snd.latest_bit_time;
         big_sample_t sample = snd.samples[snd.next_sample_index];
         big_sample_t newsample = snd.manual ? LP_SCALE-1 : 0;
         sample = lowpass_repeated(sample, newsample, (int)time);
         snd.samples[snd.next_sample_index] = sample;
-#else /* LOWPASS_CB2 */
-        if (snd.manual) {
-            CLOCK time = rclk - snd.latest_bit_time;
-            int contribution = time /* * snd.manual */;
-            snd.samples[snd.next_sample_index] += contribution;
-        }
-#endif /* LOWPASS_CB2 */
     }
 
     /* Remember when this CB2 state started (i.e. this moment) */
@@ -469,6 +490,9 @@ void petsound_store_manual(bool value, CLOCK rclk)
  * Calculate the alpha parameter for the low-pass filter.
  * Multiply it with scale_factor to make it more precise, in fixed-point
  * (the samples themselves can use a different fixed-point offset).
+ *
+ * TODO: with lower values for limit_freq, there is a noticable attenuation
+ * of the sound, so that should be corrected somehow.
  */
 static int calculate_alpha(int sample_freq, int limit_freq, int scale_factor)
 {
@@ -483,7 +507,6 @@ static int calculate_alpha(int sample_freq, int limit_freq, int scale_factor)
 static int pet_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec)
 {
     DBG("### pet_sound_machine_init: speed %d cycles_per_sec %d\n", speed, cycles_per_sec);
-    pet_sound_reset(psid, maincpu_clk);
 
     snd.cycles_per_sec = cycles_per_sec;
     snd.speed = speed;
@@ -504,20 +527,16 @@ static int pet_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec)
      */
     int cb2_lowpass_freq;
     resources_get_int("CB2Lowpass", &cb2_lowpass_freq);
-#if LOWPASS_CB2
     int alpha = calculate_alpha(cycles_per_sec, cb2_lowpass_freq, ALPHA_SCALE);
     DBG("### pet_sound_machine_init: alpha = %d\n", alpha);
     init_lowpass_table(alpha);
-#else
-    snd.alpha = calculate_alpha(speed, cb2_lowpass_freq, ALPHA_SCALE);
-#endif /* LOWPASS_CB2 */
 #if HIGHPASS
     snd.highpass_alpha = calculate_alpha(speed, 160, ALPHA_SCALE);
     snd.highpass_prev = 0;
     DBG("### pet_sound_machine_init: highpass alpha = %d\n", snd.highpass_alpha);
 #endif
 
-    pet_sound_chip.chip_enabled = true;
+    snd.initialized = true;
 
     return 1;
 }

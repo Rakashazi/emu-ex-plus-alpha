@@ -91,8 +91,8 @@ void drivecpu_setup_context(struct diskunit_context_s *drv, int i)
     cpu->d_bank_start = 0;
     cpu->pageone = NULL;
     if (i) {
-        cpu->snap_module_name = lib_msprintf("DRIVECPU%d", drv->mynumber);
-        cpu->identification_string = lib_msprintf("DRIVE#%d", drv->mynumber + 8);
+        cpu->snap_module_name = lib_msprintf("DRIVECPU%u", drv->mynumber);
+        cpu->identification_string = lib_msprintf("DRIVE#%u", drv->mynumber + 8);
         cpu->monitor_interface = monitor_interface_new();
     }
     mi = cpu->monitor_interface;
@@ -512,17 +512,17 @@ static void drivecpu_jam(diskunit_context_t *drv)
             break;
     }
 
-    tmp = drive_jam(drv->mynumber, "%s (%d) CPU: JAM at $%04X  ", dname, drv->mynumber + 8, (unsigned int)reg_pc);
+    tmp = drive_jam(drv->mynumber, "%s (%u) CPU: JAM at $%04X  ", dname, drv->mynumber + 8, (unsigned int)reg_pc);
     switch (tmp) {
-        case JAM_RESET:
+        case JAM_RESET_CPU:
             reg_pc = 0xeaa0;
             drivecpu_set_bank_base((void *)drv);
-            machine_trigger_reset(MACHINE_RESET_MODE_SOFT);
+            machine_trigger_reset(MACHINE_RESET_MODE_RESET_CPU);
             break;
-        case JAM_HARD_RESET:
+        case JAM_POWER_CYCLE:
             reg_pc = 0xeaa0;
             drivecpu_set_bank_base((void *)drv);
-            machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+            machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
             break;
         case JAM_MONITOR:
             monitor_startup(drv->cpu->monspace);
@@ -535,7 +535,7 @@ static void drivecpu_jam(diskunit_context_t *drv)
 /* ------------------------------------------------------------------------- */
 
 #define SNAP_MAJOR 1
-#define SNAP_MINOR 2
+#define SNAP_MINOR 3
 
 int drivecpu_snapshot_write_module(diskunit_context_t *drv, snapshot_t *s)
 {
@@ -563,6 +563,7 @@ int drivecpu_snapshot_write_module(diskunit_context_t *drv, snapshot_t *s)
         || SMW_CLOCK(m, cpu->cycle_accum) < 0
         || SMW_CLOCK(m, cpu->last_exc_cycles) < 0
         || SMW_CLOCK(m, cpu->stop_clk) < 0
+        || SMW_B(m, cpu->cpu_last_data) < 0
         ) {
         goto fail;
     }
@@ -642,6 +643,7 @@ int drivecpu_snapshot_read_module(diskunit_context_t *drv, snapshot_t *s)
         || SMR_CLOCK(m, &(cpu->cycle_accum)) < 0
         || SMR_CLOCK(m, &(cpu->last_exc_cycles)) < 0
         || SMR_CLOCK(m, &(cpu->stop_clk)) < 0
+        || SMR_B(m, &(cpu->cpu_last_data)) < 0
         ) {
         goto fail;
     }

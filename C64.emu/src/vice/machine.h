@@ -29,6 +29,7 @@
 #define VICE_MACHINE_H
 
 #include "types.h"
+#include <stdbool.h>
 
 /* The following stuff must be defined once per every emulated CBM machine.  */
 
@@ -69,155 +70,159 @@ struct machine_timing_s {
 typedef struct machine_timing_s machine_timing_t;
 
 extern int machine_class;
-extern int console_mode;
-extern int video_disabled_mode;
-extern int help_requested;
+/* These variable live in src/main.c: */
+extern bool console_mode;
+extern bool video_disabled_mode;
+extern bool help_requested;
+extern bool default_settings_requested;
 
 #define MACHINE_JAM_ACTION_DIALOG       0
 #define MACHINE_JAM_ACTION_CONTINUE     1
 #define MACHINE_JAM_ACTION_MONITOR      2
-#define MACHINE_JAM_ACTION_RESET        3
-#define MACHINE_JAM_ACTION_HARD_RESET   4
+#define MACHINE_JAM_ACTION_RESET_CPU    3
+#define MACHINE_JAM_ACTION_POWER_CYCLE  4
 #define MACHINE_JAM_ACTION_QUIT         5
 #define MACHINE_NUM_JAM_ACTIONS         6
 
 /* Initialize the machine's resources.  */
-extern int machine_common_resources_init(void);
-extern int machine_resources_init(void);
-extern void machine_common_resources_shutdown(void);
-extern void machine_resources_shutdown(void);
+int machine_common_resources_init(void);
+int machine_resources_init(void);
+void machine_common_resources_shutdown(void);
+void machine_resources_shutdown(void);
 
 /* Initialize the machine's command-line options.  */
-extern int machine_common_cmdline_options_init(void);
-extern int machine_cmdline_options_init(void);
+int machine_common_cmdline_options_init(void);
+int machine_cmdline_options_init(void);
 
 /* Initialize the machine.  */
-extern void machine_setup_context(void);
-extern int machine_init(void);
-extern int machine_specific_init(void);
-extern void machine_early_init(void);
+void machine_setup_context(void);
+int machine_init(void);
+int machine_specific_init(void);
+void machine_early_init(void);
 
 /* Initialize the main CPU of the machine.  */
-extern void machine_maincpu_init(void);
+void machine_maincpu_init(void);
+
 /* Shutdown the main CPU of the machine. */
-extern void machine_maincpu_shutdown(void);
+void machine_maincpu_shutdown(void);
 
 /* Reset the machine.  */
-#define MACHINE_RESET_MODE_SOFT 0
-#define MACHINE_RESET_MODE_HARD 1
-extern void machine_trigger_reset(const unsigned int reset_mode);
-extern void machine_reset(void);
-extern void machine_specific_reset(void);
-extern void machine_reset_event_playback(CLOCK offset, void *data);
+#define MACHINE_RESET_MODE_RESET_CPU    0
+#define MACHINE_RESET_MODE_POWER_CYCLE  1
+
+void machine_trigger_reset(const unsigned int reset_mode);
+void machine_reset(void);
+void machine_specific_reset(void);
+void machine_reset_event_playback(CLOCK offset, void *data);
 
 /* Power-up the machine.  */
-extern void machine_specific_powerup(void);
+void machine_specific_powerup(void);
 
 /* Shutdown the emachine.  */
-extern void machine_shutdown(void);
-extern void machine_specific_shutdown(void);
+void machine_shutdown(void);
+void machine_specific_shutdown(void);
 
 /* Set the state of the RESTORE key (!=0 means pressed) */
-extern void machine_set_restore_key(int v);
+void machine_set_restore_key(int v);
 
 /* returns 1 if key is present */
-extern int machine_has_restore_key(void);
+int machine_has_restore_key(void);
 
 /* Get the number of CPU cylces per second.  This is used in various parts.  */
-extern long machine_get_cycles_per_second(void);
+long machine_get_cycles_per_second(void);
 
 /* Get the number of CPU cylces per frame. */
-extern long machine_get_cycles_per_frame(void);
+long machine_get_cycles_per_frame(void);
 
 /* Set the screen refresh rate, as this is variable in the CRTC.  */
-extern void machine_set_cycles_per_frame(long cpf);
+void machine_set_cycles_per_frame(long cpf);
 
 /* Get current line and cycle. */
-extern void machine_get_line_cycle(unsigned int *line, unsigned int *cycle, int *half_cycle);
+void machine_get_line_cycle(unsigned int *line, unsigned int *cycle, int *half_cycle);
 
 /* Write a snapshot.  */
-extern int machine_write_snapshot(const char *name, int save_roms,
-                                  int save_disks, int even_mode);
+int machine_write_snapshot(const char *name, int save_roms, int save_disks, int even_mode);
 
 /* Read a snapshot.  */
-extern int machine_read_snapshot(const char *name, int even_mode);
+int machine_read_snapshot(const char *name, int even_mode);
 
 /* handle pending interrupts - needed by libsid.a.  */
-extern void machine_handle_pending_alarms(CLOCK num_write_cycles);
+void machine_handle_pending_alarms(CLOCK num_write_cycles);
 
 /* Autodetect PSID file.  */
-extern int machine_autodetect_psid(const char *name);
-extern void machine_play_psid(int tune);
+int machine_autodetect_psid(const char *name);
+void machine_play_psid(int tune);
 
 /* Check the base address for the second sid chip.  */
-extern int machine_sid2_check_range(unsigned int sid_adr);
+int machine_sid2_check_range(unsigned int sid_adr);
 
 /* Check the base address for the third sid chip.  */
-extern int machine_sid3_check_range(unsigned int sid_adr);
+int machine_sid3_check_range(unsigned int sid_adr);
 
 /* Check the base address for the fourth sid chip.  */
-extern int machine_sid4_check_range(unsigned int sid_adr);
+int machine_sid4_check_range(unsigned int sid_adr);
 
 /* Check the base address for the fifth sid chip.  */
-extern int machine_sid5_check_range(unsigned int sid_adr);
+int machine_sid5_check_range(unsigned int sid_adr);
 
 /* Check the base address for the sixth sid chip.  */
-extern int machine_sid6_check_range(unsigned int sid_adr);
+int machine_sid6_check_range(unsigned int sid_adr);
 
 /* Check the base address for the seventh sid chip.  */
-extern int machine_sid7_check_range(unsigned int sid_adr);
+int machine_sid7_check_range(unsigned int sid_adr);
 
 /* Check the base address for the eighth sid chip.  */
-extern int machine_sid8_check_range(unsigned int sid_adr);
+int machine_sid8_check_range(unsigned int sid_adr);
 
 /* Change the timing parameters of the maching (for example PAL/NTSC).  */
-extern void machine_change_timing(int timeval, int border_mode);
+void machine_change_timing(int timeval, int powerfreq, int border_mode);
 
 /* Get screenshot data.  */
 struct screenshot_s;
 struct video_canvas_s;
 struct canvas_refresh_s;
-extern int machine_screenshot(struct screenshot_s *screenshot,
-                              struct video_canvas_s *canvas);
-extern int machine_canvas_async_refresh(struct canvas_refresh_s *ref,
-                                        struct video_canvas_s *canvas);
 
-#define JAM_NONE       0
-#define JAM_RESET      1
-#define JAM_HARD_RESET 2
-#define JAM_MONITOR    3
-extern unsigned int machine_jam(const char *format, ...) VICE_ATTR_PRINTF;
-extern bool machine_is_jammed(void);
-extern char *machine_jam_reason(void);
+int machine_screenshot(struct screenshot_s *screenshot, struct video_canvas_s *canvas);
+int machine_canvas_async_refresh(struct canvas_refresh_s *ref, struct video_canvas_s *canvas);
+
+#define JAM_NONE        0
+#define JAM_RESET_CPU   1
+#define JAM_POWER_CYCLE 2
+#define JAM_MONITOR     3
+
+unsigned int machine_jam(const char *format, ...) VICE_ATTR_PRINTF;
+bool machine_is_jammed(void);
+char *machine_jam_reason(void);
 
 /* Update memory pointers if memory mapping has changed. */
-extern void machine_update_memory_ptrs(void);
+void machine_update_memory_ptrs(void);
 
 extern int machine_keymap_index;
 extern char *machine_keymap_file_list[];
-extern int machine_num_keyboard_mappings(void);
+
+int machine_num_keyboard_mappings(void);
 
 struct image_contents_s;
-extern struct image_contents_s *machine_diskcontents_bus_read(unsigned int unit);
+struct image_contents_s *machine_diskcontents_bus_read(unsigned int unit);
 
 /* Romset handling.  */
-extern void machine_romset_init(void);
-extern int machine_romset_file_load(const char *filename);
-extern int machine_romset_file_save(const char *filename);
-extern char *machine_romset_file_list(void);
-extern int machine_romset_archive_item_create(const char *romset_name);
+void machine_romset_init(void);
+int machine_romset_file_load(const char *filename);
+int machine_romset_file_save(const char *filename);
+char *machine_romset_file_list(void);
+int machine_romset_archive_item_create(const char *romset_name);
 
-extern uint8_t machine_tape_type_default(void);
-extern uint8_t machine_tape_behaviour(void);
+uint8_t machine_tape_type_default(void);
+uint8_t machine_tape_behaviour(void);
 
 /* Check if address is in RAM (for autostart) */
-extern int machine_addr_in_ram(unsigned int addr);
+int machine_addr_in_ram(unsigned int addr);
 
 /* Get "real" name for machine. May differ from machine_name.  */
-extern const char *machine_get_name(void);
+const char *machine_get_name(void);
 
 /* Get keymap res name with range checking */
-extern char *machine_get_keymap_res_name(int val);
+char *machine_get_keymap_res_name(int val);
 
 /* mapping info for GUIs */
 typedef struct {
@@ -226,12 +231,12 @@ typedef struct {
     unsigned int flags;
 } kbdtype_info_t;
 
-extern int machine_get_num_keyboard_types(void);
-extern kbdtype_info_t *machine_get_keyboard_info_list(void);
+int machine_get_num_keyboard_types(void);
+kbdtype_info_t *machine_get_keyboard_info_list(void);
 
-extern int machine_get_keyboard_type(void);
-extern char *machine_get_keyboard_type_name(int type);
+int machine_get_keyboard_type(void);
+char *machine_get_keyboard_type_name(int type);
 
-extern int machine_register_userport(void);
+int machine_register_userport(void);
 
 #endif

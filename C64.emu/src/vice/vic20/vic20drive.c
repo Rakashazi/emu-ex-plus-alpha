@@ -38,8 +38,10 @@
 
 int machine_drive_resources_init(void)
 {
-    return drive_resources_type_init(DRIVE_TYPE_1540)
-           | iec_drive_resources_init() | ieee_drive_resources_init();
+    /* init drive type resource last, so the ROMs are loaded when it initializes */
+    return iec_drive_resources_init() |
+           ieee_drive_resources_init() |
+           drive_resources_type_init(DRIVE_TYPE_1540);
 }
 
 void machine_drive_resources_shutdown(void)

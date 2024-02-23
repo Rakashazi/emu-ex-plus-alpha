@@ -28,7 +28,7 @@
 #ifndef VICE_DRV_RAW_H
 #define VICE_DRV_RAW_H
 
-extern int drv_raw_init_resources(void);
-extern void drv_raw_init(void);
+int drv_raw_init_resources(void);
+void drv_raw_init(void);
 
 #endif

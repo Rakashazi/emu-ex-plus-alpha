@@ -259,7 +259,7 @@ char *mon_dump_with_label(MEMSPACE memspace, uint16_t loc, int hex, unsigned *la
     }
 
     val = mon_get_mem_val(memspace, loc);
-    return lib_msprintf((hex ? "%04X: $%02X   %03u   '%c'" : "%05u: $%02X   %03u   '%c'"), loc, val, val, isprint(val) ? val : ' ');
+    return lib_msprintf((hex ? "%04X: $%02X   %03u   '%c'" : "%05u: $%02X   %03u   '%c'"), loc, val, val, isprint((unsigned char)val) ? val : ' ');
 }
 
 static char *pchCommandLine = NULL;

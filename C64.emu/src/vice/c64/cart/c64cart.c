@@ -76,6 +76,7 @@
 #include "delaep7x8.h"
 #include "diashowmaker.h"
 #include "dinamic.h"
+#include "drean.h"
 #include "easycalc.h"
 #include "easyflash.h"
 #include "epyxfastload.h"
@@ -93,7 +94,7 @@
 #include "gmod2.h"
 #include "gmod3.h"
 #include "gs.h"
-#include "drean.h"
+#include "hyperbasic.h"
 #include "ide64.h"
 #include "ieeeflash64.h"
 #include "isepic.h"
@@ -138,7 +139,7 @@
 #include "zippcode48.h"
 #undef CARTRIDGE_INCLUDE_PRIVATE_API
 
-#define DEBUGCART
+/* #define DEBUGCART */
 
 #ifdef DEBUGCART
 #define DBG(x)  printf x; fflush(stdout);
@@ -257,6 +258,7 @@ static cartridge_info_t cartlist[] = {
     { CARTRIDGE_NAME_DELA_EP7x8,          CARTRIDGE_DELA_EP7x8,          CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_DIASHOW_MAKER,       CARTRIDGE_DIASHOW_MAKER,       CARTRIDGE_GROUP_FREEZER },
     { CARTRIDGE_NAME_DINAMIC,             CARTRIDGE_DINAMIC,             CARTRIDGE_GROUP_GAME },
+    { CARTRIDGE_NAME_DREAN,               CARTRIDGE_DREAN,               CARTRIDGE_GROUP_GAME },
     { CARTRIDGE_NAME_EASYCALC,            CARTRIDGE_EASYCALC,            CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_EASYFLASH,           CARTRIDGE_EASYFLASH,           CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_EPYX_FASTLOAD,       CARTRIDGE_EPYX_FASTLOAD,       CARTRIDGE_GROUP_UTIL },
@@ -274,7 +276,7 @@ static cartridge_info_t cartlist[] = {
     { CARTRIDGE_NAME_GMOD2,               CARTRIDGE_GMOD2,               CARTRIDGE_GROUP_GAME },
     { CARTRIDGE_NAME_GMOD3,               CARTRIDGE_GMOD3,               CARTRIDGE_GROUP_GAME },
     { CARTRIDGE_NAME_GS,                  CARTRIDGE_GS,                  CARTRIDGE_GROUP_GAME },
-    { CARTRIDGE_NAME_DREAN,               CARTRIDGE_DREAN,               CARTRIDGE_GROUP_GAME },
+    { CARTRIDGE_NAME_HYPERBASIC,          CARTRIDGE_HYPERBASIC,          CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_IDE64,               CARTRIDGE_IDE64,               CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_IEEE488,             CARTRIDGE_IEEE488,             CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_IEEEFLASH64,         CARTRIDGE_IEEEFLASH64,         CARTRIDGE_GROUP_UTIL },
@@ -346,16 +348,32 @@ int cartridge_get_id(int slot)
     return type;
 }
 
-/* FIXME: terrible name, we already have cartridge_get_file_name */
-char *cartridge_get_filename(int slot)
+/* FIXME: slot arg is ignored right now.
+   this should return a pointer to a filename, or NULL
+*/
+char *cartridge_get_filename_by_slot(int slot)
 {
-    DBG(("cartridge_get_filename(slot:%d)\n", slot));
-/*    return cart_get_file_name(mem_cartridge_type); */
+    DBG(("cartridge_get_filename_by_slot(slot:%d)\n", slot));
+/*    return cart_get_filename_by_type(mem_cartridge_type); */
     int type = cart_getid_slotmain();
-    if (cart_getid_slotmain() == type && !cart_can_get_file_name(type)) {
+    if (cart_getid_slotmain() == type) {
         return cartfile;
     }
-    return (char*)cart_get_file_name(type);
+    log_error(LOG_DEFAULT, "FIXME: cartridge_get_filename_by_slot only works with main-slot");
+    return NULL;
+#if 0
+    /* FIXME: this can not work right! */
+    return (char*)cart_get_filename_by_type(type);
+#endif
+}
+
+/* FIXME: slot arg is ignored right now.
+   this should return a pointer to a filename, or NULL
+*/
+char *cartridge_get_secondary_filename_by_slot(int slot)
+{
+    log_error(LOG_DEFAULT, "FIXME: cartridge_get_secondary_filename_by_slot not implemented yet");
+    return NULL;
 }
 
 /*
@@ -366,7 +384,7 @@ char *cartridge_get_filename(int slot)
     - cartridge change reset behaviour
 
     the following functions try to deal with this in a hopefully sane way... however,
-    do _NOT_ change the used resources from the (G)UI directly. (used the set_default
+    do _NOT_ change the used resources from the (G)UI directly. (use the set_default
     function instead)
 */
 
@@ -416,6 +434,7 @@ static int set_cartridge_type(int val, void *param)
         case CARTRIDGE_DELA_EP256:
         case CARTRIDGE_DIASHOW_MAKER:
         case CARTRIDGE_DINAMIC:
+        case CARTRIDGE_DREAN:
         case CARTRIDGE_EASYCALC:
         case CARTRIDGE_EASYFLASH:
         case CARTRIDGE_EASYFLASH_XBANK:
@@ -434,7 +453,7 @@ static int set_cartridge_type(int val, void *param)
         case CARTRIDGE_GMOD2:
         case CARTRIDGE_GMOD3:
         case CARTRIDGE_GS:
-        case CARTRIDGE_DREAN:
+        case CARTRIDGE_HYPERBASIC:
         case CARTRIDGE_IEEE488:
         case CARTRIDGE_IEEEFLASH64:
         case CARTRIDGE_IDE64:
@@ -653,12 +672,12 @@ int cart_getid_slotmain(void)
 /*
     get filename of cart with given type
 */
-const char *cartridge_get_file_name(int type)
+const char *cartridge_get_filename_by_type(int type)
 {
-    if (cart_getid_slotmain() == type && !cart_can_get_file_name(type)) {
+    if (cart_getid_slotmain() == type) {
         return cartfile;
     }
-    return cart_get_file_name(type);
+    return cart_get_filename_by_type(type);
 }
 
 /*
@@ -787,6 +806,9 @@ static int crt_attach(const char *filename, uint8_t *rawcart)
                 rc = dqbb_crt_attach(fd, rawcart, filename);
                 break;
 #endif
+            case CARTRIDGE_DREAN:
+                rc = drean_crt_attach(fd, rawcart);
+                break;
             case CARTRIDGE_EASYCALC:
                 rc = easycalc_crt_attach(fd, rawcart);
                 break;
@@ -838,8 +860,8 @@ static int crt_attach(const char *filename, uint8_t *rawcart)
             case CARTRIDGE_GS:
                 rc = gs_crt_attach(fd, rawcart);
                 break;
-            case CARTRIDGE_DREAN:
-                rc = drean_crt_attach(fd, rawcart);
+            case CARTRIDGE_HYPERBASIC:
+                rc = hyperbasic_crt_attach(fd, rawcart);
                 break;
             case CARTRIDGE_IDE64:
                 rc = ide64_crt_attach(fd, rawcart);
@@ -1131,7 +1153,7 @@ void cart_power_off(void)
 {
     if (c64cartridge_reset) {
         /* "Turn off machine before removing cartridge" */
-        machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+        machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
     }
 }
 
@@ -1352,27 +1374,4 @@ void cartridge_init(void)
     cartridge_nmi_alarm = alarm_new(maincpu_alarm_context, "Cartridge", cart_nmi_alarm_triggered, NULL);
     cartridge_freeze_alarm = alarm_new(maincpu_alarm_context, "Cartridge", cart_freeze_alarm_triggered, NULL);
     cartridge_int_num = interrupt_cpu_status_int_new(maincpu_int_status, "Cartridge");
-}
-
-/* returns 1 when cartridge (ROM) image can be flushed */
-int cartridge_can_flush_image(int crtid)
-{
-    const char *p;
-    if (!cartridge_type_enabled(crtid)) {
-        return 0;
-    }
-    p = cartridge_get_file_name(crtid);
-    if ((p == NULL) || (*p == '\x0')) {
-        return 0;
-    }
-    return 1;
-}
-
-/* returns 1 when cartridge (ROM) image can be saved */
-int cartridge_can_save_image(int crtid)
-{
-    if (!cartridge_type_enabled(crtid)) {
-        return 0;
-    }
-    return 1;
 }

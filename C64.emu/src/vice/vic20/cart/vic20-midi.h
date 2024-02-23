@@ -30,17 +30,18 @@
 
 #include "midi.h"
 
-extern int vic20_midi_resources_init(void);
-extern int vic20_midi_cmdline_options_init(void);
+int vic20_midi_resources_init(void);
+int vic20_midi_cmdline_options_init(void);
 
 /* Emulated interfaces */
 enum { MIDI_MODE_MAPLIN = 0   /* Electronics - Maplin magazine */
 };
 
 struct snapshot_s;
-extern int vic20_midi_snapshot_read_module(struct snapshot_s *s);
-extern int vic20_midi_snapshot_write_module(struct snapshot_s *s);
 
-extern void vic20_midi_detach(void);
+int vic20_midi_snapshot_read_module(struct snapshot_s *s);
+int vic20_midi_snapshot_write_module(struct snapshot_s *s);
+
+void vic20_midi_detach(void);
 
 #endif

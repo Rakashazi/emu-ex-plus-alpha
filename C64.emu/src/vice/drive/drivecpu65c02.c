@@ -80,8 +80,8 @@ void drivecpu65c02_setup_context(struct diskunit_context_s *drv, int i)
     cpu->d_bank_start = 0;
     cpu->pageone = NULL;
     if (i) {
-        cpu->snap_module_name = lib_msprintf("DRIVECPU%d", drv->mynumber);
-        cpu->identification_string = lib_msprintf("DRIVE#%d", drv->mynumber + 8);
+        cpu->snap_module_name = lib_msprintf("DRIVECPU%u", drv->mynumber);
+        cpu->identification_string = lib_msprintf("DRIVE#%u", drv->mynumber + 8);
         cpu->monitor_interface = monitor_interface_new();
     }
     mi = cpu->monitor_interface;
@@ -429,7 +429,7 @@ static void drivecpu65c02_set_bank_base(void *context)
 /* ------------------------------------------------------------------------- */
 
 #define SNAP_MAJOR 1
-#define SNAP_MINOR 2
+#define SNAP_MINOR 3
 
 int drivecpu65c02_snapshot_write_module(diskunit_context_t *drv, snapshot_t *s)
 {
@@ -457,6 +457,7 @@ int drivecpu65c02_snapshot_write_module(diskunit_context_t *drv, snapshot_t *s)
         || SMW_DW(m, (uint32_t)(cpu->cycle_accum)) < 0
         || SMW_DW(m, (uint32_t)(cpu->last_exc_cycles)) < 0
         || SMW_DW(m, (uint32_t)(cpu->stop_clk)) < 0
+        || SMW_B(m, cpu->cpu_last_data) < 0
         ) {
         goto fail;
     }
@@ -523,6 +524,7 @@ int drivecpu65c02_snapshot_read_module(diskunit_context_t *drv, snapshot_t *s)
         || SMR_CLOCK(m, &(cpu->cycle_accum)) < 0
         || SMR_CLOCK(m, &(cpu->last_exc_cycles)) < 0
         || SMR_CLOCK(m, &(cpu->stop_clk)) < 0
+        || SMR_B(m, &(cpu->cpu_last_data)) < 0
         ) {
         goto fail;
     }

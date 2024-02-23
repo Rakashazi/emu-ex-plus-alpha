@@ -44,16 +44,25 @@
      3   | KEY2    |  I
      4   | KEY3    |  I
      6   | KEYDOWN |  I
+     8   | GND     |  Ground
 
    Works on:
-   - native joystick port(s) (x64/x64sc/xscpu64/x64dtv/xplus4/xvic)
+   - native joystick port(s) (x64/x64sc/xscpu64/x64dtv/xvic/xplus4)
+   - inception joystick adapter ports (x64/x64sc/xscpu64/xvic)
+   - multijoy joystick adapter ports (x64/x64sc/xscpu64)
+   - spaceballs joystick adapter ports (x64/x64sc/xscpu64)
    - cga userport joystick adapter ports (x64/x64sc/xscpu64)
    - hit userport joystick adapter ports (x64/x64sc/xscpu64)
+   - hummer userport joystick adapter port (x64/x64sc/xscpu64)
    - kingsoft userport joystick adapter ports (x64/x64sc/xscpu64)
+   - oem userport joystick adapter port (x64/x64sc/xscpu64)
+   - pet userport joystick adapter port (x64/x64sc/xscpu64)
    - starbyte userport joystick adapter ports (x64/x64sc/xscpu64)
-   - hummer userport joystick adapter port (x64dtv)
-   - oem userport joystick adapter port (xvic)
+   - synergy userport joystick adapter ports (x64/x64sc/xscpu64)
+   - stupid pet tricks userport joystick adapter port (x64/x64sc/xscpu64)
+   - wheel of joysticks userport joystick adapter ports (x64/x64sc/xscpu64)
    - sidcart joystick adapter port (xplus4)
+
 
 The keypad has the following layout:
 
@@ -223,6 +232,7 @@ static joyport_t joyport_rushware_keypad_device = {
     JOYPORT_RES_ID_KEYPAD,               /* device is a keypad, only 1 keypad can be active at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,             /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,                /* device does NOT use the potentiometer lines */
+    JOYPORT_5VDC_NOT_NEEDED,             /* device does NOT need +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,            /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_KEYPAD,               /* device is a Keypad */
     0,                                   /* NO output bits */

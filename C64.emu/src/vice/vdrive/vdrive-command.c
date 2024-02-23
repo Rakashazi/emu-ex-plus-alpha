@@ -83,23 +83,6 @@ static int vdrive_command_time(vdrive_t *vdrive, uint8_t *cmd, int length);
 static int vdrive_command_getpartinfo(vdrive_t *vdrive, const uint8_t *cmd, int length);
 static int vdrive_command_deletepart(vdrive_t *vdrive, const uint8_t *cmd, int length);
 
-#if 0
-const char *vdrive_command_errortext(unsigned int code)
-{
-    unsigned int count = 0;
-
-    while (floppy_error_messages[count].nr != 255 && floppy_error_messages[count].nr != code) {
-        count++;
-    }
-
-    if (floppy_error_messages[count].nr != 255) {
-        return floppy_error_messages[count].text;
-    }
-
-    return "UNKNOWN ERROR NUMBER";
-}
-#endif
-
 static void vdrive_cmdfree_full(cbmdos_cmd_parse_plus_t *cmd) {
     if (cmd->full) {
         lib_free((void *)cmd->full);
@@ -383,6 +366,11 @@ int vdrive_command_execute(vdrive_t *vdrive, const uint8_t *buf,
 
 
 /* check for abbreviated commands */
+
+    if (cmd.abbrvlength == 0) {
+        status = CBMDOS_IPE_INVAL;
+        goto out;
+    }
 
     switch (cmd.abbrv[0]) {
         case 'C':       /* Copy */

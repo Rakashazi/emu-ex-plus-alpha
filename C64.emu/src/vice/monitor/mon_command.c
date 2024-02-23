@@ -72,10 +72,112 @@ static const mon_cmds_t mon_cmd_array[] = {
       NO_FILENAME_ARG
     },
 
+    { "help", "?",
+      "[<Command>]",
+      "If no argument is given, prints out a list of all available commands\n"
+      "If an argument is given, prints out specific help for that command.",
+      NO_FILENAME_ARG
+    },
+
+    { "~", "",
+      "<number>",
+      "Display the specified number in decimal, hex, octal and binary.",
+      NO_FILENAME_ARG
+    },
+
+    { "print", "p",
+      "<expression>",
+      "Evaluate the specified expression and output the result.",
+      NO_FILENAME_ARG
+    },
+
+    { "", "",
+      "",
+      "Monitor state commands:",
+      NO_FILENAME_ARG
+    },
+
+    { "device", "dev",
+      "[c:|8:|9:|10:|11:]",
+      "Set the default memory device to either the computer `c:' or the\n"
+      "specified disk drive (`8:', `9:', `10:', `11:').\n"
+      "Switches to computer when not given a device.\n",
+      NO_FILENAME_ARG
+    },
+
+    { "exit", "x",
+      NULL,
+      "Leave the monitor and return to execution.",
+      NO_FILENAME_ARG
+    },
+
+    { "quit", "q",
+      NULL,
+      "Exit the emulator immediately.",
+      NO_FILENAME_ARG
+    },
+
+    { "radix", "rad",
+      "[H|D|O|B]",
+      "Set the default radix to hex, decimal, octal, or binary.  With no\n"
+      "argument, the current radix is printed.",
+      NO_FILENAME_ARG
+    },
+
+    { "sidefx", "sfx",
+      "[on|off|toggle]",
+      "Control how monitor generated reads affect memory locations that have\n"
+      "read side-effects.  If the argument is 'on' then reads may cause\n"
+      "side-effects.  If the argument is 'off' then reads don't cause\n"
+      "side-effects.  If the argument is 'toggle' then the current mode is\n"
+      "switched.  No argument displays the current state.",
+      NO_FILENAME_ARG
+    },
+
+    { "log", "",
+      "[on|off|toggle]",
+      "Control whether the monitor output is logged into a logfile. If the\n"
+      "argument is 'on' then all output will be written into the logfile. If\n"
+      "the argument is 'off' then no log is produced. If the argument is\n"
+      "'toggle' then the current mode is switched. No argument displays the\n"
+      "current state.",
+      NO_FILENAME_ARG
+    },
+
+    { "logname", "",
+      "\"<filename>\"",
+      "Sets the filename of the logfile.",
+      FILENAME_ARG
+    },
+
+#ifdef DEBUG
+    { "maincpu_trace", "",
+      "[on|off|toggle]",
+      "Turn tracing of every instruction executed by the main CPU\n"
+      "on or off. If the argument is 'toggle' then the current mode\n"
+      "is switched.",
+      NO_FILENAME_ARG
+    },
+#endif
+
     { "", "",
       "",
       "Machine state commands:",
       NO_FILENAME_ARG
+    },
+
+    { "dump", "",
+      "\"<filename>\"",
+      "Write a snapshot of the machine into the file specified.\n"
+      "This snapshot is compatible with a snapshot written out by the UI.\n"
+      "Note: No ROM images are included into the dump.",
+      FILENAME_ARG
+    },
+
+    { "undump", "",
+      "\"<filename>\"",
+      "Read a snapshot of the machine from the file specified.",
+      FILENAME_ARG
     },
 
     { "bank", "",
@@ -86,17 +188,17 @@ static const mon_cmds_t mon_cmd_array[] = {
       NO_FILENAME_ARG
     },
 
+    { "cpu", "",
+      "<Type>",
+      "Specify the type of CPU currently used (6502/z80).",
+      NO_FILENAME_ARG
+    },
+
     { "backtrace", "bt",
       NULL,
       "Print JSR call chain (most recent call first). Stack offset\n"
       "relative to SP+1 is printed in parentheses. This is a best guess\n"
       "only.",
-      NO_FILENAME_ARG
-    },
-
-    { "cpu", "",
-      "<Type>",
-      "Specify the type of CPU currently used (6502/z80).",
       NO_FILENAME_ARG
     },
 
@@ -110,29 +212,22 @@ static const mon_cmds_t mon_cmd_array[] = {
       NO_FILENAME_ARG
     },
 
-    { "dump", "",
-      "\"<filename>\"",
-      "Write a snapshot of the machine into the file specified.\n"
-      "This snapshot is compatible with a snapshot written out by the UI.\n"
-      "Note: No ROM images are included into the dump.",
-      FILENAME_ARG
+    { "registers", "r",
+      "[<reg_name> = <number> [, <reg_name> = <number>]*]",
+      "Assign respective registers (use FL for status flags).  With no\n"
+      "parameters, display register values.\n",
+      NO_FILENAME_ARG
     },
 
-    { "export", "exp",
+    { "stopwatch", "sw",
       NULL,
-      "Print out list of attached expansion port devices.",
+      "Print the CPU cycle counter of the current device. 'reset' sets the counter to 0.",
       NO_FILENAME_ARG
     },
 
     { "goto", "g",
       "<address>",
       "Change the PC to ADDRESS and continue execution",
-      NO_FILENAME_ARG
-    },
-
-    { "io", "",
-      "<address>",
-      "Print out the I/O area of the emulated machine.",
       NO_FILENAME_ARG
     },
 
@@ -144,29 +239,10 @@ static const mon_cmds_t mon_cmd_array[] = {
       NO_FILENAME_ARG
     },
 
-    { "registers", "r",
-      "[<reg_name> = <number> [, <reg_name> = <number>]*]",
-      "Assign respective registers (use FL for status flags).  With no\n"
-      "parameters, display register values.\n",
-      NO_FILENAME_ARG
-    },
-
-    { "reset", "",
-      "[<Type>]",
-      "Reset the machine or drive. Type: 0 = soft, 1 = hard, 8-11 = drive.",
-      NO_FILENAME_ARG
-    },
-
     { "return", "ret",
       NULL,
       "Continues execution and returns to the monitor just after the next\n"
       "RTS or RTI is executed (\"step out\").",
-      NO_FILENAME_ARG
-    },
-
-    { "screen", "sc",
-      NULL,
-      "Displays the contents of the screen.",
       NO_FILENAME_ARG
     },
 
@@ -177,16 +253,69 @@ static const mon_cmds_t mon_cmd_array[] = {
       NO_FILENAME_ARG
     },
 
-    { "stopwatch", "sw",
-      NULL,
-      "Print the CPU cycle counter of the current device. 'reset' sets the counter to 0.",
+
+    { "profile", "prof",
+      "[on|off]|[flat [num]]|[graph [context] [depth]]|[func <function>]",
+      "Main CPU profiling functions. Commands:\n"
+      "\n"
+      "    prof on                        Start profiling and flush old profiling\n"
+      "                                   data.\n"
+      "    prof off                       Stop profiling.\n"
+      "    prof flat [<num=20>]           Show flat summary of 'num' top functions\n"
+      "                                   sorted by self time.\n"
+      "    prof graph [<ctx>] [depth <d>] Show callgraph up to 'd' levels deep.\n"
+      "                                   If 'ctx' is given, zoom on that subtree.\n"
+      "    prof func <function>           Show aggregate statistics for a function\n"
+      "                                   including callers and callees.\n"
+      "    prof disass <function>         Per-instruction profiling for function.\n"
+      "    prof context <ctx>             Detailed context information including\n"
+      "                                   per-instruction profiling for function\n"
+      "                                   in a call graph context.\n"
+      "    prof clear <function>          Clears all profiling stats for function.\n",
       NO_FILENAME_ARG
     },
 
-    { "undump", "",
-      "\"<filename>\"",
-      "Read a snapshot of the machine from the file specified.",
-      FILENAME_ARG
+    { "reset", "",
+      "[<Type>]",
+      "Reset the machine or drive. Type: 0 = soft, 1 = hard, 8-11 = drive.",
+      NO_FILENAME_ARG
+    },
+
+    { "export", "exp",
+      NULL,
+      "Print out list of attached expansion port devices.",
+      NO_FILENAME_ARG
+    },
+
+    { "cartfreeze", "",
+      NULL,
+      "Use cartridge freeze.",
+      NO_FILENAME_ARG
+    },
+
+    { "updb", "",
+      "<value>",
+      "Update the simulated userport output value.",
+      NO_FILENAME_ARG
+    },
+
+    { "jpdb", "",
+      "<port> <value>",
+      "Update the simulated joyport output value.",
+      NO_FILENAME_ARG
+    },
+
+    { "keybuf", "",
+      "\"<string>\"",
+      "Put the specified string into the keyboard buffer.",
+      NO_FILENAME_ARG
+    },
+
+    { "warp", "",
+      "[on|off|toggle]",
+      "Turn warp mode on or off. If the argument is 'toggle' then the current mode\n"
+      "is toggled. When no argument is given the current mode is displayed.",
+      NO_FILENAME_ARG
     },
 
     { "", "",
@@ -370,6 +499,19 @@ static const mon_cmds_t mon_cmd_array[] = {
       NO_FILENAME_ARG
     },
 
+    { "io", "",
+      "<address>",
+      "Print out the I/O area of the emulated machine.",
+      NO_FILENAME_ARG
+    },
+
+    { "screen", "sc",
+      NULL,
+      "Displays the contents of the screen.",
+      NO_FILENAME_ARG
+    },
+
+
     { "", "",
       "",
       "Checkpoint commands:",
@@ -481,49 +623,6 @@ static const mon_cmds_t mon_cmd_array[] = {
       NO_FILENAME_ARG
     },
 
-    { "", "",
-      "",
-      "Monitor state commands:",
-      NO_FILENAME_ARG
-    },
-
-    { "device", "dev",
-      "[c:|8:|9:|10:|11:]",
-      "Set the default memory device to either the computer `c:' or the\n"
-      "specified disk drive (`8:', `9:', `10:', `11:').\n"
-      "Switches to computer when not given a device.\n",
-      NO_FILENAME_ARG
-    },
-
-    { "exit", "x",
-      NULL,
-      "Leave the monitor and return to execution.",
-      NO_FILENAME_ARG
-    },
-
-    { "quit", "q",
-      NULL,
-      "Exit the emulator immediately.",
-      NO_FILENAME_ARG
-    },
-
-    { "radix", "rad",
-      "[H|D|O|B]",
-      "Set the default radix to hex, decimal, octal, or binary.  With no\n"
-      "argument, the current radix is printed.",
-      NO_FILENAME_ARG
-    },
-
-    { "sidefx", "sfx",
-      "[on|off|toggle]",
-      "Control how monitor generated reads affect memory locations that have\n"
-      "read side-effects.  If the argument is 'on' then reads may cause\n"
-      "side-effects.  If the argument is 'off' then reads don't cause\n"
-      "side-effects.  If the argument is 'toggle' then the current mode is\n"
-      "switched.  No argument displays the current state.",
-      NO_FILENAME_ARG
-    },
-
     { "dummy", "",
       "[on|off|toggle]",
       "Control whether the checkpoints will trigger on dummy accesses.\n"
@@ -534,25 +633,33 @@ static const mon_cmds_t mon_cmd_array[] = {
       NO_FILENAME_ARG
     },
 
-    { "log", "",
-      "[on|off|toggle]",
-      "Control whether the monitor output is logged into a logfile. If the\n"
-      "argument is 'on' then all output will be written into the logfile. If\n"
-      "the argument is 'off' then no log is produced. If the argument is\n"
-      "'toggle' then the current mode is switched. No argument displays the\n"
-      "current state.",
+    { "", "",
+      "",
+      "File commands:",
       NO_FILENAME_ARG
     },
 
-    { "logname", "",
-      "\"<filename>\"",
-      "Sets the filename of the logfile.",
-      FILENAME_ARG
+    { "cd", "",
+      "<Directory>",
+      "Change current working directory.",
+      NO_FILENAME_ARG
     },
 
-    { "", "",
-      "",
-      "Disk commands:",
+    { "pwd", "",
+      NULL,
+      "Show current working directory.",
+      NO_FILENAME_ARG
+    },
+
+    { "mkdir", "",
+      "<Directory>",
+      "Create directory.",
+      NO_FILENAME_ARG
+    },
+
+    { "rmdir", "",
+      "<Directory>",
+      "Remove directory.",
       NO_FILENAME_ARG
     },
 
@@ -617,12 +724,6 @@ static const mon_cmds_t mon_cmd_array[] = {
       NO_FILENAME_ARG
     },
 
-    { "cd", "",
-      "<Directory>",
-      "Change current working directory.",
-      NO_FILENAME_ARG
-    },
-
     { "detach", "",
       "<device>",
       "Detach file from device. (device 32 = cart)",
@@ -643,30 +744,21 @@ static const mon_cmds_t mon_cmd_array[] = {
 
     { "load", "l",
       "\"<filename>\" <device> [<address>]",
-      "Load the specified file into memory at the specified address. Set BASIC\n"
-      "pointers appropriately if loaded into computer memory (not all emulators).\n"
+      "Load the specified file into memory at the specified address.\n"
       "Use (otherwise ignored) two-byte load address from file if no address\n"
       "specified.\n"
       "If device is 0, the file is read from the file system.",
       FILENAME_ARG
     },
 
-    { "pwd", "",
-      NULL,
-      "Show current working directory.",
-      NO_FILENAME_ARG
-    },
-
-    { "mkdir", "",
-      "<Directory>",
-      "Create directory.",
-      NO_FILENAME_ARG
-    },
-
-    { "rmdir", "",
-      "<Directory>",
-      "Remove directory.",
-      NO_FILENAME_ARG
+    { "loadbasic", "ldb",
+      "\"<filename>\" <device> [<address>]",
+      "Load the specified file into memory at the specified address. Set BASIC\n"
+      "pointers appropriately if loaded into computer memory (not all emulators).\n"
+      "Use (otherwise ignored) two-byte load address from file if no address\n"
+      "specified.\n"
+      "If device is 0, the file is read from the file system.",
+      FILENAME_ARG
     },
 
     { "save", "s",
@@ -684,46 +776,24 @@ static const mon_cmds_t mon_cmd_array[] = {
       FILENAME_ARG
     },
 
+    { "screenshot", "scrsh",
+      "\"<filename>\" [<Format>]",
+      "Take a screenshot. Format is:\n"
+      "default = BMP, 1 = PCX, 2 = PNG, 3 = GIF, 4 = IFF.",
+      FILENAME_ARG
+    },
+
+    { "tapectrl", "",
+      "<Command>",
+      "Control the datasette. Valid commands:\n"
+      "0 = stop, 1 = start, 2 = forward, 3 = rewind, 4 = record,\n"
+      "5 = reset, 6 = reset counter.",
+      NO_FILENAME_ARG
+    },
+
     { "", "",
       "",
-      "Other commands:",
-      NO_FILENAME_ARG
-    },
-
-    { "~", "",
-      "<number>",
-      "Display the specified number in decimal, hex, octal and binary.",
-      NO_FILENAME_ARG
-    },
-
-    { "cartfreeze", "",
-      NULL,
-      "Use cartridge freeze.",
-      NO_FILENAME_ARG
-    },
-
-    { "updb", "",
-      "<value>",
-      "Update the simulated userport output value.",
-      NO_FILENAME_ARG
-    },
-
-    { "jpdb", "",
-      "<port> <value>",
-      "Update the simulated joyport output value.",
-      NO_FILENAME_ARG
-    },
-
-    { "help", "?",
-      "[<Command>]",
-      "If no argument is given, prints out a list of all available commands\n"
-      "If an argument is given, prints out specific help for that command.",
-      NO_FILENAME_ARG
-    },
-
-    { "keybuf", "",
-      "\"<string>\"",
-      "Put the specified string into the keyboard buffer.",
+      "Command file commands:",
       NO_FILENAME_ARG
     },
 
@@ -734,17 +804,24 @@ static const mon_cmds_t mon_cmd_array[] = {
       FILENAME_ARG
     },
 
-    { "print", "p",
-      "<expression>",
-      "Evaluate the specified expression and output the result.",
-      NO_FILENAME_ARG
-    },
-
     { "record", "rec",
       "\"<filename>\"",
       "After this command, all commands entered are written to the specified\n"
       "file until the STOP command is entered.",
       FILENAME_ARG
+    },
+
+    { "stop", "",
+      NULL,
+      "Stop recording commands.  See `record'.",
+      NO_FILENAME_ARG
+    },
+
+
+    { "", "",
+      "",
+      "Resource state commands:",
+      NO_FILENAME_ARG
     },
 
     { "resourceget", "resget",
@@ -769,42 +846,6 @@ static const mon_cmds_t mon_cmd_array[] = {
       "\"<filename>\"",
       "Saves resources to file.",
       FILENAME_ARG
-    },
-
-    { "stop", "",
-      NULL,
-      "Stop recording commands.  See `record'.",
-      NO_FILENAME_ARG
-    },
-
-    { "screenshot", "scrsh",
-      "\"<filename>\" [<Format>]",
-      "Take a screenshot. Format is:\n"
-      "default = BMP, 1 = PCX, 2 = PNG, 3 = GIF, 4 = IFF.",
-      FILENAME_ARG
-    },
-
-    { "tapectrl", "",
-      "<Command>",
-      "Control the datasette. Valid commands:\n"
-      "0 = stop, 1 = start, 2 = forward, 3 = rewind, 4 = record,\n"
-      "5 = reset, 6 = reset counter.",
-      NO_FILENAME_ARG
-    },
-
-    { "maincpu_trace", "",
-      "[on|off|toggle]",
-      "Turn tracing of every instruction executed by the main CPU\n"
-      "on or off. If the argument is 'toggle' then the current mode\n"
-      "is switched.",
-      NO_FILENAME_ARG
-    },
-
-    { "warp", "",
-      "[on|off|toggle]",
-      "Turn warp mode on or off. If the argument is 'toggle' then the current mode\n"
-      "is toggled. When no argument is given the current mode is displayed.",
-      NO_FILENAME_ARG
     },
 
     { NULL, NULL, NULL, NULL, 0 }

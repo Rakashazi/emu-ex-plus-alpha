@@ -28,6 +28,6 @@
 #ifndef VICE_C128_CMDLINE_OPTIONS_H
 #define VICE_C128_CMDLINE_OPTIONS_H
 
-extern int c128_cmdline_options_init(void);
+int c128_cmdline_options_init(void);
 
 #endif

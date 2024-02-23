@@ -34,13 +34,14 @@
 extern uint8_t SerialBuffer[SERIAL_NAMELENGTH + 1];
 extern int SerialPtr;
 
-extern void fsdrive_init(void);
-extern void fsdrive_reset(void);
-extern void fsdrive_open(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
-extern void fsdrive_close(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
-extern void fsdrive_listentalk(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
-extern void fsdrive_unlisten(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
-extern void fsdrive_untalk(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
-extern void fsdrive_write(unsigned int device, uint8_t secondary, uint8_t data, void (*st_func)(uint8_t));
-extern uint8_t fsdrive_read(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+void fsdrive_init(void);
+void fsdrive_reset(void);
+void fsdrive_open(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+void fsdrive_close(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+void fsdrive_listentalk(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+void fsdrive_unlisten(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+void fsdrive_untalk(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+void fsdrive_write(unsigned int device, uint8_t secondary, uint8_t data, void (*st_func)(uint8_t));
+uint8_t fsdrive_read(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+
 #endif

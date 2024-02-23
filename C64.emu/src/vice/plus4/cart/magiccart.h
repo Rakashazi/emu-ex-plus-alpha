@@ -30,17 +30,17 @@
 
 #include "types.h"
 
-extern uint8_t magiccart_c1lo_read(uint16_t addr);
+uint8_t magiccart_c1lo_read(uint16_t addr);
 
-extern void magiccart_config_setup(uint8_t *rawcart);
-extern int magiccart_bin_attach(const char *filename, uint8_t *rawcart);
-extern int magiccart_crt_attach(FILE *fd, uint8_t *rawcart);
+void magiccart_config_setup(uint8_t *rawcart);
+int magiccart_bin_attach(const char *filename, uint8_t *rawcart);
+int magiccart_crt_attach(FILE *fd, uint8_t *rawcart);
 
-extern void magiccart_detach(void);
+void magiccart_detach(void);
 
-extern void magiccart_reset(void);
+void magiccart_reset(void);
 
-extern int magiccart_snapshot_write_module(snapshot_t *s);
-extern int magiccart_snapshot_read_module(snapshot_t *s);
+int magiccart_snapshot_write_module(snapshot_t *s);
+int magiccart_snapshot_read_module(snapshot_t *s);
 
 #endif

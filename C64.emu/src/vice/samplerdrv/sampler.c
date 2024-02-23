@@ -54,7 +54,7 @@ static int current_sampler = DEFAULT_DEVICE;
 static int sampler_status = SAMPLER_CLOSED;
 
 /* sampler gain in % */
-static int sampler_gain = 100;
+static int sampler_gain = SAMPLER_GAIN_DEFAULT;
 
 /* The rest of VICE treats this code such that the list is terminated
  * by an entry where the name field is NULL. Reserve an extra entry
@@ -132,7 +132,7 @@ void sampler_stop(void)
 uint8_t sampler_get_sample(int channel)
 {
     if (devices[current_sampler].get_sample) {
-        if (sampler_gain == 100) {
+        if (sampler_gain == SAMPLER_GAIN_ONE) {
             return devices[current_sampler].get_sample(channel);
         }
         return calc_gain(devices[current_sampler].get_sample(channel));
@@ -193,7 +193,7 @@ static int set_sampler_device(int id, void *param)
 
 static int set_sampler_gain(int gain, void *param)
 {
-    if (gain < 1 || gain > 200) {
+    if (gain < SAMPLER_GAIN_MIN || gain > SAMPLER_GAIN_MAX) {
         return -1;
     }
 
@@ -205,7 +205,7 @@ static int set_sampler_gain(int gain, void *param)
 static const resource_int_t resources_int[] = {
     { "SamplerDevice", DEFAULT_DEVICE, RES_EVENT_NO, NULL,
       &current_sampler, set_sampler_device, NULL },
-    { "SamplerGain", 100, RES_EVENT_NO, NULL,
+    { "SamplerGain", SAMPLER_GAIN_DEFAULT, RES_EVENT_NO, NULL,
       &sampler_gain, set_sampler_gain, NULL },
     RESOURCE_INT_LIST_END
 };

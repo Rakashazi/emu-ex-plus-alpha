@@ -42,7 +42,7 @@
 #include "crt.h"
 #include "generic.h"
 
-#define DBGGENERIC
+/* #define DBGGENERIC */
 
 #ifdef DBGGENERIC
 #define DBG(x) printf x

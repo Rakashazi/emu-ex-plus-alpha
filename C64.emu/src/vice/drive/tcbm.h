@@ -32,20 +32,20 @@
 struct diskunit_context_s;
 struct snapshot_s;
 
-extern int tcbm_drive_resources_init(void);
-extern void tcbm_drive_resources_shutdown(void);
-extern int tcbm_drive_cmdline_options_init(void);
-extern void tcbm_drive_init(struct diskunit_context_s *drv);
-extern void tcbm_drive_shutdown(struct diskunit_context_s *drv);
-extern void tcbm_drive_reset(struct diskunit_context_s *drv);
-extern void tcbm_drive_mem_init(struct diskunit_context_s *drv, unsigned int type);
-extern void tcbm_drive_setup_context(struct diskunit_context_s *drv);
-extern void tcbm_drive_rom_load(void);
-extern void tcbm_drive_rom_setup_image(unsigned int dnr);
-extern int tcbm_drive_rom_check_loaded(unsigned int type);
-extern void tcbm_drive_rom_do_checksum(unsigned int dnr);
-extern int tcbm_drive_snapshot_read(struct diskunit_context_s *ctxptr, struct snapshot_s *s);
-extern int tcbm_drive_snapshot_write(struct diskunit_context_s *ctxptr, struct snapshot_s *s);
+int tcbm_drive_resources_init(void);
+void tcbm_drive_resources_shutdown(void);
+int tcbm_drive_cmdline_options_init(void);
+void tcbm_drive_init(struct diskunit_context_s *drv);
+void tcbm_drive_shutdown(struct diskunit_context_s *drv);
+void tcbm_drive_reset(struct diskunit_context_s *drv);
+void tcbm_drive_mem_init(struct diskunit_context_s *drv, unsigned int type);
+void tcbm_drive_setup_context(struct diskunit_context_s *drv);
+void tcbm_drive_rom_load(void);
+void tcbm_drive_rom_setup_image(unsigned int dnr);
+int tcbm_drive_rom_check_loaded(unsigned int type);
+void tcbm_drive_rom_do_checksum(unsigned int dnr);
+int tcbm_drive_snapshot_read(struct diskunit_context_s *ctxptr, struct snapshot_s *s);
+int tcbm_drive_snapshot_write(struct diskunit_context_s *ctxptr, struct snapshot_s *s);
 
 extern uint8_t tpid_outputa[], tpid_outputb[], tpid_outputc[];
 

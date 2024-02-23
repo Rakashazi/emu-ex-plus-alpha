@@ -34,21 +34,21 @@
 
 struct snapshot_s;
 
-extern uint8_t multimax_0800_0fff_read(uint16_t addr);
-extern void multimax_0800_0fff_store(uint16_t addr, uint8_t value);
-extern uint8_t multimax_roml_read(uint16_t addr);
-extern uint8_t multimax_romh_read(uint16_t addr);
-extern int multimax_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
+uint8_t multimax_0800_0fff_read(uint16_t addr);
+void multimax_0800_0fff_store(uint16_t addr, uint8_t value);
+uint8_t multimax_roml_read(uint16_t addr);
+uint8_t multimax_romh_read(uint16_t addr);
+int multimax_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
 
-extern void multimax_config_init(void);
-extern void multimax_reset(void);
-extern void multimax_config_setup(uint8_t *rawcart);
-extern int multimax_bin_attach(const char *filename, uint8_t *rawcart);
-extern int multimax_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void multimax_detach(void);
-extern void multimax_powerup(void);
+void multimax_config_init(void);
+void multimax_reset(void);
+void multimax_config_setup(uint8_t *rawcart);
+int multimax_bin_attach(const char *filename, uint8_t *rawcart);
+int multimax_crt_attach(FILE *fd, uint8_t *rawcart);
+void multimax_detach(void);
+void multimax_powerup(void);
 
-extern int multimax_snapshot_write_module(struct snapshot_s *s);
-extern int multimax_snapshot_read_module(struct snapshot_s *s);
+int multimax_snapshot_write_module(struct snapshot_s *s);
+int multimax_snapshot_read_module(struct snapshot_s *s);
 
 #endif

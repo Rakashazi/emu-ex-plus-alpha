@@ -308,8 +308,7 @@ void GLRenderer::setupVAOFuncs(bool oes)
 void GLRenderer::checkExtensionString(std::string_view extStr)
 {
 	//logMsg("checking %s", extStr);
-	#ifdef CONFIG_GFX_OPENGL_DEBUG_CONTEXT
-	if(Config::DEBUG_BUILD && extStr == "GL_KHR_debug")
+	if(Config::DEBUG_BUILD && Config::Gfx::OPENGL_DEBUG_CONTEXT && extStr == "GL_KHR_debug")
 	{
 		support.hasDebugOutput = true;
 		#ifdef __ANDROID__
@@ -321,9 +320,8 @@ void GLRenderer::checkExtensionString(std::string_view extStr)
 		}
 		#endif
 	}
-	#endif
 	#ifdef CONFIG_GFX_OPENGL_ES
-	if(extStr == "GL_OES_texture_npot")
+	else if(extStr == "GL_OES_texture_npot")
 	{
 		// allows mipmaps and repeat modes
 		setupNonPow2MipmapRepeatTextures();

@@ -28,6 +28,6 @@
 #ifndef VICE_TED_CMDLINE_OPTIONS_H
 #define VICE_TED_CMDLINE_OPTIONS_H
 
-extern int ted_cmdline_options_init(void);
+int ted_cmdline_options_init(void);
 
 #endif

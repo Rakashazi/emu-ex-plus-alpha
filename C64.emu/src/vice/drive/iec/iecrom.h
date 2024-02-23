@@ -31,19 +31,19 @@
 
 struct diskunit_context_s;
 
-extern void iecrom_init(void);
-extern void iecrom_setup_image(struct diskunit_context_s *unit);
-extern int iecrom_check_loaded(unsigned int type);
-extern void iecrom_do_checksum(struct diskunit_context_s *unit);
+void iecrom_init(void);
+void iecrom_setup_image(struct diskunit_context_s *unit);
+int iecrom_check_loaded(unsigned int type);
+void iecrom_do_checksum(struct diskunit_context_s *unit);
 
-extern int iecrom_load_1540(void);
-extern int iecrom_load_1541(void);
-extern int iecrom_load_1541ii(void);
-extern int iecrom_load_1570(void);
-extern int iecrom_load_1571(void);
-extern int iecrom_load_1581(void);
-extern int iecrom_load_2000(void);
-extern int iecrom_load_4000(void);
-extern int iecrom_load_CMDHD(void);
+int iecrom_load_1540(void);
+int iecrom_load_1541(void);
+int iecrom_load_1541ii(void);
+int iecrom_load_1570(void);
+int iecrom_load_1571(void);
+int iecrom_load_1581(void);
+int iecrom_load_2000(void);
+int iecrom_load_4000(void);
+int iecrom_load_CMDHD(void);
 
 #endif

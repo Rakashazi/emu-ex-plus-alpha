@@ -71,52 +71,52 @@ struct snapshot_s;
 #define VICII_MODEL_6572    6
 #define VICII_MODEL_NUM 7
 
-extern int vicii_resources_init(void);
-extern int vicii_cmdline_options_init(void);
-extern struct raster_s *vicii_init(unsigned int flag);
-extern struct video_canvas_s *vicii_get_canvas(void);
+int vicii_resources_init(void);
+int vicii_cmdline_options_init(void);
+struct raster_s *vicii_init(unsigned int flag);
+struct video_canvas_s *vicii_get_canvas(void);
 
-extern void vicii_reset(void);
-extern void vicii_set_light_pen(CLOCK mclk, int state);
-extern void vicii_trigger_light_pen(CLOCK mclk);
-extern CLOCK vicii_lightpen_timing(int x, int y);
-extern void vicii_set_vbank(int new_vbank);
-extern void vicii_set_ram_base(uint8_t *base);
-extern void vicii_powerup(void);
-extern void vicii_set_canvas_refresh(int enable);
-extern void vicii_reset_registers(void);
-extern void vicii_update_memory_ptrs_external(void);
-extern void vicii_handle_pending_alarms_external(CLOCK num_write_cycles);
-extern void vicii_handle_pending_alarms_external_write(void);
+void vicii_reset(void);
+void vicii_set_light_pen(CLOCK mclk, int state);
+void vicii_trigger_light_pen(CLOCK mclk);
+CLOCK vicii_lightpen_timing(int x, int y);
+void vicii_set_vbank(int new_vbank);
+void vicii_set_ram_base(uint8_t *base);
+void vicii_powerup(void);
+void vicii_set_canvas_refresh(int enable);
+void vicii_reset_registers(void);
+void vicii_update_memory_ptrs_external(void);
+void vicii_handle_pending_alarms_external(CLOCK num_write_cycles);
+void vicii_handle_pending_alarms_external_write(void);
 
-extern void vicii_screenshot(struct screenshot_s *screenshot);
-extern void vicii_shutdown(void);
-extern void vicii_change_timing(struct machine_timing_s *machine_timing, int border_mode);
+void vicii_screenshot(struct screenshot_s *screenshot);
+void vicii_shutdown(void);
+void vicii_change_timing(struct machine_timing_s *machine_timing, int border_mode);
 
-extern int vicii_dump(void);
+int vicii_dump(void);
 
-extern void vicii_snapshot_prepare(void);
-extern int vicii_snapshot_write_module(struct snapshot_s *s);
-extern int vicii_snapshot_read_module(struct snapshot_s *s);
+void vicii_snapshot_prepare(void);
+int vicii_snapshot_write_module(struct snapshot_s *s);
+int vicii_snapshot_read_module(struct snapshot_s *s);
 
-extern void vicii_async_refresh(struct canvas_refresh_s *r);
+void vicii_async_refresh(struct canvas_refresh_s *r);
 
-extern void vicii_set_phi1_vbank(int num_vbank);
-extern void vicii_set_phi2_vbank(int num_vbank);
-extern void vicii_set_phi1_ram_base(uint8_t *base);
-extern void vicii_set_phi2_ram_base(uint8_t *base);
-extern void vicii_set_phi1_addr_options(uint16_t mask, uint16_t offset);
-extern void vicii_set_phi2_addr_options(uint16_t mask, uint16_t offset);
-extern void vicii_set_chargen_addr_options(uint16_t mask, uint16_t value);
-extern void vicii_set_phi1_chargen_addr_options(uint16_t mask, uint16_t value);
-extern void vicii_set_phi2_chargen_addr_options(uint16_t mask, uint16_t value);
+void vicii_set_phi1_vbank(int num_vbank);
+void vicii_set_phi2_vbank(int num_vbank);
+void vicii_set_phi1_ram_base(uint8_t *base);
+void vicii_set_phi2_ram_base(uint8_t *base);
+void vicii_set_phi1_addr_options(uint16_t mask, uint16_t offset);
+void vicii_set_phi2_addr_options(uint16_t mask, uint16_t offset);
+void vicii_set_chargen_addr_options(uint16_t mask, uint16_t value);
+void vicii_set_phi1_chargen_addr_options(uint16_t mask, uint16_t value);
+void vicii_set_phi2_chargen_addr_options(uint16_t mask, uint16_t value);
 
 /* 8502 specific functions */
-extern CLOCK vicii_clock_add(CLOCK clock, int64_t amount);
-extern void vicii_clock_read_stretch(void);
-extern void vicii_clock_write_stretch(void);
-extern int vicii_get_half_cycle(void);
-extern void vicii_memory_refresh_alarm_handler(void);
-extern int vicii_check_memory_refresh(CLOCK clock);
+CLOCK vicii_clock_add(CLOCK clock, int64_t amount);
+void vicii_clock_read_stretch(void);
+void vicii_clock_write_stretch(void);
+int vicii_get_half_cycle(void);
+void vicii_memory_refresh_alarm_handler(void);
+int vicii_check_memory_refresh(CLOCK clock);
 
 #endif

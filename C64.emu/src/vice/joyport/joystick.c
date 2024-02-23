@@ -50,9 +50,11 @@
 #include "network.h"
 #include "resources.h"
 #include "snapshot.h"
+#include "sysfile.h"
 #include "types.h"
 #include "uiapi.h"
 #include "userport_joystick.h"
+#include "util.h"
 #include "vice-event.h"
 
 /* Control port <--> Joystick connections:
@@ -100,7 +102,7 @@
 #define JOYPAD_NW   (JOYPAD_N | JOYPAD_W)
 #define JOYPAD_NE   (JOYPAD_N | JOYPAD_E)
 
-static int joyport_joystick[JOYPORT_MAX_PORTS] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+static int joyport_joystick[JOYPORT_MAX_PORTS] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 /* Global joystick value.  */
 /*! \todo SRT: document: what are these values joystick_value[0, 1, 2, ..., 5] used for? */
@@ -156,9 +158,21 @@ static int joystick_autofire_enable[JOYPORT_MAX_PORTS] = {0};
 static int joystick_autofire_mode[JOYPORT_MAX_PORTS] = {0};
 static int joystick_autofire_speed[JOYPORT_MAX_PORTS] = {0};
 
-static uint8_t joystick_axis_value[4] = { 0x80, 0x80, 0x80, 0x80 };
+static uint8_t joystick_axis_value[2][2] = { {0x80, 0x80}, {0x80, 0x80} };
 
 /*! \todo SRT: offset is unused! */
+
+/* Joystick mapping filename */
+static char *joymap_file = NULL;
+
+/** \brief  Temporary copy of the default joymap file name
+ *
+ * Avoids silly casting away of const
+ */
+static char *joymap_factory = NULL;
+
+
+static log_t joy_log = LOG_ERR;
 
 static void joystick_latch_matrix(CLOCK offset)
 {
@@ -270,14 +284,9 @@ static void joystick_process_latch(void)
     }
 }
 
-void joystick_set_axis_value(unsigned int index, uint8_t value)
+uint8_t joystick_get_axis_value(unsigned int port, unsigned int pot)
 {
-    joystick_axis_value[index] = value;
-}
-
-uint8_t joystick_get_axis_value(unsigned int index)
-{
-    return joystick_axis_value[index];
+    return joystick_axis_value[port][pot];
 }
 
 void joystick_set_value_absolute(unsigned int joyport, uint16_t value)
@@ -364,7 +373,7 @@ uint16_t get_joystick_value(int index)
 
     /* check if autofire is enabled */
     if (joystick_autofire_enable[index]) {
-        /* check if autofire mode is permanent */
+        /* check if autofire mode is permanent, as in autofire when fire is not pressed */
         if (joystick_autofire_mode[index] == JOYSTICK_AUTOFIRE_MODE_PERMANENT) {
             /* check if fire button is not pressed */
             if (!fire_button) {
@@ -714,7 +723,7 @@ static int joyport_enable_joystick(int port, int val)
 
     joyport_joystick[port] = (val) ? 1 : 0;
     if (val) {
-        if (port == JOYPORT_1 || port == JOYPORT_2 || (port == JOYPORT_6 && machine_class == VICE_MACHINE_PLUS4)) {
+        if (port == JOYPORT_1 || port == JOYPORT_2 || (port == JOYPORT_PLUS4_SIDCART && machine_class == VICE_MACHINE_PLUS4)) {
             if (joyport_port_has_pot(port)) {
                 mapping = &joystick_mapping;
             } else {
@@ -762,6 +771,7 @@ static joyport_t joystick_device = {
     JOYPORT_RES_ID_NONE,            /* device doesn't have a class, multiple devices of this kind can be active at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,        /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,           /* device does NOT use the potentiometer lines */
+    JOYPORT_5VDC_NOT_NEEDED,        /* device does NOT need +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,       /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_JOYSTICK,        /* device is a Joystick */
     0,                              /* NO output bits */
@@ -777,7 +787,7 @@ static joyport_t joystick_device = {
     0                               /* NO device hook function mask */
 };
 
-static int joystick_joyport_register(void)
+int joystick_joyport_register(void)
 {
     return joyport_device_register(JOYPORT_ID_JOYSTICK, &joystick_device);
 }
@@ -791,39 +801,19 @@ static int set_joystick_opposite_enable(int val, void *param)
     return 0;
 }
 
-/* Actions to perform on joystick input */
-typedef enum {
-    NONE = 0,
-
-    /* Joystick movement or button press */
-    JOYSTICK = 1,
-
-    /* Keyboard key press */
-    KEYBOARD = 2,
-} joystick_action_t;
-
-
-/* Input mapping for each direction/button/etc */
-typedef struct joystick_mapping_s {
-    /* Action to perform */
-    joystick_action_t action;
-
-    union {
-        uint16_t joy_pin;
-
-        /* key[0] = row, key[1] = column */
-        int key[2];
-    } value;
-    /* Previous state of input */
-    uint8_t prev;
-} joystick_mapping_t;
-
 typedef struct joystick_axis_mapping_s {
     /* Previous state of input */
     uint8_t prev;
     struct joystick_mapping_s positive_direction;
     struct joystick_mapping_s negative_direction;
+    uint8_t pot;
 } joystick_axis_mapping_t;
+
+typedef struct joystick_button_mapping_s {
+    /* Previous state of input */
+    uint8_t prev;
+    struct joystick_mapping_s mapping;
+} joystick_button_mapping_t;
 
 typedef struct joystick_hat_mapping_s {
     /* Previous state of input */
@@ -834,9 +824,7 @@ typedef struct joystick_hat_mapping_s {
     struct joystick_mapping_s right;
 } joystick_hat_mapping_t;
 
-#ifndef HAVE_SDL_NUMJOYSTICKS
 static int num_joystick_devices = 0;
-#endif
 
 /** \brief  Joystick device name length (including 0)
  */
@@ -849,7 +837,7 @@ typedef struct joystick_device_s {
     int joyport;
     void *priv;
     joystick_axis_mapping_t *axis_mapping;
-    joystick_mapping_t *button_mapping;
+    joystick_button_mapping_t *button_mapping;
     joystick_hat_mapping_t *hat_mapping;
     int num_axes;
     int num_hats;
@@ -857,26 +845,21 @@ typedef struct joystick_device_s {
 } joystick_device_t;
 
 
-#ifndef HAVE_SDL_NUMJOYSTICKS
 static struct joystick_device_s *joystick_devices = NULL;
-#endif
 
 static int set_joystick_device(int val, void *param)
 {
     int port_idx = vice_ptr_to_int(param);
 
-#ifndef HAVE_SDL_NUMJOYSTICKS
     if (joystick_port_map[port_idx] >= JOYDEV_REALJOYSTICK_MIN) {
         int olddev = joystick_port_map[port_idx] - JOYDEV_REALJOYSTICK_MIN;
         if (olddev < num_joystick_devices) {
             joystick_devices[olddev].joyport = -1;
         }
     }
-#endif
 
     joystick_port_map[port_idx] = val;
 
-#ifndef HAVE_SDL_NUMJOYSTICKS
     if (joystick_port_map[port_idx] >= JOYDEV_REALJOYSTICK_MIN) {
         int newdev = joystick_port_map[port_idx] - JOYDEV_REALJOYSTICK_MIN;
         if (newdev < num_joystick_devices) {
@@ -889,7 +872,1332 @@ static int set_joystick_device(int val, void *param)
             }
         }
     }
+
+    return 0;
+}
+
+void joystick_set_axis_value(unsigned int joynum, unsigned int axis, uint8_t value)
+{
+    if (joynum < num_joystick_devices
+    && (joystick_devices[joynum].joyport == 0 || joystick_devices[joynum].joyport == 1)
+    && joystick_devices[joynum].axis_mapping[axis].pot > 0) {
+        joystick_axis_value[joystick_devices[joynum].joyport][joystick_devices[joynum].axis_mapping[axis].pot - 1] = value;
+    }
+}
+
+static char mapping_retval[50];
+
+char *get_joy_pot_mapping_string(int joystick_device_num, int pot)
+{
+    int j;
+    char *retval = NULL;
+
+    if (joystick_device_num >= 0 && joystick_device_num < num_joystick_devices) {
+        for (j = 0; j < joystick_devices[joystick_device_num].num_axes; j++) {
+            if (joystick_devices[joystick_device_num].axis_mapping[j].pot - 1 == pot) {
+                snprintf(mapping_retval, 50, "Ax%d", j);
+                retval = mapping_retval;
+            }
+        }
+    }
+    return retval;
+}
+
+char *get_joy_pin_mapping_string(int joystick_device_num, int pin)
+{
+    int j;
+    joystick_action_t t;
+    int valid = 0;
+    int index = 0;
+    int sub_index = 0;
+    char *retval = NULL;
+    char *type_string = NULL;
+    char *index_string = NULL;
+
+    if (joystick_device_num >= 0 && joystick_device_num < num_joystick_devices) {
+        for (j = 0; j < joystick_devices[joystick_device_num].num_axes; j++) {
+            t = joystick_devices[joystick_device_num].axis_mapping[j].positive_direction.action;
+            if (t == JOY_ACTION_JOYSTICK && joystick_devices[joystick_device_num].axis_mapping[j].positive_direction.value.joy_pin == pin) {
+                valid++;
+                type_string = "Ax";
+                index_string = "I";
+                index = j;
+                sub_index = 0;
+            }
+            t = joystick_devices[joystick_device_num].axis_mapping[j].negative_direction.action;
+            if (t == JOY_ACTION_JOYSTICK && joystick_devices[joystick_device_num].axis_mapping[j].negative_direction.value.joy_pin == pin) {
+                valid++;
+                type_string = "Ax";
+                index_string = "I";
+                index = j;
+                sub_index = 1;
+            }
+        }
+        for (j = 0; j < joystick_devices[joystick_device_num].num_buttons; j++) {
+            t = joystick_devices[joystick_device_num].button_mapping[j].mapping.action;
+            if (t == JOY_ACTION_JOYSTICK) {
+                if (joystick_devices[joystick_device_num].button_mapping[j].mapping.value.joy_pin == pin) {
+                    valid++;
+                    type_string = "Bt";
+                    index_string = NULL;
+                    index = j;
+                    sub_index = 0;
+                }
+            }
+        }
+        for (j = 0; j < joystick_devices[joystick_device_num].num_hats; j++) {
+            t = joystick_devices[joystick_device_num].hat_mapping[j].up.action;
+
+            if (t == JOY_ACTION_JOYSTICK) {
+                if (joystick_devices[joystick_device_num].hat_mapping[j].up.value.joy_pin == pin) {
+                    valid++;
+                    type_string = "Ht";
+                    index_string = "I";
+                    index = j;
+                    sub_index = 0;
+                }
+            }
+            t = joystick_devices[joystick_device_num].hat_mapping[j].down.action;
+
+            if (t == JOY_ACTION_JOYSTICK) {
+                if (joystick_devices[joystick_device_num].hat_mapping[j].down.value.joy_pin == pin) {
+                    valid++;
+                    type_string = "Ht";
+                    index_string = "I";
+                    index = j;
+                    sub_index = 1;
+                }
+            }
+            t = joystick_devices[joystick_device_num].hat_mapping[j].left.action;
+
+            if (t == JOY_ACTION_JOYSTICK) {
+                if (joystick_devices[joystick_device_num].hat_mapping[j].left.value.joy_pin == pin) {
+                    valid++;
+                    type_string = "Ht";
+                    index_string = "I";
+                    index = j;
+                    sub_index = 2;
+                }
+            }
+            t = joystick_devices[joystick_device_num].hat_mapping[j].right.action;
+
+            if (t == JOY_ACTION_JOYSTICK) {
+                if (joystick_devices[joystick_device_num].hat_mapping[j].right.value.joy_pin == pin) {
+                    valid++;
+                    type_string = "Ht";
+                    index_string = "I";
+                    index = j;
+                    sub_index = 3;
+                }
+            }
+        }
+    }
+    if (valid > 1) {
+        retval = "Multiple";
+    }
+    if (valid == 1) {
+        if (index_string != NULL ) {
+            snprintf(mapping_retval, 50, "%s%d, %s%d", type_string, index, index_string, sub_index);
+        } else {
+            snprintf(mapping_retval, 50, "%s%d", type_string, index);
+        }
+        retval = mapping_retval;
+    }
+
+    return retval;
+}
+
+char *get_joy_extra_mapping_string(int which)
+{
+    int i, j;
+    joystick_action_t t;
+    int valid = 0;
+    int joy = 0;
+    int index = 0;
+    int sub_index = 0;
+    char *retval = NULL;
+    char *type_string = NULL;
+    char *index_string = NULL;
+
+    for (i = 0; i < num_joystick_devices; i++) {
+        for (j = 0; j < joystick_devices[i].num_axes; j++) {
+            t = joystick_devices[i].axis_mapping[j].positive_direction.action;
+            if (t == (which ? JOY_ACTION_MAP : JOY_ACTION_UI_ACTIVATE)) {
+                valid++;
+                joy = i;
+                type_string = "Ax";
+                index_string = "I";
+                index = j;
+                sub_index = 0;
+            }
+            t = joystick_devices[i].axis_mapping[j].negative_direction.action;
+            if (t == (which ? JOY_ACTION_MAP : JOY_ACTION_UI_ACTIVATE)) {
+                valid++;
+                joy = i;
+                type_string = "Ax";
+                index_string = "I";
+                index = j;
+                sub_index = 1;
+            }
+        }
+        for (j = 0; j < joystick_devices[i].num_buttons; j++) {
+            t = joystick_devices[i].button_mapping[j].mapping.action;
+            if (t == (which ? JOY_ACTION_MAP : JOY_ACTION_UI_ACTIVATE)) {
+                valid++;
+                joy = i;
+                type_string = "Bt";
+                index_string = NULL;
+                index = j;
+                sub_index = 0;
+            }
+        }
+        for (j = 0; j < joystick_devices[i].num_hats; j++) {
+            t = joystick_devices[i].hat_mapping[j].up.action;
+
+            if (t == (which ? JOY_ACTION_MAP : JOY_ACTION_UI_ACTIVATE)) {
+                valid++;
+                joy = i;
+                type_string = "Ht";
+                index_string = "I";
+                index = j;
+                sub_index = 0;
+            }
+            t = joystick_devices[i].hat_mapping[j].down.action;
+
+            if (t == (which ? JOY_ACTION_MAP : JOY_ACTION_UI_ACTIVATE)) {
+                valid++;
+                joy = i;
+                type_string = "Ht";
+                index_string = "I";
+                index = j;
+                sub_index = 1;
+            }
+            t = joystick_devices[i].hat_mapping[j].left.action;
+
+            if (t == (which ? JOY_ACTION_MAP : JOY_ACTION_UI_ACTIVATE)) {
+                valid++;
+                joy = i;
+                type_string = "Ht";
+                index_string = "I";
+                index = j;
+                sub_index = 2;
+            }
+            t = joystick_devices[i].hat_mapping[j].right.action;
+
+            if (t == (which ? JOY_ACTION_MAP : JOY_ACTION_UI_ACTIVATE)) {
+                valid++;
+                joy = i;
+                type_string = "Ht";
+                index_string = "I";
+                index = j;
+                sub_index = 3;
+            }
+        }
+    }
+    if (valid > 1) {
+        retval = "Multiple";
+    }
+    if (valid == 1) {
+        if (index_string != NULL ) {
+            snprintf(mapping_retval, 50, "J%d, %s%d, %s%d", joy, type_string, index, index_string, sub_index);
+        } else {
+            snprintf(mapping_retval, 50, "J%d, %s%d", joy, type_string, index);
+        }
+        retval = mapping_retval;
+    }
+
+    return retval;
+}
+
+void joy_set_pot_mapping(int joystick_device_num, int axis, int pot)
+{
+    joystick_devices[joystick_device_num].axis_mapping[axis].pot = pot + 1;
+}
+
+void joy_delete_pot_mapping(int joystick_device_num, int pot)
+{
+    int j;
+
+    if (joystick_device_num >= 0 && joystick_device_num < num_joystick_devices) {
+        for (j = 0; j < joystick_devices[joystick_device_num].num_axes; j++) {
+            if (joystick_devices[joystick_device_num].axis_mapping[j].pot - 1 == pot) {
+                joystick_devices[joystick_device_num].axis_mapping[j].pot = 0;
+            }
+        }
+    }
+}
+
+void joy_delete_pin_mapping(int joystick_device_num, int pin)
+{
+    int j;
+    joystick_action_t t;
+
+    if (joystick_device_num >= 0 && joystick_device_num < num_joystick_devices) {
+        for (j = 0; j < joystick_devices[joystick_device_num].num_axes; j++) {
+            t = joystick_devices[joystick_device_num].axis_mapping[j].positive_direction.action;
+            if (t == JOY_ACTION_JOYSTICK) {
+                if (joystick_devices[joystick_device_num].axis_mapping[j].positive_direction.value.joy_pin == pin) {
+                    joystick_devices[joystick_device_num].axis_mapping[j].positive_direction.action = JOY_ACTION_NONE;
+                    joystick_devices[joystick_device_num].axis_mapping[j].positive_direction.value.joy_pin = 0;
+                }
+            }
+            t = joystick_devices[joystick_device_num].axis_mapping[j].negative_direction.action;
+            if (t == JOY_ACTION_JOYSTICK) {
+                if (joystick_devices[joystick_device_num].axis_mapping[j].negative_direction.value.joy_pin == pin) {
+                    joystick_devices[joystick_device_num].axis_mapping[j].negative_direction.action = JOY_ACTION_NONE;
+                    joystick_devices[joystick_device_num].axis_mapping[j].negative_direction.value.joy_pin = 0;
+                }
+            }
+        }
+        for (j = 0; j < joystick_devices[joystick_device_num].num_buttons; j++) {
+            t = joystick_devices[joystick_device_num].button_mapping[j].mapping.action;
+            if (t == JOY_ACTION_JOYSTICK) {
+                if (joystick_devices[joystick_device_num].button_mapping[j].mapping.value.joy_pin == pin) {
+                    joystick_devices[joystick_device_num].button_mapping[j].mapping.action = JOY_ACTION_NONE;
+                    joystick_devices[joystick_device_num].button_mapping[j].mapping.value.joy_pin = 0;
+                }
+            }
+        }
+        for (j = 0; j < joystick_devices[joystick_device_num].num_hats; j++) {
+            t = joystick_devices[joystick_device_num].hat_mapping[j].up.action;
+            if (t == JOY_ACTION_JOYSTICK) {
+                if (joystick_devices[joystick_device_num].hat_mapping[j].up.value.joy_pin == pin) {
+                    joystick_devices[joystick_device_num].hat_mapping[j].up.action = JOY_ACTION_NONE;
+                    joystick_devices[joystick_device_num].hat_mapping[j].up.value.joy_pin = 0;
+                }
+            }
+            t = joystick_devices[joystick_device_num].hat_mapping[j].down.action;
+            if (t == JOY_ACTION_JOYSTICK) {
+                if (joystick_devices[joystick_device_num].hat_mapping[j].down.value.joy_pin == pin) {
+                    joystick_devices[joystick_device_num].hat_mapping[j].down.action = JOY_ACTION_NONE;
+                    joystick_devices[joystick_device_num].hat_mapping[j].down.value.joy_pin = 0;
+                }
+            }
+            t = joystick_devices[joystick_device_num].hat_mapping[j].left.action;
+            if (t == JOY_ACTION_JOYSTICK) {
+                if (joystick_devices[joystick_device_num].hat_mapping[j].left.value.joy_pin == pin) {
+                    joystick_devices[joystick_device_num].hat_mapping[j].left.action = JOY_ACTION_NONE;
+                    joystick_devices[joystick_device_num].hat_mapping[j].left.value.joy_pin = 0;
+                }
+            }
+            t = joystick_devices[joystick_device_num].hat_mapping[j].right.action;
+            if (t == JOY_ACTION_JOYSTICK) {
+                if (joystick_devices[joystick_device_num].hat_mapping[j].right.value.joy_pin == pin) {
+                    joystick_devices[joystick_device_num].hat_mapping[j].right.action = JOY_ACTION_NONE;
+                    joystick_devices[joystick_device_num].hat_mapping[j].right.value.joy_pin = 0;
+                }
+            }
+        }
+    }
+}
+
+#if (defined USE_SDLUI ||defined USE_SDL2UI)
+void joy_delete_extra_mapping(int type)
+{
+    int i, j;
+    joystick_action_t t;
+
+    for (i = 0; i < num_joystick_devices; i++) {
+        for (j = 0; j < joystick_devices[i].num_axes; j++) {
+            t = joystick_devices[i].axis_mapping[j].positive_direction.action;
+            if (t == (type ? JOY_ACTION_MAP : JOY_ACTION_UI_ACTIVATE)) {
+                joystick_devices[i].axis_mapping[j].positive_direction.action = JOY_ACTION_NONE;
+                joystick_devices[i].axis_mapping[j].positive_direction.value.ui_action = ACTION_NONE;
+            }
+            t = joystick_devices[i].axis_mapping[j].negative_direction.action;
+            if (t == (type ? JOY_ACTION_MAP : JOY_ACTION_UI_ACTIVATE)) {
+                joystick_devices[i].axis_mapping[j].negative_direction.action = JOY_ACTION_NONE;
+                joystick_devices[i].axis_mapping[j].negative_direction.value.ui_action = ACTION_NONE;
+            }
+        }
+        for (j = 0; j < joystick_devices[i].num_buttons; j++) {
+            t = joystick_devices[i].button_mapping[j].mapping.action;
+            if (t == (type ? JOY_ACTION_MAP : JOY_ACTION_UI_ACTIVATE)) {
+                joystick_devices[i].button_mapping[j].mapping.action = JOY_ACTION_NONE;
+                joystick_devices[i].button_mapping[j].mapping.value.ui_action = ACTION_NONE;
+            }
+        }
+        for (j = 0; j < joystick_devices[i].num_hats; j++) {
+            t = joystick_devices[i].hat_mapping[j].up.action;
+            if (t == (type ? JOY_ACTION_MAP : JOY_ACTION_UI_ACTIVATE)) {
+                joystick_devices[i].hat_mapping[j].up.action = JOY_ACTION_NONE;
+                joystick_devices[i].hat_mapping[j].up.value.ui_action = ACTION_NONE;
+            }
+            t = joystick_devices[i].hat_mapping[j].down.action;
+            if (t == (type ? JOY_ACTION_MAP : JOY_ACTION_UI_ACTIVATE)) {
+                joystick_devices[i].hat_mapping[j].down.action = JOY_ACTION_NONE;
+                joystick_devices[i].hat_mapping[j].down.value.ui_action = ACTION_NONE;
+            }
+            t = joystick_devices[i].hat_mapping[j].left.action;
+            if (t == (type ? JOY_ACTION_MAP : JOY_ACTION_UI_ACTIVATE)) {
+                joystick_devices[i].hat_mapping[j].left.action = JOY_ACTION_NONE;
+                joystick_devices[i].hat_mapping[j].left.value.ui_action = ACTION_NONE;
+            }
+            t = joystick_devices[i].hat_mapping[j].right.action;
+            if (t == (type ? JOY_ACTION_MAP : JOY_ACTION_UI_ACTIVATE)) {
+                joystick_devices[i].hat_mapping[j].right.action = JOY_ACTION_NONE;
+                joystick_devices[i].hat_mapping[j].right.value.ui_action = ACTION_NONE;
+            }
+        }
+    }
+}
 #endif
+
+
+static void mapping_dump_header(FILE *fp)
+{
+    fprintf(fp, "# VICE joystick mapping file\n"
+            "#\n"
+            "# A joystick map is read in as patch to the current map.\n"
+            "#\n"
+            "# File format:\n"
+            "# - comment lines start with '#'\n"
+            "# - keyword lines start with '!keyword'\n"
+            "# - normal line has 'joynum inputtype inputindex action'\n"
+            "#\n"
+            "# Keywords and their lines are:\n"
+            "# '!CLEAR'    clear all mappings\n"
+            "#\n"
+            );
+
+    fprintf(fp, "# inputtype:\n"
+            "# 0      axis\n"
+            "# 1      button\n"
+            "# 2      hat\n"
+            "#\n"
+            "# For buttons, inputindex is the zero-based index of the button.\n"
+            "# For hats: hat 0 has inputindex 0,1,2,3 respectively for up, down, left and right. Hat 1 has 5,6,7,8 etc.\n"
+            "# For axes, and action 1 (joystick) and 2 (keyboard): axis 0 has inputindex 0,1 respectively for positive and negative, axis 1 has 2,3 etc.\n"
+            "# For axes, and action 6 (pot axis): inputindex is the zero-based index of the axis.\n"
+            "#\n"
+            "# action [action_parameters]:\n"
+            "# 0               none\n"
+            "# 1 pin           joystick (pin: 1/2/4/8/16/32/64 = u/d/l/r/fire/fire2/fire3)\n"
+            "# 2 row col       keyboard\n"
+            "# 3               map\n"
+            "# 4               UI activate\n"
+            "# 5 action-name   UI function\n"
+            "# 6 pot           potentiometer (1=pot x, 2=pot y)\n"
+            "#\n\n"
+            );
+}
+
+/** \brief Dump mapping of host controller input to emulator input
+ *
+ * Dump mapping of a host axis, button or hat to an emulator key, joystick
+ * button or UI action.
+ *
+ * \param[in]   fp              file pointer of the .vjm file
+ * \param[in]   device_index    host device index
+ * \param[in]   input_type      input type (axis, button, hat)
+ * \param[in]   map_index       sub index of mapping of \a input_type
+ * \param[in]   map             mapping to dump
+ */
+static void mapping_dump_map(FILE               *fp,
+                             int                 device_index,
+                             joystick_input_t    input_type,
+                             int                 map_index,
+                             joystick_mapping_t *map)
+{
+    fprintf(fp, "%i %u %i %u", device_index, input_type, map_index, map->action);
+    switch (map->action) {
+        case JOY_ACTION_JOYSTICK:
+            fprintf(fp, " %i", map->value.joy_pin);
+            break;
+        case JOY_ACTION_KEYBOARD:
+            fprintf(fp, " %i %i", map->value.key[0], map->value.key[1]);
+            break;
+        case JOY_ACTION_UI_FUNCTION:
+            fprintf(fp, " %s", ui_action_get_name(map->value.ui_action));
+            break;
+        default:
+            break;
+    }
+    fprintf(fp, "\n");
+}
+
+
+int joy_arch_mapping_dump(const char *filename)
+{
+    FILE *fp;
+    int   dev_idx;
+    int   map_idx;
+
+#ifdef SDL_DEBUG
+    fprintf(stderr, "%s\n", __func__);
+#endif
+
+    if (filename == NULL) {
+        return -1;
+    }
+
+    fp = fopen(filename, MODE_WRITE_TEXT);
+    if (fp == NULL) {
+        return -1;
+    }
+
+    mapping_dump_header(fp);
+
+    fprintf(fp, "!CLEAR\n\n");
+
+    for (dev_idx = 0; dev_idx < num_joystick_devices; dev_idx++) {
+        joystick_device_t *device = &joystick_devices[dev_idx];
+        int                row    = 0;
+
+        fprintf(fp, "# %s\n", device->jname);
+
+        /* dump axis mappings */
+        for (map_idx = 0; map_idx < device->num_axes; map_idx++) {
+            joystick_axis_mapping_t *axis = &(device->axis_mapping[map_idx]);
+
+            if (axis->pot > 0) {
+                fprintf(fp, "%i %i %i %i %u\n",
+                        dev_idx, JOY_INPUT_AXIS, map_idx, JOY_ACTION_POT_AXIS, axis->pot);
+            } else {
+                mapping_dump_map(fp, dev_idx, JOY_INPUT_AXIS, row + 0, &(axis->positive_direction));
+                mapping_dump_map(fp, dev_idx, JOY_INPUT_AXIS, row + 1, &(axis->negative_direction));
+            }
+            fprintf(fp, "\n");
+            row += 2;
+        }
+
+        /* dump button mappings */
+        for (map_idx = 0; map_idx < device->num_buttons; map_idx++) {
+            joystick_button_mapping_t *button = &(device->button_mapping[map_idx]);
+
+            mapping_dump_map(fp, dev_idx, JOY_INPUT_BUTTON, map_idx, &button->mapping);
+        }
+        fprintf(fp, "\n");
+
+        /* dump hat mappings */
+        row = 0;
+        for (map_idx = 0; map_idx < device->num_hats; map_idx++) {
+            joystick_hat_mapping_t *hat = &(device->hat_mapping[map_idx]);
+
+            /* indexes 0-3 are hardcoded to up, down, left and right */
+            mapping_dump_map(fp, dev_idx, JOY_INPUT_HAT, row + 0, &(hat->up));
+            mapping_dump_map(fp, dev_idx, JOY_INPUT_HAT, row + 1, &(hat->down));
+            mapping_dump_map(fp, dev_idx, JOY_INPUT_HAT, row + 2, &(hat->left));
+            mapping_dump_map(fp, dev_idx, JOY_INPUT_HAT, row + 3, &(hat->right));
+            row += 4;
+        }
+
+        /* avoid printing newlines at end of dump */
+        if (dev_idx < num_joystick_devices - 1) {
+            fprintf(fp, "\n\n");
+        }
+    }
+
+    fclose(fp);
+    return 0;
+}
+
+
+static void joy_arch_keyword_clear(void)
+{
+    int i, k;
+
+    for (i = 0; i < num_joystick_devices; ++i) {
+        for (k = 0; k < joystick_devices[i].num_axes; ++k) {
+            joystick_devices[i].axis_mapping[k].positive_direction.action = JOY_ACTION_NONE;
+            joystick_devices[i].axis_mapping[k].negative_direction.action = JOY_ACTION_NONE;
+        }
+        for (k = 0; k < joystick_devices[i].num_buttons; ++k) {
+            joystick_devices[i].button_mapping[k].mapping.action = JOY_ACTION_NONE;
+        }
+        for (k = 0; k < joystick_devices[i].num_hats; ++k) {
+            joystick_devices[i].hat_mapping[k].up.action = JOY_ACTION_NONE;
+            joystick_devices[i].hat_mapping[k].down.action = JOY_ACTION_NONE;
+            joystick_devices[i].hat_mapping[k].left.action = JOY_ACTION_NONE;
+            joystick_devices[i].hat_mapping[k].right.action = JOY_ACTION_NONE;
+        }
+    }
+}
+
+static void joy_arch_parse_keyword(char *buffer)
+{
+    char *key;
+
+    key = strtok(buffer + 1, " \t:");
+
+    if (!strcmp(key, "CLEAR")) {
+        joy_arch_keyword_clear();
+    }
+}
+
+
+/* Comment out to revert to old parser */
+#define NEW_ENTRY_PARSER
+
+#ifndef NEW_ENTRY_PARSER
+/* Old parser, kept for reference and bug checking */
+static void joy_arch_parse_entry(char *buffer)
+{
+    char *p;
+    int joynum, inputindex, data1 = 0, data2 = 0;
+    int inputtype;
+    joystick_action_t action;
+    int axis_or_hat_index, direction;
+    char valid = 0;
+    int action_id;
+
+    p = strtok(buffer, " \t:");
+
+    joynum = atoi(p);
+
+    if (joynum >= num_joystick_devices) {
+        log_error(joy_log, "Could not find joystick %i!", joynum);
+        return;
+    }
+
+    p = strtok(NULL, " \t,");
+    if (p != NULL) {
+        inputtype = atoi(p);
+        p = strtok(NULL, " \t,");
+        if (p != NULL) {
+            inputindex = atoi(p);
+            p = strtok(NULL, " \t");
+            if (p != NULL) {
+                action = (joystick_action_t)atoi(p);
+
+                switch (action) {
+                    case JOY_ACTION_UI_FUNCTION:
+                        p = strtok(NULL, "\t\r\n");
+                        if (p != NULL) {
+                            valid = 1;
+                        }
+                        break;
+                    case JOY_ACTION_JOYSTICK:
+                    case JOY_ACTION_POT_AXIS:
+                        p = strtok(NULL, " \t");
+                        if (p != NULL) {
+                            data1 = atoi(p);
+                            valid = 1;
+                        }
+                        break;
+                    case JOY_ACTION_KEYBOARD:
+                        p = strtok(NULL, " \t");
+                        if (p != NULL) {
+                            data1 = atoi(p);
+                            p = strtok(NULL, " \t");
+                            if (p != NULL) {
+                                data2 = atoi(p);
+                                valid = 1;
+                            }
+                        }
+                        break;
+                    case JOY_ACTION_UI_ACTIVATE:
+                        valid = 1;
+                        break;
+                    default:
+                        break;
+                }
+
+                if (valid) {
+                    switch (inputtype) {
+                        case 0:
+                            if (action == JOY_ACTION_POT_AXIS) {
+                                if (inputindex < joystick_devices[joynum].num_axes) {
+                                    joystick_devices[joynum].axis_mapping[inputindex].pot = data1;
+                                } else {
+                                    log_warning(joy_log, "inputindex %i too large for inputtype axis (pot), joynum %i!", inputindex, joynum);
+                                }
+                            } else {
+                                axis_or_hat_index = inputindex / 2;
+                                direction = inputindex % 2;
+                                if (axis_or_hat_index < joystick_devices[joynum].num_axes) {
+                                    if (direction == 0) {
+                                        joystick_devices[joynum].axis_mapping[axis_or_hat_index].positive_direction.action = action;
+                                        switch (action) {
+                                            case JOY_ACTION_JOYSTICK:
+                                                joystick_devices[joynum].axis_mapping[axis_or_hat_index].positive_direction.value.joy_pin = data1;
+                                                break;
+                                            case JOY_ACTION_KEYBOARD:
+                                                joystick_devices[joynum].axis_mapping[axis_or_hat_index].positive_direction.value.key[0] = data1;
+                                                joystick_devices[joynum].axis_mapping[axis_or_hat_index].positive_direction.value.key[1] = data2;
+                                                break;
+                                            case JOY_ACTION_UI_FUNCTION:
+                                                joystick_devices[joynum].axis_mapping[axis_or_hat_index].positive_direction.value.ui_action = ui_action_get_id(p);
+                                               break;
+                                            default:
+                                                break;
+                                        }
+                                    } else {
+                                        joystick_devices[joynum].axis_mapping[axis_or_hat_index].negative_direction.action = action;
+                                        switch (action) {
+                                            case JOY_ACTION_JOYSTICK:
+                                                joystick_devices[joynum].axis_mapping[axis_or_hat_index].negative_direction.value.joy_pin = data1;
+                                                break;
+                                            case JOY_ACTION_KEYBOARD:
+                                                joystick_devices[joynum].axis_mapping[axis_or_hat_index].negative_direction.value.key[0] = data1;
+                                                joystick_devices[joynum].axis_mapping[axis_or_hat_index].negative_direction.value.key[1] = data2;
+                                                break;
+                                            case JOY_ACTION_UI_FUNCTION:
+                                                joystick_devices[joynum].axis_mapping[axis_or_hat_index].negative_direction.value.ui_action = ui_action_get_id(p);
+                                               break;
+                                            default:
+                                                break;
+                                        }
+                                    }
+                                } else {
+                                    log_warning(joy_log, "inputindex %i too large for inputtype axis, joynum %i!", inputindex, joynum);
+                                }
+                            }
+                            break;
+                        case 1:
+                            if (inputindex < joystick_devices[joynum].num_buttons) {
+                                joystick_devices[joynum].button_mapping[inputindex].mapping.action = action;
+                                switch (action) {
+                                    case JOY_ACTION_JOYSTICK:
+                                        joystick_devices[joynum].button_mapping[inputindex].mapping.value.joy_pin = data1;
+                                        break;
+                                    case JOY_ACTION_KEYBOARD:
+                                        joystick_devices[joynum].button_mapping[inputindex].mapping.value.key[0] = data1;
+                                        joystick_devices[joynum].button_mapping[inputindex].mapping.value.key[1] = data2;
+                                        break;
+                                    case JOY_ACTION_UI_FUNCTION:
+                                        action_id = ui_action_get_id(p);
+                                        joystick_devices[joynum].button_mapping[inputindex].mapping.value.ui_action = action_id;
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            } else {
+                                log_warning(joy_log, "inputindex %i too large for inputtype button, joynum %i!", inputindex, joynum);
+                            }
+                            break;
+                        case 2:
+                            axis_or_hat_index = inputindex / 4;
+                            direction = inputindex % 4;
+                            if (axis_or_hat_index < joystick_devices[joynum].num_hats) {
+                                if (direction == 0) {
+                                    joystick_devices[joynum].hat_mapping[axis_or_hat_index].up.action = action;
+                                    switch (action) {
+                                        case JOY_ACTION_JOYSTICK:
+                                            joystick_devices[joynum].hat_mapping[axis_or_hat_index].up.value.joy_pin = data1;
+                                            break;
+                                        case JOY_ACTION_KEYBOARD:
+                                            joystick_devices[joynum].hat_mapping[axis_or_hat_index].up.value.key[0] = data1;
+                                            joystick_devices[joynum].hat_mapping[axis_or_hat_index].up.value.key[1] = data2;
+                                            break;
+                                        case JOY_ACTION_UI_FUNCTION:
+                                            joystick_devices[joynum].hat_mapping[axis_or_hat_index].up.value.ui_action = ui_action_get_id(p);
+                                            break;
+                                        default:
+                                            break;
+                                    }
+                                } else if (direction == 1) {
+                                    joystick_devices[joynum].hat_mapping[axis_or_hat_index].down.action = action;
+                                    switch (action) {
+                                        case JOY_ACTION_JOYSTICK:
+                                            joystick_devices[joynum].hat_mapping[axis_or_hat_index].down.value.joy_pin = data1;
+                                            break;
+                                        case JOY_ACTION_KEYBOARD:
+                                            joystick_devices[joynum].hat_mapping[axis_or_hat_index].down.value.key[0] = data1;
+                                            joystick_devices[joynum].hat_mapping[axis_or_hat_index].down.value.key[1] = data2;
+                                            break;
+                                        case JOY_ACTION_UI_FUNCTION:
+                                            joystick_devices[joynum].hat_mapping[axis_or_hat_index].down.value.ui_action = ui_action_get_id(p);
+                                            break;
+                                        default:
+                                            break;
+                                    }
+                                } else if (direction == 2) {
+                                    joystick_devices[joynum].hat_mapping[axis_or_hat_index].left.action = action;
+                                    switch (action) {
+                                        case JOY_ACTION_JOYSTICK:
+                                            joystick_devices[joynum].hat_mapping[axis_or_hat_index].left.value.joy_pin = data1;
+                                            break;
+                                        case JOY_ACTION_KEYBOARD:
+                                            joystick_devices[joynum].hat_mapping[axis_or_hat_index].left.value.key[0] = data1;
+                                            joystick_devices[joynum].hat_mapping[axis_or_hat_index].left.value.key[1] = data2;
+                                            break;
+                                        case JOY_ACTION_UI_FUNCTION:
+                                            joystick_devices[joynum].hat_mapping[axis_or_hat_index].left.value.ui_action = ui_action_get_id(p);
+                                            break;
+                                        default:
+                                            break;
+                                    }
+                                } else if (direction == 3) {
+                                    joystick_devices[joynum].hat_mapping[axis_or_hat_index].right.action = action;
+                                    switch (action) {
+                                        case JOY_ACTION_JOYSTICK:
+                                            joystick_devices[joynum].hat_mapping[axis_or_hat_index].right.value.joy_pin = data1;
+                                            break;
+                                        case JOY_ACTION_KEYBOARD:
+                                            joystick_devices[joynum].hat_mapping[axis_or_hat_index].right.value.key[0] = data1;
+                                            joystick_devices[joynum].hat_mapping[axis_or_hat_index].right.value.key[1] = data2;
+                                            break;
+                                        case JOY_ACTION_UI_FUNCTION:
+                                            joystick_devices[joynum].hat_mapping[axis_or_hat_index].right.value.ui_action = ui_action_get_id(p);
+                                            break;
+                                        default:
+                                            break;
+                                    }
+                                }
+                            } else {
+                                log_warning(joy_log, "inputindex %i too large for inputtype hat, joynum %i!", inputindex, joynum);
+                            }
+                            break;
+                    }
+                }
+            }
+        }
+    }
+}
+#endif
+
+#ifdef NEW_ENTRY_PARSER
+
+/*
+ * Parser reimplementation: get rid of the nested switch statements insanity,
+ * split massive function into smaller functions and add proper input checking
+ * and error reporting.
+ */
+
+/** \brief  Parser state object
+ *
+ * This object is used to pass parser state between functions used by the
+ * parser.
+ */
+typedef struct parser_state_s {
+    const char        *filename;    /**< file being parsed */
+    int                lineno;      /**< line number in file */
+    const char        *buffer;      /**< buffer being parsed */
+    const char        *bufptr;      /**< current position in buffer */
+
+    /* mandatory columns */
+    int                joy_index;   /**< joystick index */
+    joystick_input_t   input_type;  /**< input type */
+    int                input_index; /**< input index */
+    joystick_action_t  action;      /**< action number */
+
+    union {
+        uint16_t pin;           /**< joystick pin number */
+        int      pot;           /**< potentiometer number */
+        int      ui_action_id;  /**< UI action ID */
+        struct {
+            int row;            /**< keyboard matrix row */
+            int column;         /**< keyboard matrix column */
+            int flags;          /**< key event flags */
+        } key;
+    } args; /**< action-specific arguments */
+} parser_state_t;
+
+
+/** \brief  Parse text for integer literal
+ *
+ * \param[in]   text    text possibly containing an integer literal
+ * \param[out]  endptr  positionion of first non-digit character in \a text
+ * \param[out]  value   integer result
+ *
+ * \return  \c true on success
+ * \note    Does not check for overflow/underflow.
+ */
+static bool parse_int(const char *text, char **endptr, int *value)
+{
+    const char *s = text;
+    long        v;
+
+    v = strtol(text, endptr, 10);
+    if (*endptr == s) {
+        return false;
+    }
+    *value = (int)v;
+    return true;
+}
+
+/** \brief  Parse a number of whitespace separated integer literals
+ *
+ * Parse \a text for at most \a num integer literals and store them in \a values.
+ *
+ * \param[in]   text    text to parse for integer literals
+ * \param[out]  endptr  pointer to first non-digit in \a text
+ * \param[in]   num     maximum number of integer literals to parse
+ * \param[out]  values  destination for values
+ *
+ * \return  number of integer literals succesfully parsed, can be less than \a num
+ */
+static int parse_int_args(const char *text, char **endptr, size_t num, int *values)
+{
+    const char *s = text;
+    size_t      n = 0;
+
+    while (n < num) {
+        int val = 0;
+
+        s = util_skip_whitespace(s);
+        if (!parse_int(s, endptr, &val)) {
+            break;
+        }
+
+        values[n] = val;
+        s = *endptr;
+        n++;
+    }
+
+    return (int)n;
+}
+
+/** \brief  Log parser error using printf-style formatting
+ *
+ * \param[in]   state   parser state
+ * \param[in]   fmt     format string
+ * \param[in]   ...     optional arguments to \a fmt
+ */
+static void parser_log_error(const parser_state_t *state, const char *fmt, ...)
+{
+    char    message[1024];
+    va_list args;
+
+    va_start(args, fmt);
+    vsnprintf(message, sizeof message, fmt, args);
+    log_error(joy_log, "%s:%d: %s", state->filename, state->lineno, message);
+    va_end(args);
+}
+
+/** \brief  Set a host controller to joystick mapping
+ *
+ * \param[in]   state   parser state
+ * \param[in]   mapping mapping to set
+ */
+static void parser_set_mapping(const parser_state_t *state,
+                               joystick_mapping_t   *mapping)
+
+{
+    mapping->action = state->action;
+
+    switch (state->action) {
+        case JOY_ACTION_NONE:           /* fall through */
+        case JOY_ACTION_MAP:            /* fall through */
+        case JOY_ACTION_UI_ACTIVATE:
+            /* no arguments required */
+            break;
+        case JOY_ACTION_JOYSTICK:
+            mapping->value.joy_pin = state->args.pin;
+            break;
+        case JOY_ACTION_KEYBOARD:
+            mapping->value.key[0] = state->args.key.row;
+            mapping->value.key[1] = state->args.key.column;
+            mapping->value.key[2] = state->args.key.flags;
+            break;
+        case JOY_ACTION_UI_FUNCTION:
+            mapping->value.ui_action = state->args.ui_action_id;
+            break;
+        case JOY_ACTION_POT_AXIS:
+            /* already handled in axis code, there's no joystick_mapping_t
+             * instace used for POT mappings */
+            break;
+        default:
+            parser_log_error(state, "unknown action %d.", state->action);
+            break;
+    }
+}
+
+
+/** \brief  Set an axis mapping
+ *
+ * \param[in]   state   parser state
+ *
+ * \return  \c true on success
+ */
+static bool parser_set_axis(const parser_state_t *state)
+{
+    joystick_device_t  *dev = &(joystick_devices[state->joy_index]);
+    bool                result = true;
+
+    if (state->action == JOY_ACTION_POT_AXIS) {
+        /* map to potentiometer */
+        if (state->input_index < dev->num_axes) {
+            dev->axis_mapping[state->input_index].pot = state->args.pot;
+        } else {
+            result = false;
+        }
+    } else {
+        /* map to axis direction */
+        int index     = state->input_index / 2;
+        int direction = state->input_index % 2;
+
+#if 0
+        printf("%s(): AXIS: index = %d, direction = %s\n",
+               __func__, index, direction == 0 ? "positive" : "negative");
+#endif
+        if (index < dev->num_axes) {
+            joystick_axis_mapping_t *axis = &(dev->axis_mapping[index]);
+            joystick_mapping_t      *mapping;
+
+            /* select directional mapping */
+            if (direction == 0) {
+                mapping = &(axis->positive_direction);
+            } else {
+                mapping = &(axis->negative_direction);
+            }
+            parser_set_mapping(state, mapping);
+        } else {
+            result = false;
+        }
+    }
+
+    if (!result) {
+        parser_log_error(state,
+                         "input index %d too large for input type axis (pot), joystick %d.",
+                         state->input_index, state->joy_index);
+    }
+    return result;
+}
+
+/** \brief  Set a button mapping
+ *
+ * \param[in]   state   parser state
+ *
+ * \return  \c true on success
+ */
+static bool parser_set_button(const parser_state_t *state)
+{
+    joystick_device_t *dev    = &(joystick_devices[state->joy_index]);
+    int                button = state->input_index;
+    bool               result = true;
+
+    if (button < dev->num_buttons) {
+        joystick_mapping_t *mapping = &(dev->button_mapping[button].mapping);
+
+        parser_set_mapping(state, mapping);
+    } else {
+        parser_log_error(state,
+                         "invalid button index %d for joystick %d.",
+                         button, state->joy_index);
+        result = false;
+    }
+    return result;
+}
+
+/** \brief  Set a hat mapping
+ *
+ * \param[in]   state   parser state
+ *
+ * \return  \c true on success
+ */
+static bool parser_set_hat(const parser_state_t *state)
+{
+    int index              = state->input_index / 4;
+    int direction          = state->input_index % 4;
+    joystick_device_t *dev = &(joystick_devices[state->joy_index]);
+
+    if (index < dev->num_hats) {
+        joystick_hat_mapping_t *hat = &(dev->hat_mapping[index]);
+        joystick_mapping_t     *mapping;
+
+        switch (direction) {
+            case JOY_HAT_UP:
+                mapping = &(hat->up);
+                break;
+            case JOY_HAT_DOWN:
+                mapping = &(hat->down);
+                break;
+            case JOY_HAT_LEFT:
+                mapping = &(hat->left);
+                break;
+            case JOY_HAT_RIGHT:
+                mapping = &(hat->right);
+                break;
+            default:
+                /* never reached, to satisfy gcc */
+                parser_log_error(state, "invalid direction %d for hat.", direction);
+                return false;
+        }
+        parser_set_mapping(state, mapping);
+    } else {
+        parser_log_error(state, "invalid hat index %d.", index);
+        return false;
+    }
+
+    return true;
+}
+
+/** \brief  Set a ball mapping
+ *
+ * \param[in]   state   parser state
+ *
+ * \return  \c true on success
+ * \note    Currently unimplemented, logs error and returns \c false.
+ */
+static bool parser_set_ball(const parser_state_t *state)
+{
+    parser_log_error(state, "balls are currently not supported.");
+    return false;
+}
+
+/** \brief  Parse a single line of a joymap file
+ *
+ * \param[in]   buffer      line of text from file \a filename
+ * \param[in]   filename    current joymap file being parsed (for error messages)
+ * \param[in]   lineno      current line number in \a filename (for error messages)
+ *
+ * \return  \c true on success
+ */
+static bool joy_arch_parse_entry_new(const char *buffer, const char *filename, int lineno)
+{
+    parser_state_t  state;
+    char            action_name[256];
+    char           *endptr;
+    bool            result = true;
+    int             args[4];
+    int             key_args[3];
+    int             nargs;
+    int             itmp;
+    size_t          a;
+
+
+    /* TODO: split parsing and checking mandatory args into separate function */
+#if 0
+    printf("%s(): parsing '%s'\n", __func__, buffer);
+#endif
+    nargs = parse_int_args(buffer, &endptr, sizeof args / sizeof args[0], args);
+
+    state.buffer      = buffer;
+    state.filename    = filename;
+    state.lineno      = lineno;
+    state.joy_index   = args[0];
+    state.input_type  = (joystick_input_t)args[1];
+    state.input_index = args[2];
+    state.action      = (joystick_action_t)args[3];
+    state.bufptr      = endptr;
+
+    /* check input so far */
+
+    /* joystick index (leading whitespace is already trimmed here) */
+    if (nargs < 1) {
+        parser_log_error(&state, "missing joystick number.");
+        return false;
+    }
+    if (state.joy_index < 0 || state.joy_index >= num_joystick_devices) {
+        parser_log_error(&state, "could not find joystick %d.", state.joy_index);
+        return false;
+    }
+
+    /* input type */
+    if (nargs < 2) {
+        parser_log_error(&state, "missing input type.");
+        return false;
+    }
+    if (state.input_type < 0 || state.input_type > JOY_INPUT_MAX) {
+        parser_log_error(&state, "invalid input type %d.", (int)state.input_type);
+        return false;
+    }
+
+    /* input index */
+    if (nargs < 3) {
+        parser_log_error(&state, "missing input type.");
+        return false;
+    }
+    if (state.input_index < 0) {
+        parser_log_error(&state, "input index cannot be negative.");
+        return false;
+    }
+
+    /* joystick action number */
+    if (nargs < 4) {
+        parser_log_error(&state, "missing action number.");
+        return false;
+    }
+    if (state.action < JOY_ACTION_NONE || state.action > JOY_ACTION_MAX) {
+        parser_log_error(&state, "invalid action number %d.", (int)state.action);
+        return false;
+    }
+
+    /* four mandatory columns done: */
+#if 0
+    printf("%s(): joynum = %d, input type = %d, input index = %d, action = %d\n",
+           __func__, state.joy_index, (int)state.input_type,
+           state.input_index, (int)state.action);
+#endif
+
+    /* get additional colums, depending on action */
+    /* TODO: split into separate function */
+    state.bufptr = util_skip_whitespace(state.bufptr);
+    switch (state.action) {
+        case JOY_ACTION_JOYSTICK:
+            /* joystick pin */
+            if (!parse_int(state.bufptr, &endptr, &itmp)) {
+                parser_log_error(&state, "missing joystick pin number.");
+                return false;
+            }
+            if (itmp < 0 || itmp > UINT16_MAX) {
+                parser_log_error(&state, "pin number %d out of bounds.", itmp);
+                return false;
+            }
+            state.args.pin = (uint16_t)itmp;
+            break;
+
+        case JOY_ACTION_KEYBOARD:
+            /* emulated keyboard press */
+            nargs = parse_int_args(state.bufptr, &endptr, 3, key_args);
+            if (nargs < 2) {
+                parser_log_error(&state,
+                                 "incomplete argument list for key press,"
+                                 " got %d argument(s), expected 2 or 3.",
+                                 nargs);
+                return false;
+            }
+            state.args.key.row    = key_args[0];
+            state.args.key.column = key_args[1];
+            state.args.key.flags  = nargs == 3 ? key_args[2] : 0;
+            break;
+
+        case JOY_ACTION_MAP:
+            /* map controller button to UI action (UNIMPLEMENTED) */
+            break;
+
+        case JOY_ACTION_UI_ACTIVATE:
+            /* activate the menu (SDL) or show the settings dialog (Gtk3) */
+            break;
+
+        case JOY_ACTION_UI_FUNCTION:
+            /* trigger UI action with controller */
+            a = 0;
+            if (state.bufptr[a] == '\0') {
+                parser_log_error(&state, "missing UI action name");
+                return false;
+            }
+            if (!isalpha((unsigned char)state.bufptr[a])) {
+                parser_log_error(&state, "invalid UI action name: %s", state.bufptr);
+                return false;
+            }
+
+            action_name[a] = state.bufptr[a];
+            a++;
+            while (a < sizeof action_name &&
+                   state.bufptr[a] != '\0' &&
+                   (isalnum((unsigned char)(state.bufptr[a])) ||
+                    state.bufptr[a] == '_' ||
+                    state.bufptr[a] == '-' ||
+                    state.bufptr[a] == ':')) {
+                action_name[a] = state.bufptr[a];
+                a++;
+            }
+            action_name[a] = '\0';
+            state.args.ui_action_id = ui_action_get_id(action_name);
+            if (state.args.ui_action_id <= ACTION_NONE) {
+                parser_log_error(&state, "invalid action '%s'", action_name);
+                return false;
+            }
+            break;
+
+        case JOY_ACTION_POT_AXIS:
+            /* map axis to potentiometer */
+            if (!parse_int(state.bufptr, &endptr, &state.args.pot)) {
+                parser_log_error(&state, "missing potentiometer number.");
+                return false;
+            }
+            break;
+
+        default:
+            break;
+    }
+
+    /* handle axis, button or hat */
+    switch (state.input_type) {
+        case JOY_INPUT_AXIS:
+            result = parser_set_axis(&state);
+            break;
+        case JOY_INPUT_BUTTON:
+            result = parser_set_button(&state);
+            break;
+        case JOY_INPUT_HAT:
+            result = parser_set_hat(&state);
+            break;
+        case JOY_INPUT_BALL:
+            result = parser_set_ball(&state);
+            break;
+        default:
+            parser_log_error(&state,
+                             "unsupported input type %u.",
+                             (unsigned int)state.input_type);
+            result = false;
+            break;
+    }
+
+    return result;
+}
+#endif
+
+
+int joy_arch_mapping_load(const char *filename)
+{
+    FILE *fp;
+    char *complete_path;
+    char buffer[1000];
+    int lineno = 1;
+
+    /* Silently ignore keymap load on resource & cmdline init */
+    if (joystick_devices == NULL) {
+        return 0;
+    }
+
+    if (filename == NULL) {
+        return -1;
+    }
+
+    fp = sysfile_open(filename, NULL, &complete_path, MODE_READ_TEXT);
+
+    if (fp == NULL) {
+        log_warning(joy_log, "Failed to open `%s'.", filename);
+        return -1;
+    }
+
+    log_message(joy_log, "Loading joystick map `%s'.", complete_path);
+
+    lib_free(complete_path);
+
+    do {
+        buffer[0] = 0;
+        if (fgets(buffer, sizeof buffer - 1u, fp)) {
+            size_t  len;
+            char   *p;
+
+            len = strlen(buffer);
+            if (len == 0) {
+                break;
+            }
+
+            buffer[len - 1u] = 0; /* remove newline */
+
+            /* remove comments */
+            /* What if a comment contains '#' (e.g. `# map button to "#"`)? */
+            if ((p = strchr(buffer, '#'))) {
+                *p = 0;
+            }
+
+            /* remove whitespace at the beginning of the line */
+            p = buffer;
+            while (((*p == ' ') || (*p == '\t')) && (*p != 0)) {
+                ++p;
+            }
+
+            switch (*p) {
+                case 0:
+                    break;
+                case '!':
+                    /* keyword handling */
+                    joy_arch_parse_keyword(p);
+                    break;
+                default:
+                    /* table entry handling */
+                    /* new func goes first since old one clobbers its argument */
+#ifdef NEW_ENTRY_PARSER
+                    joy_arch_parse_entry_new(p, filename, lineno);
+#else
+                    joy_arch_parse_entry(p);
+#endif
+                    break;
+            }
+
+            lineno++;
+        }
+        /* Should we get an I/O error during fgets(), this will loop forever:
+         * fgets() will return NULL but feof(fp) will be false. */
+    } while (!feof(fp));
+    fclose(fp);
 
     return 0;
 }
@@ -916,13 +2224,22 @@ static int set_joystick_autofire_speed(int val, void *param)
 {
     int port_idx = vice_ptr_to_int(param);
 
-    if (val < 1 || val > 255) {
+    if ((val < JOYSTICK_AUTOFIRE_SPEED_MIN) || (val > JOYSTICK_AUTOFIRE_SPEED_MAX)) {
         return -1;
     }
 
     joystick_autofire_speed[port_idx] = val;
 
     return 0;
+}
+
+static int joymap_file_set(const char *val, void *param)
+{
+    if (util_string_set(&joymap_file, val)) {
+        return 0;
+    }
+
+    return joy_arch_mapping_load(joymap_file);
 }
 
 static const resource_int_t joyopposite_resources_int[] = {
@@ -1051,16 +2368,31 @@ static resource_int_t joy10_resources_int[] = {
     RESOURCE_INT_LIST_END
 };
 
+static resource_int_t joy11_resources_int[] = {
+    { "JoyDevice11", JOYDEV_NONE, RES_EVENT_NO, NULL,
+      &joystick_port_map[JOYPORT_11], set_joystick_device, (void *)JOYPORT_11 },
+    { "JoyStick11AutoFire", JOYSTICK_AUTOFIRE_OFF, RES_EVENT_NO, NULL,
+      &joystick_autofire_enable[JOYPORT_11], set_joystick_autofire, (void *)JOYPORT_11 },
+    { "JoyStick11AutoFireMode", JOYSTICK_AUTOFIRE_MODE_PRESS, RES_EVENT_NO, NULL,
+      &joystick_autofire_mode[JOYPORT_11], set_joystick_autofire_mode, (void *)JOYPORT_11 },
+    { "JoyStick11AutoFireSpeed", JOYSTICK_AUTOFIRE_SPEED_DEFAULT, RES_EVENT_NO, NULL,
+      &joystick_autofire_speed[JOYPORT_11], set_joystick_autofire_speed, (void *)JOYPORT_11 },
+    RESOURCE_INT_LIST_END
+};
+
+static resource_string_t resources_string[] = {
+    { "JoyMapFile", NULL, RES_EVENT_NO, NULL,
+      &joymap_file, joymap_file_set, (void *)0 },
+    RESOURCE_STRING_LIST_END
+};
+
+
 /** \brief  Initialize joystick resources
  *
  * \return  0 on success, -1 on failure
  */
 int joystick_resources_init(void)
 {
-    if (joystick_joyport_register() < 0) {
-        return -1;
-    }
-
 #ifdef COMMON_JOYKEYS
     if (resources_register_int(joykeys_resources_int) < 0) {
         return -1;
@@ -1148,6 +2480,21 @@ int joystick_resources_init(void)
         if (resources_register_int(joy10_resources_int) < 0) {
             return -1;
         }
+    }
+
+    if (machine_class == VICE_MACHINE_PLUS4) {
+        if (joyport_get_port_name(JOYPORT_11)) {
+            if (resources_register_int(joy11_resources_int) < 0) {
+                return -1;
+            }
+        }
+    }
+
+    joymap_factory = archdep_default_joymap_file_name();
+    resources_string[0].factory_value = joymap_factory;
+
+    if (resources_register_string(resources_string) < 0) {
+        return -1;
     }
 
 #ifdef HAVE_SDL_NUMJOYSTICKS
@@ -1456,6 +2803,29 @@ static const cmdline_option_t joydev10cmdline_options[] = {
     CMDLINE_LIST_END
 };
 
+static const cmdline_option_t joydev11cmdline_options[] = {
+    { "-extrajoydev9", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "JoyDevice11", NULL,
+#ifdef HAS_USB_JOYSTICK
+    "<0-13>", "Set device for sidcart joystick port (0: None, 1: Numpad, 2: Keyset 1, 3: Keyset 2, 4: Analog joystick 0, 5: Analog joystick 1, 6: Analog joystick 2, 7: Analog joystick 3, 8: Analog joystick 4, 9: Analog joystick 5, 10: Digital joystick 0, 11: Digital joystick 1, 12: USB joystick 0, 13: USB joystick 1)" },
+#else
+    "<0-9>", "Set device for sidcart joystick port (0: None, 1: Numpad, 2: Keyset 1, 3: Keyset 2, 4: Analog joystick 0, 5: Analog joystick 1, 6: Analog joystick 2, 7: Analog joystick 3, 8: Analog joystick 4, 9: Analog joystick 5)" },
+#endif
+    { "-extrajoystick9autofire", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "JoyStick11AutoFire", (resource_value_t)JOYSTICK_AUTOFIRE_ON,
+      NULL, "Enable autofire for joystick/joypad in sidcart joystick port" },
+    { "+extrajoystick9autofire", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "JoyStick11AutoFire", (resource_value_t)JOYSTICK_AUTOFIRE_OFF,
+      NULL, "Disable autofire for joystick/joypad in sidcart joystick port" },
+    { "-extrajoystick9autofiremode", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "JoyStick11AutoFireMode", NULL,
+      "<0-1>", "Set autofire mode for joystick/joypad in sidcart joystick port (0: Autofire when fire button is pressed, 1: Permanently autofire (pressing fire overrides autofire)" },
+    { "-extrajoystick9autofirespeed", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "JoyStick11AutoFireSpeed", NULL,
+      "<1-255>", "Set autofire speed for joystick/joypad in sidcart joystick port (amount of fire button presses per second)" },
+    CMDLINE_LIST_END
+};
+
 /** \brief  Initialize joystick command line options
  *
  * \return  0 on success, -1 on failure
@@ -1528,6 +2898,14 @@ int joystick_cmdline_options_init(void)
         }
     }
 
+    if (machine_class == VICE_MACHINE_PLUS4) {
+        if (joyport_get_port_name(JOYPORT_11)) {
+            if (cmdline_register_options(joydev11cmdline_options) < 0) {
+                return -1;
+            }
+        }
+    }
+
 #ifdef HAVE_SDL_NUMJOYSTICKS
     return joy_sdl_cmdline_options_init();
 #else
@@ -1559,7 +2937,6 @@ int joystick_init(void)
     joy_sdl_init();
 #endif
 
-#ifndef HAVE_SDL_NUMJOYSTICKS
     int i;
     for (i = 0; i < JOYPORT_MAX_PORTS; i++) {
         if (joystick_port_map[i] >= JOYDEV_REALJOYSTICK_MIN) {
@@ -1570,7 +2947,11 @@ int joystick_init(void)
             }
         }
     }
-#endif
+
+    /* do not load joymap file when -default was passed on the command line */
+    if (!default_settings_requested) {
+        joy_arch_mapping_load(joymap_file);
+    }
 
     return 1;
 }
@@ -1628,7 +3009,16 @@ static int joystick_snapshot_read_module(snapshot_t *s, int port)
 
 /* ------------------------------------------------------------------------- */
 
-#ifndef HAVE_SDL_NUMJOYSTICKS
+
+/* Array used to avoid "stuck" pins and pins being released too soon when two
+ * or more physical (host) buttons are mapped to the same emulated pins.
+ *
+ * FIXME: The name of this array and the functions handling it are a misnomer:
+ * this code is always used, not just for Gtk.
+ * A better solution would be to handle many-to-one mappings in the host side
+ * code: activate pin when *any* of the host buttons are pressed, deactive pin
+ * when *all* of the host buttons are released.
+ */
 static int gtkjoy_pins[JOYPORT_MAX_PORTS][JOYPORT_MAX_PINS];
 
 void register_joystick_driver(
@@ -1655,9 +3045,9 @@ void register_joystick_driver(
     log_message(LOG_DEFAULT, "registered controller '%s' with %d axes, %d hats, %d buttons",
                 new_joystick_device->jname, num_axes, num_hats, num_buttons);
 
-    new_joystick_device->axis_mapping = (joystick_axis_mapping_t*)lib_calloc(num_axes, sizeof(joystick_axis_mapping_t));
-    new_joystick_device->button_mapping = (joystick_mapping_t *)lib_calloc(num_buttons, sizeof(joystick_mapping_t));
-    new_joystick_device->hat_mapping = (joystick_hat_mapping_t *)lib_calloc(num_hats, sizeof(joystick_hat_mapping_t));
+    new_joystick_device->axis_mapping = lib_calloc(num_axes, sizeof *(new_joystick_device->axis_mapping));
+    new_joystick_device->button_mapping = lib_calloc(num_buttons, sizeof *(new_joystick_device->button_mapping));
+    new_joystick_device->hat_mapping = lib_calloc(num_hats, sizeof *(new_joystick_device->hat_mapping));
 
     new_joystick_device->joyport = -1;
     new_joystick_device->priv = priv;
@@ -1677,25 +3067,25 @@ void register_joystick_driver(
      */
     if (num_hats > 0) {
         for (n = 0; n < num_hats; n++) {
-            new_joystick_device->hat_mapping[n].up.action = JOYSTICK;
+            new_joystick_device->hat_mapping[n].up.action = JOY_ACTION_JOYSTICK;
             new_joystick_device->hat_mapping[n].up.value.joy_pin = JOYSTICK_DIRECTION_UP;
-            new_joystick_device->hat_mapping[n].down.action = JOYSTICK;
+            new_joystick_device->hat_mapping[n].down.action = JOY_ACTION_JOYSTICK;
             new_joystick_device->hat_mapping[n].down.value.joy_pin = JOYSTICK_DIRECTION_DOWN;
-            new_joystick_device->hat_mapping[n].left.action = JOYSTICK;
+            new_joystick_device->hat_mapping[n].left.action = JOY_ACTION_JOYSTICK;
             new_joystick_device->hat_mapping[n].left.value.joy_pin = JOYSTICK_DIRECTION_LEFT;
-            new_joystick_device->hat_mapping[n].right.action = JOYSTICK;
+            new_joystick_device->hat_mapping[n].right.action = JOY_ACTION_JOYSTICK;
             new_joystick_device->hat_mapping[n].right.value.joy_pin = JOYSTICK_DIRECTION_RIGHT;
         }
     }
     if (num_axes > 1) {
         /* first two axes */
-        new_joystick_device->axis_mapping[0].positive_direction.action = JOYSTICK;
+        new_joystick_device->axis_mapping[0].positive_direction.action = JOY_ACTION_JOYSTICK;
         new_joystick_device->axis_mapping[0].positive_direction.value.joy_pin = JOYSTICK_DIRECTION_RIGHT;
-        new_joystick_device->axis_mapping[0].negative_direction.action = JOYSTICK;
+        new_joystick_device->axis_mapping[0].negative_direction.action = JOY_ACTION_JOYSTICK;
         new_joystick_device->axis_mapping[0].negative_direction.value.joy_pin = JOYSTICK_DIRECTION_LEFT;
-        new_joystick_device->axis_mapping[1].positive_direction.action = JOYSTICK;
+        new_joystick_device->axis_mapping[1].positive_direction.action = JOY_ACTION_JOYSTICK;
         new_joystick_device->axis_mapping[1].positive_direction.value.joy_pin = JOYSTICK_DIRECTION_DOWN;
-        new_joystick_device->axis_mapping[1].negative_direction.action = JOYSTICK;
+        new_joystick_device->axis_mapping[1].negative_direction.action = JOY_ACTION_JOYSTICK;
         new_joystick_device->axis_mapping[1].negative_direction.value.joy_pin = JOYSTICK_DIRECTION_UP;
 
 #if !defined(MACOS_COMPILE)
@@ -1708,37 +3098,37 @@ void register_joystick_driver(
         if (num_axes >= 4) {
             /* the caution above does not apply to macOS. */
 #endif
-            new_joystick_device->axis_mapping[2].positive_direction.action = JOYSTICK;
+            new_joystick_device->axis_mapping[2].positive_direction.action = JOY_ACTION_JOYSTICK;
             new_joystick_device->axis_mapping[2].positive_direction.value.joy_pin = JOYSTICK_DIRECTION_RIGHT;
-            new_joystick_device->axis_mapping[2].negative_direction.action = JOYSTICK;
+            new_joystick_device->axis_mapping[2].negative_direction.action = JOY_ACTION_JOYSTICK;
             new_joystick_device->axis_mapping[2].negative_direction.value.joy_pin = JOYSTICK_DIRECTION_LEFT;
-            new_joystick_device->axis_mapping[3].positive_direction.action = JOYSTICK;
+            new_joystick_device->axis_mapping[3].positive_direction.action = JOY_ACTION_JOYSTICK;
             new_joystick_device->axis_mapping[3].positive_direction.value.joy_pin = JOYSTICK_DIRECTION_DOWN;
-            new_joystick_device->axis_mapping[3].negative_direction.action = JOYSTICK;
+            new_joystick_device->axis_mapping[3].negative_direction.action = JOY_ACTION_JOYSTICK;
             new_joystick_device->axis_mapping[3].negative_direction.value.joy_pin = JOYSTICK_DIRECTION_UP;
         }
 #if defined(UNIX_COMPILE) && !defined(MACOS_COMPILE)
         /* CAUTION: this does not work correctly with the current windows joystick code */
         if (num_axes >= 6) {
             /* next two axes (eg second analog stick on ps3/ps4 pads) */
-            new_joystick_device->axis_mapping[3].positive_direction.action = JOYSTICK;
+            new_joystick_device->axis_mapping[3].positive_direction.action = JOY_ACTION_JOYSTICK;
             new_joystick_device->axis_mapping[3].positive_direction.value.joy_pin = JOYSTICK_DIRECTION_RIGHT;
-            new_joystick_device->axis_mapping[3].negative_direction.action = JOYSTICK;
+            new_joystick_device->axis_mapping[3].negative_direction.action = JOY_ACTION_JOYSTICK;
             new_joystick_device->axis_mapping[3].negative_direction.value.joy_pin = JOYSTICK_DIRECTION_LEFT;
-            new_joystick_device->axis_mapping[4].positive_direction.action = JOYSTICK;
+            new_joystick_device->axis_mapping[4].positive_direction.action = JOY_ACTION_JOYSTICK;
             new_joystick_device->axis_mapping[4].positive_direction.value.joy_pin = JOYSTICK_DIRECTION_DOWN;
-            new_joystick_device->axis_mapping[4].negative_direction.action = JOYSTICK;
+            new_joystick_device->axis_mapping[4].negative_direction.action = JOY_ACTION_JOYSTICK;
             new_joystick_device->axis_mapping[4].negative_direction.value.joy_pin = JOYSTICK_DIRECTION_UP;
         }
         if (num_axes >= 8) {
             /* next two axes (dpad on ps5 pad) */
-            new_joystick_device->axis_mapping[6].positive_direction.action = JOYSTICK;
+            new_joystick_device->axis_mapping[6].positive_direction.action = JOY_ACTION_JOYSTICK;
             new_joystick_device->axis_mapping[6].positive_direction.value.joy_pin = JOYSTICK_DIRECTION_RIGHT;
-            new_joystick_device->axis_mapping[6].negative_direction.action = JOYSTICK;
+            new_joystick_device->axis_mapping[6].negative_direction.action = JOY_ACTION_JOYSTICK;
             new_joystick_device->axis_mapping[6].negative_direction.value.joy_pin = JOYSTICK_DIRECTION_LEFT;
-            new_joystick_device->axis_mapping[7].positive_direction.action = JOYSTICK;
+            new_joystick_device->axis_mapping[7].positive_direction.action = JOY_ACTION_JOYSTICK;
             new_joystick_device->axis_mapping[7].positive_direction.value.joy_pin = JOYSTICK_DIRECTION_DOWN;
-            new_joystick_device->axis_mapping[7].negative_direction.action = JOYSTICK;
+            new_joystick_device->axis_mapping[7].negative_direction.action = JOY_ACTION_JOYSTICK;
             new_joystick_device->axis_mapping[7].negative_direction.value.joy_pin = JOYSTICK_DIRECTION_UP;
         }
 #endif
@@ -1747,42 +3137,52 @@ void register_joystick_driver(
     n = 0;
     if ((num_hats == 0) && (num_axes == 0)) {
         if (num_buttons > 3) {
-            /* FIXME: find a common adapter or controller to use as a reference */
-            new_joystick_device->button_mapping[0].action = JOYSTICK;
-            new_joystick_device->button_mapping[0].value.joy_pin = 1;
-            new_joystick_device->button_mapping[1].action = JOYSTICK;
-            new_joystick_device->button_mapping[1].value.joy_pin = 2;
-            new_joystick_device->button_mapping[2].action = JOYSTICK;
-            new_joystick_device->button_mapping[2].value.joy_pin = 4;
-            new_joystick_device->button_mapping[3].action = JOYSTICK;
-            new_joystick_device->button_mapping[3].value.joy_pin = 8;
+            /* FIXME: find a common adajoystick_devicespter or controller to use as a reference */
+            new_joystick_device->button_mapping[0].mapping.action = JOY_ACTION_JOYSTICK;
+            new_joystick_device->button_mapping[0].mapping.value.joy_pin = 1;
+            new_joystick_device->button_mapping[1].mapping.action = JOY_ACTION_JOYSTICK;
+            new_joystick_device->button_mapping[1].mapping.value.joy_pin = 2;
+            new_joystick_device->button_mapping[2].mapping.action = JOY_ACTION_JOYSTICK;
+            new_joystick_device->button_mapping[2].mapping.value.joy_pin = 4;
+            new_joystick_device->button_mapping[3].mapping.action = JOY_ACTION_JOYSTICK;
+            new_joystick_device->button_mapping[3].mapping.value.joy_pin = 8;
             n = 4;
         }
     }
     if (num_buttons > n) {
-        new_joystick_device->button_mapping[n].action = JOYSTICK;
-        new_joystick_device->button_mapping[n].value.joy_pin = 16;
+        new_joystick_device->button_mapping[n].mapping.action = JOY_ACTION_JOYSTICK;
+        new_joystick_device->button_mapping[n].mapping.value.joy_pin = 16;
         n++;
     }
     if (num_buttons > n) {
-        new_joystick_device->button_mapping[n].action = JOYSTICK;
-        new_joystick_device->button_mapping[n].value.joy_pin = 32;
+        new_joystick_device->button_mapping[n].mapping.action = JOY_ACTION_JOYSTICK;
+        new_joystick_device->button_mapping[n].mapping.value.joy_pin = 32;
         n++;
     }
     if (num_buttons > n) {
-        new_joystick_device->button_mapping[n].action = JOYSTICK;
-        new_joystick_device->button_mapping[n].value.joy_pin = 64;
+        new_joystick_device->button_mapping[n].mapping.action = JOY_ACTION_JOYSTICK;
+        new_joystick_device->button_mapping[n].mapping.value.joy_pin = 64;
         n++;
     }
-    if (num_buttons > n) {
-        for ( ; n < num_buttons; n++) {
-            new_joystick_device->button_mapping[n].action = JOYSTICK;
-            new_joystick_device->button_mapping[n].value.joy_pin = 16;
+    for ( ; n < num_buttons; n++) {
+        switch (n & 3) {
+            case 0:
+            case 3:
+            default:
+                new_joystick_device->button_mapping[n].mapping.action = JOY_ACTION_JOYSTICK;
+                new_joystick_device->button_mapping[n].mapping.value.joy_pin = 16;
+                break;
+            case 1:
+                new_joystick_device->button_mapping[n].mapping.action = JOY_ACTION_UI_ACTIVATE;
+                break;
+            case 2:
+                new_joystick_device->button_mapping[n].mapping.action = JOY_ACTION_MAP;
+                break;
         }
     }
     memset(gtkjoy_pins, 0, sizeof(int) * JOYPORT_MAX_PORTS * JOYPORT_MAX_PINS);
 #if 0 /* for testing */
-    new_joystick_device->button_mapping[0].action = KEYBOARD;
+    new_joystick_device->button_mapping[0].action = JOY_ACTION_KEYBOARD;
     new_joystick_device->button_mapping[0].value.key[0] = 2; /* row */
     new_joystick_device->button_mapping[0].value.key[1] = 7; /* column */
 #endif
@@ -1826,8 +3226,8 @@ static void gtkjoy_set_value_release(unsigned int joyport, uint16_t value)
 static void joy_perform_event(joystick_mapping_t *event, int joyport, int value)
 {
     switch (event->action) {
-        case JOYSTICK:
-            DBG(("joy_perform_event (JOYSTICK) joyport: %d value: %d pin: %02x\n",
+        case JOY_ACTION_JOYSTICK:
+            DBG(("joy_perform_event (JOY_ACTION_JOYSTICK) joyport: %d value: %d pin: %02x\n",
                  joyport, value, event->value.joy_pin));
             if (joyport >=0 && joyport < JOYPORT_MAX_PORTS) {
                 if (value) {
@@ -1837,18 +3237,27 @@ static void joy_perform_event(joystick_mapping_t *event, int joyport, int value)
                 }
             }
             break;
-        case KEYBOARD:
-            DBG(("joy_perform_event (KEYBOARD) joyport: %d value: %d key: %02x/%02x\n",
+        case JOY_ACTION_KEYBOARD:
+            DBG(("joy_perform_event (JOY_ACTION_KEYBOARD) joyport: %d value: %d key: %02x/%02x\n",
                  joyport, value, (unsigned int)event->value.key[0], (unsigned int)event->value.key[1]));
             keyboard_set_keyarr_any(event->value.key[0], event->value.key[1], value);
             break;
+        case JOY_ACTION_UI_ACTIVATE:
+            if (value) {
+                arch_ui_activate();
+            }
+            break;
+        case JOY_ACTION_UI_FUNCTION:
+            if (value && event->value.ui_action > ACTION_NONE) {
+                ui_action_trigger(event->value.ui_action);
+            }
 #if 0   /* FIXME */
         case MENUACTION:
             DBG(("joy_perform_event (MENUACTION) joyport: %d value: %d action: %d\n",
                  joyport, value,event->value.action));
             break;
 #endif
-        case NONE:
+        case JOY_ACTION_NONE:
         default:
             break;
     }
@@ -1904,7 +3313,7 @@ void joy_button_event(uint8_t joynum, uint8_t button, uint8_t value)
     if (pressed != joystick_devices[joynum].button_mapping[button].prev) {
         DBG(("joy_button_event: joynum: %d, button: %d pressed: %d\n",
              joynum, button, pressed));
-        joy_perform_event(&(joystick_devices[joynum].button_mapping[button]),
+        joy_perform_event(&(joystick_devices[joynum].button_mapping[button].mapping),
                           joystick_devices[joynum].joyport, pressed);
         joystick_devices[joynum].button_mapping[button].prev = pressed;
     }
@@ -1953,6 +3362,96 @@ void joy_hat_event(uint8_t joynum, uint8_t hat, uint8_t value)
     joystick_devices[joynum].hat_mapping[hat].prev = value;
 }
 
+#ifdef HAVE_SDL_NUMJOYSTICKS
+joystick_axis_value_t joy_axis_prev(uint8_t joynum, uint8_t axis)
+{
+    return joystick_devices[joynum].axis_mapping[axis].prev;
+}
+
+joystick_mapping_t *joy_get_axis_mapping(uint8_t                joynum,
+                                         uint8_t                axis,
+                                         joystick_axis_value_t  value,
+                                         joystick_axis_value_t *prev)
+{
+    joystick_mapping_t *retval = joy_get_axis_mapping_not_setting_value(
+            joynum, axis, joystick_devices[joynum].axis_mapping[axis].prev);
+    if (prev)
+        *prev = joystick_devices[joynum].axis_mapping[axis].prev;
+    joystick_devices[joynum].axis_mapping[axis].prev = value;
+    return retval;
+}
+
+joystick_mapping_t *joy_get_axis_mapping_not_setting_value(uint8_t               joynum,
+                                                           uint8_t               axis,
+                                                           joystick_axis_value_t value)
+{
+    if (value == JOY_AXIS_POSITIVE) {
+        return &joystick_devices[joynum].axis_mapping[axis].positive_direction;
+    }
+    if (value == JOY_AXIS_NEGATIVE) {
+        return &joystick_devices[joynum].axis_mapping[axis].negative_direction;
+    }
+    return NULL;
+}
+
+joystick_mapping_t *joy_get_button_mapping(uint8_t  joynum,
+                                           uint8_t  button,
+                                           uint8_t  value,
+                                           uint8_t *prev)
+{
+    joystick_mapping_t *retval = joy_get_button_mapping_not_setting_value(
+            joynum, button, joystick_devices[joynum].button_mapping[button].prev);
+     if (prev)
+        *prev = joystick_devices[joynum].button_mapping[button].prev;
+    joystick_devices[joynum].button_mapping[button].prev = value;
+    return retval;
+}
+
+joystick_mapping_t *joy_get_button_mapping_not_setting_value(uint8_t joynum,
+                                                             uint8_t button,
+                                                             uint8_t value)
+{
+    if (value)
+        return &joystick_devices[joynum].button_mapping[button].mapping;
+    return NULL;
+}
+
+joystick_axis_value_t joy_hat_prev(uint8_t joynum, uint8_t hat) {
+    return joystick_devices[joynum].hat_mapping[hat].prev;
+}
+
+joystick_mapping_t *joy_get_hat_mapping(uint8_t  joynum,
+                                        uint8_t  hat,
+                                        uint8_t  value,
+                                        uint8_t *prev)
+{
+    joystick_mapping_t *retval = joy_get_hat_mapping_not_setting_value(
+            joynum, hat, joystick_devices[joynum].hat_mapping[hat].prev);
+     if (prev)
+        *prev = joystick_devices[joynum].hat_mapping[hat].prev;
+    joystick_devices[joynum].hat_mapping[hat].prev = value;
+    return retval;
+}
+
+joystick_mapping_t *joy_get_hat_mapping_not_setting_value(uint8_t joynum,
+                                                          uint8_t hat,
+                                                          uint8_t value) {
+    joystick_mapping_t *mapping = NULL;
+
+    if (value & JOYSTICK_DIRECTION_UP) {
+        mapping = &joystick_devices[joynum].hat_mapping[hat].up;
+    } else if (value & JOYSTICK_DIRECTION_DOWN) {
+        mapping = &joystick_devices[joynum].hat_mapping[hat].down;
+    } else if (value & JOYSTICK_DIRECTION_LEFT) {
+        mapping = &joystick_devices[joynum].hat_mapping[hat].left;
+    } else if (value & JOYSTICK_DIRECTION_RIGHT) {
+        mapping = &joystick_devices[joynum].hat_mapping[hat].right;
+    }
+
+    return mapping;
+}
+#endif
+
 static int joystickdeviceidx = 0;
 
 void joystick_ui_reset_device_list(void)
@@ -1989,6 +3488,17 @@ void joystick_close(void)
     }
 
     lib_free(joystick_devices);
+    joystick_devices = NULL;
 }
-#endif
 
+void joystick_resources_shutdown(void)
+{
+    if (joymap_factory) {
+        lib_free(joymap_factory);
+        joymap_factory = NULL;
+    }
+    if (joymap_file) {
+        lib_free(joymap_file);
+        joymap_file = NULL;
+    }
+}

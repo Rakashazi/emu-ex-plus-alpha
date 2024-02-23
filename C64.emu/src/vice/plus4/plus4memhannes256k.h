@@ -36,15 +36,15 @@
 
 extern int h256k_enabled;
 
-extern void h256k_init(void);
-extern void h256k_reset(void);
-extern void h256k_shutdown(void);
+void h256k_init(void);
+void h256k_reset(void);
+void h256k_shutdown(void);
 
-extern void h256k_store(uint16_t addr, uint8_t value);
-extern uint8_t h256k_read(uint16_t addr);
+void h256k_store(uint16_t addr, uint8_t value);
+uint8_t h256k_read(uint16_t addr);
 
-extern void h256k_ram_inject(uint16_t addr, uint8_t value);
+void h256k_ram_inject(uint16_t addr, uint8_t value);
 
-extern int set_h256k_enabled(int val);
+int set_h256k_enabled(int val);
 
 #endif

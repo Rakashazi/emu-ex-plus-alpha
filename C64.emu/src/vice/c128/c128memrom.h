@@ -33,14 +33,14 @@ extern uint8_t c128memrom_basic_rom[];
 extern uint8_t c128memrom_kernal_rom[];
 extern uint8_t c128memrom_kernal_trap_rom[];
 
-extern uint8_t c128memrom_basic_read(uint16_t addr);
-extern void c128memrom_basic_store(uint16_t addr, uint8_t value);
-extern uint8_t c128memrom_kernal_read(uint16_t addr);
-extern void c128memrom_kernal_store(uint16_t addr, uint8_t value);
-extern uint8_t c128memrom_trap_read(uint16_t addr);
-extern void c128memrom_trap_store(uint16_t addr, uint8_t value);
+uint8_t c128memrom_basic_read(uint16_t addr);
+void c128memrom_basic_store(uint16_t addr, uint8_t value);
+uint8_t c128memrom_kernal_read(uint16_t addr);
+void c128memrom_kernal_store(uint16_t addr, uint8_t value);
+uint8_t c128memrom_trap_read(uint16_t addr);
+void c128memrom_trap_store(uint16_t addr, uint8_t value);
 
-extern uint8_t c128memrom_rom_read(uint16_t addr);
-extern void c128memrom_rom_store(uint16_t addr, uint8_t value);
+uint8_t c128memrom_rom_read(uint16_t addr);
+void c128memrom_rom_store(uint16_t addr, uint8_t value);
 
 #endif

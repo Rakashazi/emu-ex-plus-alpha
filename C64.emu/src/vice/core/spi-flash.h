@@ -29,15 +29,16 @@
 
 #include "types.h"
 
-extern uint8_t spi_flash_read_data(void);
-extern void spi_flash_write_data(uint8_t value);
-extern void spi_flash_write_select(uint8_t value);
-extern void spi_flash_write_clock(uint8_t value);
+uint8_t spi_flash_read_data(void);
+void spi_flash_write_data(uint8_t value);
+void spi_flash_write_select(uint8_t value);
+void spi_flash_write_clock(uint8_t value);
 
-extern void spi_flash_set_image(uint8_t *img, uint32_t size);
+void spi_flash_set_image(uint8_t *img, uint32_t size);
 
 struct snapshot_s;
-extern int spi_flash_snapshot_read_module(struct snapshot_s *s);
-extern int spi_flash_snapshot_write_module(struct snapshot_s *s);
+
+int spi_flash_snapshot_read_module(struct snapshot_s *s);
+int spi_flash_snapshot_write_module(struct snapshot_s *s);
 
 #endif

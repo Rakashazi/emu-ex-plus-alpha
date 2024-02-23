@@ -30,6 +30,6 @@
 #ifndef VICE_VDC_CMDLINE_OPTIONS_H
 #define VICE_VDC_CMDLINE_OPTIONS_H
 
-extern int vdc_cmdline_options_init(void);
+int vdc_cmdline_options_init(void);
 
 #endif

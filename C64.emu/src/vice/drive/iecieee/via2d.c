@@ -92,7 +92,7 @@ static void set_ca2(via_context_t *via_context, int state)
 #endif
 }
 
-static void set_cb2(via_context_t *via_context, int state)
+static void set_cb2(via_context_t *via_context, int state, int offset)
 {
 #if !OLDCODE
     int curr;
@@ -131,12 +131,13 @@ static void restore_int(via_context_t *via_context, unsigned int int_num, int va
 
 void via2d_store(diskunit_context_t *ctxptr, uint16_t addr, uint8_t data)
 {
+    ctxptr->cpu->cpu_last_data = data;
     viacore_store(ctxptr->via2, addr, data);
 }
 
 uint8_t via2d_read(diskunit_context_t *ctxptr, uint16_t addr)
 {
-    return viacore_read(ctxptr->via2, addr);
+    return ctxptr->cpu->cpu_last_data = viacore_read(ctxptr->via2, addr);
 }
 
 uint8_t via2d_peek(diskunit_context_t *ctxptr, uint16_t addr)
@@ -184,6 +185,7 @@ static void store_pra(via_context_t *via_context, uint8_t byte, uint8_t oldpa_va
     via2p = (drivevia2_context_t *)(via_context->prv);
     rotation_rotate_disk(via2p->drive);
 
+    /* See comments about Port A latching at read_pra() */
     via2p->drive->GCR_write_value = byte;
 
     via2p->drive->byte_ready_level = 0;
@@ -428,8 +430,37 @@ static void reset(via_context_t *via_context)
     drive_update_ui_status();
 }
 
-static uint8_t read_pra(via_context_t *via_context, uint16_t addr)
-{
+/*
+ * Read the byte from the disk's read head as it has gone through a serial
+ * to parallel shift register.
+ *
+ * The 1541 DOS code enables latching of the VIA's Port A, but this is
+ * currently not emulated.  Effectively, the drive-dependent code handles
+ * latching this value (GCR_read), which in hardware happens in the VIA (port
+ * A), and the handshake signal that it has been read (effectively, calling
+ * this function which clears byte_ready_level).
+ *
+ * The BYTE READY output from the PLA, that is connected to the SO (Set
+ * Overflow) pin on the CPU, also connects to the VIA's CA1 handshake / latch
+ * pin. This would activate the latch.  When the CPU reads from port A, CA2
+ * signals back to the drive hardware that it has been read (that line is
+ * labeled SOE, possibly SO Enable, enabling output to Set Overflow / CA1
+ * again). This corresponds to clearing byte_ready_level as below.
+ *
+ * "UC2 is a VIA also. [...] During a read operation serial data is received
+ * from the read amplifier circuits on D-IN input on pin 24 of the PLA. The PLA
+ * shift register converts serial data into parallel data that is latched at
+ * the parallel port (YB0-YB7). The microprocessor reads the parallel PLA
+ * output by reading Port A of UC2 when BYTE READY on pin 39 goes "low"."
+ * (1540-1541_Disk_Drive_Service_Manual_Preliminary_314002-01_(1985_Apr).pdf
+ * p.14)
+ *
+ * This wording suggests that the PLA latches so latching in the VIA again
+ * would not really be needed. However the schematic on the next page, for
+ * pre-PLA hardware, shows a 74LS164 (8-Bit Serial In/Parallel Out Shift Register)
+ * and it would not be latched. SOE indeed affects BYTE READY.
+ */
+static uint8_t read_pra(via_context_t *via_context, uint16_t addr) {
     /* GCR data port */
     uint8_t byte;
     drivevia2_context_t *via2p;
@@ -471,6 +502,10 @@ static uint8_t read_prb(via_context_t *via_context)
 
     DBG(("read_prb %02x pb:%02x ddr:%02x",byte,via_context->via[VIA_PRB],via_context->via[VIA_DDRB]));
 
+    /*
+     * See comments about port A latching at read_pra();
+     * clearing byte_ready_level here may be wrong.
+     */
     via2p->drive->byte_ready_level = 0;
 
     return byte;

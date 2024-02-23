@@ -513,24 +513,6 @@ int mouse_type_to_id(int mt)
     return -1;
 }
 
-/*--------------------------------------------------------------------------*/
-
-static int mouse_joyport_register(void)
-{
-    DBG(("mouse_joyport_register\n"));
-
-    if (mouse_1351_register() < 0) {
-        return -1;
-    }
-    if (mouse_neos_register() < 0) {
-        return -1;
-    }
-    if (mouse_paddle_register() < 0) {
-        return -1;
-    }
-    return mouse_quadrature_register();
-}
-
 /* --------------------------------------------------------- */
 /* Resources & cmdline */
 
@@ -572,9 +554,6 @@ static const mouse_func_t mouse_funcs =
 int mouse_resources_init(void)
 {
     DBG(("mouse_resources_init\n"));
-    if (mouse_joyport_register() < 0) {
-        return -1;
-    }
     if (resources_register_int(resources_int) < 0) {
         return -1;
     }

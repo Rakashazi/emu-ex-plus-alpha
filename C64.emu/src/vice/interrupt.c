@@ -317,23 +317,23 @@ void interrupt_maincpu_trigger_trap(void (*trap_func)(uint16_t, void *data),
     interrupt_cpu_status_t *cs = maincpu_int_status;
     int this_trap_index;
     int trap_size_needed;
-    
+
     this_trap_index = cs->traps_next + cs->traps_count;
     cs->traps_count++;
     trap_size_needed = cs->traps_next + cs->traps_count;
-    
+
     /*
      * traps can trigger traps and more than one can be triggered per cycle ...
      * so this is not as simple as it might otherwise be.
      */
-    
+
     if (trap_size_needed > cs->traps_size) {
         log_message(LOG_DEFAULT, "Increasing trap_func array size to %d with %d to run", trap_size_needed, cs->traps_count);
         cs->traps_size = trap_size_needed;
     }
 
     cs->global_pending_int |= IK_TRAP;
-    
+
     cs->trap_func[this_trap_index] = trap_func;
     cs->trap_data[this_trap_index] = data;
 }
@@ -344,13 +344,13 @@ void interrupt_do_trap(interrupt_cpu_status_t *cs, uint16_t address)
 {
     int i;
     int traps_this_cycle = cs->traps_count;
-    
+
     for (i = 0; i < traps_this_cycle; i++) {
         cs->trap_func[cs->traps_next](address, cs->trap_data[cs->traps_next]);
         /* Don't increment this before the trap func above has exectued! */
         cs->traps_next++;
     }
-    
+
     if (cs->traps_count > traps_this_cycle) {
         /* Executuing a trap scheduled another trap! Run them next cycle */
         cs->traps_count -= traps_this_cycle;

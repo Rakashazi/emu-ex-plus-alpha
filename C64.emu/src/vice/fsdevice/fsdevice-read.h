@@ -32,11 +32,11 @@
 struct vdrive_s;
 struct bufinfo_s;
 
-extern int fsdevice_read(struct vdrive_s *vdrive, uint8_t *data,
-                         unsigned int secondary);
-extern void fsdevice_relative_pad_record(struct bufinfo_s *bufinfo);
-extern int fsdevice_relative_switch_record(struct vdrive_s *vdrive,
-                                           struct bufinfo_s *bufinfo,
-                                           int record, int pos);
+int fsdevice_read(struct vdrive_s *vdrive, uint8_t *data,
+                  unsigned int secondary);
+void fsdevice_relative_pad_record(struct bufinfo_s *bufinfo);
+int fsdevice_relative_switch_record(struct vdrive_s *vdrive,
+                                    struct bufinfo_s *bufinfo,
+                                    int record, int pos);
 
 #endif

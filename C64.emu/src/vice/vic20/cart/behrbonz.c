@@ -90,7 +90,8 @@ static io_source_t behrbonz_io3_device = {
     behrbonz_mon_dump,             /* device state information dump function */
     CARTRIDGE_VIC20_BEHRBONZ,      /* cartridge ID */
     IO_PRIO_NORMAL,                /* normal priority, device read needs to be checked for collisions */
-    0                              /* insertion order, gets filled in by the registration function */
+    0,                             /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                 /* NO mirroring */
 };
 
 static io_source_list_t *behrbonz_io3_list_item = NULL;
@@ -126,7 +127,7 @@ static void behrbonz_io3_store(uint16_t addr, uint8_t value)
     if (write_once) {
         bank_reg = value & 0x7f;
         reset_mode = SOFTWARE_RESET;
-        machine_trigger_reset(MACHINE_RESET_MODE_SOFT);
+        machine_trigger_reset(MACHINE_RESET_MODE_RESET_CPU);
     }
     write_once = 0;
 }

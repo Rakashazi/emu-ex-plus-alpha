@@ -30,48 +30,54 @@
 
 #include "types.h"
 #include "joyport.h" /* for JOYPORT_MAX_PORTS */
+#if (defined USE_SDLUI ||defined USE_SDL2UI)
+#include "uimenu.h"
+#endif
 
-extern int joystick_init(void);
-extern int joystick_resources_init(void);
-extern int joystick_cmdline_options_init(void);
+int joystick_init(void);
+int joystick_resources_init(void);
+int joystick_cmdline_options_init(void);
 
 /* SDL-specific functions. */
-extern int joy_sdl_init(void);
-extern int joy_sdl_resources_init(void);
-extern int joy_sdl_cmdline_options_init(void);
+int joy_sdl_init(void);
+int joy_sdl_resources_init(void);
+int joy_sdl_cmdline_options_init(void);
 
-extern int joystick_check_set(signed long key, int keysetnum, unsigned int joyport);
-extern int joystick_check_clr(signed long key, int keysetnum, unsigned int joyport);
-extern void joystick_joypad_clear(void);
+int joystick_check_set(signed long key, int keysetnum, unsigned int joyport);
+int joystick_check_clr(signed long key, int keysetnum, unsigned int joyport);
+void joystick_joypad_clear(void);
 
-extern void joystick_set_axis_value(unsigned int index, uint8_t value);
-extern uint8_t joystick_get_axis_value(unsigned int index);
+void joystick_set_axis_value(unsigned int index, unsigned int axis, uint8_t value);
+uint8_t joystick_get_axis_value(unsigned int port, unsigned int pot);
 
-extern void joystick_set_value_absolute(unsigned int joyport, uint16_t value);
-extern void joystick_set_value_or(unsigned int joyport, uint16_t value);
-extern void joystick_set_value_and(unsigned int joyport, uint16_t value);
-extern void joystick_clear(unsigned int joyport);
-extern void joystick_clear_all(void);
+void joystick_set_value_absolute(unsigned int joyport, uint16_t value);
+void joystick_set_value_or(unsigned int joyport, uint16_t value);
+void joystick_set_value_and(unsigned int joyport, uint16_t value);
+void joystick_clear(unsigned int joyport);
+void joystick_clear_all(void);
 
-extern void joystick_event_playback(CLOCK offset, void *data);
-extern void joystick_event_delayed_playback(void *data);
-extern void joystick_register_delay(unsigned int delay);
+void joystick_event_playback(CLOCK offset, void *data);
+void joystick_event_delayed_playback(void *data);
+void joystick_register_delay(unsigned int delay);
 
-extern void linux_joystick_init(void);
-extern void usb_joystick_init(void);
-extern void joy_hidlib_init(void);
-extern void joy_hidlib_exit(void);
-extern int win32_directinput_joystick_init(void);
+int joystick_joyport_register(void);
 
-extern uint16_t get_joystick_value(int index);
+void linux_joystick_init(void);
+void usb_joystick_init(void);
+void joy_hidlib_init(void);
+void joy_hidlib_exit(void);
+int win32_directinput_joystick_init(void);
+
+uint16_t get_joystick_value(int index);
 
 typedef void (*joystick_machine_func_t)(void);
-extern void joystick_register_machine(joystick_machine_func_t func);
+
+void joystick_register_machine(joystick_machine_func_t func);
 
 /* the mapping of real devices to emulated joystick ports */
 extern int joystick_port_map[JOYPORT_MAX_PORTS];
 
-extern void joystick_set_snes_mapping(int port);
+void joystick_set_snes_mapping(int port);
 
 /** \brief  Use keypad as predefined keys for joystick emulation
  *
@@ -84,9 +90,11 @@ extern void joystick_set_snes_mapping(int port);
 #ifdef COMMON_JOYKEYS
 
 #define JOYSTICK_KEYSET_NUM          3
+
 #define JOYSTICK_KEYSET_IDX_NUMBLOCK 0
 #define JOYSTICK_KEYSET_IDX_A        1
 #define JOYSTICK_KEYSET_IDX_B        2
+
 extern int joykeys[JOYSTICK_KEYSET_NUM][JOYSTICK_KEYSET_NUM_KEYS];
 
 /* several things depend on the order/exact values of the members in this enum,
@@ -127,7 +135,7 @@ typedef struct joystick_driver_s {
     void (*close)(void*);
 } joystick_driver_t;
 
-extern void register_joystick_driver(
+void register_joystick_driver(
    struct joystick_driver_s *driver,
    const char *jname,
    void *priv,
@@ -141,13 +149,92 @@ typedef enum joystick_axis_value_e {
    JOY_AXIS_NEGATIVE
 } joystick_axis_value_t;
 
-extern void joy_axis_event(uint8_t joynum, uint8_t axis, joystick_axis_value_t value);
-extern void joy_button_event(uint8_t joynum, uint8_t button, uint8_t value);
-extern void joy_hat_event(uint8_t joynum, uint8_t button, uint8_t value);
-extern void joystick(void);
-extern void joystick_close(void);
-extern void joystick_ui_reset_device_list(void);
-extern const char *joystick_ui_get_next_device_name(int *id);
+/** \brief  Hat direction joystick input index values
+ */
+typedef enum joystick_hat_direction_e {
+    JOY_HAT_UP    = 0,
+    JOY_HAT_DOWN  = 1,
+    JOY_HAT_LEFT  = 2,
+    JOY_HAT_RIGHT = 3
+} joystick_hat_direction_t;
+
+/* Actions to perform on joystick input */
+typedef enum joystick_action_e {
+    JOY_ACTION_NONE = 0,
+
+    /* Joystick movement or button press */
+    JOY_ACTION_JOYSTICK = 1,
+
+    /* Keyboard key press */
+    JOY_ACTION_KEYBOARD = 2,
+
+    /* Map button */
+    JOY_ACTION_MAP = 3,
+
+    /* (De)Activate UI */
+    JOY_ACTION_UI_ACTIVATE = 4,
+
+    /* Call UI function */
+    JOY_ACTION_UI_FUNCTION = 5,
+
+    /* Joystick axis used for potentiometers */
+    JOY_ACTION_POT_AXIS = 6,
+
+    JOY_ACTION_MAX = JOY_ACTION_POT_AXIS
+} joystick_action_t;
+
+/** \brief  Joystick input types used by the vjm files
+ */
+typedef enum joystick_input_e {
+    JOY_INPUT_AXIS   = 0,   /**< map host axis input */
+    JOY_INPUT_BUTTON = 1,   /**< map host button input */
+    JOY_INPUT_HAT    = 2,   /**< map host hat input */
+    JOY_INPUT_BALL   = 3,   /**< map host ball input */
+
+    JOY_INPUT_MAX    = JOY_INPUT_BALL
+} joystick_input_t;
+
+/* Input mapping for each direction/button/etc */
+typedef struct joystick_mapping_s {
+    /* Action to perform */
+    joystick_action_t action;
+
+    union {
+        uint16_t joy_pin;
+
+        /* key[0] = row, key[1] = column, key[1] = flags */
+        int key[3];
+        int ui_action;
+    } value;
+} joystick_mapping_t;
+
+void joy_axis_event(uint8_t joynum, uint8_t axis, joystick_axis_value_t value);
+void joy_button_event(uint8_t joynum, uint8_t button, uint8_t value);
+void joy_hat_event(uint8_t joynum, uint8_t button, uint8_t value);
+void joystick(void);
+void joystick_close(void);
+void joystick_resources_shutdown(void);
+void joystick_ui_reset_device_list(void);
+const char *joystick_ui_get_next_device_name(int *id);
+int joy_arch_mapping_dump(const char *filename);
+int joy_arch_mapping_load(const char *filename);
+joystick_axis_value_t joy_axis_prev(uint8_t joynum, uint8_t axis);
+char *get_joy_pot_mapping_string(int joystick_device_num, int pot);
+char *get_joy_pin_mapping_string(int joystick_device, int pin);
+char *get_joy_extra_mapping_string(int which);
+joystick_mapping_t *joy_get_axis_mapping(uint8_t joynum, uint8_t axis, joystick_axis_value_t value, joystick_axis_value_t *prev);
+joystick_mapping_t *joy_get_axis_mapping_not_setting_value(uint8_t joynum, uint8_t axis, joystick_axis_value_t value);
+joystick_mapping_t *joy_get_button_mapping(uint8_t joynum, uint8_t button, uint8_t value, uint8_t *prev);
+joystick_mapping_t *joy_get_button_mapping_not_setting_value(uint8_t joynum, uint8_t button, uint8_t value);
+joystick_axis_value_t joy_hat_prev(uint8_t joynum, uint8_t hat);
+joystick_mapping_t *joy_get_hat_mapping(uint8_t joynum, uint8_t hat, uint8_t value, uint8_t *prev);
+joystick_mapping_t *joy_get_hat_mapping_not_setting_value(uint8_t joynum, uint8_t hat, uint8_t value);
+void joy_set_pot_mapping(int joystick_device_num, int axis, int pot);
+void joy_delete_pin_mapping(int joystick_device, int pin);
+void joy_delete_pot_mapping(int joystick_device, int pot);
+#if (defined USE_SDLUI ||defined USE_SDL2UI)
+void joy_delete_extra_mapping(int type);
+#endif
 
 #define JOYSTICK_DIRECTION_UP    1
 #define JOYSTICK_DIRECTION_DOWN  2
@@ -157,9 +244,11 @@ extern const char *joystick_ui_get_next_device_name(int *id);
 #define JOYSTICK_AUTOFIRE_OFF   0
 #define JOYSTICK_AUTOFIRE_ON    1
 
-#define JOYSTICK_AUTOFIRE_MODE_PRESS       0
-#define JOYSTICK_AUTOFIRE_MODE_PERMANENT   1
+#define JOYSTICK_AUTOFIRE_MODE_PRESS       0    /* autofire only when fire is pressed */
+#define JOYSTICK_AUTOFIRE_MODE_PERMANENT   1    /* autofire only when fire is NOT pressed */
 
 #define JOYSTICK_AUTOFIRE_SPEED_DEFAULT    10   /* default autofire speed, button will be on this many times per second */
+#define JOYSTICK_AUTOFIRE_SPEED_MIN        1
+#define JOYSTICK_AUTOFIRE_SPEED_MAX        255
 
 #endif

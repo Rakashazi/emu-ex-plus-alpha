@@ -517,6 +517,11 @@ int disk_image_fsimage_create_dxm(const char *name, const char *diskname, unsign
     return fsimage_create_dxm(name, diskname, type);
 }
 
+int disk_image_fsimage_create_dhd(const char *name, const char *diskname, unsigned int type)
+{
+    return fsimage_create_dhd(name, diskname, type);
+}
+
 /*-----------------------------------------------------------------------*/
 
 void disk_image_name_set(disk_image_t *image, const char *name)

@@ -984,7 +984,6 @@ void EmuApp::reloadSystem(EmuSystemCreateParams params)
 		onSystemCreated();
 		if(autosaveManager_.slotName() != noAutosaveName)
 			system().loadBackupMemory(*this);
-		showEmulation();
 	}
 	catch(...)
 	{
@@ -1009,7 +1008,14 @@ void EmuApp::promptSystemReloadDueToSetOption(ViewAttachParams attach, const Inp
 		return;
 	viewController().pushAndShowModal(std::make_unique<YesNoAlertView>(attach,
 		"This option takes effect next time the system starts. Restart it now?",
-		YesNoAlertView::Delegates{ .onYes = [this, params] { reloadSystem(params); return false; } }), e, false);
+		YesNoAlertView::Delegates
+		{ .onYes = [this, params]
+			{
+				reloadSystem(params);
+				showEmulation();
+				return false;
+			}
+		}), e, false);
 }
 
 void EmuApp::unpostMessage()

@@ -31,15 +31,15 @@
 
 #include "types.h"
 
-extern void funplay_config_init(void);
-extern void funplay_config_setup(uint8_t *rawcart);
-extern int funplay_bin_attach(const char *filename, uint8_t *rawcart);
-extern int funplay_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void funplay_detach(void);
+void funplay_config_init(void);
+void funplay_config_setup(uint8_t *rawcart);
+int funplay_bin_attach(const char *filename, uint8_t *rawcart);
+int funplay_crt_attach(FILE *fd, uint8_t *rawcart);
+void funplay_detach(void);
 
 struct snapshot_s;
 
-extern int funplay_snapshot_write_module(struct snapshot_s *s);
-extern int funplay_snapshot_read_module(struct snapshot_s *s);
+int funplay_snapshot_write_module(struct snapshot_s *s);
+int funplay_snapshot_read_module(struct snapshot_s *s);
 
 #endif

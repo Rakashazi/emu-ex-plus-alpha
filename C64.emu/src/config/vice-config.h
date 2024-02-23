@@ -5,41 +5,32 @@
 /* Define if building universal (internal helper macro) */
 /* #undef AC_APPLE_UNIVERSAL_BUILD */
 
-/* Should we enable AROS support. */
-/* #undef AMIGA_AROS */
-
-/* Should we enable M68K AmigaOS support. */
-/* #undef AMIGA_M68K */
-
-/* Should we enable Amiga Morphos support. */
-/* #undef AMIGA_MORPHOS */
-
-/* Should we enable AmigaOS4 support. */
-/* #undef AMIGA_OS4 */
-
-/* Should we enable Amigaos support. */
-/* #undef AMIGA_SUPPORT */
-
 /* Are we compiling for either BeOS or Haiku? */
 /* #undef BEOS_COMPILE */
 
-/* Enable support for BSD style joysticks. */
-/* #undef BSD_JOYSTICK */
+/* Are we compiling for *BSD? */
+/* #undef BSD_COMPILE */
 
-/* Enable cegcc support. */
-/* #undef CEGCC_COMPILE */
+/* Flags passed to configure */
+#define CONFIGURE_FLAGS ""
 
 /* Enable plain darwin compilation */
 /* #undef DARWIN_COMPILE */
 
+/* Are we compiling for DragonFly BSD? */
+/* #undef DRAGONFLYBSD_COMPILE */
+
+/* External FFMPEG libraries are used */
+/* #undef EXTERNAL_FFMPEG */
+
 /* Use the 65xx cpu history feature. */
-/* #undef FEATURE_CPUMEMHISTORY */
+//#define FEATURE_CPUMEMHISTORY /**/
 
-/* Enable emulation for digital joysticks. */
-/* #undef HAS_DIGITAL_JOYSTICK */
+/* Are we compiling for FreeBSD? */
+/* #undef FREEBSD_COMPILE */
 
-/* Enable Mac IOHIDManager Joystick driver. */
-/* #undef HAS_HIDMGR */
+/* Are we compiling for Haiku? */
+/* #undef HAIKU_COMPILE */
 
 /* Enable emulation for USB joysticks. */
 /* #undef HAS_USB_JOYSTICK */
@@ -52,9 +43,6 @@
 
 /* Define to 1 if you have the <alsa/asoundlib.h> header file. */
 //#define HAVE_ALSA_ASOUNDLIB_H 1
-
-/* Define to 1 if you have the <aros/_timeval.h> header file. */
-/* #undef HAVE_AROS__TIMEVAL_H */
 
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #define HAVE_ARPA_INET_H 1
@@ -74,14 +62,11 @@
 /* Define to 1 if you have the <ByteOrder.h> header file. */
 /* #undef HAVE_BYTEORDER_H */
 
-/* Enable Cairo rendering support */
-/* #undef HAVE_CAIRO */
+/* Support for POSIX capabilities. */
+#define HAVE_CAPABILITIES /**/
 
 /* Support for Catweasel MKIII. */
 /* #undef HAVE_CATWEASELMKIII */
-
-/* Support for direct PCI I/O access Catweasel MKIII. */
-/* #undef HAVE_CATWEASELMKIII_IO /**/
 
 /* Define to 1 if you have the <commctrl.h> header file. */
 /* #undef HAVE_COMMCTRL_H */
@@ -101,15 +86,15 @@
 /* define if the compiler supports basic C++11 syntax */
 #define HAVE_CXX11 1
 
-/* Add native GTK3 UI debugging code. */
+/* Add GTK3 UI debugging code. */
 /* #undef HAVE_DEBUG_GTK3UI */
+
+/* Enable threading debug support */
+/* #undef HAVE_DEBUG_THREADS */
 
 /* Define to 1 if you have the declaration of `sys_siglist', and to 0 if you
    don't. */
-#define HAVE_DECL_SYS_SIGLIST 1
-
-/* Define to 1 if you have the <devices/ahi.h> header file. */
-/* #undef HAVE_DEVICES_AHI_H */
+#define HAVE_DECL_SYS_SIGLIST 0
 
 /* Define to 1 if you have the <dev/ppbus/ppbconf.h> header file. */
 /* #undef HAVE_DEV_PPBUS_PPBCONF_H */
@@ -120,7 +105,7 @@
 /* Use DirectInput joystick driver */
 /* #undef HAVE_DINPUT */
 
-/* dinput.lib or libdinput.a are present */
+/* dinput8.lib or libdinput8.a are present */
 /* #undef HAVE_DINPUT_LIB */
 
 /* Define to 1 if you have the <direct.h> header file. */
@@ -148,6 +133,12 @@
 /* Define to 1 if you have the <execinfo.h> header file. */
 /* #undef HAVE_EXECINFO_H */
 
+/* Enable experimental devices emulation. */
+/* #undef HAVE_EXPERIMENTAL_DEVICES */
+
+/* External linking for lame libs */
+/* #undef HAVE_EXTERNAL_LAME */
+
 /* This version provides FastSID support. */
 #define HAVE_FASTSID 1
 
@@ -157,7 +148,7 @@
 /* Have FFMPEG av* libs available */
 /* #undef HAVE_FFMPEG */
 
-/* Have FFMPEG avresample lib available */
+/* Have libav avresample lib available */
 /* #undef HAVE_FFMPEG_AVRESAMPLE */
 
 /* FFMPEG uses subdirs for headers */
@@ -176,7 +167,7 @@
 //#define HAVE_FONTCONFIG /**/
 
 /* Define to 1 if you have the `fork' function. */
-//#define HAVE_FORK 1
+#define HAVE_FORK do not use this
 
 /* Support for FreeBSD par port device file. */
 /* #undef HAVE_FREEBSD_PARPORT_HEADERS */
@@ -192,9 +183,6 @@
 
 #endif
 
-/* Enable Fullscreen support. */
-/* #undef HAVE_FULLSCREEN */
-
 /* Define to 1 if you have the `getcwd' function. */
 #define HAVE_GETCWD 1
 
@@ -205,7 +193,7 @@
 #define HAVE_GETHOSTBYNAME 1
 
 /* Define if gethostbyname2 can be used */
-/* #undef HAVE_GETHOSTBYNAME2 */
+#define HAVE_GETHOSTBYNAME2 /**/
 
 /* Define if getipnodebyname can be used */
 /* #undef HAVE_GETIPNODEBYNAME */
@@ -222,17 +210,8 @@
 /* Can we use the GIF or UNGIF library? */
 /* #undef HAVE_GIF */
 
-/* GTK3 OpenGL support uses GLEW */
-//#define HAVE_GTK3_GLEW /**/
-
-/* Enable OpenGL support in GTK3 UI */
-//#define HAVE_GTK3_OPENGL /**/
-
 /* Support for HardSID. */
 /* #undef HAVE_HARDSID */
-
-/* Support for PCI/ISA HardSID. */
-//#define HAVE_HARDSID_IO /**/
 
 /* Define to 1 if you have the `htonl' function. */
 #define HAVE_HTONL 1
@@ -241,7 +220,7 @@
 #define HAVE_HTONS 1
 
 /* Enable arbitrary window scaling */
-//#define HAVE_HWSCALE /**/
+#define HAVE_HWSCALE /**/
 
 /* Define to 1 if you have the `i386_set_ioperm' function. */
 /* #undef HAVE_I386_SET_IOPERM */
@@ -265,16 +244,13 @@
 #define HAVE_IN_ADDR_T /**/
 
 /* Define to 1 if you have the `ioperm' function. */
-/* #undef HAVE_IOPERM */
+#define HAVE_IOPERM 1
 
 /* Define to 1 if you have the <io.h> header file. */
 /* #undef HAVE_IO_H */
 
 /* Define if ipv6 can be used */
-/* #undef HAVE_IPV6 */
-
-/* Can we use the JPEG library? */
-/* #undef HAVE_JPEG */
+#define HAVE_IPV6 /**/
 
 /* Define to 1 if you have the 'amd64' library (-lamd64). */
 /* #undef HAVE_LIBAMD64 */
@@ -282,8 +258,8 @@
 /* Define to 1 if you have the `bsd' library (-lbsd). */
 #define HAVE_LIBBSD 1
 
-/* Define to 1 if you have the `bz2' library (-lbz2). */
-/* #undef HAVE_LIBBZ2 */
+/* libcurl support */
+//#define HAVE_LIBCURL /**/
 
 /* Define to 1 if you have the `FLAC' library (-lFLAC). */
 //#define HAVE_LIBFLAC 1
@@ -296,9 +272,6 @@
 
 /* Define to 1 if you have the 'ieee1284' library (-lieee1284). */
 /* #undef HAVE_LIBIEEE1284 */
-
-/* Define to 1 if you have the `lzma' library (-llzma). */
-/* #undef HAVE_LIBLZMA */
 
 /* Define to 1 if you have the `m' library (-lm). */
 #define HAVE_LIBM 1
@@ -315,20 +288,11 @@
 /* Define to 1 if you have the `posix' library (-lposix). */
 /* #undef HAVE_LIBPOSIX */
 
-/* Define to 1 if you have the `pthread' library (-lpthread). */
-/* #undef HAVE_LIBPTHREAD */
-
-/* Define to 1 if you have the `rt' library (-lrt). */
-/* #undef HAVE_LIBRT */
-
 /* Define to 1 if you have the <libusbhid.h> header file. */
 /* #undef HAVE_LIBUSBHID_H */
 
 /* Define to 1 if you have the <libusb.h> header file. */
 /* #undef HAVE_LIBUSB_H */
-
-/* Define to 1 if you have the `va' library (-lva). */
-/* #undef HAVE_LIBVA */
 
 /* Define to 1 if you have the `vorbis' library (-lvorbis). */
 //#define HAVE_LIBVORBIS 1
@@ -369,9 +333,6 @@
 /* Define to 1 if you have the <machine/cpufunc.h> header file. */
 /* #undef HAVE_MACHINE_CPUFUNC_H */
 
-/* Define to 1 if you have the <machine/joystick.h> header file. */
-/* #undef HAVE_MACHINE_JOYSTICK_H */
-
 /* Define to 1 if you have the <machine/pio.h> header file. */
 /* #undef HAVE_MACHINE_PIO_H */
 
@@ -387,11 +348,8 @@
 /* Define to 1 if you have the `memmove' function. */
 #define HAVE_MEMMOVE 1
 
-/* Define to 1 if you have the <memory.h> header file. */
-/* #undef HAVE_MEMORY_H */
-
 /* Enable MIDI emulation. */
-//#define HAVE_MIDI /**/
+/* #undef HAVE_MIDI */
 
 /* Define to 1 if you have the `mkstemp' function. */
 #define HAVE_MKSTEMP 1
@@ -421,13 +379,13 @@
 //#define HAVE_NETWORK /**/
 
 /* Use the new 8580 filter */
-#define HAVE_NEW_8580_FILTER 1
+#define HAVE_NEW_8580_FILTER /**/
 
 /* Define to 1 if the system has the type `off_t'. */
-#define HAVE_OFF_T
+#define HAVE_OFF_T 1
 
 /* Include sys/types.h for off_t */
-#define HAVE_OFF_T_IN_SYS_TYPES
+#define HAVE_OFF_T_IN_SYS_TYPES /**/
 
 /* Define to 1 if you have the `outb' function. */
 /* #undef HAVE_OUTB */
@@ -460,31 +418,19 @@
 /* #undef HAVE_PORTAUDIO_H */
 
 /* Support for file device based access to ParSID. */
-//#define HAVE_PORTSID /**/
+/* #undef HAVE_PORTSID */
 
 /* Define to 1 if you have the <process.h> header file. */
 /* #undef HAVE_PROCESS_H */
 
-/* Define to 1 if you have the <proto/openpci.h> header file. */
-/* #undef HAVE_PROTO_OPENPCI_H */
-
 /* Define to 1 if you have the <pulse/simple.h> header file. */
 /* #undef HAVE_PULSE_SIMPLE_H */
-
-/* Enable QuickTime support. */
-/* #undef HAVE_QUICKTIME */
 
 /* Define to 1 if you have the `random' function. */
 #define HAVE_RANDOM 1
 
 /* Support for CS8900A ethernet controller. */
 /* #undef HAVE_RAWNET */
-
-/* Enable the readline library */
-#define HAVE_READLINE /**/
-
-/* Define to 1 if you have the <readline/readline.h> header file. */
-#define HAVE_READLINE_READLINE_H 1
 
 /* Support for OpenCBM (former CBM4Linux). */
 //#define HAVE_REALDEVICE /**/
@@ -503,9 +449,6 @@
 
 /* Define to 1 if you have the `rewinddir' function. */
 #define HAVE_REWINDDIR 1
-
-/* Does the 'readline' library support 'rl_readline_name'? */
-#define HAVE_RLNAME /**/
 
 /* Enable RS232 device emulation. */
 //#define HAVE_RS232DEV /**/
@@ -561,14 +504,14 @@
 /* Define to 1 if you have the <soundcard.h> header file. */
 /* #undef HAVE_SOUNDCARD_H */
 
-/* Support for SSI2001 (ISA SID card). */
-//#define HAVE_SSI2001 /**/
-
 /* Static linking for lame libs */
 /* #undef HAVE_STATIC_LAME */
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H 1
+
+/* Define to 1 if you have the <stdio.h> header file. */
+/* #undef HAVE_STDIO_H */
 
 /* Define to 1 if you have the <stdlib.h> header file. */
 /* #undef HAVE_STDLIB_H */
@@ -626,13 +569,10 @@
 /* #undef HAVE_SYS_DIR_H */
 
 /* Define to 1 if you have the <sys/ioctl.h> header file. */
-//#define HAVE_SYS_IOCTL_H 1
+#define HAVE_SYS_IOCTL_H 1
 
 /* Define to 1 if you have the <sys/io.h> header file. */
-/* #undef HAVE_SYS_IO_H */
-
-/* Define to 1 if you have the <sys/joystick.h> header file. */
-/* #undef HAVE_SYS_JOYSTICK_H */
+#define HAVE_SYS_IO_H 1
 
 /* Define to 1 if you have the <sys/ndir.h> header file, and it defines `DIR'.
    */
@@ -671,14 +611,14 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
 
+/* Define if Unix domain sockets are supported */
+#define HAVE_UNIX_DOMAIN_SOCKETS /**/
+
 /* Define to 1 if you have the <usbhid.h> header file. */
 /* #undef HAVE_USBHID_H */
 
 /* Define to 1 if you have the <usb.h> header file. */
 /* #undef HAVE_USB_H */
-
-/* Define to 1 if you have the `usleep' function. */
-#define HAVE_USLEEP 1
 
 /* Define to 1 if the system has the type `u_short'. */
 #define HAVE_U_SHORT 1
@@ -690,7 +630,7 @@
 /* #undef HAVE_VFORK_H */
 
 /* Define to 1 if you have the <vorbis/vorbisfile.h> header file. */
-//#define HAVE_VORBIS_VORBISFILE_H 1
+/* #undef HAVE_VORBIS_VORBISFILE_H */
 
 /* Define to 1 if you have the `vsnprintf' function. */
 #define HAVE_VSNPRINTF 1
@@ -701,26 +641,47 @@
 /* Define to 1 if you have the <winioctl.h> header file. */
 /* #undef HAVE_WINIOCTL_H */
 
+/* Define to 1 if you have the <winsock.h> header file. */
+/* #undef HAVE_WINSOCK_H */
+
 /* Define to 1 if `fork' works. */
 #define HAVE_WORKING_FORK 1
 
 /* Define to 1 if `vfork' works. */
 #define HAVE_WORKING_VFORK 1
 
+/* Support X64 images */
+/* #undef HAVE_X64_IMAGE */
+
 /* Can we use the ZLIB compression library? */
 #define HAVE_ZLIB /**/
+
+/* Define to 1 if you have the `_fseeki64' function. */
+/* #undef HAVE__FSEEKI64 */
+
+/* Define to 1 if you have the `_ftelli64' function. */
+/* #undef HAVE__FTELLI64 */
+
+/* Are we compiling for Linux? */
+#define LINUX_COMPILE /**/
 
 /* Enable support for Linux style joysticks. */
 //#define LINUX_JOYSTICK /**/
 
-/* Enable Mac OS X specific code. */
-/* #undef MACOSX_SUPPORT */
+/* Enable MacOS-specific code. */
+/* #undef MACOS_COMPILE */
 
 /* Enable Mac Joystick support. */
 /* #undef MAC_JOYSTICK */
 
 /* Whether struct sockaddr::__ss_family exists */
 /* #undef NEED_PREFIXED_SS_FAMILY */
+
+/* Are we compiling for NetBSD? */
+/* #undef NETBSD_COMPILE */
+
+/* Are we compiling for OpenBSD? */
+/* #undef OPENBSD_COMPILE */
 
 /* Name of package */
 #define PACKAGE "vice"
@@ -729,34 +690,25 @@
 #define PACKAGE_BUGREPORT ""
 
 /* Define to the full name of this package. */
-#define PACKAGE_NAME ""
+#define PACKAGE_NAME "vice"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING ""
+#define PACKAGE_STRING "vice 3.8"
 
 /* Define to the one symbol short name of this package. */
-#define PACKAGE_TARNAME ""
+#define PACKAGE_TARNAME "vice"
 
 /* Define to the home page for this package. */
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION ""
-
-/* Enable morphos shared SDL library support. */
-/* #undef POWERSDL_AMIGA_INLINE */
+#define PACKAGE_VERSION "3.8"
 
 /* Where do we want to install the executable? */
 #define PREFIX "/usr/local"
 
 /* Define as the return type of signal handlers (`int' or `void'). */
 #define RETSIGTYPE void
-
-/* Enable amiga shared SDL library support. */
-/* #undef SDL_AMIGA_INLINE */
-
-/* FFMPEG libraries are shared */
-/* #undef SHARED_FFMPEG */
 
 /* The size of `time_t', as computed by sizeof. */
 #define SIZEOF_TIME_T do not use this
@@ -770,10 +722,9 @@
 /* The size of `unsigned short', as computed by sizeof. */
 #define SIZEOF_UNSIGNED_SHORT do not use this
 
-/* FFMPEG libraries are static */
-/* #undef STATIC_FFMPEG */
-
-/* Define to 1 if you have the ANSI C header files. */
+/* Define to 1 if all of the C90 standard headers exist (not just the ones
+   required in a freestanding environment). This macro is provided for
+   backward compatibility; new code need not use it. */
 /* #undef STDC_HEADERS */
 
 /* time_t is 32 bit */
@@ -783,10 +734,7 @@
 #define TIME_T_IS_64BIT /**/
 
 /* Are we compiling for unix? */
-#define UNIX_COMPILE
-
-/* Define if this version is unstable. */
-/* #undef UNSTABLE */
+#define UNIX_COMPILE /**/
 
 /* Enable alsa support. */
 //#define USE_ALSA /**/
@@ -797,23 +745,23 @@
 /* Enable directx sound support. */
 /* #undef USE_DXSOUND */
 
-/* Use embedded data files. */
-/* #undef USE_EMBEDDED */
-
 /* Enable FLAC support. */
 //#define USE_FLAC /**/
 
 /* Define when using gcc */
 #define USE_GCC /**/
 
-/* Enable lamemp3 support. */
+/* Use GTK3 UI. */
+//#define USE_GTK3UI /**/
+
+/* Enable Headless UI support. */
+/* #undef USE_HEADLESSUI */
+
+/* Use lame for MP3 encoding. */
 /* #undef USE_LAMEMP3 */
 
 /* Enable mpg123 mp3 decoding support. */
-//#define USE_MPG123 /**/
-
-/* Use native GTK3 UI. */
-//#define USE_NATIVE_GTK3 /**/
+/* #undef USE_MPG123 */
 
 /* Enable oss support. */
 /* #undef USE_OSS */
@@ -824,10 +772,10 @@
 /* Enable pulseaudio support. */
 /* #undef USE_PULSE */
 
-/* Enable SDL2 prefix for header inclusion. */
-/* #undef USE_SDL2_PREFIX */
+/* Enable SDL 2.x UI support. */
+/* #undef USE_SDL2UI */
 
-/* Enable SDL UI support. */
+/* Enable SDL 1.2 UI support. */
 /* #undef USE_SDLUI */
 
 /* Enable SDL sound support. */
@@ -839,20 +787,24 @@
 /* define when using the svn revision in addition to the version */
 /* #undef USE_SVN_REVISION */
 
+/* define when using an svn revision passed to configure via
+   SVN_REVISION_OVERRIDE env var */
+/* #undef USE_SVN_REVISION_OVERRIDE */
+
+/* UI and emu each on different threads */
+//#define USE_VICE_THREAD /**/
+
 /* Enable ogg/vorbis support. */
 //#define USE_VORBIS /**/
 
 /* Version number of package */
-#define VERSION "3.6.1"
-
-/* Where should we lookup for data files? */
-//#define VICEDIR "/usr/local/lib64/vice"
+#define VERSION "3.8"
 
 /* Support for The Final Ethernet */
 /* #undef VICE_USE_LIBNET_1_1 */
 
 /* Are we compiling for win32? */
-/* #undef WIN32_COMPILE */
+/* #undef WINDOWS_COMPILE */
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
@@ -866,17 +818,9 @@
 # endif
 #endif
 
-/* Define to 1 if aros can handle auto resolving of library bases. */
-/* #undef WORKING_AROS_AUTO */
-
 /* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
    `char[]'. */
-/* #undef YYTEXT_POINTER */
-
-/* Enable large inode numbers on Mac OS X 10.5.  */
-//#ifndef _DARWIN_USE_64_BIT_INODE
-//# define _DARWIN_USE_64_BIT_INODE 1
-//#endif
+#define YYTEXT_POINTER 1
 
 /* Number of bits in a file offset, on hosts where this is settable. */
 /* #undef _FILE_OFFSET_BITS */
@@ -884,16 +828,10 @@
 /* Define for large files, on AIX-style hosts. */
 /* #undef _LARGE_FILES */
 
-/* Define to `__inline__' or `__inline' if that's what the C compiler
-   calls it, or to nothing if 'inline' is not supported under any name.  */
-#ifndef __cplusplus
-/* #undef inline */
-#endif
-
 /* Define to `long int' if <sys/types.h> does not define. */
 /* #undef off_t */
 
-/* Define to `int' if <sys/types.h> does not define. */
+/* Define as a signed integer type capable of holding a process identifier. */
 /* #undef pid_t */
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
@@ -909,3 +847,5 @@
 /* #undef vfork */
 
 #define VICE_API __attribute__((visibility("default")))
+
+#define UI_JAM_HARD_RESET UI_JAM_POWER_CYCLE

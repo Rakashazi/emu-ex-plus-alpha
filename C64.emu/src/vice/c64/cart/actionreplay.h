@@ -31,22 +31,22 @@
 
 #include "types.h"
 
-extern uint8_t actionreplay_roml_read(uint16_t addr);
-extern void actionreplay_roml_store(uint16_t addr, uint8_t value);
+uint8_t actionreplay_roml_read(uint16_t addr);
+void actionreplay_roml_store(uint16_t addr, uint8_t value);
 
-extern void actionreplay_freeze(void);
+void actionreplay_freeze(void);
 
-extern void actionreplay_config_init(void);
-extern void actionreplay_reset(void);
-extern void actionreplay_config_setup(uint8_t *rawcart);
-extern int actionreplay_bin_attach(const char *filename, uint8_t *rawcart);
-extern int actionreplay_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void actionreplay_detach(void);
-extern void actionreplay_powerup(void);
+void actionreplay_config_init(void);
+void actionreplay_reset(void);
+void actionreplay_config_setup(uint8_t *rawcart);
+int actionreplay_bin_attach(const char *filename, uint8_t *rawcart);
+int actionreplay_crt_attach(FILE *fd, uint8_t *rawcart);
+void actionreplay_detach(void);
+void actionreplay_powerup(void);
 
 struct snapshot_s;
 
-extern int actionreplay_snapshot_write_module(struct snapshot_s *s);
-extern int actionreplay_snapshot_read_module(struct snapshot_s *s);
+int actionreplay_snapshot_write_module(struct snapshot_s *s);
+int actionreplay_snapshot_read_module(struct snapshot_s *s);
 
 #endif

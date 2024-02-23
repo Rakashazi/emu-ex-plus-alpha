@@ -26,6 +26,7 @@
 
 #include "vice.h"
 
+#include "cia.h"
 #include "drivetypes.h"
 #include "iec128dcr-cmdline-options.h"
 #include "iec128dcr-resources.h"
@@ -55,6 +56,14 @@ void iec128dcr_drive_init(struct diskunit_context_s *drv)
 
 void iec128dcr_drive_reset(struct diskunit_context_s *drv)
 {
+    /* HACK HACK: this allows us to use the regular CIA emulation for the 1571CR */
+    if (drv->type == DRIVE_TYPE_1571CR) {
+        /* init timer A to default burst speed */
+        ciacore_store(drv->cia1571, 0x4004 & 0x0f, 0x05);
+        ciacore_store(drv->cia1571, 0x4005 & 0x0f, 0x00);
+        /* force load timer, start timer */
+        ciacore_store(drv->cia1571, 0x400e & 0x0f, 0x11);
+    }
 }
 
 void iec128dcr_drive_mem_init(struct diskunit_context_s *drv, unsigned int type)

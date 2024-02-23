@@ -37,6 +37,7 @@
 #include "wd1770.h"
 #include "fdd.h"
 #include "lib.h"
+#include "monitor.h"
 #include "snapshot.h"
 
 /* FIXME: msvc sux at var arg defines */
@@ -178,7 +179,7 @@ void wd1770d_init(diskunit_context_t *drv)
     }
 
     drv->wd1770 = lib_calloc(1, sizeof(wd1770_t));
-    drv->wd1770->myname = lib_msprintf("WD1770%d", drv->mynumber);
+    drv->wd1770->myname = lib_msprintf("WD1770%u", drv->mynumber);
     drv->wd1770->fdd = fdd_init(4 * drv->mynumber, drv->drives[0]);
     drv->wd1770->cpu_clk_ptr = drv->clk_ptr;
     drv->wd1770->is1772 = 0;
@@ -217,7 +218,7 @@ static void wd1770_execute(wd1770_t *drv)
                     return;
                 }
                 drv->status &= ~WD_BSY;
-                drv->clk += fdd_rotate(drv->fdd, (int)((*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE)) * BYTE_RATE;
+                drv->clk += fdd_rotate(drv->fdd, (*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE) * BYTE_RATE;
                 if (fdd_index_count(drv->fdd) >= 10) {
                     drv->status &= ~WD_MO;
                 }
@@ -249,7 +250,7 @@ static void wd1770_execute(wd1770_t *drv)
                         drv->step++;
                         /* fall through */
                     case 2:
-                        drv->clk += fdd_rotate(drv->fdd, (int)((*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE)) * BYTE_RATE;
+                        drv->clk += fdd_rotate(drv->fdd, (*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE) * BYTE_RATE;
                         if (fdd_index_count(drv->fdd) < 6) {
                             return;
                         }
@@ -391,7 +392,7 @@ static void wd1770_execute(wd1770_t *drv)
                         drv->step++;
                         /* fall through */
                     case 2:
-                        drv->clk += fdd_rotate(drv->fdd, (int)((*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE)) * BYTE_RATE;
+                        drv->clk += fdd_rotate(drv->fdd, (*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE) * BYTE_RATE;
                         if (fdd_index_count(drv->fdd) < 6) {
                             return;
                         }
@@ -614,7 +615,7 @@ static void wd1770_execute(wd1770_t *drv)
                         drv->step++;
                         /* fall through */
                     case 2:
-                        drv->clk += fdd_rotate(drv->fdd, (int)((*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE)) * BYTE_RATE;
+                        drv->clk += fdd_rotate(drv->fdd, (*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE) * BYTE_RATE;
                         if (fdd_index_count(drv->fdd) < 6) {
                             return;
                         }
@@ -656,7 +657,7 @@ static void wd1770_execute(wd1770_t *drv)
                         /* fall through */
                     case 6:
                         if (fdd_index_count(drv->fdd) < 1) {
-                            drv->clk += fdd_rotate(drv->fdd, (int)((*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE)) * BYTE_RATE;
+                            drv->clk += fdd_rotate(drv->fdd, (*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE) * BYTE_RATE;
                             return;
                         }
                         if (fdd_index_count(drv->fdd) > 1) {
@@ -728,7 +729,7 @@ static void wd1770_execute(wd1770_t *drv)
                         /* fall through */
                     case 10:
                         if (fdd_index_count(drv->fdd) < 1) {
-                            drv->clk += fdd_rotate(drv->fdd, (int)((*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE)) * BYTE_RATE;
+                            drv->clk += fdd_rotate(drv->fdd, (*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE) * BYTE_RATE;
                             return;
                         }
                         if (fdd_index_count(drv->fdd) > 1) {
@@ -833,7 +834,7 @@ static void wd1770_store(wd1770_t *drv, uint16_t addr, uint8_t byte)
             }
             drv->command = wd_commands[i].command;
             drv->type = wd_commands[i].type;
-            drv->clk += fdd_rotate(drv->fdd, (int)((*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE)) * BYTE_RATE;
+            drv->clk += fdd_rotate(drv->fdd, (*drv->cpu_clk_ptr - drv->clk) / BYTE_RATE) * BYTE_RATE;
             drv->step = 0;
             switch (drv->command) {
                 case WD_RESTORE:
@@ -920,6 +921,13 @@ static uint8_t wd1770_peek(wd1770_t *drv, uint16_t addr)
     return 0;
 }
 
+void wd1770d_dump(diskunit_context_t *ctx)
+{
+    wd1770_t *drv = ctx->wd1770;
+    mon_out("Track:%d Sector:%d\n", drv->track, drv->sector);
+    mon_out("Status:$%02x Data:$%02x\n", drv->status, drv->data);
+}
+
 void wd1770_reset(wd1770_t *drv)
 {
     drv->type = 0;
@@ -989,12 +997,13 @@ int wd1770_disk_change(wd1770_t *drv)
 
 void wd1770d_store(diskunit_context_t *drv, uint16_t addr, uint8_t byte)
 {
+    drv->cpu->cpu_last_data = byte;
     wd1770_store(drv->wd1770, (uint16_t)(addr & 3), byte);
 }
 
 uint8_t wd1770d_read(diskunit_context_t *drv, uint16_t addr)
 {
-    return wd1770_read(drv->wd1770, (uint16_t)(addr & 3));
+    return drv->cpu->cpu_last_data = wd1770_read(drv->wd1770, (uint16_t)(addr & 3));
 }
 
 uint8_t wd1770d_peek(diskunit_context_t *drv, uint16_t addr)

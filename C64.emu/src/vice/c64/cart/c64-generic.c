@@ -244,15 +244,23 @@ int generic_16kb_bin_attach(const char *filename, uint8_t *rawcart)
 
 int generic_ultimax_bin_attach(const char *filename, uint8_t *rawcart)
 {
+    /* 16k binaries ($8000-$9fff, $e000-$ffff) */
     if (util_file_load(filename, rawcart, 0x4000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         /* also accept 12k binaries */
         if (util_file_load(filename, rawcart, 0x3000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
-            /* also accept 4k binaries */
-            if (util_file_load(filename, &rawcart[0x2000], 0x1000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
-                return -1;
+            /* also accept 8k binaries ($e000-$ffff) */
+            if (util_file_load(filename, &rawcart[0x2000], 0x2000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
+                /* also accept 4k binaries ($e000-$efff) */
+                if (util_file_load(filename, &rawcart[0x2000], 0x1000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
+                    return -1;
+                }
+                /* produce a mirror at ($f000-$ffff) */
+                memcpy(&rawcart[0x3000], &rawcart[0x2000], 0x1000);
             }
+        } else {
+            /* last 4k of the 12k image actually goes to $f000-$ffff */
+            memcpy(&rawcart[0x3000], &rawcart[0x2000], 0x1000);
         }
-        memcpy(&rawcart[0x3000], &rawcart[0x2000], 0x1000);
     }
     return generic_common_attach(CARTRIDGE_ULTIMAX);
 }

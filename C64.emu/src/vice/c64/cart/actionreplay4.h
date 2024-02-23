@@ -31,18 +31,18 @@
 
 #include "types.h"
 
-extern void actionreplay4_freeze(void);
+void actionreplay4_freeze(void);
 
-extern void actionreplay4_config_init(void);
-extern void actionreplay4_reset(void);
-extern void actionreplay4_config_setup(uint8_t *rawcart);
-extern int actionreplay4_bin_attach(const char *filename, uint8_t *rawcart);
-extern int actionreplay4_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void actionreplay4_detach(void);
+void actionreplay4_config_init(void);
+void actionreplay4_reset(void);
+void actionreplay4_config_setup(uint8_t *rawcart);
+int actionreplay4_bin_attach(const char *filename, uint8_t *rawcart);
+int actionreplay4_crt_attach(FILE *fd, uint8_t *rawcart);
+void actionreplay4_detach(void);
 
 struct snapshot_s;
 
-extern int actionreplay4_snapshot_write_module(struct snapshot_s *s);
-extern int actionreplay4_snapshot_read_module(struct snapshot_s *s);
+int actionreplay4_snapshot_write_module(struct snapshot_s *s);
+int actionreplay4_snapshot_read_module(struct snapshot_s *s);
 
 #endif

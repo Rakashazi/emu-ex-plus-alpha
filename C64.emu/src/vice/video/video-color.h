@@ -30,6 +30,6 @@
 #include "palette.h"
 #include "types.h"
 
-extern void video_color_palette_free(struct palette_s *palette);
+void video_color_palette_free(struct palette_s *palette);
 
 #endif

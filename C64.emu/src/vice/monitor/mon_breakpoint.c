@@ -55,6 +55,7 @@ struct checkpoint_list_s {
 typedef struct checkpoint_list_s checkpoint_list_t;
 
 static int breakpoint_count;
+static checkpoint_list_t *all_checkpoints;
 static checkpoint_list_t *breakpoints[NUM_MEMSPACES];
 static checkpoint_list_t *watchpoints_load[NUM_MEMSPACES];
 static checkpoint_list_t *watchpoints_store[NUM_MEMSPACES];
@@ -102,58 +103,26 @@ static void remove_checkpoint_from_list(checkpoint_list_t **head, mon_checkpoint
  */
 mon_checkpoint_t **mon_breakpoint_checkpoint_list_get(unsigned int *len) {
     checkpoint_list_t *ptr;
-    int i;
     mon_checkpoint_t **concat;
 
     *len = 0;
 
-    for (i = FIRST_SPACE; i <= LAST_SPACE; i++) {
-        ptr = breakpoints[i];
-        while (ptr) {
-            ++*len;
-            ptr = ptr->next;
-        }
-
-        ptr = watchpoints_load[i];
-        while (ptr) {
-            ++*len;
-            ptr = ptr->next;
-        }
-
-        ptr = watchpoints_store[i];
-        while (ptr) {
-            ++*len;
-            ptr = ptr->next;
-        }
+    ptr = all_checkpoints;
+    while (ptr) {
+        ++*len;
+        ptr = ptr->next;
     }
 
     concat = lib_malloc(sizeof(mon_checkpoint_t *) * *len);
 
     *len = -1;
 
-    for (i = FIRST_SPACE; i <= LAST_SPACE; i++) {
-        ptr = breakpoints[i];
-        while (ptr) {
-            ++*len;
-            concat[*len] = ptr->checkpt;
-            ptr = ptr->next;
-        }
-
-        ptr = watchpoints_load[i];
-        while (ptr) {
-            ++*len;
-            concat[*len] = ptr->checkpt;
-            ptr = ptr->next;
-        }
-
-        ptr = watchpoints_store[i];
-        while (ptr) {
-            ++*len;
-            concat[*len] = ptr->checkpt;
-            ptr = ptr->next;
-        }
+    ptr = all_checkpoints;
+    while (ptr) {
+        ++*len;
+        concat[*len] = ptr->checkpt;
+        ptr = ptr->next;
     }
-
     ++*len;
 
     return concat;
@@ -168,34 +137,14 @@ mon_checkpoint_t **mon_breakpoint_checkpoint_list_get(unsigned int *len) {
 mon_checkpoint_t *mon_breakpoint_find_checkpoint(int brknum)
 {
     checkpoint_list_t *ptr;
-    int i;
 
-    for (i = FIRST_SPACE; i <= LAST_SPACE; i++) {
-        ptr = breakpoints[i];
-        while (ptr) {
-            if (ptr->checkpt->checknum == brknum) {
-                return ptr->checkpt;
-            }
-            ptr = ptr->next;
+    ptr = all_checkpoints;
+    while (ptr) {
+        if (ptr->checkpt->checknum == brknum) {
+            return ptr->checkpt;
         }
-
-        ptr = watchpoints_load[i];
-        while (ptr) {
-            if (ptr->checkpt->checknum == brknum) {
-                return ptr->checkpt;
-            }
-            ptr = ptr->next;
-        }
-
-        ptr = watchpoints_store[i];
-        while (ptr) {
-            if (ptr->checkpt->checknum == brknum) {
-                return ptr->checkpt;
-            }
-            ptr = ptr->next;
-        }
+        ptr = ptr->next;
     }
-
     return NULL;
 }
 
@@ -260,6 +209,7 @@ static void remove_checkpoint(mon_checkpoint_t *cp)
     lib_free(cp->command);
     cp->command = NULL;
 
+    remove_checkpoint_from_list(&all_checkpoints, cp);
     if (cp->check_exec) {
         remove_checkpoint_from_list(&(breakpoints[mem]), cp);
     }
@@ -695,6 +645,7 @@ int breakpoint_add_checkpoint(MON_ADDR start_addr, MON_ADDR end_addr,
     new_cp->temporary = is_temp;
 
     mem = addr_memspace(start_addr);
+    add_to_checkpoint_list(&all_checkpoints, new_cp);
     if (new_cp->check_exec) {
         add_to_checkpoint_list(&(breakpoints[mem]), new_cp);
     }
@@ -767,6 +718,7 @@ void mon_breakpoint_unset(MON_ADDR address)
 
     if (ptr) {
         /* there's a breakpoint, so remove it */
+        remove_checkpoint_from_list( &all_checkpoints, ptr->checkpt );
         remove_checkpoint_from_list( &breakpoints[mem], ptr->checkpt );
     }
 }

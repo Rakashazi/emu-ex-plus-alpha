@@ -58,7 +58,9 @@ enum
 	CFGKEY_DEFAULT_MODEL = 282, CFGKEY_DEFAULT_PALETTE_NAME = 283,
 	CFGKEY_DRIVE8_TYPE = 284, CFGKEY_DRIVE9_TYPE = 285,
 	CFGKEY_DRIVE10_TYPE = 286, CFGKEY_DRIVE11_TYPE = 287,
-	CFGKEY_DEFAULT_DRIVE_TRUE_EMULATION = 288
+	CFGKEY_DEFAULT_DRIVE_TRUE_EMULATION = 288, CFGKEY_COLOR_SATURATION = 289,
+	CFGKEY_COLOR_CONTRAST = 290, CFGKEY_COLOR_BRIGHTNESS = 291,
+	CFGKEY_COLOR_GAMMA = 292, CFGKEY_COLOR_TINT = 293
 };
 
 enum Vic20Ram : uint8_t
@@ -75,6 +77,11 @@ enum JoystickMode : uint8_t
 	NORMAL = 0,
 	SWAPPED = 1,
 	KEYBOARD = 2,
+};
+
+enum class ColorSetting
+{
+	Saturation, Contrast, Brightness, Gamma, Tint
 };
 
 constexpr uint8_t SYSTEM_FLAG_NO_AUTOSTART = bit(0);
@@ -100,34 +107,28 @@ public:
 	IG::PixmapView canvasSrcPix{};
 	PixelFormat pixFmt{};
 	ViceSystem currSystem{};
-	std::atomic_bool runningFrame{};
+	bool viceThreadSignaled{};
+	bool inCPUTrap{};
+	JoystickMode optionSwapJoystickPorts{JoystickMode::NORMAL};
 	bool ctrlLock{};
 	bool c64IsInit{}, c64FailedInit{};
 	std::array <FS::PathString, Config::envIsLinux ? 3 : 1> sysFilePath{};
 	std::array<char, 21> externalPaletteResStr{};
 	std::array<char, 17> paletteFileResStr{};
-	bool defaultDriveTrueEmulation{};
-	Byte1Option optionDriveTrueEmulation{CFGKEY_DRIVE_TRUE_EMULATION, 0};
-	Byte1Option optionCropNormalBorders{CFGKEY_CROP_NORMAL_BORDERS, 1};
-	Byte1Option optionAutostartWarp{CFGKEY_AUTOSTART_WARP, 1};
-	Byte1Option optionAutostartTDE{CFGKEY_AUTOSTART_TDE, 0};
-	Byte1Option optionAutostartBasicLoad{CFGKEY_AUTOSTART_BASIC_LOAD, 0};
-	Byte1Option optionViceSystem{CFGKEY_VICE_SYSTEM, std::to_underlying(ViceSystem::C64), false,
-		optionIsValidWithMax<VicePlugin::SYSTEMS-1, uint8_t>};
-	SByte1Option optionModel{};
-	SByte1Option optionDefaultModel{};
-	Byte1Option optionBorderMode{CFGKEY_BORDER_MODE, VICII_NORMAL_BORDERS};
-	Byte1Option optionSidEngine{CFGKEY_SID_ENGINE, SID_ENGINE_RESID, false,
-		optionIsValidWithMax<1, uint8_t>};
-	Byte1Option optionReSidSampling{CFGKEY_RESID_SAMPLING, SID_RESID_SAMPLING_INTERPOLATION, false,
-		optionIsValidWithMax<3, uint8_t>};
-	Byte1Option optionSwapJoystickPorts{CFGKEY_SWAP_JOYSTICK_PORTS, JoystickMode::NORMAL, false,
-		optionIsValidWithMax<JoystickMode::KEYBOARD>};
-	Byte1Option optionAutostartOnLaunch{CFGKEY_AUTOSTART_ON_LOAD, 1};
-	// VIC-20 specific
-	Byte1Option optionVic20RamExpansions{CFGKEY_VIC20_RAM_EXPANSIONS, 0};
-	// C64 specific
-	Byte2Option optionC64RamExpansionModule{CFGKEY_C64_RAM_EXPANSION_MODULE, 0};
+	std::string colorSettingResStr[5];
+	bool defaultDriveTrueEmulation = true;
+	bool optionCropNormalBorders = true;
+	ViceSystem optionViceSystem{ViceSystem::C64};
+	int8_t defaultModel{};
+	bool optionAutostartOnLaunch{true};
+
+	// higher quality ReSID sampling modes take orders of magnitude more CPU power,
+	// set some reasonable defaults based on CPU type
+	#if defined __aarch64__ || defined __x86_64__
+	static constexpr uint8_t defaultReSidSampling = SID_RESID_SAMPLING_INTERPOLATION;
+	#else
+	static constexpr uint8_t defaultReSidSampling = SID_RESID_SAMPLING_FAST;
+	#endif
 
 	C64System(ApplicationContext ctx):
 		EmuSystem{ctx}
@@ -146,37 +147,37 @@ public:
 			sysFilePath[1] = "~/.local/share/C64.emu";
 			sysFilePath[2] = "/usr/share/games/vice";
 		}
-
-		// higher quality ReSID sampling modes take orders of magnitude more CPU power,
-		// set some reasonable defaults based on CPU type
-		#if defined __x86_64__
-		optionReSidSampling.initDefault(SID_RESID_SAMPLING_RESAMPLING);
-		#elif defined __aarch64__
-		optionReSidSampling.initDefault(SID_RESID_SAMPLING_INTERPOLATION);
-		#else
-		optionReSidSampling.initDefault(SID_RESID_SAMPLING_FAST);
-		#endif
 	}
 
 	int intResource(const char *name) const;
 	void setIntResource(const char *name, int val);
+	bool updateIntResourceInCPUTrap(const char *name, int val);
 	void resetIntResource(const char *name);
 	int defaultIntResource(const char *name) const;
 	const char *stringResource(const char *name) const;
 	void setStringResource(const char *name, const char *val);
 	void setBorderMode(int mode);
+	int borderMode() const;
 	void setSidEngine(int engine);
+	int sidEngine() const;
 	void setReSidSampling(int sampling);
+	int reSidSampling() const;
 	void setDriveTrueEmulation(bool on);
 	bool driveTrueEmulation() const;
 	void setAutostartWarp(bool on);
+	bool autostartWarp() const;
 	void setAutostartTDE(bool on);
+	bool autostartTDE() const;
 	void setAutostartBasicLoad(bool on);
 	bool autostartBasicLoad() const;
-	void setSysModel(int model);
-	int sysModel() const;
-	void setDefaultModel(int model);
-	void applySessionOptions();
+	void setModel(int model);
+	int model() const;
+	void setDriveType(int idx, int type);
+	int driveType(int idx);
+	int colorSetting(ColorSetting) const;
+	std::string colorSettingAsString(ColorSetting) const;
+	void setColorSetting(ColorSetting, int);
+
 	std::vector<std::string> systemFilesWithExtension(const char *ext) const;
 	const char *videoChipStr() const;
 	void setPaletteResources(const char *palName);
@@ -184,13 +185,33 @@ public:
 	const char *externalPaletteName() const;
 	const char *paletteName() const;
 	void setJoystickMode(JoystickMode);
+	void updateJoystickDevices();
 	bool currSystemIsC64() const;
 	bool currSystemIsC64Or128() const;
-	void setRuntimeReuSize(int size);
+	void setReuSize(int size);
 	void resetCanvasSourcePixmap(struct video_canvas_s *c);
 	ArchiveIO &firmwareArchive(CStringView path) const;
 	void setSystemFilesPath(CStringView path, FS::file_type);
-	void execC64Frame();
+	void enterCPUTrap();
+
+	void signalViceThreadAndWait()
+	{
+		assert(!viceThreadSignaled);
+		viceThreadSignaled = true;
+		execSem.release();
+		execDoneSem.acquire();
+	}
+
+	bool signalEmuTaskThreadAndWait()
+	{
+		if(!viceThreadSignaled)
+			return false;
+		viceThreadSignaled = false;
+		execDoneSem.release();
+		execSem.acquire();
+		return true;
+	}
+
 
 	// required API functions
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
@@ -213,7 +234,6 @@ public:
 	// optional API functions
 	FS::FileString configName() const;
 	void onOptionsLoaded();
-	void onSessionOptionsLoaded(EmuApp &);
 	bool resetSessionOptions(EmuApp &);
 	VController::KbMap vControllerKeyboardMap(VControllerKbMode mode);
 	void onVKeyboardShown(VControllerKeyboard &, bool shown);
@@ -226,17 +246,9 @@ public:
 
 protected:
 	void initC64(EmuApp &app);
-	int reSidSampling() const;
 	void setVirtualDeviceTraps(bool on);
 	bool virtualDeviceTraps() const;
-	int sidEngine() const;
-	bool autostartWarp() const;
-	bool autostartTDE() const;
-	int borderMode() const;
 	void handleKeyboardInput(InputAction, bool positionalShift = {});
-	void setModel(int model);
-	void applyInitialOptionResources();
-	void startCanvasRunningFrame();
 	void setCanvasSkipFrame(bool on);
 	bool updateCanvasPixelFormat(struct video_canvas_s *, PixelFormat);
 	void tryLoadingSplitVic20Cart();

@@ -27,13 +27,14 @@
 #ifndef VICE_VIC20_IEEE488_H
 #define VICE_VIC20_IEEE488_H
 
-extern int vic20_ieee488_resources_init(void);
-extern int vic20_ieee488_cmdline_options_init(void);
+int vic20_ieee488_resources_init(void);
+int vic20_ieee488_cmdline_options_init(void);
 
 struct snapshot_s;
-extern int vic20_ieee488_snapshot_read_module(struct snapshot_s *s);
-extern int vic20_ieee488_snapshot_write_module(struct snapshot_s *s);
 
-extern void vic20_ieee488_detach(void);
+int vic20_ieee488_snapshot_read_module(struct snapshot_s *s);
+int vic20_ieee488_snapshot_write_module(struct snapshot_s *s);
+
+void vic20_ieee488_detach(void);
 
 #endif

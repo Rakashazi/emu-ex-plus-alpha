@@ -29,6 +29,6 @@
 
 #include "types.h"
 
-extern int userport_petscii_snespad_resources_init(void);
+int userport_petscii_snespad_resources_init(void);
 
 #endif

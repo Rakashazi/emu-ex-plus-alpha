@@ -31,26 +31,26 @@
 
 struct snapshot_s;
 
-extern void georam_init(void);
-extern int georam_resources_init(void);
-extern void georam_resources_shutdown(void);
-extern int georam_cmdline_options_init(void);
+void georam_init(void);
+int georam_resources_init(void);
+void georam_resources_shutdown(void);
+int georam_cmdline_options_init(void);
 
-extern void georam_reset(void);
-extern void georam_detach(void);
-extern int georam_enable(void);
+void georam_reset(void);
+void georam_detach(void);
+int georam_enable(void);
 int georam_disable(void);
-extern void georam_powerup(void);
+void georam_powerup(void);
 
-extern int georam_read_snapshot_module(struct snapshot_s *s);
-extern int georam_write_snapshot_module(struct snapshot_s *s);
+int georam_read_snapshot_module(struct snapshot_s *s);
+int georam_write_snapshot_module(struct snapshot_s *s);
 
-extern int georam_cart_enabled(void);
-extern void georam_config_setup(uint8_t *rawcart);
+int georam_cart_enabled(void);
+void georam_config_setup(uint8_t *rawcart);
 
-extern const char *georam_get_file_name(void);
-extern int georam_bin_attach(const char *filename, uint8_t *rawcart);
-extern int georam_bin_save(const char *filename);
-extern int georam_flush_image(void);
+const char *georam_get_file_name(void);
+int georam_bin_attach(const char *filename, uint8_t *rawcart);
+int georam_bin_save(const char *filename);
+int georam_flush_image(void);
 
 #endif

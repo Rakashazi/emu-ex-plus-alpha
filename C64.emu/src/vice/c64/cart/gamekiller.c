@@ -107,7 +107,8 @@ static io_source_t gamekiller_io1_device = {
     NULL,                       /* TODO: device state information dump function */
     CARTRIDGE_GAME_KILLER,      /* cartridge ID */
     IO_PRIO_NORMAL,             /* normal priority, device read needs to be checked for collisions */
-    0                           /* insertion order, gets filled in by the registration function */
+    0,                          /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE              /* NO mirroring */
 };
 
 static io_source_t gamekiller_io2_device = {
@@ -123,7 +124,8 @@ static io_source_t gamekiller_io2_device = {
     NULL,                       /* TODO: device state information dump function */
     CARTRIDGE_GAME_KILLER,      /* cartridge ID */
     IO_PRIO_NORMAL,             /* normal priority, device read needs to be checked for collisions */
-    0                           /* insertion order, gets filled in by the registration function */
+    0,                          /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE              /* NO mirroring */
 };
 
 static io_source_list_t *gamekiller_io1_list_item = NULL;

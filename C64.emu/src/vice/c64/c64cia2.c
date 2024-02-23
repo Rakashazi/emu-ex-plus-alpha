@@ -147,7 +147,7 @@ static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
             store_userport_pa3((uint8_t)((byte & 8) >> 3));
         }
 
-        tmp = ~byte;
+        tmp = (uint8_t)~byte;
         new_vbank = tmp & 3;
         if (new_vbank != vbank) {
             vbank = new_vbank;

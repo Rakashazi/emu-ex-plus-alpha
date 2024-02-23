@@ -31,15 +31,15 @@
 
 #include "types.h"
 
-extern void westermann_config_setup(uint8_t *rawcart);
-extern int westermann_bin_attach(const char *filename, uint8_t *rawcart);
-extern int westermann_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void westermann_detach(void);
-extern void westermann_config_init(void);
+void westermann_config_setup(uint8_t *rawcart);
+int westermann_bin_attach(const char *filename, uint8_t *rawcart);
+int westermann_crt_attach(FILE *fd, uint8_t *rawcart);
+void westermann_detach(void);
+void westermann_config_init(void);
 
 struct snapshot_s;
 
-extern int westermann_snapshot_write_module(struct snapshot_s *s);
-extern int westermann_snapshot_read_module(struct snapshot_s *s);
+int westermann_snapshot_write_module(struct snapshot_s *s);
+int westermann_snapshot_read_module(struct snapshot_s *s);
 
 #endif

@@ -34,7 +34,7 @@
  */
 
 #undef        DEBUG
-/* #define DEBUG */
+#define DEBUG
 
 #include "vice.h"
 
@@ -57,9 +57,9 @@
 #include "vicesocket.h"
 
 #ifdef DEBUG
-# define DEBUG_LOG_MESSAGE(_xxx) log_message _xxx
+# define DBG(_xxx) log_debug _xxx
 #else
-# define DEBUG_LOG_MESSAGE(_xxx)
+# define DBG(_xxx)
 #endif
 
 /* ------------------------------------------------------------------------- */
@@ -140,19 +140,18 @@ void rs232_reset(void)
  */
 static int rs232_is_physical_device(int device)
 {
+    DBG(("rs232_is_physical_device device:%d devfile:%s", device, rs232_devfile[device]));
 #ifdef HAVE_RS232NET
     vice_network_socket_address_t *ad = NULL;
 
     ad = vice_network_address_generate(rs232_devfile[device], 0);
-
-    if (ad == NULL) {
-        return 1;
-    } else {
+    if (ad != NULL) {
+        DBG(("rs232_is_physical_device: no (network)"));
         return 0;
     }
-#else
-    return 1;
 #endif
+    DBG(("rs232_is_physical_device: yes"));
+    return 1;
 }
 
 /* opens a rs232 window, returns handle to give to functions below. */

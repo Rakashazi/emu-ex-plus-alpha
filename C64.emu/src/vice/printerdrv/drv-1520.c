@@ -42,7 +42,7 @@
 #include "palette.h"
 #include "types.h"
 
-/*#define DEBUG1520       1*/
+/*#define DEBUG1520       1 */
 /*#define DEBUG1520_A   1*/
 
 /*
@@ -1208,20 +1208,32 @@ static int drv_1520_formfeed(unsigned int prnr)
 
 int drv_1520_init_resources(void)
 {
-    driver_select_t driver_select;
+    driver_select_t driver;
 #if DEBUG1520
     log_message(drv1520_log, "drv_1520_init_resources");
 #endif
 
-    driver_select.drv_name = "1520";
-    driver_select.drv_open = drv_1520_open;
-    driver_select.drv_close = drv_1520_close;
-    driver_select.drv_putc = drv_1520_putc;
-    driver_select.drv_getc = drv_1520_getc;
-    driver_select.drv_flush = drv_1520_flush;
-    driver_select.drv_formfeed = drv_1520_formfeed;
+    driver = (driver_select_t){
+        .drv_name     = "1520",
+        .ui_name      = "Commodore 1520",
 
-    driver_select_register(&driver_select);
+        .drv_open     = drv_1520_open,
+        .drv_close    = drv_1520_close,
+        .drv_putc     = drv_1520_putc,
+        .drv_getc     = drv_1520_getc,
+        .drv_flush    = drv_1520_flush,
+        .drv_formfeed = drv_1520_formfeed,
+        .drv_select   = NULL,
+
+        .printer      = false,
+        .plotter      = true,
+        .iec          = true,
+        .ieee488      = false,
+        .userport     = false,
+        .text         = false,
+        .graphics     = true
+    };
+    driver_select_register(&driver);
 
     return 0;
 }

@@ -37,8 +37,9 @@
 
 int machine_drive_resources_init(void)
 {
-    /* FIXME: drive depends on machine (sub) type */
-    return drive_resources_type_init(DRIVE_TYPE_2031) | ieee_drive_resources_init();
+    /* init drive type resource last, so the ROMs are loaded when it initializes */
+    return ieee_drive_resources_init() |
+           drive_resources_type_init(DRIVE_TYPE_2031);    /* FIXME: drive depends on machine (sub) type */
 }
 
 void machine_drive_resources_shutdown(void)

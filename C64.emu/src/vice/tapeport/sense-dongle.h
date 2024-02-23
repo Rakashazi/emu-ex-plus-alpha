@@ -29,6 +29,6 @@
 
 #include "types.h"
 
-extern int sense_dongle_resources_init(int amount);
+int sense_dongle_resources_init(int amount);
 
 #endif

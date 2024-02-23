@@ -40,24 +40,18 @@
 
 void riot1_store(diskunit_context_t *ctxptr, uint16_t addr, uint8_t data)
 {
+    ctxptr->cpu->cpu_last_data = data;
     riotcore_store(ctxptr->riot1, addr, data);
 }
 
 uint8_t riot1_read(diskunit_context_t *ctxptr, uint16_t addr)
 {
-    return riotcore_read(ctxptr->riot1, addr);
+    return ctxptr->cpu->cpu_last_data = riotcore_read(ctxptr->riot1, addr);
 }
 
 uint8_t riot1_peek(diskunit_context_t *ctxptr, uint16_t addr)
 {
     return riotcore_peek(ctxptr->riot1, addr);
-}
-
-int riot1_dump(diskunit_context_t *ctxptr, uint16_t addr)
-{
-    /* TODO: implement dump feature */
-    /* riotcore_dump(ctxptr->riot1, addr); */
-    return -1;
 }
 
 static void set_irq(riot_context_t *riot_context, int fl, CLOCK clk)
@@ -137,7 +131,7 @@ void riot1_setup_context(diskunit_context_t *ctxptr)
 
     riotcore_setup_context(riot);
 
-    riot->myname = lib_msprintf("RIOT1D%d", ctxptr->mynumber);
+    riot->myname = lib_msprintf("RIOT1D%u", ctxptr->mynumber);
 
     riot->undump_pra = undump_pra;
     riot->undump_prb = undump_prb;

@@ -28,8 +28,8 @@
 #ifndef VICE_PETUI_H
 #define VICE_PETUI_H
 
-extern int petui_init_early(void);
-extern int petui_init(void);
-extern void petui_shutdown(void);
+int petui_init_early(void);
+int petui_init(void);
+void petui_shutdown(void);
 
 #endif

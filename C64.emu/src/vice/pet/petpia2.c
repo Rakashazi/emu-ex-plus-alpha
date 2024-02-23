@@ -55,9 +55,9 @@ static piareg mypia;
 /* ------------------------------------------------------------------------- */
 /* CPU binding */
 
-static void my_set_int(unsigned int pia_int_num, int a)
+static void my_set_int(unsigned int pia_int_num, int a, CLOCK offset)
 {
-    maincpu_set_irq(pia_int_num, a ? IK_IRQ : IK_NONE);
+    maincpu_set_irq_clk(pia_int_num, a ? IK_IRQ : IK_NONE, maincpu_clk - offset);
 }
 
 static void my_restore_int(unsigned int pia_int_num, int a)

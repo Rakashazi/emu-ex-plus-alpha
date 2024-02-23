@@ -30,22 +30,22 @@
 
 #include "types.h"
 
-extern uint8_t supersnapshot_v4_roml_read(uint16_t addr);
-extern void supersnapshot_v4_roml_store(uint16_t addr, uint8_t value);
+uint8_t supersnapshot_v4_roml_read(uint16_t addr);
+void supersnapshot_v4_roml_store(uint16_t addr, uint8_t value);
 
-extern void supersnapshot_v4_freeze(void);
+void supersnapshot_v4_freeze(void);
 
-extern void supersnapshot_v4_config_init(void);
-extern void supersnapshot_v4_config_setup(uint8_t *rawcart);
-extern int supersnapshot_v4_bin_attach(const char *filename, uint8_t *rawcart);
-extern int supersnapshot_v4_crt_attach(FILE *fd, uint8_t *rawcart);
+void supersnapshot_v4_config_init(void);
+void supersnapshot_v4_config_setup(uint8_t *rawcart);
+int supersnapshot_v4_bin_attach(const char *filename, uint8_t *rawcart);
+int supersnapshot_v4_crt_attach(FILE *fd, uint8_t *rawcart);
 
-extern void supersnapshot_v4_detach(void);
-extern void supersnapshot_v4_powerup(void);
+void supersnapshot_v4_detach(void);
+void supersnapshot_v4_powerup(void);
 
 struct snapshot_s;
 
-extern int supersnapshot_v4_snapshot_write_module(struct snapshot_s *s);
-extern int supersnapshot_v4_snapshot_read_module(struct snapshot_s *s);
+int supersnapshot_v4_snapshot_write_module(struct snapshot_s *s);
+int supersnapshot_v4_snapshot_read_module(struct snapshot_s *s);
 
 #endif

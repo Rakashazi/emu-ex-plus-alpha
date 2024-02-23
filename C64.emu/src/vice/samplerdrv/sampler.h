@@ -39,10 +39,18 @@
 #define SAMPLER_CLOSED   0
 #define SAMPLER_STARTED  1
 
-#define SAMPLER_DEVICE_FILE        0
-#define SAMPLER_DEVICE_PORTAUDIO   1
+#define SAMPLER_GAIN_ONE        100     /* 100% */
+#define SAMPLER_GAIN_MIN          1
+#define SAMPLER_GAIN_MAX        200     /* 200% */
+#define SAMPLER_GAIN_DEFAULT    SAMPLER_GAIN_ONE
 
-#define SAMPLER_MAX_DEVICES        2
+enum {
+    SAMPLER_DEVICE_FILE = 0,
+    SAMPLER_DEVICE_PORTAUDIO,
+
+    /* This item always needs to be at the end */
+    SAMPLER_MAX_DEVICES
+};
 
 typedef struct sampler_device_s {
     const char *name;
@@ -55,17 +63,17 @@ typedef struct sampler_device_s {
     void (*reset)(void);
 } sampler_device_t;
 
-extern void sampler_start(int channels, char *devname);
-extern void sampler_stop(void);
-extern uint8_t sampler_get_sample(int channel);
-extern void sampler_reset(void);
+void sampler_start(int channels, char *devname);
+void sampler_stop(void);
+uint8_t sampler_get_sample(int channel);
+void sampler_reset(void);
 
-extern void sampler_device_register(sampler_device_t *device, int id);
+void sampler_device_register(sampler_device_t *device, int id);
 
-extern int sampler_resources_init(void);
-extern void sampler_resources_shutdown(void);
-extern int sampler_cmdline_options_init(void);
+int sampler_resources_init(void);
+void sampler_resources_shutdown(void);
+int sampler_cmdline_options_init(void);
 
-extern sampler_device_t *sampler_get_devices(void);
+sampler_device_t *sampler_get_devices(void);
 
 #endif

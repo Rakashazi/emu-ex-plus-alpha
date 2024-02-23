@@ -49,128 +49,132 @@
 #define IO_MIRROR_OTHER 1   /*!< registered area contains mirrors of another registered area */
 #define IO_MIRROR_MASK  2   /*!< registered area contains mirrors of itself, determined by address_mask */
 
-extern uint8_t c64io_d000_read(uint16_t addr);
-extern uint8_t c64io_d000_peek(uint16_t addr);
-extern void c64io_d000_store(uint16_t addr, uint8_t value);
-extern uint8_t c64io_d100_read(uint16_t addr);
-extern uint8_t c64io_d100_peek(uint16_t addr);
-extern void c64io_d100_store(uint16_t addr, uint8_t value);
-extern uint8_t c64io_d200_read(uint16_t addr);
-extern uint8_t c64io_d200_peek(uint16_t addr);
-extern void c64io_d200_store(uint16_t addr, uint8_t value);
-extern uint8_t c64io_d300_read(uint16_t addr);
-extern uint8_t c64io_d300_peek(uint16_t addr);
-extern void c64io_d300_store(uint16_t addr, uint8_t value);
-extern uint8_t c64io_d400_read(uint16_t addr);
-extern uint8_t c64io_d400_peek(uint16_t addr);
-extern void c64io_d400_store(uint16_t addr, uint8_t value);
-extern uint8_t c64io_d500_read(uint16_t addr);
-extern uint8_t c64io_d500_peek(uint16_t addr);
-extern void c64io_d500_store(uint16_t addr, uint8_t value);
-extern uint8_t c64io_d600_read(uint16_t addr);
-extern uint8_t c64io_d600_peek(uint16_t addr);
-extern void c64io_d600_store(uint16_t addr, uint8_t value);
-extern uint8_t c64io_d700_read(uint16_t addr);
-extern uint8_t c64io_d700_peek(uint16_t addr);
-extern void c64io_d700_store(uint16_t addr, uint8_t value);
-extern uint8_t c64io_de00_read(uint16_t addr);
-extern uint8_t c64io_de00_peek(uint16_t addr);
-extern void c64io_de00_store(uint16_t addr, uint8_t value);
-extern uint8_t c64io_df00_read(uint16_t addr);
-extern uint8_t c64io_df00_peek(uint16_t addr);
-extern void c64io_df00_store(uint16_t addr, uint8_t value);
+uint8_t c64io_d000_read(uint16_t addr);
+uint8_t c64io_d000_peek(uint16_t addr);
+void c64io_d000_store(uint16_t addr, uint8_t value);
+uint8_t c64io_d100_read(uint16_t addr);
+uint8_t c64io_d100_peek(uint16_t addr);
+void c64io_d100_store(uint16_t addr, uint8_t value);
+uint8_t c64io_d200_read(uint16_t addr);
+uint8_t c64io_d200_peek(uint16_t addr);
+void c64io_d200_store(uint16_t addr, uint8_t value);
+uint8_t c64io_d300_read(uint16_t addr);
+uint8_t c64io_d300_peek(uint16_t addr);
+void c64io_d300_store(uint16_t addr, uint8_t value);
+uint8_t c64io_d400_read(uint16_t addr);
+uint8_t c64io_d400_peek(uint16_t addr);
+void c64io_d400_store(uint16_t addr, uint8_t value);
+uint8_t c64io_d500_read(uint16_t addr);
+uint8_t c64io_d500_peek(uint16_t addr);
+void c64io_d500_store(uint16_t addr, uint8_t value);
+uint8_t c64io_d600_read(uint16_t addr);
+uint8_t c64io_d600_peek(uint16_t addr);
+void c64io_d600_store(uint16_t addr, uint8_t value);
+uint8_t c64io_d700_read(uint16_t addr);
+uint8_t c64io_d700_peek(uint16_t addr);
+void c64io_d700_store(uint16_t addr, uint8_t value);
+uint8_t c64io_dd00_read(uint16_t addr);
+uint8_t c64io_dd00_peek(uint16_t addr);
+void c64io_dd00_store(uint16_t addr, uint8_t value);
+uint8_t c64io_de00_read(uint16_t addr);
+uint8_t c64io_de00_peek(uint16_t addr);
+void c64io_de00_store(uint16_t addr, uint8_t value);
+uint8_t c64io_df00_read(uint16_t addr);
+uint8_t c64io_df00_peek(uint16_t addr);
+void c64io_df00_store(uint16_t addr, uint8_t value);
 
-extern uint8_t vic20io0_read(uint16_t addr);
-extern uint8_t vic20io0_peek(uint16_t addr);
-extern void vic20io0_store(uint16_t addr, uint8_t value);
-extern uint8_t vic20io2_read(uint16_t addr);
-extern uint8_t vic20io2_peek(uint16_t addr);
-extern void vic20io2_store(uint16_t addr, uint8_t value);
-extern uint8_t vic20io3_read(uint16_t addr);
-extern uint8_t vic20io3_peek(uint16_t addr);
-extern void vic20io3_store(uint16_t addr, uint8_t value);
+uint8_t vic20io0_read(uint16_t addr);
+uint8_t vic20io0_peek(uint16_t addr);
+void vic20io0_store(uint16_t addr, uint8_t value);
+uint8_t vic20io2_read(uint16_t addr);
+uint8_t vic20io2_peek(uint16_t addr);
+void vic20io2_store(uint16_t addr, uint8_t value);
+uint8_t vic20io3_read(uint16_t addr);
+uint8_t vic20io3_peek(uint16_t addr);
+void vic20io3_store(uint16_t addr, uint8_t value);
 
-extern uint8_t cbm2io_d800_read(uint16_t addr);
-extern uint8_t cbm2io_d800_peek(uint16_t addr);
-extern void cbm2io_d800_store(uint16_t addr, uint8_t value);
-extern uint8_t cbm2io_d900_read(uint16_t addr);
-extern uint8_t cbm2io_d900_peek(uint16_t addr);
-extern void cbm2io_d900_store(uint16_t addr, uint8_t value);
-extern uint8_t cbm2io_da00_read(uint16_t addr);
-extern uint8_t cbm2io_da00_peek(uint16_t addr);
-extern void cbm2io_da00_store(uint16_t addr, uint8_t value);
-extern uint8_t cbm2io_db00_read(uint16_t addr);
-extern uint8_t cbm2io_db00_peek(uint16_t addr);
-extern void cbm2io_db00_store(uint16_t addr, uint8_t value);
-extern uint8_t cbm2io_dc00_read(uint16_t addr);
-extern uint8_t cbm2io_dc00_peek(uint16_t addr);
-extern void cbm2io_dc00_store(uint16_t addr, uint8_t value);
-extern uint8_t cbm2io_dd00_read(uint16_t addr);
-extern uint8_t cbm2io_dd00_peek(uint16_t addr);
-extern void cbm2io_dd00_store(uint16_t addr, uint8_t value);
-extern uint8_t cbm2io_de00_read(uint16_t addr);
-extern uint8_t cbm2io_de00_peek(uint16_t addr);
-extern void cbm2io_de00_store(uint16_t addr, uint8_t value);
-extern uint8_t cbm2io_df00_read(uint16_t addr);
-extern uint8_t cbm2io_df00_peek(uint16_t addr);
-extern void cbm2io_df00_store(uint16_t addr, uint8_t value);
+uint8_t cbm2io_d800_read(uint16_t addr);
+uint8_t cbm2io_d800_peek(uint16_t addr);
+void cbm2io_d800_store(uint16_t addr, uint8_t value);
+uint8_t cbm2io_d900_read(uint16_t addr);
+uint8_t cbm2io_d900_peek(uint16_t addr);
+void cbm2io_d900_store(uint16_t addr, uint8_t value);
+uint8_t cbm2io_da00_read(uint16_t addr);
+uint8_t cbm2io_da00_peek(uint16_t addr);
+void cbm2io_da00_store(uint16_t addr, uint8_t value);
+uint8_t cbm2io_db00_read(uint16_t addr);
+uint8_t cbm2io_db00_peek(uint16_t addr);
+void cbm2io_db00_store(uint16_t addr, uint8_t value);
+uint8_t cbm2io_dc00_read(uint16_t addr);
+uint8_t cbm2io_dc00_peek(uint16_t addr);
+void cbm2io_dc00_store(uint16_t addr, uint8_t value);
+uint8_t cbm2io_dd00_read(uint16_t addr);
+uint8_t cbm2io_dd00_peek(uint16_t addr);
+void cbm2io_dd00_store(uint16_t addr, uint8_t value);
+uint8_t cbm2io_de00_read(uint16_t addr);
+uint8_t cbm2io_de00_peek(uint16_t addr);
+void cbm2io_de00_store(uint16_t addr, uint8_t value);
+uint8_t cbm2io_df00_read(uint16_t addr);
+uint8_t cbm2io_df00_peek(uint16_t addr);
+void cbm2io_df00_store(uint16_t addr, uint8_t value);
 
-extern uint8_t petio_8800_read(uint16_t addr);
-extern uint8_t petio_8800_peek(uint16_t addr);
-extern void petio_8800_store(uint16_t addr, uint8_t value);
-extern uint8_t petio_8900_read(uint16_t addr);
-extern uint8_t petio_8900_peek(uint16_t addr);
-extern void petio_8900_store(uint16_t addr, uint8_t value);
-extern uint8_t petio_8a00_read(uint16_t addr);
-extern uint8_t petio_8a00_peek(uint16_t addr);
-extern void petio_8a00_store(uint16_t addr, uint8_t value);
-extern uint8_t petio_8b00_read(uint16_t addr);
-extern uint8_t petio_8b00_peek(uint16_t addr);
-extern void petio_8b00_store(uint16_t addr, uint8_t value);
-extern uint8_t petio_8c00_read(uint16_t addr);
-extern uint8_t petio_8c00_peek(uint16_t addr);
-extern void petio_8c00_store(uint16_t addr, uint8_t value);
-extern uint8_t petio_8d00_read(uint16_t addr);
-extern uint8_t petio_8d00_peek(uint16_t addr);
-extern void petio_8d00_store(uint16_t addr, uint8_t value);
-extern uint8_t petio_8e00_read(uint16_t addr);
-extern uint8_t petio_8e00_peek(uint16_t addr);
-extern void petio_8e00_store(uint16_t addr, uint8_t value);
-extern uint8_t petio_8f00_read(uint16_t addr);
-extern uint8_t petio_8f00_peek(uint16_t addr);
-extern void petio_8f00_store(uint16_t addr, uint8_t value);
+uint8_t petio_8800_read(uint16_t addr);
+uint8_t petio_8800_peek(uint16_t addr);
+void petio_8800_store(uint16_t addr, uint8_t value);
+uint8_t petio_8900_read(uint16_t addr);
+uint8_t petio_8900_peek(uint16_t addr);
+void petio_8900_store(uint16_t addr, uint8_t value);
+uint8_t petio_8a00_read(uint16_t addr);
+uint8_t petio_8a00_peek(uint16_t addr);
+void petio_8a00_store(uint16_t addr, uint8_t value);
+uint8_t petio_8b00_read(uint16_t addr);
+uint8_t petio_8b00_peek(uint16_t addr);
+void petio_8b00_store(uint16_t addr, uint8_t value);
+uint8_t petio_8c00_read(uint16_t addr);
+uint8_t petio_8c00_peek(uint16_t addr);
+void petio_8c00_store(uint16_t addr, uint8_t value);
+uint8_t petio_8d00_read(uint16_t addr);
+uint8_t petio_8d00_peek(uint16_t addr);
+void petio_8d00_store(uint16_t addr, uint8_t value);
+uint8_t petio_8e00_read(uint16_t addr);
+uint8_t petio_8e00_peek(uint16_t addr);
+void petio_8e00_store(uint16_t addr, uint8_t value);
+uint8_t petio_8f00_read(uint16_t addr);
+uint8_t petio_8f00_peek(uint16_t addr);
+void petio_8f00_store(uint16_t addr, uint8_t value);
 
-extern uint8_t petio_e900_read(uint16_t addr);
-extern uint8_t petio_e900_peek(uint16_t addr);
-extern void petio_e900_store(uint16_t addr, uint8_t value);
-extern uint8_t petio_ea00_read(uint16_t addr);
-extern uint8_t petio_ea00_peek(uint16_t addr);
-extern void petio_ea00_store(uint16_t addr, uint8_t value);
-extern uint8_t petio_eb00_read(uint16_t addr);
-extern uint8_t petio_eb00_peek(uint16_t addr);
-extern void petio_eb00_store(uint16_t addr, uint8_t value);
-extern uint8_t petio_ec00_read(uint16_t addr);
-extern uint8_t petio_ec00_peek(uint16_t addr);
-extern void petio_ec00_store(uint16_t addr, uint8_t value);
-extern uint8_t petio_ed00_read(uint16_t addr);
-extern uint8_t petio_ed00_peek(uint16_t addr);
-extern void petio_ed00_store(uint16_t addr, uint8_t value);
-extern uint8_t petio_ee00_read(uint16_t addr);
-extern uint8_t petio_ee00_peek(uint16_t addr);
-extern void petio_ee00_store(uint16_t addr, uint8_t value);
-extern uint8_t petio_ef00_read(uint16_t addr);
-extern uint8_t petio_ef00_peek(uint16_t addr);
-extern void petio_ef00_store(uint16_t addr, uint8_t value);
+uint8_t petio_e900_read(uint16_t addr);
+uint8_t petio_e900_peek(uint16_t addr);
+void petio_e900_store(uint16_t addr, uint8_t value);
+uint8_t petio_ea00_read(uint16_t addr);
+uint8_t petio_ea00_peek(uint16_t addr);
+void petio_ea00_store(uint16_t addr, uint8_t value);
+uint8_t petio_eb00_read(uint16_t addr);
+uint8_t petio_eb00_peek(uint16_t addr);
+void petio_eb00_store(uint16_t addr, uint8_t value);
+uint8_t petio_ec00_read(uint16_t addr);
+uint8_t petio_ec00_peek(uint16_t addr);
+void petio_ec00_store(uint16_t addr, uint8_t value);
+uint8_t petio_ed00_read(uint16_t addr);
+uint8_t petio_ed00_peek(uint16_t addr);
+void petio_ed00_store(uint16_t addr, uint8_t value);
+uint8_t petio_ee00_read(uint16_t addr);
+uint8_t petio_ee00_peek(uint16_t addr);
+void petio_ee00_store(uint16_t addr, uint8_t value);
+uint8_t petio_ef00_read(uint16_t addr);
+uint8_t petio_ef00_peek(uint16_t addr);
+void petio_ef00_store(uint16_t addr, uint8_t value);
 
-extern uint8_t plus4io_fd00_read(uint16_t addr);
-extern uint8_t plus4io_fd00_peek(uint16_t addr);
-extern void plus4io_fd00_store(uint16_t addr, uint8_t value);
-extern uint8_t plus4io_fe00_read(uint16_t addr);
-extern uint8_t plus4io_fe00_peek(uint16_t addr);
-extern void plus4io_fe00_store(uint16_t addr, uint8_t value);
+uint8_t plus4io_fd00_read(uint16_t addr);
+uint8_t plus4io_fd00_peek(uint16_t addr);
+void plus4io_fd00_store(uint16_t addr, uint8_t value);
+uint8_t plus4io_fe00_read(uint16_t addr);
+uint8_t plus4io_fe00_peek(uint16_t addr);
+void plus4io_fe00_store(uint16_t addr, uint8_t value);
 
 struct mem_ioreg_list_s;
-extern void io_source_ioreg_add_list(struct mem_ioreg_list_s **mem_ioreg_list);
+
+void io_source_ioreg_add_list(struct mem_ioreg_list_s **mem_ioreg_list);
 
 /* The following structure is used to register the I/O address range used by a certain device/chip/cartridge.
  *
@@ -203,7 +207,7 @@ extern void io_source_ioreg_add_list(struct mem_ioreg_list_s **mem_ioreg_list);
  * data to the read, in which case there will be a read-collision. The default action for a read-collision is to report the
  * user with the names of the devices and the address at which the collision happened, and then detach all devices causing
  * the read-collision. This default action can be changed to detach only the last inserted device involved in the
- * read-collision, or AND the returned bytes instead of detaching devices.  
+ * read-collision, or AND the returned bytes instead of detaching devices.
  *
  * The io_source_prio defines what to do with the returned byte of a device.
  *
@@ -273,17 +277,17 @@ typedef struct io_source_detach_s {
     unsigned int order;
 } io_source_detach_t;
 
-extern io_source_list_t *io_source_register(io_source_t *device);
-extern void io_source_unregister(io_source_list_t *device);
+io_source_list_t *io_source_register(io_source_t *device);
+void io_source_unregister(io_source_list_t *device);
 
-extern void cartio_shutdown(void);
+void cartio_shutdown(void);
 
-extern void c64io_vicii_init(void);
-extern void c64io_vicii_deinit(void);
-extern void c64io_vicii_reinit(void);
+void c64io_vicii_init(void);
+void c64io_vicii_deinit(void);
+void c64io_vicii_reinit(void);
 
-extern int cartio_resources_init(void);
-extern int cartio_cmdline_options_init(void);
-extern void cartio_set_highest_order(unsigned int nr);
+int cartio_resources_init(void);
+int cartio_cmdline_options_init(void);
+void cartio_set_highest_order(unsigned int nr);
 
 #endif

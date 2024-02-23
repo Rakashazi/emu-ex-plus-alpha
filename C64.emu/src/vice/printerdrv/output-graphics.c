@@ -41,7 +41,15 @@
 #include "resources.h"
 #include "screenshot.h"
 #include "types.h"
+#include "util.h"
 
+/* #define DEBUG_PRINTER */
+
+#ifdef DEBUG_PRINTER
+#define DBG(x)  log_debug x
+#else
+#define DBG(x)
+#endif
 
 struct output_gfx_s {
     gfxoutputdrv_t *gfxoutputdrv;
@@ -120,6 +128,37 @@ static void output_graphics_line_data(screenshot_t *screenshot, uint8_t *data,
 
 /* ------------------------------------------------------------------------- */
 
+/* when creating a filename for a new file, check if that file already exists,
+   and if yes, skip that file and try the next one */
+static int advance_outfile_name(unsigned int prnr)
+{
+    output_gfx_t *o = &(output_gfx[prnr]);
+    int i;
+    char *testname = util_concat(o->filename, ".", o->gfxoutputdrv->default_extension, NULL);
+
+    while (util_file_exists(testname)) {
+        /* increase page count in filename */
+        i = (int)strlen(o->filename);
+        o->filename[i - 1]++;
+        if (o->filename[i - 1] > '9') {
+            o->filename[i - 1] = '0';
+            o->filename[i - 2]++;
+            if (o->filename[i - 2] > '9') {
+                o->filename[i - 2] = '0';
+                o->filename[i - 3]++;
+                if (o->filename[i - 3] > '9') {
+                    lib_free(testname);
+                    return -1;
+                }
+            }
+        }
+        lib_free(testname);
+        testname = util_concat(o->filename, ".", o->gfxoutputdrv->default_extension, NULL);
+    }
+    lib_free(testname);
+    return 0;
+}
+
 static int output_graphics_open(unsigned int prnr,
                                 output_parameter_t *output_parameter)
 {
@@ -129,6 +168,10 @@ static int output_graphics_open(unsigned int prnr,
 
     if (output_gfx[prnr].gfxoutputdrv == NULL) {
         return -1;
+    }
+
+    if (output_gfx[prnr].isopen) {
+        return 0;
     }
 
     switch (prnr) {
@@ -149,8 +192,15 @@ static int output_graphics_open(unsigned int prnr,
         filename = "prngfx";
     }
 
-    output_gfx[prnr].filename = lib_malloc(strlen(filename) + 3);
-    sprintf(output_gfx[prnr].filename, "%s00", filename);
+    if (output_gfx[prnr].filename != NULL) {
+        lib_free(output_gfx[prnr].filename);
+    }
+
+    /* add 000 after the filename */
+    output_gfx[prnr].filename = util_concat(filename, "000", NULL);
+    if (advance_outfile_name(prnr) < 0) {
+        return -1;
+    }
 
     output_gfx[prnr].screenshot.width = output_parameter->maxcol;
     output_gfx[prnr].screenshot.height = output_parameter->maxrow;
@@ -159,7 +209,9 @@ static int output_graphics_open(unsigned int prnr,
     output_gfx[prnr].screenshot.y_offset = 0;
     output_gfx[prnr].screenshot.palette = output_parameter->palette;
 
-    lib_free(output_gfx[prnr].line);
+    if (output_gfx[prnr].line != NULL) {
+        lib_free(output_gfx[prnr].line);
+    }
     output_gfx[prnr].line = lib_malloc(output_parameter->maxcol);
     memset(output_gfx[prnr].line, OUTPUT_PIXEL_WHITE, output_parameter->maxcol);
 
@@ -174,6 +226,10 @@ static int output_graphics_open(unsigned int prnr,
 
 static void output_graphics_close(unsigned int prnr)
 {
+    DBG(("output_graphics_close(%d) isopen:%d\n", prnr, output_gfx[prnr].isopen));
+    /* The layer that calls us does that for each CLOSE on the bus, this is not
+       very useful */
+#if 0
     output_gfx_t *o = &(output_gfx[prnr]);
 
     /* only do this if something has actually been printed on this page */
@@ -195,6 +251,7 @@ static void output_graphics_close(unsigned int prnr)
         o->gfxoutputdrv->close(&o->screenshot);
         o->isopen = 0;
     }
+#endif
 }
 
 static int output_graphics_putc(unsigned int prnr, uint8_t b)
@@ -204,16 +261,9 @@ static int output_graphics_putc(unsigned int prnr, uint8_t b)
     if (b == OUTPUT_NEWLINE) {
         /* if output is not open yet, open it now */
         if (!o->isopen) {
-            int i;
-
-            /* increase page count in filename */
-            i = (int)strlen(o->filename);
-            o->filename[i - 1]++;
-            if (o->filename[i - 1] > '9') {
-                o->filename[i - 1] = '0';
-                o->filename[i - 2]++;
+            if (advance_outfile_name(prnr) < 0) {
+                return -1;
             }
-
             /* open output file */
             o->gfxoutputdrv->open(&o->screenshot, o->filename);
             o->isopen = 1;
@@ -253,17 +303,43 @@ static int output_graphics_getc(unsigned int prnr, uint8_t *b)
 
 static int output_graphics_flush(unsigned int prnr)
 {
+    DBG(("output_graphics_flush:%d", prnr));
+    /* We can't really update the output partially, so we do nothing and rely on
+       the rest of the code doing it as needed */
     return 0;
 }
 
 static int output_graphics_formfeed(unsigned int prnr)
 {
+    output_gfx_t *o = &(output_gfx[prnr]);
+    DBG(("output_graphics_formfeed:%d", prnr));
+#if 0
     /*
      * Will finish writing current file, and leaves open
      * the option to start a new one.
      */
     output_graphics_close(prnr);
+#else
+    /* only do this if something has actually been printed on this page */
+    if (o->isopen) {
+        unsigned int i;
 
+        /* output current line */
+        current_prnr = prnr;
+        (o->gfxoutputdrv->write)(&o->screenshot);
+        o->line_no++;
+
+        /* fill rest of page with blank lines */
+        memset(o->line, OUTPUT_PIXEL_WHITE, o->screenshot.width);
+        for (i = o->line_no; i < o->screenshot.height; i++) {
+            (o->gfxoutputdrv->write)(&o->screenshot);
+        }
+
+        /* close output */
+        o->gfxoutputdrv->close(&o->screenshot);
+        o->isopen = 0;
+    }
+#endif
     return 0;
 }
 
@@ -273,9 +349,16 @@ void output_graphics_init(void)
 {
     unsigned int i;
 
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < NUM_OUTPUT_SELECT; i++) {
+        if (output_gfx[i].filename) {
+            lib_free(output_gfx[i].filename);
+        }
+        if (output_gfx[i].line) {
+            lib_free(output_gfx[i].line);
+        }
         output_gfx[i].filename = NULL;
         output_gfx[i].line = NULL;
+
         output_gfx[i].line_pos = 0;
     }
 }
@@ -284,10 +367,13 @@ void output_graphics_shutdown(void)
 {
     unsigned int i;
 
-    for (i = 0; i < 3; i++) {
-        lib_free(output_gfx[i].filename);
-        lib_free(output_gfx[i].line);
-
+    for (i = 0; i < NUM_OUTPUT_SELECT; i++) {
+        if (output_gfx[i].filename) {
+            lib_free(output_gfx[i].filename);
+        }
+        if (output_gfx[i].line) {
+            lib_free(output_gfx[i].line);
+        }
         output_gfx[i].filename = NULL;
         output_gfx[i].line = NULL;
     }

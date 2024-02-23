@@ -30,11 +30,11 @@
 #include "sound.h"
 #include "types.h"
 
-extern void petsound_store_onoff(bool value);
-extern void petsound_store_manual(bool value, CLOCK rclk);
+void petsound_store_onoff(bool value);
+void petsound_store_manual(bool value, CLOCK rclk);
 
-extern void petsound_reset(sound_t *psid, CLOCK cpu_clk);
+void petsound_reset(sound_t *psid, CLOCK cpu_clk);
 
-extern void pet_sound_chip_init(void);
+void pet_sound_chip_init(void);
 
 #endif

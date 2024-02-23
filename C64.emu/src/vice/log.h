@@ -38,23 +38,23 @@ typedef signed int log_t;
 #define LOG_ERR     ((log_t)-1)
 #define LOG_DEFAULT ((log_t)-2)
 
-extern int log_resources_init(void);
-extern void log_resources_shutdown(void);
-extern int log_cmdline_options_init(void);
-extern int log_init(void);
-extern int log_init_with_fd(FILE *f);
-extern log_t log_open(const char *id);
-extern int log_close(log_t log);
-extern void log_close_all(void);
-extern void log_enable(int on);
-extern int log_set_silent(int n);
-extern int log_set_verbose(int n);
-extern int log_verbose_init(int argc, char **argv);
+int log_resources_init(void);
+void log_resources_shutdown(void);
+int log_cmdline_options_init(void);
+int log_init(void);
+int log_init_with_fd(FILE *f);
+log_t log_open(const char *id);
+int log_close(log_t log);
+void log_close_all(void);
+void log_enable(int on);
+int log_set_silent(int n);
+int log_set_verbose(int n);
+int log_early_init(int argc, char **argv);
 
-extern int log_message(log_t log, const char *format, ...) VICE_ATTR_PRINTF2;
-extern int log_warning(log_t log, const char *format, ...) VICE_ATTR_PRINTF2;
-extern int log_error(log_t log, const char *format, ...) VICE_ATTR_PRINTF2;
-extern int log_debug(const char *format, ...) VICE_ATTR_PRINTF;
-extern int log_verbose(const char *format, ...) VICE_ATTR_PRINTF;
+int log_message(log_t log, const char *format, ...) VICE_ATTR_PRINTF2;
+int log_warning(log_t log, const char *format, ...) VICE_ATTR_PRINTF2;
+int log_error(log_t log, const char *format, ...) VICE_ATTR_PRINTF2;
+int log_debug(const char *format, ...) VICE_ATTR_PRINTF;
+int log_verbose(const char *format, ...) VICE_ATTR_PRINTF;
 
 #endif

@@ -122,7 +122,8 @@ static io_source_t vicii_d000_device = {
     vicii_dump,            /* device state information dump function */
     0,                     /* dummy (not a cartridge) */
     IO_PRIO_HIGH,          /* high priority, device is never involved in collisions */
-    0                      /* insertion order, gets filled in by the registration function */
+    0,                     /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE         /* NO mirroring */
 };
 
 static io_source_t vicii_d100_device = {
@@ -138,7 +139,8 @@ static io_source_t vicii_d100_device = {
     plus256k_dump,        /* device state information dump function */
     CARTRIDGE_PLUS256K,   /* cartridge ID */
     IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
-    0                     /* insertion order, gets filled in by the registration function */
+    0,                    /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE        /* NO mirroring */
 };
 
 static io_source_list_t *vicii_d000_list_item = NULL;
@@ -157,7 +159,7 @@ int set_plus256k_enabled(int value, int disable_reset)
             return -1;
         }
         if (!disable_reset) {
-            machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+            machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
         }
         plus256k_enabled = 0;
         return 0;
@@ -166,7 +168,7 @@ int set_plus256k_enabled(int value, int disable_reset)
             return -1;
         }
         if (!disable_reset) {
-            machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+            machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
         }
         plus256k_enabled = 1;
         return 0;

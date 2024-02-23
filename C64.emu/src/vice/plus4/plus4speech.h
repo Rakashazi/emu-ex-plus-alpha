@@ -32,15 +32,15 @@
 
 struct machine_context_s;
 
-extern int speech_cart_enabled(void);
+int speech_cart_enabled(void);
 
-extern void speech_setup_context(struct machine_context_s *machine_context);
-extern int speech_cmdline_options_init(void);
+void speech_setup_context(struct machine_context_s *machine_context);
+int speech_cmdline_options_init(void);
 
-extern int speech_resources_init(void);
-extern void speech_resources_shutdown(void);
-extern void speech_shutdown(void);
+int speech_resources_init(void);
+void speech_resources_shutdown(void);
+void speech_shutdown(void);
 
-extern void speech_sound_chip_init(void);
+void speech_sound_chip_init(void);
 
 #endif

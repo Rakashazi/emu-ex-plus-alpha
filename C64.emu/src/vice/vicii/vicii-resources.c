@@ -42,23 +42,51 @@
 #include "video.h"
 #include "vsync.h"
 
+/* The old code, before r43758, also delays the change of the actual resource
+   value until the next vblank. This breaks eg the SDL menus (and is generally
+   wrong). The new code changes the resource value immediately, and only delays
+   the update of the internal state (which is the correct thing to do). However,
+   this apparently breaks the rendering of the second (VDC) window in x128 for
+   some reason. */
+
+/* NOTE: this should be fixed after r44823 */
+
+/* #define OLDCODE */
+
+#ifdef OLDCODE
+static int next_border_mode;
+#endif
+
 vicii_resources_t vicii_resources = { 0, 0, 0, 0, 0 };
 static video_chip_cap_t video_chip_cap;
-
-static int next_border_mode;
 
 static void on_vsync_set_border_mode(void *unused)
 {
     int sync;
+    int pf;
 
     if (resources_get_int("MachineVideoStandard", &sync) < 0) {
         sync = MACHINE_SYNC_PAL;
     }
-
+    if (resources_get_int("MachinePowerFrequency", &pf) < 0) {
+        switch (sync) {
+            case MACHINE_SYNC_PAL:
+            case MACHINE_SYNC_PALN:
+                pf = 50;
+            break;
+            default:
+                pf = 60;
+            break;
+        }
+    }
+#ifdef OLDCODE
     if (vicii_resources.border_mode != next_border_mode) {
         vicii_resources.border_mode = next_border_mode;
-        machine_change_timing(sync, vicii_resources.border_mode);
+#endif
+        machine_change_timing(sync, pf, vicii_resources.border_mode);
+#ifdef OLDCODE
     }
+#endif
 }
 
 static int set_border_mode(int val, void *param)
@@ -73,7 +101,11 @@ static int set_border_mode(int val, void *param)
             return -1;
     }
 
+#ifdef OLDCODE
     next_border_mode = val;
+#else
+    vicii_resources.border_mode = val;
+#endif
     vsync_on_vsync_do(on_vsync_set_border_mode, NULL);
 
     return 0;
@@ -134,7 +166,8 @@ int vicii_resources_init(void)
     } else {
         video_chip_cap.external_palette_name = "pepto-pal";
     }
-    video_chip_cap.double_buffering_allowed = ARCHDEP_VICII_DBUF;
+    video_chip_cap.video_has_palntsc = 1;
+
     video_chip_cap.single_mode.sizex = 1;
     video_chip_cap.single_mode.sizey = 1;
     video_chip_cap.single_mode.rmode = VIDEO_RENDER_PAL_NTSC_1X1;

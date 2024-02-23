@@ -31,27 +31,29 @@
 
 #include "types.h"
 
-extern uint8_t rexramfloppy_roml_read(uint16_t addr);
-extern void rexramfloppy_roml_store(uint16_t addr, uint8_t value);
+uint8_t rexramfloppy_roml_read(uint16_t addr);
+void rexramfloppy_roml_store(uint16_t addr, uint8_t value);
 
-extern void rexramfloppy_reset(void);
+void rexramfloppy_reset(void);
 
-extern void rexramfloppy_config_init(void);
-extern void rexramfloppy_config_setup(uint8_t *rawcart);
-extern int rexramfloppy_bin_attach(const char *filename, uint8_t *rawcart);
-extern int rexramfloppy_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void rexramfloppy_detach(void);
+void rexramfloppy_config_init(void);
+void rexramfloppy_config_setup(uint8_t *rawcart);
+int rexramfloppy_bin_attach(const char *filename, uint8_t *rawcart);
+int rexramfloppy_crt_attach(FILE *fd, uint8_t *rawcart);
+void rexramfloppy_detach(void);
 
-extern int rexramfloppy_resources_init(void);
-extern void rexramfloppy_resources_shutdown(void);
-extern int rexramfloppy_cmdline_options_init(void);
+int rexramfloppy_resources_init(void);
+void rexramfloppy_resources_shutdown(void);
+int rexramfloppy_cmdline_options_init(void);
 
-extern int rexramfloppy_flush_image(void);
-extern int rexramfloppy_bin_save(const char *filename);
+int rexramfloppy_ram_flush(void);
+int rexramfloppy_ram_save(const char *filename);
+
+int rexramfloppy_can_flush_ram(void);
 
 struct snapshot_s;
 
-extern int rexramfloppy_snapshot_write_module(struct snapshot_s *s);
-extern int rexramfloppy_snapshot_read_module(struct snapshot_s *s);
+int rexramfloppy_snapshot_write_module(struct snapshot_s *s);
+int rexramfloppy_snapshot_read_module(struct snapshot_s *s);
 
 #endif

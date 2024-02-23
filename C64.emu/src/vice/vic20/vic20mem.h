@@ -54,22 +54,26 @@
 #define VIC_CART_IO2     (1 << 5)
 #define VIC_CART_IO3     (1 << 6)
 
-extern int vic20_mem_init_resources(void);
-extern int vic20_mem_init_cmdline_options(void);
-extern int vic20_mem_disable_ram_block(int num);
-extern int vic20_mem_enable_ram_block(int num);
+int vic20_mem_init_resources(void);
+int vic20_mem_init_cmdline_options(void);
+int vic20_mem_disable_ram_block(int num);
+int vic20_mem_enable_ram_block(int num);
 
 /* this should go away */
-extern void mem_attach_cartridge(int type, uint8_t *rawcart);
-extern void mem_detach_cartridge(int type);
+void mem_attach_cartridge(int type, uint8_t *rawcart);
+void mem_detach_cartridge(int type);
 
 /* Last data read/write by the cpu, this value lingers on the C(PU)-bus and
    gets used when the CPU reads from unconnected space on the C(PU)-bus */
 extern uint8_t vic20_cpu_last_data;
+
 /* Last read data on V-bus (VD0-VD7) */
 extern uint8_t vic20_v_bus_last_data;
+
 /* Last read data on V-bus (VD8-VD11) */
 extern uint8_t vic20_v_bus_last_high;
+
+extern uint8_t vfli_ram[0x4000];
 
 /* Update V-bus values after V-bus read ($0000-$1FFF, $8000-$9FFF) */
 inline static void vic20_mem_v_bus_read(uint16_t addr)

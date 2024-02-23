@@ -35,21 +35,21 @@
 extern int dma_active;
 extern int dma_on_irq;
 
-extern int c64dtvdma_resources_init(void);
-extern void c64dtvdma_resources_shutdown(void);
-extern int c64dtvdma_cmdline_options_init(void);
-extern void c64dtvdma_init(void);
-extern void c64dtvdma_reset(void);
-extern void c64dtvdma_shutdown(void);
+int c64dtvdma_resources_init(void);
+void c64dtvdma_resources_shutdown(void);
+int c64dtvdma_cmdline_options_init(void);
+void c64dtvdma_init(void);
+void c64dtvdma_reset(void);
+void c64dtvdma_shutdown(void);
 
-extern uint8_t c64dtv_dma_read(uint16_t addr);
-extern void c64dtv_dma_store(uint16_t addr, uint8_t value);
-extern void c64dtvdma_perform_dma(void);
-extern void c64dtvdma_trigger_dma(void);
+uint8_t c64dtv_dma_read(uint16_t addr);
+void c64dtv_dma_store(uint16_t addr, uint8_t value);
+void c64dtvdma_perform_dma(void);
+void c64dtvdma_trigger_dma(void);
 
 struct snapshot_s;
 
-extern int c64dtvdma_snapshot_write_module(struct snapshot_s *s);
-extern int c64dtvdma_snapshot_read_module(struct snapshot_s *s);
+int c64dtvdma_snapshot_write_module(struct snapshot_s *s);
+int c64dtvdma_snapshot_read_module(struct snapshot_s *s);
 
 #endif

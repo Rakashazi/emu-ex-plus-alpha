@@ -34,7 +34,7 @@
 
 #include "types.h"
 
-extern void crtc_draw_init(void);
+void crtc_draw_init(void);
 
 extern uint32_t dwg_table[16];
 

@@ -30,7 +30,7 @@
 typedef struct raster_s raster_t;
 typedef struct snapshot_module_s snapshot_module_t;
 
-extern int raster_snapshot_write(snapshot_module_t *m, raster_t *raster);
-extern int raster_snapshot_read(snapshot_module_t *m, raster_t *raster);
+int raster_snapshot_write(snapshot_module_t *m, raster_t *raster);
+int raster_snapshot_read(snapshot_module_t *m, raster_t *raster);
 
 #endif

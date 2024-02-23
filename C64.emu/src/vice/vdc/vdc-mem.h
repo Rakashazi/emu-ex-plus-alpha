@@ -31,13 +31,13 @@
 
 #include "types.h"
 
-extern void vdc_store(uint16_t addr, uint8_t value);
-extern uint8_t vdc_read(uint16_t addr);
-extern uint8_t vdc_peek(uint16_t addr);
+void vdc_store(uint16_t addr, uint8_t value);
+uint8_t vdc_read(uint16_t addr);
+uint8_t vdc_peek(uint16_t addr);
 
-extern void vdc_ram_store(uint16_t addr, uint8_t value);
-extern uint8_t vdc_ram_read(uint16_t addr);
+void vdc_ram_store(uint16_t addr, uint8_t value);
+uint8_t vdc_ram_read(uint16_t addr);
 
-extern int vdc_dump(void);
+int vdc_dump(void);
 
 #endif

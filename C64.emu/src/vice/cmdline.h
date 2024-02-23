@@ -116,18 +116,18 @@ typedef struct cmdline_option_ram_s {
     const char *description;
 } cmdline_option_ram_t;
 
-extern int cmdline_init(void);
+int cmdline_init(void);
 
-extern int cmdline_register_options(const cmdline_option_t *c);
-extern void cmdline_shutdown(void);
-extern int cmdline_parse(int *argc, char **argv);
-extern void cmdline_show_help(void *userparam);
-extern char *cmdline_options_string(void);
-extern char *cmdline_options_get_name(int counter);
-extern const char *cmdline_options_get_param(int counter);
-extern char *cmdline_options_get_description(int counter);
-extern int cmdline_get_num_options(void);
-extern void cmdline_log_active(void);
+int cmdline_register_options(const cmdline_option_t *c);
+void cmdline_shutdown(void);
+int cmdline_parse(int *argc, char **argv);
+void cmdline_show_help(void *userparam);
+char *cmdline_options_string(void);
+char *cmdline_options_get_name(int counter);
+const char *cmdline_options_get_param(int counter);
+char *cmdline_options_get_description(int counter);
+int cmdline_get_num_options(void);
+void cmdline_log_active(void);
 
 #define CMDLINE_LIST_END { NULL, (cmdline_option_type_t)0, 0, NULL, NULL, NULL, NULL, NULL, NULL }
 

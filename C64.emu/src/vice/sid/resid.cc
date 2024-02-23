@@ -68,6 +68,7 @@ typedef struct sound_s sound_t;
 /* manage temporary buffers. if the requested size is smaller or equal to the
  * size of the already allocated buffer, reuse it.  */
 static short *buf = NULL;
+
 static int blen = 0;
 
 static short *getbuf(int len)
@@ -260,8 +261,39 @@ static void resid_reset(sound_t *psid, CLOCK cpu_clk)
     psid->sid->reset();
 }
 
-static int resid_calculate_samples(sound_t *psid, short *pbuf, int nr,
-                                   int interleave, CLOCK *delta_t)
+#ifdef SOUND_SYSTEM_FLOAT
+/* FIXME */
+static int resid_calculate_samples(sound_t *psid, float *pbuf, int nr, CLOCK *delta_t)
+{
+    short *tmp_buf;
+    int retval;
+    int int_delta_t_original = (int)*delta_t;
+    int int_delta_t = (int)*delta_t;
+    int i;
+
+    /* Tried not to mess with resid during 64-bit conversion. clock(...) wants to modify *delta_t ... */
+
+    if (psid->factor == 1000) {
+        tmp_buf = getbuf(2 * nr);
+        retval = psid->sid->clock(int_delta_t, tmp_buf, nr, 0);
+        (*delta_t) += int_delta_t - int_delta_t_original;
+        for (i = 0; i < nr; i++) {
+            pbuf[i] = tmp_buf[i] / 32767.0;
+        }
+        return retval;
+    }
+
+    tmp_buf = getbuf(2 * nr * psid->factor / 1000);
+    retval = psid->sid->clock(int_delta_t, tmp_buf, nr * psid->factor / 1000, 0) * 1000 / psid->factor;
+    (*delta_t) += int_delta_t - int_delta_t_original;
+    for (i = 0; i < nr; i++) {
+        pbuf[i] = tmp_buf[i] / 32767.0;
+    }
+
+    return retval;
+}
+#else
+static int resid_calculate_samples(sound_t *psid, short *pbuf, int nr, int interleave, CLOCK *delta_t)
 {
     short *tmp_buf;
     int retval;
@@ -283,6 +315,7 @@ static int resid_calculate_samples(sound_t *psid, short *pbuf, int nr,
 
     return retval;
 }
+#endif
 
 static char *resid_dump_state(sound_t *psid)
 {

@@ -39,10 +39,10 @@ struct raster_canvas_area_s {
 };
 typedef struct raster_canvas_area_s raster_canvas_area_t;
 
-extern void raster_canvas_init(struct raster_s *raster);
-extern void raster_canvas_shutdown(struct raster_s *raster);
+void raster_canvas_init(struct raster_s *raster);
+void raster_canvas_shutdown(struct raster_s *raster);
 
-extern void raster_canvas_handle_end_of_frame(struct raster_s *raster);
-extern void raster_canvas_update_all(struct raster_s *raster);
+void raster_canvas_handle_end_of_frame(struct raster_s *raster);
+void raster_canvas_update_all(struct raster_s *raster);
 
 #endif

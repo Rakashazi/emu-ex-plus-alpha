@@ -511,7 +511,7 @@ unsigned int cbmdos_command_parse_plus(cbmdos_cmd_parse_plus_t *cmd_parse)
                             cmd_parse->filetype = CBMDOS_FT_REL;
                         } else {
                             return CBMDOS_IPE_OVERFLOW;
-                        }             
+                        }
                         break;
                     case 'R':
                         cmd_parse->readmode = CBMDOS_FAM_READ;
@@ -540,7 +540,7 @@ unsigned int cbmdos_command_parse_plus(cbmdos_cmd_parse_plus_t *cmd_parse)
                 cmd_parse->readmode = CBMDOS_FAM_WRITE;
             }
         }
-    } else 
+    } else
     /* in standard (flexible) command mode; too hard to merge everything
         - too many special cases */
     if (cmd_parse->mode == 1 && p < limit) {

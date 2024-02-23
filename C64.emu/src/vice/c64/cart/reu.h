@@ -36,33 +36,33 @@
 
 struct snapshot_s;
 
-extern void reu_init(void);
-extern int reu_resources_init(void);
-extern void reu_resources_shutdown(void);
-extern int reu_cmdline_options_init(void);
+void reu_init(void);
+int reu_resources_init(void);
+void reu_resources_shutdown(void);
+int reu_cmdline_options_init(void);
 
 typedef int reu_ba_check_callback_t (void);
 typedef void reu_ba_steal_callback_t (void);
 
-extern void reu_ba_register(reu_ba_check_callback_t *ba_check,
-                            reu_ba_steal_callback_t *ba_steal,
-                            int *ba_var, int ba_mask);
+void reu_ba_register(reu_ba_check_callback_t *ba_check,
+                     reu_ba_steal_callback_t *ba_steal,
+                     int *ba_var, int ba_mask);
 
-extern void reu_reset(void);
-extern int reu_dma(int immed);
-extern void reu_dma_start(void);
-extern void reu_detach(void);
-extern int reu_enable(void);
+void reu_reset(void);
+int reu_dma(int immed);
+void reu_dma_start(void);
+void reu_detach(void);
+int reu_enable(void);
 int reu_disable(void);
-extern int reu_read_snapshot_module(struct snapshot_s *s);
-extern int reu_write_snapshot_module(struct snapshot_s *s);
+int reu_read_snapshot_module(struct snapshot_s *s);
+int reu_write_snapshot_module(struct snapshot_s *s);
 
-extern int reu_cart_enabled(void);
-extern void reu_config_setup(uint8_t *rawcart);
-extern const char *reu_get_file_name(void);
-extern int reu_bin_attach(const char *filename, uint8_t *rawcart);
-extern int reu_bin_save(const char *filename);
-extern int reu_flush_image(void);
-extern void reu_powerup(void);
+int reu_cart_enabled(void);
+void reu_config_setup(uint8_t *rawcart);
+const char *reu_get_file_name(void);
+int reu_bin_attach(const char *filename, uint8_t *rawcart);
+int reu_bin_save(const char *filename);
+int reu_flush_image(void);
+void reu_powerup(void);
 
 #endif

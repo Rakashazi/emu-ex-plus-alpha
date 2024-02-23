@@ -34,21 +34,21 @@
 
 struct snapshot_s;
 
-extern uint8_t maxbasic_0800_0fff_read(uint16_t addr);
-extern void maxbasic_0800_0fff_store(uint16_t addr, uint8_t value);
-extern uint8_t maxbasic_roml_read(uint16_t addr);
-extern uint8_t maxbasic_romh_read(uint16_t addr);
-extern int maxbasic_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
+uint8_t maxbasic_0800_0fff_read(uint16_t addr);
+void maxbasic_0800_0fff_store(uint16_t addr, uint8_t value);
+uint8_t maxbasic_roml_read(uint16_t addr);
+uint8_t maxbasic_romh_read(uint16_t addr);
+int maxbasic_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
 
-extern void maxbasic_config_init(void);
-extern void maxbasic_reset(void);
-extern void maxbasic_config_setup(uint8_t *rawcart);
-extern int maxbasic_bin_attach(const char *filename, uint8_t *rawcart);
-extern int maxbasic_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void maxbasic_detach(void);
-extern void maxbasic_powerup(void);
+void maxbasic_config_init(void);
+void maxbasic_reset(void);
+void maxbasic_config_setup(uint8_t *rawcart);
+int maxbasic_bin_attach(const char *filename, uint8_t *rawcart);
+int maxbasic_crt_attach(FILE *fd, uint8_t *rawcart);
+void maxbasic_detach(void);
+void maxbasic_powerup(void);
 
-extern int maxbasic_snapshot_write_module(struct snapshot_s *s);
-extern int maxbasic_snapshot_read_module(struct snapshot_s *s);
+int maxbasic_snapshot_write_module(struct snapshot_s *s);
+int maxbasic_snapshot_read_module(struct snapshot_s *s);
 
 #endif

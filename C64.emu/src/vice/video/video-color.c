@@ -201,6 +201,8 @@ static inline void video_convert_ycbcr_to_yuv(video_ycbcr_color_t *src, video_yc
     dst->cr = src->cr * 0.877283f;
 }
 
+/* currently unused */
+#if 0
 static inline void video_convert_ycbcr_to_yiq(video_ycbcr_color_t *src, video_ycbcr_color_t *dst)
 {
     float cb = src->cb;
@@ -211,6 +213,8 @@ static inline void video_convert_ycbcr_to_yiq(video_ycbcr_color_t *src, video_yc
 }
 #endif
 
+#endif
+
 static inline void video_convert_yuv_to_ycbcr(video_ycbcr_color_t *src, video_ycbcr_color_t *dst)
 {
     dst->y = src->y;
@@ -218,7 +222,8 @@ static inline void video_convert_yuv_to_ycbcr(video_ycbcr_color_t *src, video_yc
     dst->cr = src->cr / 0.877283f;
 }
 
-#if 0 /* currently unused */
+/* currently unused */
+#if 0
 static inline void video_convert_yiq_to_ycbcr(video_ycbcr_color_t *src, video_ycbcr_color_t *dst)
 {
     float i = src->cb;
@@ -254,9 +259,9 @@ static inline void video_convert_ycbcr_to_rgb(const video_ycbcr_color_t *src, in
     gf = src->y - 0.344136f * src->cb - 0.714136f * src->cr;
     bf = src->y +    1.772f * src->cb;
 #endif
-    *r = (int)RMINMAX(rf, 0, 255);
-    *g = (int)RMINMAX(gf, 0, 255);
-    *b = (int)RMINMAX(bf, 0, 255);
+    *r = RMINMAX(((int)(rf + 0.5f)), 0, 255);
+    *g = RMINMAX(((int)(gf + 0.5f)), 0, 255);
+    *b = RMINMAX(((int)(bf + 0.5f)), 0, 255);
 }
 
 static inline void video_convert_yiq_to_rgb(video_ycbcr_color_t *src, int *r, int *g, int *b)
@@ -268,17 +273,17 @@ static inline void video_convert_yiq_to_rgb(video_ycbcr_color_t *src, int *r, in
     gf = src->y - 0.378f * src->cb - 0.466f * src->cr;
     bf = src->y - 1.089f * src->cb + 1.677f * src->cr;
 
-    *r = (int)RMINMAX(rf, 0, 255);
-    *g = (int)RMINMAX(gf, 0, 255);
-    *b = (int)RMINMAX(bf, 0, 255);
+    *r = RMINMAX(((int)(rf + 0.5f)), 0, 255);
+    *g = RMINMAX(((int)(gf + 0.5f)), 0, 255);
+    *b = RMINMAX(((int)(bf + 0.5f)), 0, 255);
 }
 
 static inline void video_convert_rgb_to_yiq(const palette_entry_t *src, video_ycbcr_color_t *dst)
 {
     /* inverse of SONY matrix */
-    dst->y  = 0.23485876230514607f * src->red + 0.6335007388077467f  * src->green + 0.13164049888710716f * src->blue;
-    dst->cb = 0.4409594767911895f  * src->red - 0.27984362502847304f * src->green - 0.16111585176271648f * src->blue; /* I */
-    dst->cr = 0.14630060102591497f * src->red - 0.5594814826856017f  * src->green + 0.4131808816596867f  * src->blue; /* Q */
+    dst->y  = 0.23485876230514601561f * src->red + 0.63350073880774681230f * src->green + 0.13164049888710717208f * src->blue;
+    dst->cb = 0.44095947679118953500f * src->red - 0.27984362502847306001f * src->green - 0.16111585176271647499f * src->blue; /* I */
+    dst->cr = 0.14630060102591496005f * src->red - 0.55948148268560165453f * src->green + 0.41318088165968669449f * src->blue; /* Q */
 }
 
 /*
@@ -436,9 +441,9 @@ static void video_convert_renderer_to_rgb_gamma(video_ycbcr_color_t *src, float 
 
     /* convert to int and clip to 8 bit boundaries */
 
-    r = (int)rf;
-    g = (int)gf;
-    b = (int)bf;
+    r = (int)(rf + 0.5f);
+    g = (int)(gf + 0.5f);
+    b = (int)(bf + 0.5f);
 
     dst->red = (uint8_t)RMAX(r,255);
     dst->green = (uint8_t)RMAX(g,255);
@@ -467,6 +472,9 @@ static void video_convert_rgb_to_renderer(const palette_entry_t *src,
 /* FIXME: handle gamma for CRT emulation (CGA and Monochrom video) too */
 static float video_get_gamma(video_resources_t *video_resources, int video)
 {
+    /* doing the distinction for pal/ntsc here is weird, we should have
+     * different sets of video adjust settings for each video mode instead */
+#if 0
     float mgam, vgam;
 
     if (video) {
@@ -477,6 +485,8 @@ static float video_get_gamma(video_resources_t *video_resources, int video)
 
     mgam = ((float)(video_resources->color_gamma)) / 1000.0f;
     return mgam / vgam;
+#endif
+    return ((float)(video_resources->color_gamma)) / 1000.0f;
 }
 
 /* gammatable calculation */
@@ -845,7 +855,7 @@ static palette_t *video_calc_palette(struct video_canvas_s *canvas, const video_
 
     for (i = 0; i < p->num_entries; i++) {
         video_convert_renderer_to_rgb_gamma(&p->entries[i], sat, bri, con, gam, tin, &prgb->entries[i], video);
-        DBG((" %2u: Y:%4d Cb:%4d Cr:%4d  R:%3d G:%3d B:%3d", i,
+        DBG((" %2u: Y:%4d Cb:%4d Cr:%4d  R:%2x G:%2x B:%2x", i,
             (int)p->entries[i].y, (int)p->entries[i].cb, (int)p->entries[i].cr,
             (int)prgb->entries[i].red, (int)prgb->entries[i].green, (int)prgb->entries[i].blue));
     }
@@ -882,7 +892,7 @@ int video_color_update_palette(struct video_canvas_s *canvas)
     video_resources_t *video_resources;
     int video;
 
-    DBG(("video_color_update_palette canvas: %p", canvas));
+    DBG(("video_color_update_palette canvas: %p", (void*)canvas));
 
     if (canvas == NULL) {
         return 0;
@@ -922,21 +932,26 @@ int video_color_update_palette(struct video_canvas_s *canvas)
                                      canvas->videoconfig->external_palette_name);
 
         if (!palette) {
-            return -1;
+            /* loading the external palette did not work (file not found?), so
+               disable the external palette and use the internal palette instead */
+            canvas->videoconfig->external_palette = 0;
+        } else {
+            video_calc_gammatable(&canvas->videoconfig->color_tables, video_resources, video);
+            ycbcr = video_ycbcr_palette_create(palette->num_entries);
+            video_palette_to_ycbcr(palette, ycbcr, video);
+            video_calc_ycbcrtable(video_resources, ycbcr, &canvas->videoconfig->color_tables, video);
+            /* if (canvas->videoconfig->filter == VIDEO_FILTER_CRT) */ {
+                palette_free(palette);
+                palette = video_calc_palette(canvas, ycbcr, video);
+            }
+            /* additional table for odd lines */
+            video_palette_to_ycbcr_oddlines(palette, ycbcr, video);
+            video_calc_ycbcrtable_oddlines(video_resources, ycbcr, &canvas->videoconfig->color_tables, video);
         }
-
-        video_calc_gammatable(&canvas->videoconfig->color_tables, video_resources, video);
-        ycbcr = video_ycbcr_palette_create(palette->num_entries);
-        video_palette_to_ycbcr(palette, ycbcr, video);
-        video_calc_ycbcrtable(video_resources, ycbcr, &canvas->videoconfig->color_tables, video);
-        if (canvas->videoconfig->filter == VIDEO_FILTER_CRT) {
-            palette_free(palette);
-            palette = video_calc_palette(canvas, ycbcr, video);
-        }
-        /* additional table for odd lines */
-        video_palette_to_ycbcr_oddlines(palette, ycbcr, video);
-        video_calc_ycbcrtable_oddlines(video_resources, ycbcr, &canvas->videoconfig->color_tables, video);
-    } else {
+    }
+    /* Use calculated internal palette. Don't put this into an "else" block, so
+       it can be used as fallback when the above fails. */
+    if (canvas->videoconfig->external_palette == 0) {
         video_calc_gammatable(&canvas->videoconfig->color_tables, video_resources, video);
         ycbcr = video_ycbcr_palette_create(canvas->videoconfig->cbm_palette->num_entries);
         video_cbm_palette_to_ycbcr(canvas->videoconfig->cbm_palette, ycbcr, video);

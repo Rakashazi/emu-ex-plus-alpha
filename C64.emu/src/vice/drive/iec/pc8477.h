@@ -35,17 +35,19 @@ typedef void (*pc8477_motor_on_callback_t)(void *data, int signal);
 typedef struct pc8477_s pc8477_t;
 
 /* FIXME: whats the deal with the different prefixes? */
-extern void pc8477d_init(struct diskunit_context_s *drv);
-extern void pc8477_shutdown(pc8477_t *drv);
+void pc8477d_init(struct diskunit_context_s *drv);
+void pc8477_shutdown(pc8477_t *drv);
 
-extern void pc8477_setup_context(struct diskunit_context_s *drv);
-extern void pc8477d_store(struct diskunit_context_s *drv, uint16_t addr, uint8_t byte);
-extern uint8_t pc8477d_read(struct diskunit_context_s *drv, uint16_t addr);
-extern uint8_t pc8477d_peek(struct diskunit_context_s *drv, uint16_t addr);
-extern void pc8477_reset(pc8477_t *drv, int is8477);
-extern int pc8477_irq(pc8477_t *drv);
+void pc8477_setup_context(struct diskunit_context_s *drv);
+void pc8477d_store(struct diskunit_context_s *drv, uint16_t addr, uint8_t byte);
+uint8_t pc8477d_read(struct diskunit_context_s *drv, uint16_t addr);
+uint8_t pc8477d_peek(struct diskunit_context_s *drv, uint16_t addr);
+void pc8477d_dump(struct diskunit_context_s *drv);
 
-extern int pc8477_attach_image(struct disk_image_s *image, unsigned int unit);
-extern int pc8477_detach_image(struct disk_image_s *image, unsigned int unit);
+void pc8477_reset(pc8477_t *drv, int is8477);
+int pc8477_irq(pc8477_t *drv);
+
+int pc8477_attach_image(struct disk_image_s *image, unsigned int unit);
+int pc8477_detach_image(struct disk_image_s *image, unsigned int unit);
 
 #endif

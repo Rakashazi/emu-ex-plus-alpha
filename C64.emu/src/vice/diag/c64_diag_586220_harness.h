@@ -84,28 +84,28 @@
 #define C64_DIAG_SERIAL_CLK       2
 #define C64_DIAG_SERIAL_DATA      3
 
-extern void c64_diag_586220_init(void);
+void c64_diag_586220_init(void);
 
-extern void c64_diag_586220_store_userport_pax(uint8_t val);
-extern uint8_t c64_diag_586220_read_userport_pax(void);
-extern void c64_diag_586220_store_userport_pbx(uint8_t val);
-extern uint8_t c64_diag_586220_read_userport_pbx(void);
+void c64_diag_586220_store_userport_pax(uint8_t val);
+uint8_t c64_diag_586220_read_userport_pax(void);
+void c64_diag_586220_store_userport_pbx(uint8_t val);
+uint8_t c64_diag_586220_read_userport_pbx(void);
 
-extern void c64_diag_586220_store_userport_sp(uint8_t port, uint8_t val);
-extern uint8_t c64_diag_586220_read_userport_sp(uint8_t port);
+void c64_diag_586220_store_userport_sp(uint8_t port, uint8_t val);
+uint8_t c64_diag_586220_read_userport_sp(uint8_t port);
 
-extern void c64_diag_586220_store_tapeport(uint8_t pin, uint8_t val);
-extern uint8_t c64_diag_586220_read_tapeport(uint8_t pin);
+void c64_diag_586220_store_tapeport(uint8_t pin, uint8_t val);
+uint8_t c64_diag_586220_read_tapeport(uint8_t pin);
 
-extern void c64_diag_586220_store_joyport_dig(uint8_t port, uint8_t val);
-extern uint8_t c64_diag_586220_read_joyport_dig(uint8_t port);
+void c64_diag_586220_store_joyport_dig(uint8_t port, uint8_t val);
+uint8_t c64_diag_586220_read_joyport_dig(uint8_t port);
 
-extern uint8_t c64_diag_586220_read_joyport_pot(void);
+uint8_t c64_diag_586220_read_joyport_pot(void);
 
-extern void c64_diag_586220_store_keyboard(uint8_t port, uint8_t val);
-extern uint8_t c64_diag_586220_read_keyboard(uint8_t port);
+void c64_diag_586220_store_keyboard(uint8_t port, uint8_t val);
+uint8_t c64_diag_586220_read_keyboard(uint8_t port);
 
-extern void c64_diag_586220_store_serial(uint8_t val);
-extern uint8_t c64_diag_586220_read_serial(void);
+void c64_diag_586220_store_serial(uint8_t val);
+uint8_t c64_diag_586220_read_serial(void);
 
 #endif

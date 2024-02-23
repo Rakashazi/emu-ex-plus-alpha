@@ -30,18 +30,18 @@
 
 #include "types.h"
 
-extern uint8_t multicart_c1lo_read(uint16_t addr);
-extern uint8_t multicart_c1hi_read(uint16_t addr);
+uint8_t multicart_c1lo_read(uint16_t addr);
+uint8_t multicart_c1hi_read(uint16_t addr);
 
-extern void multicart_config_setup(uint8_t *rawcart);
-extern int multicart_bin_attach(const char *filename, uint8_t *rawcart);
-extern int multicart_crt_attach(FILE *fd, uint8_t *rawcart);
+void multicart_config_setup(uint8_t *rawcart);
+int multicart_bin_attach(const char *filename, uint8_t *rawcart);
+int multicart_crt_attach(FILE *fd, uint8_t *rawcart);
 
-extern void multicart_detach(void);
+void multicart_detach(void);
 
-extern void multicart_reset(void);
+void multicart_reset(void);
 
-extern int multicart_snapshot_write_module(snapshot_t *s);
-extern int multicart_snapshot_read_module(snapshot_t *s);
+int multicart_snapshot_write_module(snapshot_t *s);
+int multicart_snapshot_read_module(snapshot_t *s);
 
 #endif

@@ -24,6 +24,8 @@
  *
  */
 
+/* #define DEBUGRAWFILE */
+
 #include "vice.h"
 
 #include <stddef.h>
@@ -38,6 +40,11 @@
 
 #include "rawfile.h"
 
+#ifdef DEBUGRAWFILE
+#define DBG(x)  printf x
+#else
+#define DBG(x)
+#endif
 
 struct rawfile_info_s {
     FILE *fd;
@@ -187,6 +194,8 @@ unsigned int rawfile_rename(const char *src_name, const char *dst_name,
     char *complete_src, *complete_dst;
     int rc;
 
+    DBG(("rawfile_rename '%s' to '%s'\n", src_name, dst_name));
+
     if (path == NULL) {
         complete_src = lib_strdup(src_name);
         complete_dst = lib_strdup(dst_name);
@@ -195,9 +204,15 @@ unsigned int rawfile_rename(const char *src_name, const char *dst_name,
         complete_dst = util_concat(path, ARCHDEP_DIR_SEP_STR, dst_name, NULL);
     }
 
-    /*archdep_remove(dst_name);*/
-    rc = archdep_rename(complete_src, complete_dst);
+    /* if dest name exists, produce "file exists" error */
+    if (archdep_file_exists(complete_dst)) {
+        lib_free(complete_src);
+        lib_free(complete_dst);
+        return FILEIO_FILE_EXISTS;
+    }
 
+    rc = archdep_rename(complete_src, complete_dst);
+    DBG(("rawfile_rename rename returned: %d errno: %d\n", rc, errno));
     lib_free(complete_src);
     lib_free(complete_dst);
 

@@ -462,6 +462,8 @@ static void command_directory_get(vdrive_t *vdrive, bufinfo_t *bufinfo,
 
     if (direntry != NULL) {
         uint8_t *p = bufinfo->name;
+        int splatfile = 0;
+        int protectfile = 0;
 
         strcpy(buf, bufinfo->dir);
         strcat(buf, ARCHDEP_DIR_SEP_STR);
@@ -473,14 +475,23 @@ static void command_directory_get(vdrive_t *vdrive, bufinfo_t *bufinfo,
         *p++ = 1;
 
         statrc = archdep_stat(buf, &filelen, &isdir);
-        if (statrc == 0) {
-            blocks = (filelen + 253) / 254;
-        } else {
-            blocks = 0;   /* this file can't be opened */
+        if (statrc != 0) {
+            /* this file can't be opened */
+            splatfile = 1;
+            protectfile = 1;
         }
 
+        if (archdep_access(buf, ARCHDEP_ACCESS_W_OK)) {
+            /* this file is read only */
+            protectfile = 1;
+        }
+
+        blocks = (filelen + 253) / 254;
         if (blocks > 0xffff) {
             blocks = 0xffff; /* Limit file size to 16 bits.  */
+            /* this file is too large, guard it against opening */
+            splatfile = 1;
+            protectfile = 1;
         }
 
         SET_LO_HI(p, blocks);
@@ -517,7 +528,7 @@ static void command_directory_get(vdrive_t *vdrive, bufinfo_t *bufinfo,
             *p++ = 'I';
             *p++ = 'R';
         } else {
-            if (blocks) {
+            if (splatfile == 0) {
                 *p++ = ' '; /* normal file */
             } else {
                 *p++ = '*'; /* splat file */
@@ -551,7 +562,7 @@ static void command_directory_get(vdrive_t *vdrive, bufinfo_t *bufinfo,
             }
         }
 
-        if (archdep_access(buf, ARCHDEP_ACCESS_W_OK)) {
+        if (protectfile) {
             *p++ = '<'; /* read-only file */
         }
 

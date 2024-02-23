@@ -27,10 +27,10 @@
 #ifndef VICE_VICII_CYCLE_H
 #define VICE_VICII_CYCLE_H
 
-extern int vicii_cycle(void);
-extern int vicii_cycle_reu(void);
-extern void vicii_steal_cycles(void);
+int vicii_cycle(void);
+int vicii_cycle_reu(void);
+void vicii_steal_cycles(void);
 
-extern void vicii_init_vsp_bug(void);
+void vicii_init_vsp_bug(void);
 
 #endif

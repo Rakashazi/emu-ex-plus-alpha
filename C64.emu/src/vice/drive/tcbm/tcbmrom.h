@@ -31,10 +31,10 @@
 
 struct diskunit_context_s;
 
-extern void tcbmrom_init(void);
-extern void tcbmrom_setup_image(struct diskunit_context_s *unit);
-extern int tcbmrom_check_loaded(unsigned int type);
+void tcbmrom_init(void);
+void tcbmrom_setup_image(struct diskunit_context_s *unit);
+int tcbmrom_check_loaded(unsigned int type);
 
-extern int tcbmrom_load_1551(void);
+int tcbmrom_load_1551(void);
 
 #endif

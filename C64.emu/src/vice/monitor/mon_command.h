@@ -27,8 +27,7 @@
 #ifndef VICE_MON_COMMAND_H
 #define VICE_MON_COMMAND_H
 
-extern void mon_command_print_help(const char *cmd);
-extern int mon_get_nth_command(int index, char **full_name, char **short_name,
-        int *takes_filename_as_arg);
+void mon_command_print_help(const char *cmd);
+int mon_get_nth_command(int index, char **full_name, char **short_name, int *takes_filename_as_arg);
 
 #endif

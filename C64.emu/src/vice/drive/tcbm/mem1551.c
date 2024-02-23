@@ -36,16 +36,17 @@
 
 static uint8_t drive_read_rom(diskunit_context_t *drv, uint16_t address)
 {
-    return drv->rom[address & 0x7fff];
+    return drv->cpu->cpu_last_data = drv->rom[address & 0x7fff];
 }
 
 static uint8_t drive_read_1551ram(diskunit_context_t *drv, uint16_t address)
 {
-    return drv->drive_ram[address & 0x7ff];
+    return drv->cpu->cpu_last_data = drv->drive_ram[address & 0x7ff];
 }
 
 static void drive_store_1551ram(diskunit_context_t *drv, uint16_t address, uint8_t value)
 {
+    drv->cpu->cpu_last_data = value;
     drv->drive_ram[address & 0x7ff] = value;
 }
 
@@ -53,16 +54,17 @@ static uint8_t drive_read_zero(diskunit_context_t *drv, uint16_t address)
 {
     switch (address & 0xff) {
         case 0:
-            return glue1551_port0_read(drv);
+            return drv->cpu->cpu_last_data = glue1551_port0_read(drv);
         case 1:
-            return glue1551_port1_read(drv);
+            return drv->cpu->cpu_last_data = glue1551_port1_read(drv);
     }
 
-    return drv->drive_ram[address & 0xff];
+    return drv->cpu->cpu_last_data = drv->drive_ram[(uint32_t)(address & 0xff)];
 }
 
 static void drive_store_zero(diskunit_context_t *drv, uint16_t address, uint8_t value)
 {
+    drv->cpu->cpu_last_data = value;
     switch (address & 0xff) {
         case 0:
             glue1551_port0_store(drv, value);
@@ -72,7 +74,7 @@ static void drive_store_zero(diskunit_context_t *drv, uint16_t address, uint8_t 
             return;
     }
 
-    drv->drive_ram[address & 0xff] = value;
+    drv->drive_ram[(uint32_t)(address & 0xff)] = value;
 }
 
 void mem1551_init(struct diskunit_context_s *drv, unsigned int type)

@@ -30,12 +30,12 @@
 
 #include "vdrive.h"
 
-extern int fsdevice_limit_createnamelength(vdrive_t *vdrive, char *name);
+int fsdevice_limit_createnamelength(vdrive_t *vdrive, char *name);
 
-extern int fsdevice_limit_namelength(vdrive_t *vdrive, uint8_t *name);
-extern int fsdevice_limit_namelength_ascii(vdrive_t *vdrive, char *name);
+int fsdevice_limit_namelength(vdrive_t *vdrive, uint8_t *name);
+int fsdevice_limit_namelength_ascii(vdrive_t *vdrive, char *name);
 
-extern char *fsdevice_expand_shortname(vdrive_t *vdrive, char *name);
-extern char *fsdevice_expand_shortname_ascii(vdrive_t *vdrive, char *name);
+char *fsdevice_expand_shortname(vdrive_t *vdrive, char *name);
+char *fsdevice_expand_shortname_ascii(vdrive_t *vdrive, char *name);
 
 #endif

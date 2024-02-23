@@ -29,15 +29,18 @@
 
 #include "types.h"
 
-#define C128MODEL_C128_PAL      0
-#define C128MODEL_C128D_PAL     1
-#define C128MODEL_C128DCR_PAL   2
+enum {
+    C128MODEL_C128_PAL = 0,
+    C128MODEL_C128D_PAL,
+    C128MODEL_C128DCR_PAL,
 
-#define C128MODEL_C128_NTSC     3
-#define C128MODEL_C128D_NTSC    4
-#define C128MODEL_C128DCR_NTSC  5
+    C128MODEL_C128_NTSC,
+    C128MODEL_C128D_NTSC,
+    C128MODEL_C128DCR_NTSC,
 
-#define C128MODEL_NUM 6
+/* This entry always needs to be at the end */
+    C128MODEL_NUM
+};
 
 #define C128MODEL_UNKNOWN 99
 
@@ -53,7 +56,7 @@
 #define VDC16K   0
 #define VDC64K   1
 
-extern int c128model_get(void);
-extern void c128model_set(int model);
+int c128model_get(void);
+void c128model_set(int model);
 
 #endif

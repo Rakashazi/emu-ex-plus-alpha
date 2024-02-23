@@ -29,7 +29,7 @@
 
 struct disk_image_s;
 
-extern void fsimage_probe_init(void);
-extern int fsimage_probe(struct disk_image_s *image);
+void fsimage_probe_init(void);
+int fsimage_probe(struct disk_image_s *image);
 
 #endif

@@ -31,17 +31,17 @@
 
 #include "types.h"
 
-extern void se5_config_init(void);
-extern void se5_config_setup(uint8_t *rawcart);
-extern int se5_bin_attach(const char *filename, uint8_t *rawcart);
-extern int se5_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void se5_detach(void);
-extern uint8_t se5_roml_read(uint16_t addr);
-extern void se5_reset(void);
+void se5_config_init(void);
+void se5_config_setup(uint8_t *rawcart);
+int se5_bin_attach(const char *filename, uint8_t *rawcart);
+int se5_crt_attach(FILE *fd, uint8_t *rawcart);
+void se5_detach(void);
+uint8_t se5_roml_read(uint16_t addr);
+void se5_reset(void);
 
 struct snapshot_s;
 
-extern int se5_snapshot_write_module(struct snapshot_s *s);
-extern int se5_snapshot_read_module(struct snapshot_s *s);
+int se5_snapshot_write_module(struct snapshot_s *s);
+int se5_snapshot_read_module(struct snapshot_s *s);
 
 #endif

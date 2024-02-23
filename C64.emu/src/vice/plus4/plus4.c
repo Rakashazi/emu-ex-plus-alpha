@@ -107,8 +107,12 @@
 #include "types.h"
 #include "userport.h"
 #include "userport_dac.h"
+#include "userport_hummer_joystick.h"
 #include "userport_io_sim.h"
 #include "userport_joystick.h"
+#include "userport_spt_joystick.h"
+#include "userport_synergy_joystick.h"
+#include "userport_woj_joystick.h"
 #include "vice-event.h"
 #include "video.h"
 #include "video-sound.h"
@@ -303,6 +307,7 @@ static joyport_port_props_t control_port_1 =
     0,                  /* has NO lightpen support on this port */
     0,                  /* has NO joystick adapter on this port */
     0,                  /* has NO output support on this port */
+    1,                  /* has +5vdc line on this port */
     1                   /* port is always active */
 };
 
@@ -313,6 +318,7 @@ static joyport_port_props_t control_port_2 =
     0,                  /* has NO lightpen support on this port */
     0,                  /* has NO joystick adapter on this port */
     0,                  /* has NO output support on this port */
+    1,                  /* has +5vdc line on this port */
     1                   /* port is always active */
 };
 
@@ -323,6 +329,7 @@ static joyport_port_props_t joy_adapter_control_port_1 =
     0,                  /* has NO lightpen support on this port */
     0,                  /* has NO joystick adapter on this port */
     0,                  /* has NO output support on this port */
+    0,                  /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                   /* port can be switched on/off */
 };
 
@@ -333,6 +340,7 @@ static joyport_port_props_t joy_adapter_control_port_2 =
     0,                  /* has NO lightpen support on this port */
     0,                  /* has NO joystick adapter on this port */
     0,                  /* has NO output support on this port */
+    0,                  /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                   /* port can be switched on/off */
 };
 
@@ -343,6 +351,62 @@ static joyport_port_props_t joy_adapter_control_port_3 =
     0,                  /* has NO lightpen support on this port */
     0,                  /* has NO joystick adapter on this port */
     0,                  /* has NO output support on this port */
+    0,                  /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
+    0                   /* port can be switched on/off */
+};
+
+static joyport_port_props_t joy_adapter_control_port_4 =
+{
+    "Joystick adapter port 4",
+    0,                  /* has NO potentiometer connected to this port */
+    0,                  /* has NO lightpen support on this port */
+    0,                  /* has NO joystick adapter on this port */
+    0,                  /* has NO output support on this port */
+    0,                  /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
+    0                   /* port can be switched on/off */
+};
+
+static joyport_port_props_t joy_adapter_control_port_5 =
+{
+    "Joystick adapter port 5",
+    0,                  /* has NO potentiometer connected to this port */
+    0,                  /* has NO lightpen support on this port */
+    0,                  /* has NO joystick adapter on this port */
+    0,                  /* has NO output support on this port */
+    0,                  /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
+    0                   /* port can be switched on/off */
+};
+
+static joyport_port_props_t joy_adapter_control_port_6 =
+{
+    "Joystick adapter port 6",
+    0,                  /* has NO potentiometer connected to this port */
+    0,                  /* has NO lightpen support on this port */
+    0,                  /* has NO joystick adapter on this port */
+    0,                  /* has NO output support on this port */
+    0,                  /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
+    0                   /* port can be switched on/off */
+};
+
+static joyport_port_props_t joy_adapter_control_port_7 =
+{
+    "Joystick adapter port 7",
+    0,                  /* has NO potentiometer connected to this port */
+    0,                  /* has NO lightpen support on this port */
+    0,                  /* has NO joystick adapter on this port */
+    0,                  /* has NO output support on this port */
+    0,                  /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
+    0                   /* port can be switched on/off */
+};
+
+static joyport_port_props_t joy_adapter_control_port_8 =
+{
+    "Joystick adapter port 8",
+    0,                  /* has NO potentiometer connected to this port */
+    0,                  /* has NO lightpen support on this port */
+    0,                  /* has NO joystick adapter on this port */
+    0,                  /* has NO output support on this port */
+    0,                  /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                   /* port can be switched on/off */
 };
 
@@ -353,6 +417,7 @@ static joyport_port_props_t sidcard_port =
     0,                  /* has NO lightpen support on this port */
     0,                  /* has NO joystick adapter on this port */
     1,                  /* has output support on this port */
+    1,                  /* has +5vdc line on this port */
     0                   /* port can be switched on/off */
 };
 
@@ -373,7 +438,22 @@ static int init_joyport_ports(void)
     if (joyport_port_register(JOYPORT_5, &joy_adapter_control_port_3) < 0) {
         return -1;
     }
-    return joyport_port_register(JOYPORT_6, &sidcard_port);
+    if (joyport_port_register(JOYPORT_6, &joy_adapter_control_port_4) < 0) {
+        return -1;
+    }
+    if (joyport_port_register(JOYPORT_7, &joy_adapter_control_port_5) < 0) {
+        return -1;
+    }
+    if (joyport_port_register(JOYPORT_8, &joy_adapter_control_port_6) < 0) {
+        return -1;
+    }
+    if (joyport_port_register(JOYPORT_9, &joy_adapter_control_port_7) < 0) {
+        return -1;
+    }
+    if (joyport_port_register(JOYPORT_10, &joy_adapter_control_port_8) < 0) {
+        return -1;
+    }
+    return joyport_port_register(JOYPORT_PLUS4_SIDCART, &sidcard_port);
 }
 
 /* Plus4-specific resource initialization.  This is called before initializing
@@ -451,46 +531,6 @@ int machine_resources_init(void)
         init_resource_fail("joyport devices");
         return -1;
     }
-    if (joyport_sampler2bit_resources_init() < 0) {
-        init_resource_fail("joyport 2bit sampler");
-        return -1;
-    }
-    if (joyport_sampler4bit_resources_init() < 0) {
-        init_resource_fail("joyport 4bit sampler");
-        return -1;
-    }
-    if (joyport_bbrtc_resources_init() < 0) {
-        init_resource_fail("joyport bbrtc");
-        return -1;
-    }
-    if (joyport_coplin_keypad_resources_init() < 0) {
-        init_resource_fail("joyport coplin keypad");
-        return -1;
-    }
-    if (joyport_cx21_resources_init() < 0) {
-        init_resource_fail("joyport cx21 keypad");
-        return -1;
-    }
-    if (joyport_cx85_resources_init() < 0) {
-        init_resource_fail("joyport cx85 keypad");
-        return -1;
-    }
-    if (joyport_rushware_keypad_resources_init() < 0) {
-        init_resource_fail("joyport rushware keypad");
-        return -1;
-    }
-    if (joyport_cardkey_resources_init() < 0) {
-        init_resource_fail("joyport cardkey keypad");
-        return -1;
-    }
-    if (joyport_protopad_resources_init() < 0) {
-        init_resource_fail("joyport protopad");
-        return -1;
-    }
-    if (joyport_trapthem_snespad_resources_init() < 0) {
-        init_resource_fail("joyport trapthem snespad");
-        return -1;
-    }
     if (joystick_resources_init() < 0) {
         init_resource_fail("joystick");
         return -1;
@@ -507,8 +547,16 @@ int machine_resources_init(void)
         init_resource_fail("userport oem joystick");
         return -1;
     }
+    if (userport_spt_joystick_resources_init() < 0) {
+        init_resource_fail("userport spt joystick");
+        return -1;
+    }
     if (userport_joystick_synergy_resources_init() < 0) {
         init_resource_fail("userport synergy joystick");
+        return -1;
+    }
+    if (userport_joystick_woj_resources_init() < 0) {
+        init_resource_fail("userport woj joystick");
         return -1;
     }
     if (userport_dac_resources_init() < 0) {
@@ -517,10 +565,6 @@ int machine_resources_init(void)
     }
     if (userport_io_sim_resources_init() < 0) {
         init_resource_fail("userport I/O simulation");
-        return -1;
-    }
-    if (joyport_io_sim_resources_init() < 0) {
-        init_resource_fail("joyport I/O simulation");
         return -1;
     }
     if (sampler_resources_init() < 0) {
@@ -607,9 +651,9 @@ void machine_resources_shutdown(void)
     disk_image_resources_shutdown();
     sampler_resources_shutdown();
     cartio_shutdown();
-    joyport_bbrtc_resources_shutdown();
     tapeport_resources_shutdown();
     debugcart_resources_shutdown();
+    joyport_resources_shutdown();
 }
 
 /* Plus4-specific command-line option initialization.  */
@@ -672,10 +716,6 @@ int machine_cmdline_options_init(void)
 #endif
     if (joyport_cmdline_options_init() < 0) {
         init_cmdline_options_fail("joyport");
-        return -1;
-    }
-    if (joyport_bbrtc_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("bbrtc");
         return -1;
     }
     if (joystick_cmdline_options_init() < 0) {
@@ -1000,7 +1040,7 @@ void machine_get_line_cycle(unsigned int *line, unsigned int *cycle, int *half_c
     *half_cycle = (int)-1;
 }
 
-void machine_change_timing(int timeval, int border_mode)
+void machine_change_timing(int timeval, int powerfreq, int border_mode)
 {
     switch (timeval) {
         case MACHINE_SYNC_PAL:
@@ -1009,7 +1049,7 @@ void machine_change_timing(int timeval, int border_mode)
             machine_timing.rfsh_per_sec = PLUS4_PAL_RFSH_PER_SEC;
             machine_timing.cycles_per_line = PLUS4_PAL_CYCLES_PER_LINE;
             machine_timing.screen_lines = PLUS4_PAL_SCREEN_LINES;
-            machine_timing.power_freq = 50;
+            machine_timing.power_freq = powerfreq;
             break;
         case MACHINE_SYNC_NTSC:
             machine_timing.cycles_per_sec = PLUS4_NTSC_CYCLES_PER_SEC;
@@ -1017,7 +1057,7 @@ void machine_change_timing(int timeval, int border_mode)
             machine_timing.rfsh_per_sec = PLUS4_NTSC_RFSH_PER_SEC;
             machine_timing.cycles_per_line = PLUS4_NTSC_CYCLES_PER_LINE;
             machine_timing.screen_lines = PLUS4_NTSC_SCREEN_LINES;
-            machine_timing.power_freq = 60;
+            machine_timing.power_freq = powerfreq;
             break;
         default:
             log_error(plus4_log, "Unknown machine timing.");
@@ -1037,7 +1077,7 @@ void machine_change_timing(int timeval, int border_mode)
 
     ted_change_timing(&machine_timing, border_mode);
 
-    machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+    machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
 }
 
 /* ------------------------------------------------------------------------- */

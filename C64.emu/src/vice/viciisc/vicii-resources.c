@@ -48,16 +48,11 @@
 vicii_resources_t vicii_resources;
 static video_chip_cap_t video_chip_cap;
 
-static int next_border_mode;
-
 static void on_vsync_set_border_mode(void *unused)
 {
-    if (vicii_resources.border_mode != next_border_mode) {
-        vicii_resources.border_mode = next_border_mode;
-        /* this works because vicii-timing.c only handles borders in
-           viciisc. */
-        vicii_change_timing(0, vicii_resources.border_mode);
-    }
+    /* this works because vicii-timing.c only handles borders in
+        viciisc. */
+    vicii_change_timing(0, vicii_resources.border_mode);
 }
 
 static int set_border_mode(int val, void *param)
@@ -72,7 +67,7 @@ static int set_border_mode(int val, void *param)
             return -1;
     }
 
-    next_border_mode = val;
+    vicii_resources.border_mode = val;
     vsync_on_vsync_do(on_vsync_set_border_mode, NULL);
 
     return 0;
@@ -186,7 +181,8 @@ int vicii_resources_init(void)
     video_chip_cap.dsize_limit_height = 0;
     video_chip_cap.dscan_allowed = ARCHDEP_VICII_DSCAN;
     video_chip_cap.external_palette_name = "pepto-pal";
-    video_chip_cap.double_buffering_allowed = ARCHDEP_VICII_DBUF;
+    video_chip_cap.video_has_palntsc = 1;
+
     video_chip_cap.single_mode.sizex = 1;
     video_chip_cap.single_mode.sizey = 1;
     video_chip_cap.single_mode.rmode = VIDEO_RENDER_PAL_NTSC_1X1;

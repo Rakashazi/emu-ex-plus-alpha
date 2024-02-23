@@ -29,16 +29,16 @@
 
 #include "types.h"
 
-extern int userport_io_sim_resources_init(void);
+int userport_io_sim_resources_init(void);
 
-extern void userport_io_sim_set_pbx_out_lines(uint8_t val);
-extern uint8_t userport_io_sim_get_pbx_out_lines(void);
+void userport_io_sim_set_pbx_out_lines(uint8_t val);
+uint8_t userport_io_sim_get_pbx_out_lines(void);
 
-extern uint8_t userport_io_sim_get_pbx_in_lines(void);
+uint8_t userport_io_sim_get_pbx_in_lines(void);
 
-extern void userport_io_sim_set_pax_out_lines(uint8_t val);
-extern uint8_t userport_io_sim_get_pax_out_lines(void);
+void userport_io_sim_set_pax_out_lines(uint8_t val);
+uint8_t userport_io_sim_get_pax_out_lines(void);
 
-extern uint8_t userport_io_sim_get_pax_in_lines(void);
+uint8_t userport_io_sim_get_pax_in_lines(void);
 
 #endif

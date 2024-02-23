@@ -27,7 +27,16 @@
 #ifndef VICE_DYNLIB_H
 #define VICE_DYNLIB_H
 
+#include "vice.h"
 #include "types.h"
+
+/* This hack/function will only ever be needed on windows, so
+   make an empty define here (instead of stub functions) */
+#if defined(WINDOWS_COMPILE)
+void archdep_opencbm_fix_dll_path(void);
+#else
+#define archdep_opencbm_fix_dll_path()
+#endif
 
 void *vice_dynlib_open(const char *name);
 void *vice_dynlib_symbol(void *handle, const char *name);

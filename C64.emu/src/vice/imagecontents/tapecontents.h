@@ -29,5 +29,6 @@
 
 struct image_contents_s;
 
-extern struct image_contents_s *tapecontents_read(const char *file_name);
+struct image_contents_s *tapecontents_read(const char *file_name);
+
 #endif

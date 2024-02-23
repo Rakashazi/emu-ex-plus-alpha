@@ -45,6 +45,7 @@
 #include "raster-sprite.h"
 #include "types.h"
 #include "vicii-badline.h"
+#include "vicii-colorram.h"
 #include "vicii-fetch.h"
 #include "vicii-irq.h"
 #include "vicii-resources.h"
@@ -2068,4 +2069,9 @@ uint8_t vicii_peek(uint16_t addr)
                 return vicii.regs[addr] | unused_bits_in_registers_dtv[addr];
             }
     }
+}
+
+void vicii_init_colorram(uint8_t *colorram)
+{
+    memcpy(colorram, colorram_data, 0x400);
 }

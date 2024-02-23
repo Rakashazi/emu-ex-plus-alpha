@@ -100,7 +100,7 @@ protected:
 	TextHeadingMenuItem colorLevelsHeading;
 	TextHeadingMenuItem advancedHeading;
 	TextHeadingMenuItem systemSpecificHeading;
-	StaticArrayList<MenuItem*, 38> item;
+	StaticArrayList<MenuItem*, 41> item;
 
 	bool onFrameTimeChange(VideoSystem vidSys, SteadyClockTime time);
 	TextMenuItem::SelectDelegate setVideoBrightnessCustomDel(ImageChannel);

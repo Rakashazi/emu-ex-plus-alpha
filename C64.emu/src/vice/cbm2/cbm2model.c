@@ -132,6 +132,7 @@ static void cbm2model_set_temp(int model, int *video_sync, int *ramsize, int *ha
 void cbm2model_set(int model)
 {
     int old_model;
+    int pf;
 
     old_model = cbm2model_get();
 
@@ -143,6 +144,17 @@ void cbm2model_set(int model)
 
     resources_set_int("ModelLine", cbm2models[model].line);
     resources_set_int("MachineVideoStandard", cbm2models[model].video);
+    /* Determine the power net frequency for this model. */
+    switch(cbm2models[model].video) {
+        case MACHINE_SYNC_PAL:
+        case MACHINE_SYNC_PALN:
+            pf = 50;
+            break;
+        default:
+            pf = 60;
+            break;
+    }
+    resources_set_int("MachinePowerFrequency", pf);
     resources_set_int("RamSize", cbm2models[model].ramsize);
 
     resources_set_string("KernalName", cbm2models[model].kernalname);

@@ -32,11 +32,11 @@
 
 #include "sound.h"
 
-extern void ted_sound_store(uint16_t addr, uint8_t value);
-extern uint8_t ted_sound_read(uint16_t addr);
+void ted_sound_store(uint16_t addr, uint8_t value);
+uint8_t ted_sound_read(uint16_t addr);
 
-extern void ted_sound_reset(sound_t *psid, CLOCK cpu_clk);
+void ted_sound_reset(sound_t *psid, CLOCK cpu_clk);
 
-extern void ted_sound_chip_init(void);
+void ted_sound_chip_init(void);
 
 #endif

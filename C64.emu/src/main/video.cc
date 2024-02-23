@@ -43,23 +43,11 @@ void C64System::setCanvasSkipFrame(bool on)
 		activeCanvas->skipFrame = on;
 }
 
-void C64System::startCanvasRunningFrame()
-{
-	runningFrame = true;
-}
-
 CLINK LVISIBLE void vsync_do_vsync2(struct video_canvas_s *c);
 void vsync_do_vsync2(struct video_canvas_s *c)
 {
 	auto &sys = c64Sys(c);
-	if(sys.runningFrame) [[likely]]
-	{
-		//logMsg("vsync_do_vsync signaling main thread");
-		sys.runningFrame = false;
-		sys.execDoneSem.release();
-		sys.execSem.acquire();
-	}
-	else
+	if(!sys.signalEmuTaskThreadAndWait())
 	{
 		logMsg("spurious vsync_do_vsync()");
 	}
@@ -69,7 +57,8 @@ void vsyncarch_refresh_frequency_changed(double rate)
 {
 	auto &system = static_cast<C64System&>(EmuEx::gSystem());
 	system.systemFrameRate = rate;
-	system.onFrameTimeChanged();
+	if(system.hasContent())
+		system.onFrameTimeChanged();
 }
 
 static bool isValidPixelFormat(IG::PixelFormat fmt)
@@ -99,7 +88,6 @@ static void updateInternalPixelFormat(struct video_canvas_s *c, IG::PixelFormat 
 void video_arch_canvas_init(struct video_canvas_s *c)
 {
 	logMsg("init canvas:%p with size %d,%d", c, c->draw_buffer->canvas_width, c->draw_buffer->canvas_height);
-	c->video_draw_buffer_callback = nullptr;
 	c->systemPtr = (void*)&EmuEx::gSystem();
 	if(!c64Sys(c).activeCanvas)
 		c64Sys(c).activeCanvas = c;

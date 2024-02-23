@@ -39,12 +39,9 @@ const char info_contrib_text[] =
 "\n"
 "  The VICE core team:\n"
 "\n"
-"  Martin Pottendorfer <pottendo@gmx.net>\n"
-"  Implemented the Gnome Port based on Oliver Schaertels GTK+\n"
-"  port. Added support code for internationalization based on\n"
-"  gettext. Improved the *nix fullscreen support. Added multi-\n"
-"  threaded GUI display for *nix. Translated the UI to German.\n"
-"  Implemented the fliplists + UI (*nix).\n"
+"  @b{Pottendo}\n"
+"  Fixed WiC64 support. Most of the former contributions (pre V3.x) have\n"
+"  been taken over and/or replaced by other's contributions.\n"
 "\n"
 "  Marco van den Heuvel <blackystardust68@yahoo.com>\n"
 "  Translated the UI to Dutch. Made the internationalization\n"
@@ -56,7 +53,7 @@ const char info_contrib_text[] =
 "  Unixware, Minix 3.x, Amiga, Syllable and OS/2 binary ports.\n"
 "  Maintains the Win64 and Open Watcom project files. Maintains\n"
 "  the SDL port(s). Added new .crt support. Added new screenshot\n"
-"  formats. Added new sound recording support. Added SIDcart\n"
+"  formats. Added new sound recording support. Added SID cartridge\n"
 "  support for xpet, xplus4 and xvic. Improved the MMC64\n"
 "  emulation. Added 2 MHz mode and banks 2/3 support for x128.\n"
 "  Added the various userport joystick emulations. Added text copy\n"
@@ -92,7 +89,17 @@ const char info_contrib_text[] =
 "  work on AmigaOS, BeOS, DOS, SDL, *nix and windows with and\n"
 "  without device drivers. Added clockport system for mmc64,\n"
 "  mmcreplay, retroreplay and ide64. Added rrnet clockport device.\n"
-"  Added mp3@@64 clockport device. And lots of other fixes and\n"
+"  Added mp3@@64 clockport device. Added userport snes pad (petscii)\n"
+"  support. Extended the joyport system to be able to handle all snes\n"
+"  pad buttons. Extended the joyport system to be able to handle\n"
+"  8-player joystick adapters. Added spaceballs joystick adapter\n"
+"  support. Added trapthem joyport snes pad adapter support. Added\n"
+"  superpad64 support. Added multijoy joystick adapter support.\n"
+"  Added inception joystick adapter support. Added protopad support.\n"
+"  Added autofire support. Added plus4 Synergy 3-port joystick\n"
+"  adapter support. Added userport I/O simulation device. Added\n"
+"  Microflyte analog joystick support. Added Stupid Pet Tricks\n"
+"  joystick adapter support. And lots of other fixes and\n"
 "  improvements.\n"
 "\n"
 "  Fabrizio Gennari <fabrizio.ge@tiscalinet.it>\n"
@@ -123,10 +130,12 @@ const char info_contrib_text[] =
 "  Olaf Seibert <rhialto@falu.nl>\n"
 "  Contributed some PET, including PET DWW hires, Xaw, lightpen,\n"
 "  hardware scaling, and disk drive patches. Added proper SuperPET\n"
-"  support, including 6809/6309 CPU emulation. Maintains the Xaw UI.\n"
+"  support, including 6809/6309 CPU emulation. Maintained the Xaw UI.\n"
 "  Added PET HRE (High Res Emulator) board emulation. Added the\n"
 "  2-chip colour board for the Universal PET mainboard. Added\n"
-"  support for 'printer/plotter' Commodore 1520.\n"
+"  support for 'printer/plotter' Commodore 1520. Overhauled internals\n"
+"  of VIA and CIA code. Corrected pre-CRTC PET display timing.\n"
+"  REL-file support for the filesystem device and c1541.\n"
 "\n"
 "  Marcus Sutton <loggedoubt@gmail.com>\n"
 "  Made some console, dialog and joystick fixes for the BeOS port.\n"
@@ -152,11 +161,17 @@ const char info_contrib_text[] =
 "  leaks. Added more doxygen documentation. Fixed c1541 issues.\n"
 "  Updated the Linux-Native-Howto.txt file. Added autoconf, automake and\n"
 "  yasm version checking. Fixed runtime linker path issues with *BSD. Fixed\n"
-"  out-of-tree building. One of the driving forces behind the 'native' GTK3\n"
-"  port.\n"
+"  out-of-tree building. One of the driving forces behind the GTK3 port.\n"
 "\n"
 "  Michael C. Martin <mcmartin@gmail.com>\n"
-"  One of the driving forces behind the 'native' GTK3 port.\n"
+"  One of the driving forces behind the GTK3 port.\n"
+"\n"
+"  June Tate-Gans <june@theonelab.com>\n"
+"  Made the dual window feature for the SDL2 UI.\n"
+"\n"
+"  Pablo Roldan\n"
+"  Contributed improvements and fixes to the RS-232 emulation. Contributed\n"
+"  initial patch for VIC-II PAL-N model selection.\n"
 "\n"
 "\n"
 "  Former/inactive team members:\n"
@@ -292,7 +307,7 @@ const char info_contrib_text[] =
 "  Started the work on hardware-level 1541 emulation and wrote the\n"
 "  new monitor introduced with VICE 0.15.\n"
 "\n"
-"  André Fachat <fachat@physik.tu-chemnitz.de>\n"
+"  @b{Andre Fachat}\n"
 "  Copyright (C) 1996-2001\n"
 "  Wrote the PET and CBM-II emulators, the CIA and VIA emulation,\n"
 "  the IEEE488 interface, implemented the IEC serial bus in `xvic'\n"
@@ -334,7 +349,7 @@ const char info_contrib_text[] =
 "  Copyright (C) 2009-2017\n"
 "  Provided the Danish user interface translations and fixed a few monitor bugs.\n"
 "\n"
-"  Martin Pottendorfer <pottendo@gmx.net>\n"
+"  @b{Pottendo}\n"
 "  Copyright (C) 2000-2017\n"
 "  Provided the German user interface translations.\n"
 "\n"
@@ -342,7 +357,7 @@ const char info_contrib_text[] =
 "  Copyright (C) 2011-2017\n"
 "  Provided the Spanish user interface translations.\n"
 "\n"
-"  Paul Dubé \n"
+"  @b{Paul Dube}\n"
 "  Copyright (C) 2004-2017\n"
 "  Provided the French user interface translations.\n"
 "\n"
@@ -612,6 +627,7 @@ const char info_contrib_text[] =
 "  Roberto Muscedere <cococommie@cogeco.ca>\n"
 "  Improved support for REL files in vdrive. Added Lt. Kernal Host Adaptor,\n"
 "  CMD HD, CMD RAMLINK, and CBM D9090/60 emulation. Added D90 support to vdrive.\n"
+"  Added joyport attached paperclip 64E, paperclip 64SC, and paperclip 2 dongle.\n"
 "\n"
 "  Leandro Nini <drfiemost@email.it>\n"
 "  Improved ReSID emulation. And fixed some c64dtv cpu opcode issues.\n"
@@ -654,9 +670,6 @@ const char info_contrib_text[] =
 "\n"
 "  David Roden\n"
 "  Fixed various issues related to ffmpeg settings.\n"
-"\n"
-"  Pablo Roldán <pdroldan@yahoo.com>\n"
-"  Contributed initial patch for VIC-II PAL-N model selection.\n"
 "\n"
 "  Mathias Roslund <vice.emu@amidog.se>\n"
 "  Provided the AmigaOS4 port.\n"
@@ -808,22 +821,24 @@ const char info_contrib_text[] =
 "\n";
 
 vice_team_t core_team[] = {
-    { "1999-2020", "Martin Pottendorfer", "Martin Pottendorfer <pottendo@gmx.net>" },
-    { "2005-2020", "Marco van den Heuvel", "Marco van den Heuvel <blackystardust68@yahoo.com>" },
-    { "2007-2020", "Fabrizio Gennari", "Fabrizio Gennari <fabrizio.ge@tiscalinet.it>" },
-    { "2009-2020", "Groepaz", "Groepaz <groepaz@gmx.net>" },
-    { "2009-2020", "Errol Smith", "Errol Smith <strobey@users.sourceforge.net>" },
-    { "2009-2020", "Ingo Korb", "Ingo Korb <ingo@akana.de>" },
-    { "2010-2020", "Olaf Seibert", "Olaf Seibert <rhialto@falu.nl>" },
-    { "2011-2020", "Marcus Sutton", "Marcus Sutton <loggedoubt@gmail.com>" },
-    { "2011-2020", "Kajtar Zsolt", "Kajtar Zsolt <soci@c64.rulez.org>" },
-    { "2016-2020", "AreaScout", "AreaScout <areascout@gmx.at>" },
-    { "2016-2020", "Bas Wassink", "Bas Wassink <b.wassink@ziggo.nl>" },
-    { "2017-2020", "Michael C. Martin", "Michael C. Martin <mcmartin@gmail.com>" },
-    { "2018-2020", "Christopher Phillips", "Christopher Phillips <shrydar@users.sourceforge.net>" },
-    { "2019-2020", "David Hogan", "David Hogan <david.q.hogan@gmail.com>" },
-    { "2020", "Empathic Qubit", "Empathic Qubit <empathicqubit@entan.gl>" },
-    { "2020", "Roberto Muscedere", "Roberto Muscedere <cococommie@cogeco.ca>" },
+    { "1999-2023", "Pottendo", "@b{Pottendo}" },
+    { "2005-2023", "Marco van den Heuvel", "Marco van den Heuvel <blackystardust68@yahoo.com>" },
+    { "2007-2023", "Fabrizio Gennari", "Fabrizio Gennari <fabrizio.ge@tiscalinet.it>" },
+    { "2009-2023", "Groepaz", "Groepaz <groepaz@gmx.net>" },
+    { "2009-2023", "Errol Smith", "Errol Smith <strobey@users.sourceforge.net>" },
+    { "2009-2023", "Ingo Korb", "Ingo Korb <ingo@akana.de>" },
+    { "2010-2023", "Olaf Seibert", "Olaf Seibert <rhialto@falu.nl>" },
+    { "2011-2023", "Marcus Sutton", "Marcus Sutton <loggedoubt@gmail.com>" },
+    { "2011-2023", "Kajtar Zsolt", "Kajtar Zsolt <soci@c64.rulez.org>" },
+    { "2016-2023", "AreaScout", "AreaScout <areascout@gmx.at>" },
+    { "2016-2023", "Bas Wassink", "Bas Wassink <b.wassink@ziggo.nl>" },
+    { "2017-2023", "Michael C. Martin", "Michael C. Martin <mcmartin@gmail.com>" },
+    { "2018-2023", "Christopher Phillips", "Christopher Phillips <shrydar@users.sourceforge.net>" },
+    { "2019-2023", "David Hogan", "David Hogan <david.q.hogan@gmail.com>" },
+    { "2020-2023", "Empathic Qubit", "Empathic Qubit <empathicqubit@entan.gl>" },
+    { "2020-2023", "Roberto Muscedere", "Roberto Muscedere <cococommie@cogeco.ca>" },
+    { "2021-2023", "June Tate-Gans", "June Tate-Gans <june@theonelab.com>" },
+    { "2021-2023", "Pablo Roldan", "Pablo Roldan" },
     { NULL, NULL, NULL }
 };
 
@@ -848,7 +863,7 @@ vice_team_t ex_team[] = {
     { "2000-2004", "Markus Brenner", "Markus Brenner <markus@brenner.de>" },
     { "1999-2004", "Thomas Bretz", "Thomas Bretz <tbretz@ph.tum.de>" },
     { "1997-2001", "Daniel Sladic", "Daniel Sladic <sladic@eecg.toronto.edu>" },
-    { "1996-2001", "André Fachat", "André Fachat <fachat@physik.tu-chemnitz.de>" },
+    { "1996-2001", "Andre Fachat", "@b{Andre Fachat}" },
     { "1996-1999", "Ettore Perazzoli", "Ettore Perazzoli <ettore@comm2000.it>" },
     { "1993-1994, 1997-1999", "Teemu Rantanen", "Teemu Rantanen <tvr@cs.hut.fi>" },
     { "1993-1996", "Jouko Valta", "Jouko Valta <jopi@stekt.oulu.fi>" },
@@ -867,9 +882,9 @@ char *doc_team[] = {
 
 vice_trans_t trans_team[] = {
     { "2009-2017", "Mikkel Holm Olsen", "Danish", "Mikkel Holm Olsen <vice-dk@symlink.dk>" },
-    { "2000-2017", "Martin Pottendorfer", "German", "Martin Pottendorfer <pottendo@gmx.net>" },
+    { "2000-2017", "Pottendo", "German", "@b{Pottendo}" },
     { "2011-2017", "Manuel Antonio Rodriguez Bas", "Spanish", "Manuel Antonio Rodriguez Bas <formater@winuaespanol.com>" },
-    { "2004-2017", "Paul Dubé", "French", "Paul Dubé " },
+    { "2004-2017", "Paul Dube", "French", "@b{Paul Dube}" },
     { "2006-2017", "Czirkos Zoltan", "Hungarian", "Czirkos Zoltan <cirix@fw.hu>" },
     { "2006-2017", "Karai Csaba", "Hungarian", "Karai Csaba <cskarai@freemail.hu>" },
     { "2001-2017", "Andrea Musuruane", "Italian", "Andrea Musuruane <musuruan@bmm.it>" },

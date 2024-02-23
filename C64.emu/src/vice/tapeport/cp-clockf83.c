@@ -209,7 +209,7 @@ static int tapertc_write_snapshot(int port, struct snapshot_s *s, int write_imag
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
- 
+
     if (m == NULL) {
         return -1;
     }

@@ -367,8 +367,23 @@ static int cmdline_attach(const char *param, void *extra_param)
     return 0;
 }
 
+#ifdef WINDOWS_COMPILE
+static int cmdline_no_redirect_streams(const char *param, void *extra_param)
+{
+    /* "-no-redirect-streams" is handled at the start of main()
+       but it also needs to be registered as a cmdline option,
+       hence this kludge. */
+    return 0;
+}
+#endif
+
 static const cmdline_option_t common_cmdline_options[] =
 {
+#ifdef WINDOWS_COMPILE
+    { "-no-redirect-streams", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
+      cmdline_no_redirect_streams, NULL, NULL, NULL,
+      NULL, "Do not redirect stdin/stdout to the console" },
+#endif
     { "-help", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
       cmdline_help, NULL, NULL, NULL,
       NULL, "Show a list of the available options and exit normally" },

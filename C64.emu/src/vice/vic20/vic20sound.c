@@ -47,8 +47,13 @@
 
 /* Some prototypes are needed */
 static int vic_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec);
-static int vic_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, CLOCK *delta_t);
 static void vic_sound_machine_store(sound_t *psid, uint16_t addr, uint8_t value);
+
+#ifdef SOUND_SYSTEM_FLOAT
+static int vic_sound_machine_calculate_samples(sound_t **psid, float *pbuf, int nr, int sound_chip_channels, CLOCK *delta_t);
+#else
+static int vic_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, CLOCK *delta_t);
+#endif
 
 static int vic_sound_machine_cycle_based(void)
 {
@@ -59,6 +64,16 @@ static int vic_sound_machine_channels(void)
 {
     return 1;
 }
+
+#ifdef SOUND_SYSTEM_FLOAT
+/* stereo mixing placement of the VIC20 VIC sound */
+static sound_chip_mixing_spec_t vic_sound_mixing_spec[SOUND_CHIP_CHANNELS_MAX] = {
+    {
+        100, /* left channel volume % in case of stereo output, default output to both */
+        100  /* right channel volume % in case of stereo output, default output to both */
+    }
+};
+#endif
 
 /* VIC20 VIC sound device */
 static sound_chip_t vic_sound_chip = {
@@ -71,6 +86,9 @@ static sound_chip_t vic_sound_chip = {
     vic_sound_reset,                     /* sound chip reset function */
     vic_sound_machine_cycle_based,       /* sound chip 'is_cycle_based()' function, chip is NOT cycle based */
     vic_sound_machine_channels,          /* sound chip 'get_amount_of_channels()' function, sound chip has 1 channel */
+#ifdef SOUND_SYSTEM_FLOAT
+    vic_sound_mixing_spec,               /* stereo mixing placement specs */
+#endif
     1                                    /* sound chip enabled flag, chip is always enabled */
 };
 
@@ -273,6 +291,38 @@ static struct sound_vic20_s snd;
 
 void vic_sound_clock(CLOCK cycles);
 
+#ifdef SOUND_SYSTEM_FLOAT
+/* FIXME */
+static int vic_sound_machine_calculate_samples(sound_t **psid, float *pbuf, int nr, int scc, CLOCK *delta_t)
+{
+    int s = 0;
+    float o;
+    int samples_to_do;
+
+    while (s < nr && *delta_t >= snd.cycles_per_sample - snd.leftover_cycles) {
+        samples_to_do = (int)(snd.cycles_per_sample - snd.leftover_cycles);
+        snd.leftover_cycles += samples_to_do - snd.cycles_per_sample;
+        vic_sound_clock(samples_to_do);
+
+        o = (snd.lowpassbuf - snd.highpassbuf) / 32767.0;
+        snd.highpassbuf += snd.highpassbeta * (snd.lowpassbuf - snd.highpassbuf);
+        snd.lowpassbuf += snd.lowpassbeta * (voltagefunction[(((snd.accum * 7) / snd.accum_cycles) + 1) * snd.volume] - snd.lowpassbuf);
+
+        pbuf[s] = o;
+
+        s++;
+        snd.accum = 0;
+        snd.accum_cycles = 0;
+        *delta_t -= samples_to_do;
+    }
+    if (*delta_t > 0) {
+        snd.leftover_cycles += *delta_t;
+        vic_sound_clock(*delta_t);
+        *delta_t = 0;
+    }
+    return s;
+}
+#else
 static int vic_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int soc, int scc, CLOCK *delta_t)
 {
     int s = 0;
@@ -313,6 +363,7 @@ static int vic_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, in
     }
     return s;
 }
+#endif
 
 void vic_sound_reset(sound_t *psid, CLOCK cpu_clk)
 {

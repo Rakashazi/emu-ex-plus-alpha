@@ -45,6 +45,8 @@
 
 #include "traps.h"
 
+#include "profiler.h"
+
 #ifndef C64DTV
 /* The C64DTV can use different shadow registers for accu read/write. */
 /* For standard 6510, this is not the case. */
@@ -244,6 +246,34 @@
 
 #endif /* C64DTV */
 
+#if !defined(DRIVE_CPU)
+#define CHECK_PROFILE_INTERRUPT(dest_addr, handler)                        \
+    do {                                                                   \
+            profile_int(dest_addr, handler, reg_sp + 1, CLK - profiling_clock_start); \
+    } while (0)
+
+#define CHECK_PROFILE_JSR(dest_addr)     \
+    do {                                 \
+            profile_jsr(dest_addr, reg_pc, reg_sp); \
+    } while (0)
+
+#define CHECK_PROFILE_RTS()      \
+    do {                         \
+            profile_rtx(reg_sp); \
+    } while (0)
+
+#define CHECK_PROFILE_RTI()          \
+    do {                             \
+            profile_rtx(reg_sp + 1); \
+    } while (0)
+
+#else
+#define CHECK_PROFILE_INTERRUPT(dest_addr, handler)
+#define CHECK_PROFILE_JSR(dest_addr)
+#define CHECK_PROFILE_RTS()
+#define CHECK_PROFILE_RTI()
+#endif
+
 #ifdef DEBUG
 #define TRACE_NMI()                         \
     do {                                    \
@@ -305,6 +335,7 @@
         CLK_INC();                                                                                                    \
         addr |= (LOAD(handler_vector + 1) << 8);                                                                      \
         CLK_INC();                                                                                                    \
+        CHECK_PROFILE_INTERRUPT(addr, handler_vector);                                                                \
         JUMP(addr);                                                                                                   \
     } while (0)
 
@@ -342,6 +373,7 @@
                 addr |= (LOAD(0xfffb) << 8);                                   \
                 CLK_INC();                                                     \
                 LOCAL_SET_INTERRUPT(1);                                        \
+                CHECK_PROFILE_INTERRUPT(addr, 0xfffb);                         \
                 JUMP(addr);                                                    \
                 SET_LAST_OPCODE(0);                                            \
             } else if ((ik & (IK_IRQ | IK_IRQPEND))                            \
@@ -381,6 +413,7 @@
                 bank_start = bank_limit = 0; /* prevent caching */             \
                 LOCAL_SET_INTERRUPT(1);                                        \
                 cpu_is_jammed = 0;                                             \
+                CHECK_PROFILE_INTERRUPT(addr, 0xfffc);                         \
                 JUMP(addr);                                                    \
                 DMA_ON_RESET;                                                  \
             }                                                                  \
@@ -1136,7 +1169,7 @@ static int ane_log_level = 1; /* 0: none, 1: unstable only 2: all */
 
 #define JMP_IND()                                                    \
     do {                                                             \
-        uint16_t dest_addr;                                              \
+        uint16_t dest_addr;                                          \
         dest_addr = LOAD(p2);                                        \
         CLK_INC();                                                   \
         dest_addr |= (LOAD((p2 & 0xff00) | ((p2 + 1) & 0xff)) << 8); \
@@ -1168,6 +1201,7 @@ static int ane_log_level = 1; /* 0: none, 1: unstable only 2: all */
         JSR_FIXUP_MSB(addr_msb);                  \
         dest_addr = (uint16_t)(p1 | (addr_msb << 8)); \
         CLK_INC();                                \
+        CHECK_PROFILE_JSR(dest_addr);             \
         JUMP(dest_addr);                          \
     } while (0)
 
@@ -1420,6 +1454,8 @@ static int lxa_log_level = 1; /* 0: none, 1: unstable only 2: all */
 #define RTI()                           \
     do {                                \
         uint16_t tmp;                   \
+                                        \
+        CHECK_PROFILE_RTI();            \
         if (!SKIP_CYCLE) {              \
             STACK_PEEK();               \
             CLK_INC();                  \
@@ -1437,6 +1473,8 @@ static int lxa_log_level = 1; /* 0: none, 1: unstable only 2: all */
 #define RTS()                 \
     do {                      \
         uint16_t tmp;         \
+                              \
+        CHECK_PROFILE_RTS();  \
         if (!SKIP_CYCLE) {    \
             STACK_PEEK();     \
             CLK_INC();        \
@@ -1654,6 +1692,11 @@ static const uint8_t fetch_tab[] = {
 {
     static int cpu_is_jammed = 0;
 
+#if !defined(DRIVE_CPU)
+    CLOCK profiling_clock_start;
+#endif
+
+
 #ifdef CHECK_AND_RUN_ALTERNATE_CPU
     CHECK_AND_RUN_ALTERNATE_CPU
 #endif
@@ -1684,6 +1727,10 @@ static const uint8_t fetch_tab[] = {
 
         pending_interrupt = CPU_INT_STATUS->global_pending_int;
         if (pending_interrupt != IK_NONE) {
+#if !defined(DRIVE_CPU)
+            profiling_clock_start = CLK;
+#endif
+
             DO_INTERRUPT(pending_interrupt);
             if (!(CPU_INT_STATUS->global_pending_int & IK_IRQ)
                 && CPU_INT_STATUS->global_pending_int & IK_IRQPEND) {
@@ -1703,6 +1750,14 @@ static const uint8_t fetch_tab[] = {
 
 #ifdef FEATURE_CPUMEMHISTORY
         memmap_state |= (MEMMAP_STATE_INSTR | MEMMAP_STATE_OPCODE);
+#endif
+
+#if !defined(DRIVE_CPU)
+        profiling_clock_start = CLK;
+        stolen_cycles = 0;
+        if (maincpu_profiling) {
+            profile_sample_start(reg_pc);
+        }
 #endif
 
         SET_LAST_ADDR(reg_pc);
@@ -2686,5 +2741,12 @@ trap_skipped:
                 ISB(3, GET_ABS_X_RMW, SET_ABS_X_RMW);
                 break;
         }
+
+#if !defined(DRIVE_CPU)
+        if (maincpu_profiling) {
+            profile_sample_finish(CLK - profiling_clock_start - stolen_cycles, stolen_cycles);
+        }
+#endif
+
     }
 }

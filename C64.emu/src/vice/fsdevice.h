@@ -36,14 +36,14 @@
 #ifndef VICE_FSDEVICE_H
 #define VICE_FSDEVICE_H
 
-extern int fsdevice_cmdline_options_init(void);
-extern int fsdevice_resources_init(void);
-extern void fsdevice_resources_shutdown(void);
+int fsdevice_cmdline_options_init(void);
+int fsdevice_resources_init(void);
+void fsdevice_resources_shutdown(void);
 
-extern void fsdevice_init(void);
-extern void fsdevice_shutdown(void);
+void fsdevice_init(void);
+void fsdevice_shutdown(void);
 
-extern int fsdevice_attach(unsigned int device, unsigned int drive, const char *name);
-extern void fsdevice_set_directory(char *filename, unsigned int unit);
+int fsdevice_attach(unsigned int device, unsigned int drive, const char *name);
+void fsdevice_set_directory(char *filename, unsigned int unit);
 
 #endif

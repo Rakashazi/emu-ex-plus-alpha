@@ -168,7 +168,8 @@ static io_source_t ide64_idebus_device = {
     ide64_idebus_dump,           /* device state information dump function */
     CARTRIDGE_IDE64,             /* cartridge ID */
     IO_PRIO_NORMAL,              /* normal priority, device read needs to be checked for collisions */
-    0                            /* insertion order, gets filled in by the registration function */
+    0,                           /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE               /* NO mirroring */
 };
 
 static io_source_t ide64_io_device = {
@@ -184,7 +185,8 @@ static io_source_t ide64_io_device = {
     ide64_io_dump,               /* device state information dump function */
     CARTRIDGE_IDE64,             /* cartridge ID */
     IO_PRIO_NORMAL,              /* normal priority, device read needs to be checked for collisions */
-    0                            /* insertion order, gets filled in by the registration function */
+    0,                           /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE               /* NO mirroring */
 };
 
 static io_source_t ide64_ft245_device = {
@@ -200,7 +202,8 @@ static io_source_t ide64_ft245_device = {
     NULL,                          /* TODO: device state information dump function */
     CARTRIDGE_IDE64,               /* cartridge ID */
     IO_PRIO_NORMAL,                /* normal priority, device read needs to be checked for collisions */
-    0                              /* insertion order, gets filled in by the registration function */
+    0,                             /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                 /* NO mirroring */
 };
 
 static io_source_t ide64_ds1302_device = {
@@ -216,7 +219,8 @@ static io_source_t ide64_ds1302_device = {
     ide64_rtc_dump,                 /* device state information dump function */
     CARTRIDGE_IDE64,                /* cartridge ID */
     IO_PRIO_NORMAL,                 /* normal priority, device read needs to be checked for collisions */
-    0                               /* insertion order, gets filled in by the registration function */
+    0,                              /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                  /* NO mirroring */
 };
 
 static io_source_t ide64_rom_device = {
@@ -232,7 +236,8 @@ static io_source_t ide64_rom_device = {
     NULL,                        /* TODO: device state information dump function */
     CARTRIDGE_IDE64,             /* cartridge ID */
     IO_PRIO_NORMAL,              /* normal priority, device read needs to be checked for collisions */
-    0                            /* insertion order, gets filled in by the registration function */
+    0,                           /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE               /* NO mirroring */
 };
 
 static io_source_t ide64_clockport_device = {
@@ -248,7 +253,8 @@ static io_source_t ide64_clockport_device = {
     ide64_clockport_dump,             /* device state information dump function */
     CARTRIDGE_IDE64,                  /* cartridge ID */
     IO_PRIO_NORMAL,                   /* normal priority, device read needs to be checked for collisions */
-    0                                 /* insertion order, gets filled in by the registration function */
+    0,                                /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                    /* NO mirroring */
 };
 
 static io_source_list_t *ide64_idebus_list_item = NULL;
@@ -492,7 +498,7 @@ static int set_cylinders(int cylinders, void *param)
 {
     struct drive_s *drive = &drives[vice_ptr_to_int(param)];
 
-    if (cylinders > 65535 || cylinders < 1) {
+    if (cylinders > IDE64_CYLINDERS_MAX || cylinders < IDE64_CYLINDERS_MIN) {
         return -1;
     }
 
@@ -507,7 +513,7 @@ static int set_heads(int heads, void *param)
 {
     struct drive_s *drive = &drives[vice_ptr_to_int(param)];
 
-    if (heads > 16 || heads < 1) {
+    if (heads > IDE64_HEADS_MAX || heads < IDE64_HEADS_MIN) {
         return -1;
     }
     drive->settings.heads = heads;
@@ -521,7 +527,7 @@ static int set_sectors(int sectors, void *param)
 {
     struct drive_s *drive = &drives[vice_ptr_to_int(param)];
 
-    if (sectors > 63 || sectors < 1) {
+    if (sectors > IDE64_SECTORS_MAX || sectors < IDE64_SECTORS_MIN) {
         return -1;
     }
     drive->settings.sectors = sectors;
@@ -581,7 +587,7 @@ static int set_version(int value, void *param)
             return -1;
         }
         usbserver_activate(settings_usbserver);
-        machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+        machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
     }
     return 0;
 }

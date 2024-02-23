@@ -29,17 +29,17 @@
 
 #include "types.h"
 
-extern int shortbus_resources_init(void);
-extern void shortbus_resources_shutdown(void);
+int shortbus_resources_init(void);
+void shortbus_resources_shutdown(void);
 
-extern int shortbus_cmdline_options_init(void);
+int shortbus_cmdline_options_init(void);
 
-extern void shortbus_unregister(void);
-extern void shortbus_register(void);
+void shortbus_unregister(void);
+void shortbus_register(void);
 
-extern void shortbus_reset(void);
+void shortbus_reset(void);
 
-extern int shortbus_write_snapshot_module(snapshot_t *s);
-extern int shortbus_read_snapshot_module(snapshot_t *s);
+int shortbus_write_snapshot_module(snapshot_t *s);
+int shortbus_read_snapshot_module(snapshot_t *s);
 
 #endif

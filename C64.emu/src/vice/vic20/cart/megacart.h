@@ -31,30 +31,32 @@
 
 #include "types.h"
 
-extern uint8_t megacart_ram123_read(uint16_t addr);
-extern void megacart_ram123_store(uint16_t addr, uint8_t value);
-extern uint8_t megacart_blk123_read(uint16_t addr);
-extern void megacart_blk123_store(uint16_t addr, uint8_t value);
-extern uint8_t megacart_blk5_read(uint16_t addr);
-extern void megacart_blk5_store(uint16_t addr, uint8_t value);
+uint8_t megacart_ram123_read(uint16_t addr);
+void megacart_ram123_store(uint16_t addr, uint8_t value);
+uint8_t megacart_blk123_read(uint16_t addr);
+void megacart_blk123_store(uint16_t addr, uint8_t value);
+uint8_t megacart_blk5_read(uint16_t addr);
+void megacart_blk5_store(uint16_t addr, uint8_t value);
 
-extern void megacart_init(void);
-extern void megacart_reset(void);
-extern void megacart_powerup(void);
+void megacart_init(void);
+void megacart_reset(void);
+void megacart_powerup(void);
 
-extern void megacart_config_setup(uint8_t *rawcart);
-extern int megacart_bin_attach(const char *filename);
-/* extern int megacart_bin_attach(const char *filename, uint8_t *rawcart); */
-extern int megacart_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void megacart_detach(void);
+void megacart_config_setup(uint8_t *rawcart);
+int megacart_bin_attach(const char *filename);
 
-extern int megacart_resources_init(void);
-extern void megacart_resources_shutdown(void);
-extern int megacart_cmdline_options_init(void);
+/* int megacart_bin_attach(const char *filename, uint8_t *rawcart); */
+
+int megacart_crt_attach(FILE *fd, uint8_t *rawcart);
+void megacart_detach(void);
+
+int megacart_resources_init(void);
+void megacart_resources_shutdown(void);
+int megacart_cmdline_options_init(void);
 
 struct snapshot_s;
 
-extern int megacart_snapshot_write_module(struct snapshot_s *s);
-extern int megacart_snapshot_read_module(struct snapshot_s *s);
+int megacart_snapshot_write_module(struct snapshot_s *s);
+int megacart_snapshot_read_module(struct snapshot_s *s);
 
 #endif

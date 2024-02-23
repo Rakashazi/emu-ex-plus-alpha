@@ -27,7 +27,7 @@
 #ifndef VICE_C128SNAPSHOT_H
 #define VICE_C128SNAPSHOT_H
 
-extern int c128_snapshot_write(const char *name, int save_roms, int save_disks, int event_mode);
-extern int c128_snapshot_read(const char *name, int event_mode);
+int c128_snapshot_write(const char *name, int save_roms, int save_disks, int event_mode);
+int c128_snapshot_read(const char *name, int event_mode);
 
 #endif

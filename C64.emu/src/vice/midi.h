@@ -63,24 +63,27 @@ extern midi_interface_t midi_interface[];
 extern int midi_enabled;
 extern int midi_mode;
 
-extern void midi_init(void);
-extern void midi_reset(void);
-extern int midi_set_mode(int new_mode, void *param);
+void midi_init(void);
+void midi_reset(void);
+int midi_set_mode(int new_mode, void *param);
 
-extern uint8_t midi_read(uint16_t a);
-extern uint8_t midi_peek(uint16_t a);
-extern void midi_store(uint16_t a, uint8_t b);
+uint8_t midi_read(uint16_t a);
+uint8_t midi_peek(uint16_t a);
+void midi_store(uint16_t a, uint8_t b);
+
 /* returns 1 if address is a readable MIDI register */
-extern int midi_test_read(uint16_t a);
-/* returns 1 if address is any MIDI register */
-extern int midi_test_peek(uint16_t a);
+int midi_test_read(uint16_t a);
 
-extern int midi_resources_init(void);
-extern void midi_resources_shutdown(void);
-extern int midi_cmdline_options_init(void);
+/* returns 1 if address is any MIDI register */
+int midi_test_peek(uint16_t a);
+
+int midi_resources_init(void);
+void midi_resources_shutdown(void);
+int midi_cmdline_options_init(void);
 
 struct snapshot_s;
-extern int midi_snapshot_read_module(struct snapshot_s *s);
-extern int midi_snapshot_write_module(struct snapshot_s *s);
+
+int midi_snapshot_read_module(struct snapshot_s *s);
+int midi_snapshot_write_module(struct snapshot_s *s);
 
 #endif

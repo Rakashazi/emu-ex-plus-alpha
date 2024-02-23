@@ -31,19 +31,19 @@
 
 #include "types.h"
 
-extern void freezemachine_config_init(void);
-extern void freezemachine_config_setup(uint8_t *rawcart);
-extern int freezemachine_bin_attach(const char *filename, uint8_t *rawcart);
-extern int freezemachine_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void freezemachine_detach(void);
-extern void freezemachine_freeze(void);
-extern void freezemachine_reset(void);
+void freezemachine_config_init(void);
+void freezemachine_config_setup(uint8_t *rawcart);
+int freezemachine_bin_attach(const char *filename, uint8_t *rawcart);
+int freezemachine_crt_attach(FILE *fd, uint8_t *rawcart);
+void freezemachine_detach(void);
+void freezemachine_freeze(void);
+void freezemachine_reset(void);
 
-extern uint8_t freezemachine_roml_read(uint16_t addr);
+uint8_t freezemachine_roml_read(uint16_t addr);
 
 struct snapshot_s;
 
-extern int freezemachine_snapshot_write_module(struct snapshot_s *s);
-extern int freezemachine_snapshot_read_module(struct snapshot_s *s);
+int freezemachine_snapshot_write_module(struct snapshot_s *s);
+int freezemachine_snapshot_read_module(struct snapshot_s *s);
 
 #endif

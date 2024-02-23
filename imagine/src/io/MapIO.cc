@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "MapIO"
 #include <imagine/io/MapIO.hh>
 #include <imagine/config/defs.hh>
 #include <imagine/logger/logger.h>
@@ -28,6 +27,8 @@
 
 namespace IG
 {
+
+constexpr SystemLogger log{"MapIO"};
 
 template class IOUtils<MapIO>;
 
@@ -46,7 +47,7 @@ off_t MapIO::seek(off_t offset, IOSeekMode mode)
 	size_t newPos = transformOffsetToAbsolute(mode, offset, 0, off_t(size()), off_t(currPos));
 	if(newPos > size())
 	{
-		logErr("illegal seek position");
+		log.error("illegal seek position:{}/{}", newPos, size());
 		return -1;
 	}
 	currPos = newPos;
@@ -81,7 +82,7 @@ void MapIO::advise(off_t offset, size_t bytes, Advice advice)
 	bytes = span.size_bytes() + (uintptr_t(span.data()) - uintptr_t(pageSrcAddr)); // add extra bytes from rounding down to page size
 	if(madvise(pageSrcAddr, bytes, adviceToMAdv(advice)) != 0)
 	{
-		logWarn("madvise(%p, %zu, %s) failed:%s",
+		log.warn("madvise({}, {}, {}) failed:{}",
 			pageSrcAddr, bytes, asString(advice), Config::DEBUG_BUILD ? strerror(errno) : "");
 	}
 }
@@ -91,7 +92,7 @@ std::span<uint8_t> MapIO::subSpan(off_t offset, size_t maxBytes) const
 {
 	if(offset > off_t(size())) [[unlikely]]
 	{
-		logErr("offset%zd is larger than size:%zu", ssize_t(offset), size());
+		log.error("offset:{} is larger than size:{}", ssize_t(offset), size());
 		return {};
 	}
 	auto bytes = std::min(maxBytes, size_t(size() - offset));

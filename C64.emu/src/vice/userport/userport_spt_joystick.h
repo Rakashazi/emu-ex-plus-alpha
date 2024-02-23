@@ -29,6 +29,6 @@
 
 #include "types.h"
 
-extern int userport_spt_joystick_resources_init(void);
+int userport_spt_joystick_resources_init(void);
 
 #endif

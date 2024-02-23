@@ -983,7 +983,7 @@ static const char *banknames[MAXBANKS + 1] = {
     NULL
 };
 
-static const int banknums[MAXBANKS + 1] = { 0, 1, 1, 2, 6, 3, 4, 5, -1 };
+static const int banknums[MAXBANKS + 1] = { 0, 0, 1, 2, 6, 3, 4, 5, -1 };
 static const int bankindex[MAXBANKS + 1] = { -1, -1, -1, -1, -1, -1, -1, -1, -1 };
 static const int bankflags[MAXBANKS + 1] = { 0, 0, 0, 0, 0, 0, 0, 0, -1 };
 
@@ -1154,6 +1154,15 @@ uint8_t mem_bank_peek(int bank, uint16_t addr, void *context)
     return mem_bank_read(bank, addr, context); /* FIXME */
 }
 
+int mem_get_current_bank_config(void) {
+    return 0; /* TODO: not implemented yet */
+}
+
+uint8_t mem_peek_with_config(int config, uint16_t addr, void *context) {
+    /* TODO, config not implemented yet */
+    return mem_bank_peek(0 /* current */, addr, context);
+}
+
 /* read memory with side-effects */
 uint8_t mem_bank_read(int bank, uint16_t addr, void *context)
 {
@@ -1263,7 +1272,7 @@ void mem_bank_poke(int bank, uint16_t addr, uint8_t byte, void *context)
 static int mem_dump_io(void *context, uint16_t addr)
 {
     if ((addr >= 0xff00) && (addr <= 0xff3f)) {
-        /* return ted_dump(machine_context.ted); */ /* FIXME */
+        return ted_dump();
     }
     return -1;
 }
@@ -1365,7 +1374,8 @@ static io_source_t mem_config_device = {
     memconfig_dump,           /* chip state information dump function */
     IO_CART_ID_NONE,          /* not a cartridge */
     IO_PRIO_NORMAL,           /* normal priority, device read needs to be checked for collisions */
-    0                         /* insertion order, gets filled in by the registration function */
+    0,                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE            /* NO mirroring */
 };
 
 static io_source_t pio1_with_mirrors_device = {
@@ -1381,7 +1391,8 @@ static io_source_t pio1_with_mirrors_device = {
     NULL,                  /* nothing to dump */
     IO_CART_ID_NONE,       /* not a cartridge */
     IO_PRIO_NORMAL,        /* normal priority, device read needs to be checked for collisions */
-    0                      /* insertion order, gets filled in by the registration function */
+    0,                     /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE         /* NO mirroring */
 };
 
 static io_source_t pio1_only_device = {
@@ -1397,7 +1408,8 @@ static io_source_t pio1_only_device = {
     NULL,                  /* nothing to dump */
     IO_CART_ID_NONE,       /* not a cartridge */
     IO_PRIO_NORMAL,        /* normal priority, device read needs to be checked for collisions */
-    0                      /* insertion order, gets filled in by the registration function */
+    0,                     /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE         /* NO mirroring */
 };
 
 static io_source_t pio2_device = {
@@ -1413,7 +1425,8 @@ static io_source_t pio2_device = {
     NULL,                  /* nothing to dump */
     IO_CART_ID_NONE,       /* not a cartridge */
     IO_PRIO_NORMAL,        /* normal priority, device read needs to be checked for collisions */
-    0                      /* insertion order, gets filled in by the registration function */
+    0,                     /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE         /* NO mirroring */
 };
 
 static io_source_t tcbm1_device = {
@@ -1429,7 +1442,8 @@ static io_source_t tcbm1_device = {
     NULL,                  /* TODO: chip state information dump function */
     IO_CART_ID_NONE,       /* not a cartridge */
     IO_PRIO_NORMAL,        /* normal priority, device read needs to be checked for collisions */
-    0                      /* insertion order, gets filled in by the registration function */
+    0,                     /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE         /* NO mirroring */
 };
 
 static io_source_t tcbm2_device = {
@@ -1445,7 +1459,8 @@ static io_source_t tcbm2_device = {
     NULL,                  /* TODO: chip state information dump function */
     IO_CART_ID_NONE,       /* not a cartridge */
     IO_PRIO_NORMAL,        /* normal priority, device read needs to be checked for collisions */
-    0                      /* insertion order, gets filled in by the registration function */
+    0,                     /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE         /* NO mirroring */
 };
 
 static io_source_list_t *mem_config_list_item = NULL;

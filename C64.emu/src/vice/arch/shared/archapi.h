@@ -50,11 +50,12 @@
 #include "archdep_close.h"
 #include "archdep_create_user_cache_dir.h"
 #include "archdep_create_user_config_dir.h"
+#include "archdep_create_user_state_dir.h"
 #include "archdep_current_dir.h"
 #include "archdep_default_autostart_disk_image_file_name.h"
 #include "archdep_default_fliplist_file_name.h"
-#include "archdep_default_hotkey_file_name.h"
 #include "archdep_default_joymap_file_name.h"
+#include "archdep_default_logfile.h"
 #include "archdep_default_logger.h"
 #include "archdep_default_portable_resource_file_name.h"
 #include "archdep_default_resource_file_name.h"
@@ -80,6 +81,7 @@
 #include "archdep_get_vice_datadir.h"
 #include "archdep_get_vice_docsdir.h"
 #include "archdep_get_vice_drivesdir.h"
+#include "archdep_get_vice_hotkeysdir.h"
 #include "archdep_get_vice_machinedir.h"
 #include "archdep_getcwd.h"
 #include "archdep_home_path.h"
@@ -110,6 +112,7 @@
 #include "archdep_set_current_drive.h"
 #include "archdep_set_openmp_wait_policy.h"
 #include "archdep_signals.h"
+#include "archdep_socketpeek.h"
 #include "archdep_sound.h"
 #include "archdep_spawn.h"
 #include "archdep_startup_log_error.h"
@@ -118,13 +121,14 @@
 #include "archdep_tmpnam.h"
 #include "archdep_user_cache_path.h"
 #include "archdep_user_config_path.h"
+#include "archdep_user_state_path.h"
 #include "archdep_usleep.h"
 #include "archdep_xdg.h"
 
 /* Program start.  */
-extern int archdep_init(int *argc, char **argv);
+int archdep_init(int *argc, char **argv);
 
 /* Free everything on exit. (in arch/../archdep.c)  */
-extern void archdep_shutdown(void);
+void archdep_shutdown(void);
 
 #endif

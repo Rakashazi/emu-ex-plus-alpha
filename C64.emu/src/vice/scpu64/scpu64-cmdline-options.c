@@ -143,18 +143,26 @@ static int set_video_standard(const char *param, void *extra_param)
 
 static const cmdline_option_t cmdline_options[] =
 {
+    /* NOTE: although we use CALL_FUNCTION, we put the resource that will be
+             modified into the array - this helps reconstructing the cmdline */
     { "-pal", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
-      set_video_standard, (void *)MACHINE_SYNC_PAL, NULL, NULL,
+      set_video_standard, (void *)MACHINE_SYNC_PAL, "MachineVideoStandard", (void *)MACHINE_SYNC_PAL,
       NULL, "Use PAL sync factor" },
     { "-ntsc", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
-      set_video_standard, (void *)MACHINE_SYNC_NTSC, NULL, NULL,
+      set_video_standard, (void *)MACHINE_SYNC_NTSC, "MachineVideoStandard", (void *)MACHINE_SYNC_NTSC,
       NULL, "Use NTSC sync factor" },
     { "-ntscold", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
-      set_video_standard, (void *)MACHINE_SYNC_NTSCOLD, NULL, NULL,
+      set_video_standard, (void *)MACHINE_SYNC_NTSCOLD, "MachineVideoStandard", (void *)MACHINE_SYNC_NTSCOLD,
       NULL, "Use old NTSC sync factor" },
     { "-paln", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
-      set_video_standard, (void *)MACHINE_SYNC_PALN, NULL, NULL,
+      set_video_standard, (void *)MACHINE_SYNC_PALN, "MachineVideoStandard", (void *)MACHINE_SYNC_PALN,
       NULL, "Use PAL-N sync factor" },
+    { "-power50", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "MachinePowerFrequency", (void *)50,
+      NULL, "Use 50Hz Power-grid frequency" },
+    { "-power60", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "MachinePowerFrequency", (void *)60,
+      NULL, "Use 60Hz Power-grid frequency" },
     { "-scpu64", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "SCPU64Name", NULL,
       "<Name>", "Specify name of SCPU64 ROM image" },

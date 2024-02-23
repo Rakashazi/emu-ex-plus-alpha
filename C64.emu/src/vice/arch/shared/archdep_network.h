@@ -26,7 +26,7 @@
 #define VICE_ARCHDEP_NETWORK_H
 
 /* Networking. (in src/socketdrv) */
-extern int archdep_network_init(void);
-extern void archdep_network_shutdown(void);
+int archdep_network_init(void);
+void archdep_network_shutdown(void);
 
 #endif

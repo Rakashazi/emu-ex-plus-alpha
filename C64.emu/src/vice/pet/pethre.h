@@ -36,22 +36,22 @@ extern int pethre_enabled;
 
 struct snapshot_s;
 
-extern int pethre_init_resources(void);
-extern int pethre_init_cmdline_options(void);
-extern int pethre_resources_init(void);
-extern void pethre_resources_shutdown(void);
-extern int pethre_cmdline_options_init(void);
+int pethre_init_resources(void);
+int pethre_init_cmdline_options(void);
+int pethre_resources_init(void);
+void pethre_resources_shutdown(void);
+int pethre_cmdline_options_init(void);
 
-extern void pethre_init(void);
-extern void pethre_reset(void);
-extern void pethre_shutdown(void);
-extern int e888_dump(void);
+void pethre_init(void);
+void pethre_reset(void);
+void pethre_shutdown(void);
+int e888_dump(void);
 
-extern int pethre_snapshot_read_module(struct snapshot_s *);
-extern int pethre_snapshot_write_module(struct snapshot_s *);
+int pethre_snapshot_read_module(struct snapshot_s *);
+int pethre_snapshot_write_module(struct snapshot_s *);
 
-extern void crtc_store_hre(uint16_t addr, uint8_t value);
+void crtc_store_hre(uint16_t addr, uint8_t value);
 
-extern void pethre_powerup(void);
+void pethre_powerup(void);
 
 #endif

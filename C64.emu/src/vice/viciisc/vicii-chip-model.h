@@ -27,7 +27,7 @@
 #ifndef VICE_VICII_CHIP_MODEL_H
 #define VICE_VICII_CHIP_MODEL_H
 
-extern void vicii_chip_model_init(void);
+void vicii_chip_model_init(void);
 
 
 /*

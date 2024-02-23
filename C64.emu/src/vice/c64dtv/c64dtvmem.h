@@ -31,28 +31,28 @@
 
 #include "types.h"
 
-extern int c64dtvmem_resources_init(void);
-extern void c64dtvmem_resources_shutdown(void);
-extern int c64dtvmem_cmdline_options_init(void);
-extern void c64dtv_init(void);
-extern void c64dtvmem_init_config(void);
-extern void c64dtvmem_reset(void);
-extern void c64dtvmem_shutdown(void);
-/* extern void c64dtv_dma_irq_init(void); */
+int c64dtvmem_resources_init(void);
+void c64dtvmem_resources_shutdown(void);
+int c64dtvmem_cmdline_options_init(void);
+void c64dtv_init(void);
+void c64dtvmem_init_config(void);
+void c64dtvmem_reset(void);
+void c64dtvmem_shutdown(void);
+/* void c64dtv_dma_irq_init(void); */
 
-extern uint8_t c64dtv_mapper_read(uint16_t addr);
-extern void c64dtv_mapper_store(uint16_t addr, uint8_t value);
+uint8_t c64dtv_mapper_read(uint16_t addr);
+void c64dtv_mapper_store(uint16_t addr, uint8_t value);
 
-extern uint8_t c64dtv_palette_read(uint16_t addr);
-extern void c64dtv_palette_store(uint16_t addr, uint8_t value);
+uint8_t c64dtv_palette_read(uint16_t addr);
+void c64dtv_palette_store(uint16_t addr, uint8_t value);
 
-extern uint8_t c64dtv_dmablit_read(uint16_t addr);
-extern void c64dtv_dmablit_store(uint16_t addr, uint8_t value);
+uint8_t c64dtv_dmablit_read(uint16_t addr);
+void c64dtv_dmablit_store(uint16_t addr, uint8_t value);
 
-extern uint8_t c64io1_read(uint16_t addr);
-extern void c64io1_store(uint16_t addr, uint8_t value);
-extern uint8_t c64io2_read(uint16_t addr);
-extern void c64io2_store(uint16_t addr, uint8_t value);
+uint8_t c64io1_read(uint16_t addr);
+void c64io1_store(uint16_t addr, uint8_t value);
+uint8_t c64io2_read(uint16_t addr);
+void c64io2_store(uint16_t addr, uint8_t value);
 
 extern uint8_t c64dtvmem_memmapper[0x2];
 

@@ -44,6 +44,11 @@
  * (cmd has relative, absolute or no path component)
  * The returned path will always contain at least one '/'. (if not NULL).
  * Overflow testing for internal buffer is always done.
+ *
+ * cmd      - filename or command we are looking for in the resulting path
+ * syspath  - list of search path(es), separated by target specific separator
+ * subpath  - path tail component, will be appended to the resulting path
+ *
  */
 
 char *findpath(const char *cmd, const char *syspath, const char *subpath, int mode)
@@ -53,6 +58,9 @@ char *findpath(const char *cmd, const char *syspath, const char *subpath, int mo
     char *c;
 
     buf[0] = '\0'; /* this will (and needs to) stay '\0' */
+
+    /* printf("findpath: cmd:'%s' syspath:'%s' subpath:'%s' mode:%d\n",
+           cmd, syspath, subpath, mode); */
 
     if (strchr(cmd, ARCHDEP_DIR_SEP_CHR)) {
         size_t l;
@@ -174,6 +182,7 @@ char *findpath(const char *cmd, const char *syspath, const char *subpath, int mo
 
             memcpy(p, cmd, cl);
 
+            /* change dir separator to the native one */
             for (c = buf + 1; *c != '\0'; c++) {
 #if (ARCHDEP_DIR_SEP_CHR == '\\')
                 if (*c == '/') {
@@ -190,6 +199,7 @@ char *findpath(const char *cmd, const char *syspath, const char *subpath, int mo
 #endif
             }
             if (archdep_access(buf + 1, mode) == 0) {
+                /* if found, remember pointer after path, abort loop */
                 pd = p /* + cl*/;
                 break;
             }

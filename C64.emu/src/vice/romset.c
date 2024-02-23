@@ -168,12 +168,13 @@ int romset_file_load(const char *filename)
                 log_error(romset_log,
                         "%s: Invalid resource specification at line %d.",
                         filename, line_num);
-                err = 1;
+                err = -1;
                 break;
             case RESERR_UNKNOWN_RESOURCE:
                 log_warning(romset_log,
                             "%s: Unknown resource specification at line %d.",
                             filename, line_num);
+                err = -1;
                 break;
         }
         line_num++;

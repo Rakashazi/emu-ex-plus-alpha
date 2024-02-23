@@ -63,10 +63,15 @@ static sound_dac_t userport_dac_dac;
 
 /* Some prototypes are needed */
 static int userport_dac_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec);
-static int userport_dac_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, CLOCK *delta_t);
 static void userport_dac_sound_machine_store(sound_t *psid, uint16_t addr, uint8_t val);
 static uint8_t userport_dac_sound_machine_read(sound_t *psid, uint16_t addr);
 static void userport_dac_sound_reset(sound_t *psid, CLOCK cpu_clk);
+
+#ifdef SOUND_SYSTEM_FLOAT
+static int userport_dac_sound_machine_calculate_samples(sound_t **psid, float *pbuf, int nr, int sound_chip_channels, CLOCK *delta_t);
+#else
+static int userport_dac_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, CLOCK *delta_t);
+#endif
 
 static int userport_dac_sound_machine_cycle_based(void)
 {
@@ -77,6 +82,16 @@ static int userport_dac_sound_machine_channels(void)
 {
     return 1;
 }
+
+#ifdef SOUND_SYSTEM_FLOAT
+/* stereo mixing placement of the Userport DAC device sound */
+static sound_chip_mixing_spec_t userport_dac_sound_mixing_spec[SOUND_CHIP_CHANNELS_MAX] = {
+    {
+        100, /* left channel volume % in case of stereo output, default output to both */
+        100  /* right channel volume % in case of stereo output, default output to both */
+    }
+};
+#endif
 
 /* Userport DAC device sound chip */
 static sound_chip_t userport_dac_sound_chip = {
@@ -89,6 +104,9 @@ static sound_chip_t userport_dac_sound_chip = {
     userport_dac_sound_reset,                     /* sound chip reset function */
     userport_dac_sound_machine_cycle_based,       /* sound chip 'is_cycle_based()' function, chip is NOT cycle based */
     userport_dac_sound_machine_channels,          /* sound chip 'get_amount_of_channels()' function, sound chip has 1 channel */
+#ifdef SOUND_SYSTEM_FLOAT
+    userport_dac_sound_mixing_spec,               /* stereo mixing placement specs */
+#endif
     0                                             /* sound chip enabled flag, toggled upon device (de-)activation */
 };
 
@@ -163,11 +181,18 @@ struct userport_dac_sound_s {
 
 static struct userport_dac_sound_s snd;
 
+#ifdef SOUND_SYSTEM_FLOAT
+/* FIXME */
+static int userport_dac_sound_machine_calculate_samples(sound_t **psid, float *pbuf, int nr, int scc, CLOCK *delta_t)
+{
+    return sound_dac_calculate_samples(&userport_dac_dac, pbuf, (int)snd.voice0 * 128, nr);
+}
+#else
 static int userport_dac_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int soc, int scc, CLOCK *delta_t)
 {
-    /* FIXME: make clear what is going on here */
-    return sound_dac_calculate_samples(&userport_dac_dac, pbuf, (int)snd.voice0 * 128, nr, soc, (soc > 1) ? 3 : 1);
+    return sound_dac_calculate_samples(&userport_dac_dac, pbuf, (int)snd.voice0 * 128, nr, soc, (soc == SOUND_OUTPUT_STEREO) ? SOUND_CHANNELS_1_AND_2 : SOUND_CHANNEL_1);
 }
+#endif
 
 static int userport_dac_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec)
 {

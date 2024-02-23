@@ -118,12 +118,12 @@ static int mem_write_ram_snapshot_module(snapshot_t *s)
     int kbdindex;
     int i;
 
-    memsize = petres.ramSize;
+    memsize = petres.model.ramSize;
     if (memsize > 32) {
         memsize = 32;
     }
 
-    if (!petres.crtc) {
+    if (!petres.model.crtc) {
         config = 0;
     } else {
         config = petres.videoSize == 0x400 ? 1 : 2;
@@ -132,12 +132,13 @@ static int mem_write_ram_snapshot_module(snapshot_t *s)
     if (petres.map) {
         config = petres.map + 3;
     } else {
-        if (petres.superpet) {
+        if (petres.model.superpet) {
             config = 3;
         }
     }
 
-    rconf = (petres.ramsel9 ? 0x40 : 0) | (petres.ramselA ? 0x80 : 0);
+    rconf = (petres.ramsel9 ? 0x40 : 0) |
+            (petres.ramselA ? 0x80 : 0);
 
     conf8x96 = petmem_map_reg;
 
@@ -176,8 +177,8 @@ static int mem_write_ram_snapshot_module(snapshot_t *s)
     /* V1.1 */
     SMW_B(m, (uint8_t)(kbdindex & 1));
     /* V1.2 */
-    SMW_B(m, (uint8_t)((petres.eoiblank ? 1 : 0) |
-                       (petres.screenmirrors2001 ? 2 : 0)));
+    SMW_B(m, (uint8_t)((petres.model.eoiblank ? 1 : 0) |
+                       (petres.model.screenmirrors2001 ? 2 : 0)));
     /* V1.3 */
     SMW_W(m, (uint16_t)petres.superpet_cpu_switch);
     SMW_B(m, (uint8_t)dongle6702.val);
@@ -229,7 +230,7 @@ static int mem_read_ram_snapshot_module(snapshot_t *s)
         return -1;
     }
 
-    old6809mode = petres.superpet &&
+    old6809mode = petres.model.superpet &&
                   petres.superpet_cpu_switch == SUPERPET_CPU_6809;
 
     SMR_B(m, &config);
@@ -276,10 +277,10 @@ static int mem_read_ram_snapshot_module(snapshot_t *s)
             break;
     }
 
-    peti.ramsel9 = (rconf & 0x40) ? 1 : 0;
-    peti.ramselA = (rconf & 0x80) ? 1 : 0;
-
     petmem_set_conf_info(&peti);  /* set resources and config accordingly */
+
+    petres.ramsel9 = (rconf & 0x40) ? 1 : 0;
+    petres.ramselA = (rconf & 0x80) ? 1 : 0;
     petmem_map_reg = conf8x96;
 
     mem_initialize_memory();
@@ -338,12 +339,12 @@ static int mem_read_ram_snapshot_module(snapshot_t *s)
          * she may need to reset (to get to the correct CPU),
          * then reload the dump again.
          */
-        new6809mode = petres.superpet &&
+        new6809mode = petres.model.superpet &&
                       petres.superpet_cpu_switch == SUPERPET_CPU_6809;
         if (new6809mode != old6809mode) {
             log_error(pet_snapshot_log,
                       "Snapshot for different CPU. Re-load the snapshot.");
-            machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+            machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
             return -1;
         }
         /* set banked or flat memory mapping */
@@ -440,8 +441,8 @@ static int mem_write_rom_snapshot_module(snapshot_t *s, int save_roms)
     config = (petrom_9_loaded ? 1 : 0)
              | (petrom_A_loaded ? 2 : 0)
              | (petrom_B_loaded ? 4 : 0)
-             | ((petres.ramSize == 128) ? 8 : 0)
-             | (petres.superpet ? 16 : 0);
+             | ((petres.model.ramSize == 128) ? 8 : 0)
+             | (petres.model.superpet ? 16 : 0);
 
     SMW_B(m, config);
 
@@ -522,7 +523,7 @@ static int mem_read_rom_snapshot_module(snapshot_t *s)
     config = (petrom_9_loaded ? 1 : 0)
              | (petrom_A_loaded ? 2 : 0)
              | (petrom_B_loaded ? 4 : 0)
-             | ((petres.pet2k || petres.ramSize == 128) ? 8 : 0);
+             | ((petres.model.pet2k || petres.model.ramSize == 128) ? 8 : 0);
 
     SMR_B(m, &config);
 
@@ -542,8 +543,8 @@ static int mem_read_rom_snapshot_module(snapshot_t *s)
     } else {
         new_iosize = 0x800;
     }
-    if (new_iosize != petres.IOSize) {
-        petres.IOSize = new_iosize;
+    if (new_iosize != petres.model.IOSize) {
+        petres.model.IOSize = new_iosize;
         mem_initialize_memory();
     }
 

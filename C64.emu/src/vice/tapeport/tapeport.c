@@ -42,6 +42,9 @@
 #include "snapshot.h"
 #include "tapecart.h"
 #include "tapeport.h"
+#ifdef TAPEPORT_EXPERIMENTAL_DEVICES
+#include "tape_diag_586220_harness.h"
+#endif
 #include "uiapi.h"
 #include "util.h"
 
@@ -347,9 +350,11 @@ static int tapeport_device_resources_init(int amount)
 
     /* Only use tapecart device and dtl basic dongle on c64/c128 */
     if (machine_class == VICE_MACHINE_C64 || machine_class == VICE_MACHINE_C128 || machine_class == VICE_MACHINE_C64SC) {
+#ifdef TAPEPORT_EXPERIMENTAL_DEVICES
         if (dtlbasic_dongle_resources_init(amount) < 0) {
             return -1;
         }
+#endif
 
         if (tapecart_resources_init(amount) < 0) {
             return -1;
@@ -434,7 +439,7 @@ static int is_a_number(const char *str)
     size_t len = strlen(str);
 
     for (i = 0; i < len; i++) {
-        if (!isdigit(str[i])) {
+        if (!isdigit((unsigned char)str[i])) {
             return 0;
         }
     }
@@ -494,16 +499,20 @@ static char *build_tapeport_string(int port)
 
 static cmdline_option_t cmdline_options_port1[] =
 {
+    /* NOTE: although we use CALL_FUNCTION, we put the resource that will be
+             modified into the array - this helps reconstructing the cmdline */
     { "-tapeport1device", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS | CMDLINE_ATTRIB_DYNAMIC_DESCRIPTION,
-      set_tapeport_cmdline_device, (void *)TAPEPORT_PORT_1, NULL, NULL,
+      set_tapeport_cmdline_device, (void *)TAPEPORT_PORT_1, "TapePort1Device", NULL,
       "Device", NULL },
     CMDLINE_LIST_END
 };
 
 static cmdline_option_t cmdline_options_port2[] =
 {
+    /* NOTE: although we use CALL_FUNCTION, we put the resource that will be
+             modified into the array - this helps reconstructing the cmdline */
     { "-tapeport2device", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS | CMDLINE_ATTRIB_DYNAMIC_DESCRIPTION,
-      set_tapeport_cmdline_device, (void *)TAPEPORT_PORT_2, NULL, NULL,
+      set_tapeport_cmdline_device, (void *)TAPEPORT_PORT_2, "TapePort2Device", NULL,
       "Device", NULL },
     CMDLINE_LIST_END
 };
@@ -554,6 +563,11 @@ void tapeport_enable(int val)
     tapeport_active = val ? 1 : 0;
 }
 
+int tapeport_get_active_state(void)
+{
+    return tapeport_active;
+}
+
 /* ---------------------------------------------------------------------------------------------------------- */
 
 /* TAPEPORT snapshot module format:
@@ -575,7 +589,7 @@ int tapeport_snapshot_write_module(snapshot_t *s, int write_image)
     int i;
 
     m = snapshot_module_create(s, snap_module_name, DUMP_VER_MAJOR, DUMP_VER_MINOR);
- 
+
     if (m == NULL) {
         return -1;
     }

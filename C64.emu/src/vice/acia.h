@@ -127,6 +127,15 @@ enum {
                                  and enhanced baud rate register */
 #define ACIA_MODE_LOWEST ACIA_MODE_NORMAL
 
+#define ACIA_DEVICE_1   0
+#define ACIA_DEVICE_2   1
+#define ACIA_DEVICE_3   2
+#define ACIA_DEVICE_4   3
+
+#define ACIA_INT_NONE   0
+#define ACIA_INT_NMI    1
+#define ACIA_INT_IRQ    2
+
 int acia_dump(void);
 
 #endif

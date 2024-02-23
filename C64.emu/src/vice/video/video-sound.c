@@ -77,6 +77,42 @@ typedef struct {
 } videosound_t;
 static videosound_t chip[2];
 
+#ifdef SOUND_SYSTEM_FLOAT
+/* FIXME */
+static int video_sound_machine_calculate_samples(sound_t **psid, float *pbuf, int nr, int scc, CLOCK *delta_t)
+{
+    int i, num;
+    float smpval1, smpval2;
+
+    /* DBG(("video_sound_machine_calculate_samples")); */
+
+    for (i = 0; i < nr; i++) {
+        for (num = 0; num < numchips; num++) {
+            smpval1 = (((float)(*chip[num].sampleptr) * chip[num].avglum * NOISE_VOLUME) / (1 << 16)) / 32767.0;
+            smpval2 = (((*chip[num].lumaptr) * LUMALINES_VOLUME) / (1 << 16)) / 32767.0;
+            pbuf[i] = smpval1 + smpval2;
+
+            chip[num].div1 += NOISE_RATE;
+            while (chip[num].div1 >= sample_rate) {
+                chip[num].div1 -= sample_rate;
+                chip[num].sampleptr++;
+                if (chip[num].sampleptr == &noise_sample[sizeof(noise_sample)]) {
+                    chip[num].sampleptr = noise_sample;
+                }
+            }
+            chip[num].div2 += LUMALINES_RATE;
+            while (chip[num].div2 >= sample_rate) {
+                chip[num].div2 -= sample_rate;
+                chip[num].lumaptr++;
+                if (chip[num].lumaptr == &chip[num].lumas[chip[num].lastline + 1]) {
+                    chip[num].lumaptr = &chip[num].lumas[chip[num].firstline];
+                }
+            }
+        }
+    }
+    return nr;
+}
+#else
 static int video_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int soc, int scc, CLOCK *delta_t)
 {
     int i, num;
@@ -90,12 +126,12 @@ static int video_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, 
             smpval2 = (int)((*chip[num].lumaptr) * LUMALINES_VOLUME) / (1 << 16);
             switch (soc) {
                 default:
-                case 1:
+                case SOUND_OUTPUT_MONO:
                     pbuf[i] = sound_audio_mix(pbuf[i], smpval1 + smpval2);
                     break;
-                case 2:
-                    pbuf[i * 2] = sound_audio_mix(pbuf[i * 2], smpval1 + smpval2);
-                    pbuf[i * 2 + 1] = sound_audio_mix(pbuf[i * 2 + 1], smpval1 + smpval2);
+                case SOUND_OUTPUT_STEREO:
+                    pbuf[i * soc] = sound_audio_mix(pbuf[i * 2], smpval1 + smpval2);
+                    pbuf[(i * soc) + 1] = sound_audio_mix(pbuf[(i * soc) + 1], smpval1 + smpval2);
                     break;
             }
 
@@ -119,6 +155,7 @@ static int video_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, 
     }
     return nr;
 }
+#endif
 
 static int video_sound_machine_init(sound_t *psid, int speed, int cycles)
 {
@@ -137,6 +174,16 @@ static int video_sound_machine_channels(void)
     return 1;
 }
 
+#ifdef SOUND_SYSTEM_FLOAT
+/* stereo mixing placement of the Video sound interference 'device' sound */
+static sound_chip_mixing_spec_t video_sound_mixing_spec[SOUND_CHIP_CHANNELS_MAX] = {
+    {
+        100, /* left channel volume % in case of stereo output, default output to both */
+        100  /* right channel volume % in case of stereo output, default output to both */
+    }
+};
+#endif
+
 /* Video sound interference 'device' */
 static sound_chip_t video_sound = {
     NULL,                                  /* NO sound chip open function */
@@ -148,6 +195,9 @@ static sound_chip_t video_sound = {
     NULL,                                  /* NO sound chip reset function */
     video_sound_machine_cycle_based,       /* sound chip 'is_cycle_based()' function, chip is NOT cycle based */
     video_sound_machine_channels,          /* sound chip 'get_amount_of_channels()' function, sound chip has 1 channel */
+#ifdef SOUND_SYSTEM_FLOAT
+    video_sound_mixing_spec,               /* stereo mixing placement specs */
+#endif
     0                                      /* sound chip enabled flag, toggled upon device (de-)activation */
 };
 

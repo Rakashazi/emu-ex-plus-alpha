@@ -30,16 +30,18 @@
 
 #include "types.h"
 
-extern void vicii_store(uint16_t addr, uint8_t value);
-extern void vicii_poke(uint16_t addr, uint8_t value);
-extern uint8_t vicii_read(uint16_t addr);
-extern uint8_t vicii_peek(uint16_t addr);
-extern void vicii_mem_vbank_store(uint16_t addr, uint8_t value);
-extern void vicii_mem_vbank_39xx_store(uint16_t addr, uint8_t value);
-extern void vicii_mem_vbank_3fxx_store(uint16_t addr, uint8_t value);
-extern void vicii_palette_store(uint16_t addr, uint8_t value);
-extern uint8_t vicii_palette_read(uint16_t addr);
-extern int vicii_extended_regs(void);
-extern void viciidtv_update_colorram(void);
+void vicii_store(uint16_t addr, uint8_t value);
+void vicii_poke(uint16_t addr, uint8_t value);
+uint8_t vicii_read(uint16_t addr);
+uint8_t vicii_peek(uint16_t addr);
+void vicii_mem_vbank_store(uint16_t addr, uint8_t value);
+void vicii_mem_vbank_39xx_store(uint16_t addr, uint8_t value);
+void vicii_mem_vbank_3fxx_store(uint16_t addr, uint8_t value);
+void vicii_palette_store(uint16_t addr, uint8_t value);
+uint8_t vicii_palette_read(uint16_t addr);
+int vicii_extended_regs(void);
+void viciidtv_update_colorram(void);
+
+void vicii_init_colorram(uint8_t *colorram);
 
 #endif

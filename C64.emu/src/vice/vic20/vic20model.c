@@ -129,6 +129,19 @@ void vic20model_set(int model)
     }
 
     resources_set_int("MachineVideoStandard", vic20models[model].video);
+#if 0
+    /* Determine the power net frequency for this model. */
+    switch(vic20models[model].video) {
+        case MACHINE_SYNC_PAL:
+        case MACHINE_SYNC_PALN:
+            pf = 50;
+            break;
+        default:
+            pf = 60;
+            break;
+    }
+    resources_set_int("MachinePowerFrequency", pf);
+#endif
     blocks = vic20models[model].ramblocks;
     resources_set_int("RamBlock0", blocks & BLOCK_0 ? 1 : 0);
     resources_set_int("RamBlock1", blocks & BLOCK_1 ? 1 : 0);

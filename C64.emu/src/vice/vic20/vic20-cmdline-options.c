@@ -49,7 +49,9 @@ struct model_s {
 static struct model_s model_match[] = {
     { "vic20", VIC20MODEL_VIC20_PAL },
     { "vic20pal", VIC20MODEL_VIC20_PAL },
+    { "pal", VIC20MODEL_VIC20_PAL },
     { "vic20ntsc", VIC20MODEL_VIC20_NTSC },
+    { "ntsc", VIC20MODEL_VIC20_NTSC },
     { "vic21", VIC20MODEL_VIC21 },
     { "vic1001", VIC20MODEL_VIC1001 },
     { NULL, VIC20MODEL_UNKNOWN }
@@ -213,6 +215,14 @@ static cmdline_option_t const cmdline_options[] =
     { "-ntsc", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "MachineVideoStandard", (resource_value_t)MACHINE_SYNC_NTSC,
       NULL, "Use NTSC sync factor" },
+#if 0
+    { "-power50", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "MachinePowerFrequency", (void *)50,
+      NULL, "Use 50Hz Power-grid frequency" },
+    { "-power60", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "MachinePowerFrequency", (void *)60,
+      NULL, "Use 60Hz Power-grid frequency" },
+#endif
     { "-kernal", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "KernalName", NULL,
       "<Name>", "Specify name of Kernal ROM image" },

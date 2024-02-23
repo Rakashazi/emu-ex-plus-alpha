@@ -114,16 +114,21 @@ typedef struct cia_context_s {
     struct alarm_s *tod_alarm;
     struct alarm_s *idle_alarm;
     struct alarm_s *sdr_alarm;
-    int irqflags;
+    unsigned int irqflags;      /* more than 8 bits used! */
+    unsigned int ack_irqflags;  /* only 8 bits used */
+    unsigned int new_irqflags;  /* only 8 bits used */
     uint8_t irq_enabled;
-    CLOCK rdi;
+    CLOCK rdi;                  /* last time ICR was read */
+    CLOCK ifr_clock;            /* clock for last action on ifr_delay */
+    uint32_t ifr_delay;
     unsigned int tat;
     unsigned int tbt;
     CLOCK todclk;
     unsigned int sr_bits;
-    bool sdr_off;
+    bool sdr_force_finish;
     bool sdr_valid;
     uint16_t shifter;
+    uint32_t sdr_delay;           /* delayed actions re. shift register */
     uint8_t old_pa;
     uint8_t old_pb;
 
@@ -131,7 +136,7 @@ typedef struct cia_context_s {
     char todlatched;
     uint8_t todalarm[4];
     uint8_t todlatch[4];
-    CLOCK todticks;                 /* init to 100000 */
+    CLOCK todticks;               /* init to 100000 */
     uint8_t todtickcounter;
 
     int power_freq;
@@ -145,10 +150,10 @@ typedef struct cia_context_s {
     struct ciat_s *tb;
     CLOCK read_clk;               /* init to 0 */
     int read_offset;              /* init to 0 */
-    uint8_t last_read;               /* init to 0 */
+    uint8_t last_read;            /* init to 0 */
     int debugFlag;                /* init to 0 */
 
-    int irq_line;                 /* IK_IRQ */
+    int irq_line;                 /* IK_IRQ or IK_NMI */
     unsigned int int_num;
 
     char *myname;
@@ -156,14 +161,15 @@ typedef struct cia_context_s {
     CLOCK *clk_ptr;
     int *rmw_flag;
     int write_offset;             /* 1 if CPU core does CLK++ before store */
-    int model;
+    int model;                    /* CIA_MODEL_6526 (old) or ..A (new) */
 
     bool enabled;
     bool sp_in_state;             /* state stored by ciacore_set_sp() */
     bool cnt_in_state;            /* state stored by ciacore_set_cnt() */
+    bool cnt_out_state;           /* state set by shift register output */
 
-    void *prv;
-    void *context;
+    void *prv;                    /* drivecia15{7,8}1_context_t */
+    void *context;                /* diskunit_context_t * in 15{7,8}1 */
 
     void (*undump_ciapa)(struct cia_context_s *, CLOCK, uint8_t);
     void (*undump_ciapb)(struct cia_context_s *, CLOCK, uint8_t);
@@ -185,31 +191,29 @@ typedef struct cia_context_s {
     void (*pre_peek)(void);
 } cia_context_t;
 
-extern void ciacore_setup_context(struct cia_context_s *cia_context);
-extern void ciacore_init(struct cia_context_s *cia_context,
-                         struct alarm_context_s *alarm_context,
-                         struct interrupt_cpu_status_s *int_status);
-extern void ciacore_shutdown(cia_context_t *cia_context);
-extern void ciacore_reset(struct cia_context_s *cia_context);
-extern void ciacore_disable(struct cia_context_s *cia_context);
-extern void ciacore_store(struct cia_context_s *cia_context, uint16_t addr, uint8_t data);
-extern uint8_t ciacore_read(struct cia_context_s *cia_context, uint16_t addr);
-extern uint8_t ciacore_peek(struct cia_context_s *cia_context, uint16_t addr);
+void ciacore_setup_context(struct cia_context_s *cia_context);
+void ciacore_init(struct cia_context_s *cia_context,
+                  struct alarm_context_s *alarm_context,
+                  struct interrupt_cpu_status_s *int_status);
+void ciacore_shutdown(cia_context_t *cia_context);
+void ciacore_reset(struct cia_context_s *cia_context);
+void ciacore_disable(struct cia_context_s *cia_context);
+void ciacore_store(struct cia_context_s *cia_context, uint16_t addr, uint8_t data);
+uint8_t ciacore_read(struct cia_context_s *cia_context, uint16_t addr);
+uint8_t ciacore_peek(struct cia_context_s *cia_context, uint16_t addr);
 
 /*
  * The next several functions can be called from outside the CIA
  * to set the FLAG, CNT or SP input lines, or the whole SDR at once
  * (which is cheating).
  */
-extern void ciacore_set_flag(struct cia_context_s *cia_context);
-extern void ciacore_set_sdr(struct cia_context_s *cia_context, uint8_t data);
-extern void ciacore_set_cnt(struct cia_context_s *cia_context, bool data);
-extern void ciacore_set_sp(struct cia_context_s *cia_context, bool data);
+void ciacore_set_flag(struct cia_context_s *cia_context);
+void ciacore_set_sdr(struct cia_context_s *cia_context, uint8_t data);
+void ciacore_set_cnt(struct cia_context_s *cia_context, bool data);
+void ciacore_set_sp(struct cia_context_s *cia_context, bool data);
 
-extern int ciacore_snapshot_write_module(struct cia_context_s *cia_context,
-                                         struct snapshot_s *s);
-extern int ciacore_snapshot_read_module(struct cia_context_s *cia_context,
-                                        struct snapshot_s *s);
-extern int ciacore_dump(cia_context_t *cia_context);
+int ciacore_snapshot_write_module(struct cia_context_s *cia_context, struct snapshot_s *s);
+int ciacore_snapshot_read_module(struct cia_context_s *cia_context, struct snapshot_s *s);
+int ciacore_dump(cia_context_t *cia_context);
 
 #endif

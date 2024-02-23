@@ -33,9 +33,10 @@
 #define BURST_MOD_CIA1 1
 #define BURST_MOD_CIA2 2
 
-extern void c64fastiec_init(void);
-extern void c64fastiec_fast_cpu_write(uint8_t data);
 extern int burst_mod;
-extern int set_burst_mod(int mode, void *param);
+
+void c64fastiec_init(void);
+void c64fastiec_fast_cpu_write(uint8_t data);
+int set_burst_mod(int mode, void *param);
 
 #endif

@@ -28,10 +28,10 @@
 #ifndef VICE_SCPU64_RESOURCES_H
 #define VICE_SCPU64_RESOURCES_H
 
-extern int scpu64_resources_init(void);
-extern void scpu64_resources_shutdown(void);
+int scpu64_resources_init(void);
+void scpu64_resources_shutdown(void);
 
-extern void scpu64_resources_update_cia_models(int model);
+void scpu64_resources_update_cia_models(int model);
 
 extern int acia_de_enabled;
 extern int cia1_model;

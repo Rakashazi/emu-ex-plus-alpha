@@ -31,17 +31,17 @@
 
 struct snapshot_s;
 
-extern void acia1_init(void);
-extern uint8_t acia1_read(uint16_t a);
-extern uint8_t acia1_peek(uint16_t a);
-extern void acia1_store(uint16_t a, uint8_t b);
-extern void acia1_reset(void);
-extern int acia1_dump(void);
+void acia1_init(void);
+uint8_t acia1_read(uint16_t a);
+uint8_t acia1_peek(uint16_t a);
+void acia1_store(uint16_t a, uint8_t b);
+void acia1_reset(void);
+int acia1_dump(void);
 
-extern int acia1_cmdline_options_init(void);
-extern int acia1_resources_init(void);
+int acia1_cmdline_options_init(void);
+int acia1_resources_init(void);
 
-extern int acia1_snapshot_read_module(struct snapshot_s *);
-extern int acia1_snapshot_write_module(struct snapshot_s *);
+int acia1_snapshot_read_module(struct snapshot_s *);
+int acia1_snapshot_write_module(struct snapshot_s *);
 
 #endif

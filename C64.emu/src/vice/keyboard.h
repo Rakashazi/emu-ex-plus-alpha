@@ -96,56 +96,57 @@ typedef struct {
 #define KBD_CUSTOM_4080     4
 #define KBD_CUSTOM_NUM      5
 
-extern void keyboard_init(void);
-extern void keyboard_shutdown(void);
+void keyboard_init(void);
+void keyboard_shutdown(void);
 
-extern int keyboard_resources_init(void);
-extern int keyboard_cmdline_options_init(void);
+int keyboard_resources_init(void);
+int keyboard_cmdline_options_init(void);
 
-extern int keyboard_snapshot_write_module(struct snapshot_s *s);
-extern int keyboard_snapshot_read_module(struct snapshot_s *s);
+int keyboard_snapshot_write_module(struct snapshot_s *s);
+int keyboard_snapshot_read_module(struct snapshot_s *s);
 
-extern void keyboard_set_keyarr(int row, int col, int value);
-extern void keyboard_set_keyarr_any(int row, int col, int value);
+void keyboard_set_keyarr(int row, int col, int value);
+void keyboard_set_keyarr_any(int row, int col, int value);
 
-extern void keyboard_clear_keymatrix(void);
+void keyboard_clear_keymatrix(void);
 
-extern void keyboard_event_playback(CLOCK offset, void *data);
-extern void keyboard_restore_event_playback(CLOCK offset, void *data);
-extern void keyboard_event_delayed_playback(void *data);
-extern void keyboard_register_delay(unsigned int delay);
-extern void keyboard_register_clear(void);
+void keyboard_event_playback(CLOCK offset, void *data);
+void keyboard_restore_event_playback(CLOCK offset, void *data);
+void keyboard_event_delayed_playback(void *data);
+void keyboard_register_delay(unsigned int delay);
+void keyboard_register_clear(void);
 
 /* called by the ui */
-extern void keyboard_key_pressed(signed long key, int mod);
-extern void keyboard_key_released(signed long key, int mod);
-extern void keyboard_key_clear(void);
+void keyboard_key_pressed(signed long key, int mod);
+void keyboard_key_released(signed long key, int mod);
+void keyboard_key_clear(void);
 
 /* shift/lock handling, the emulation may also call this */
-extern void keyboard_set_shiftlock(int state);
-extern int keyboard_get_shiftlock(void);
+void keyboard_set_shiftlock(int state);
+int keyboard_get_shiftlock(void);
 
 /* extra custom keys (see above) */
-extern void keyboard_register_custom_key(int id, key_custom_func_t func, char *name,
-                                         int *keysym, int *keyflags);
-extern int keyboard_custom_key_get(int id);
-extern int keyboard_custom_key_set(int id, int pressed);
-extern int keyboard_custom_key_toggle(int id);
+void keyboard_register_custom_key(int id, key_custom_func_t func, char *name, int *keysym, int *keyflags);
+int keyboard_custom_key_get(int id);
+int keyboard_custom_key_set(int id, int pressed);
+int keyboard_custom_key_toggle(int id);
 
 /* extra handler for keypad on the joystick port */
 typedef void (*key_joy_keypad_func_t)(int row, int col, int pressed);
-extern void keyboard_register_joy_keypad(key_joy_keypad_func_t func);
+void keyboard_register_joy_keypad(key_joy_keypad_func_t func);
 
 /* machine specific utility function that is called after the keyboard was latched */
 typedef void (*keyboard_machine_func_t)(int *);
-extern void keyboard_register_machine(keyboard_machine_func_t func);
+void keyboard_register_machine(keyboard_machine_func_t func);
 
 /* switch to alternative set (x128) */
-extern void keyboard_alternative_set(int alternative);
+void keyboard_alternative_set(int alternative);
 
 /* FIXME: These ugly externs should go away sooner or later.
    currently these two arrays are the interface to the emulation (eg CIA core) */
 extern int keyarr[KBD_ROWS];
 extern int rev_keyarr[KBD_COLS];
+
+int keyboard_statusbar_enabled(void);
 
 #endif

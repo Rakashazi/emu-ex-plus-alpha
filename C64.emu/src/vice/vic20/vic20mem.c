@@ -151,8 +151,6 @@ static uint8_t ram_peek(uint16_t addr)
 
 /* ------------------------------------------------------------------------- */
 
-extern int vic20_vflihack_userport;
-
 static uint8_t colorram_read(uint16_t addr)
 {
     if (vflimod_enabled) {
@@ -678,6 +676,14 @@ uint8_t mem_bank_read(int bank, uint16_t addr, void *context)
 uint8_t mem_bank_peek(int bank, uint16_t addr, void *context)
 {
     return mem_peek(addr);
+}
+
+int mem_get_current_bank_config(void) {
+    return 0;
+}
+
+uint8_t mem_peek_with_config(int config, uint16_t addr, void *context) {
+    return mem_bank_peek(0 /* current */, addr, context);
 }
 
 void mem_bank_write(int bank, uint16_t addr, uint8_t byte, void *context)

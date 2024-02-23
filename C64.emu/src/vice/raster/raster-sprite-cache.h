@@ -57,7 +57,7 @@ struct raster_sprite_cache_s {
 typedef struct raster_sprite_cache_s raster_sprite_cache_t;
 
 
-extern void raster_sprite_cache_init(raster_sprite_cache_t *sc);
-extern raster_sprite_cache_t *raster_sprite_cache_new(void);
+void raster_sprite_cache_init(raster_sprite_cache_t *sc);
+raster_sprite_cache_t *raster_sprite_cache_new(void);
 
 #endif

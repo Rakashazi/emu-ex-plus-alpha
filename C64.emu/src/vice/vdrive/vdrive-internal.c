@@ -167,8 +167,7 @@ int vdrive_internal_create_format_disk_image(const char *filename,
             return cbmimage_create_dxm_image(filename, diskname, type);
             break;
         case DISK_IMAGE_TYPE_DHD:
-            /* no creation method this this type yet */
-            return -1;
+            return cbmimage_create_dhd_image(filename, diskname, type);
         default:
             if (cbmimage_create_image(filename, type) < 0) {
                 return -1;

@@ -28,15 +28,15 @@
 #ifndef VICE_CBM2ROM_H
 #define VICE_CBM2ROM_H
 
-extern int cbm2rom_load_chargen(const char *rom_name);
-extern int cbm2rom_load_kernal(const char *rom_name);
-extern int cbm2rom_load_basic(const char *rom_name);
-extern int cbm2rom_load_cart_1(const char *rom_name);
-extern int cbm2rom_load_cart_2(const char *rom_name);
-extern int cbm2rom_load_cart_4(const char *rom_name);
-extern int cbm2rom_load_cart_6(const char *rom_name);
+int cbm2rom_load_chargen(const char *rom_name);
+int cbm2rom_load_kernal(const char *rom_name);
+int cbm2rom_load_basic(const char *rom_name);
+int cbm2rom_load_cart_1(const char *rom_name);
+int cbm2rom_load_cart_2(const char *rom_name);
+int cbm2rom_load_cart_4(const char *rom_name);
+int cbm2rom_load_cart_6(const char *rom_name);
 
-extern int cbm2rom_checksum(void);
+int cbm2rom_checksum(void);
 
 #define CBM2_CHARGEN500_NAME "chargen-901225-01.bin"
 #define CBM2_CHARGEN600_NAME "chargen-901237-01.bin"

@@ -31,15 +31,15 @@
 
 #include "types.h"
 
-extern void mikroass_config_init(void);
-extern void mikroass_config_setup(uint8_t *rawcart);
-extern int mikroass_bin_attach(const char *filename, uint8_t *rawcart);
-extern int mikroass_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void mikroass_detach(void);
+void mikroass_config_init(void);
+void mikroass_config_setup(uint8_t *rawcart);
+int mikroass_bin_attach(const char *filename, uint8_t *rawcart);
+int mikroass_crt_attach(FILE *fd, uint8_t *rawcart);
+void mikroass_detach(void);
 
 struct snapshot_s;
 
-extern int mikroass_snapshot_write_module(struct snapshot_s *s);
-extern int mikroass_snapshot_read_module(struct snapshot_s *s);
+int mikroass_snapshot_write_module(struct snapshot_s *s);
+int mikroass_snapshot_read_module(struct snapshot_s *s);
 
 #endif

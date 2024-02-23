@@ -32,10 +32,10 @@
 struct machine_context_s;
 struct via_context_s;
 
-extern void petvia_setup_context(struct machine_context_s *machine_context);
-extern void via_init(struct via_context_s *via_context);
-extern uint8_t via_read(uint16_t addr);
-extern uint8_t via_peek(uint16_t addr);
-extern void via_store(uint16_t addr, uint8_t value);
+void petvia_setup_context(struct machine_context_s *machine_context);
+void via_init(struct via_context_s *via_context);
+uint8_t via_read(uint16_t addr);
+uint8_t via_peek(uint16_t addr);
+void via_store(uint16_t addr, uint8_t value);
 
 #endif

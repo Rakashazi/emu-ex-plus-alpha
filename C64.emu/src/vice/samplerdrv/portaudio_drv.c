@@ -66,8 +66,8 @@ static void portaudio_start_stream(void)
         inputParameters.sampleFormat = paInt16;
         inputParameters.suggestedLatency = Pa_GetDeviceInfo( inputParameters.device )->defaultHighInputLatency ;
         inputParameters.hostApiSpecificStreamInfo = NULL;
-        sound_cycles_per_frame = machine_get_cycles_per_frame();
-        sound_frames_per_sec = machine_get_cycles_per_second() / sound_cycles_per_frame;
+        sound_cycles_per_frame = (unsigned int)machine_get_cycles_per_frame();
+        sound_frames_per_sec = (unsigned int)(machine_get_cycles_per_second() / sound_cycles_per_frame);
         sound_samples_per_frame = 44100 / sound_frames_per_sec;
         err = Pa_OpenStream(&stream, &inputParameters, NULL, 44100, sound_samples_per_frame, paClipOff, NULL, NULL);
         if (err == paNoError) {
@@ -76,7 +76,7 @@ static void portaudio_start_stream(void)
                 stream_started = 1;
                 stream_buffer = lib_malloc(sound_samples_per_frame * 2 * current_channels);
                 memset(stream_buffer, 0, sound_samples_per_frame * 2 * current_channels);
-                old_frame = (maincpu_clk / sound_cycles_per_frame) + 1;
+                old_frame = (unsigned int)((maincpu_clk / sound_cycles_per_frame) + 1);
             } else {
                 log_error(portaudio_log, "Could not start stream");
             }
@@ -135,7 +135,7 @@ static uint8_t portaudio_get_sample(int channel)
     if (!stream_buffer) {
         return 0x80;
     }
-    current_frame = maincpu_clk / sound_cycles_per_frame;
+    current_frame = (unsigned int)(maincpu_clk / sound_cycles_per_frame);
     current_cycle = maincpu_clk % sound_cycles_per_frame;
 
     if (current_frame > old_frame) {

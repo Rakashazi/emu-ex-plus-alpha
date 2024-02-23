@@ -27,6 +27,6 @@
 #ifndef VICE_VIC20_CMDLINE_OPTIONS_H
 #define VICE_VIC20_CMDLINE_OPTIONS_H
 
-extern int vic20_cmdline_options_init(void);
+int vic20_cmdline_options_init(void);
 
 #endif

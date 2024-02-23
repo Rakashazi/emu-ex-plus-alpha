@@ -31,15 +31,15 @@
 
 #include "types.h"
 
-extern void simon_config_setup(uint8_t *rawcart);
-extern int simon_bin_attach(const char *filename, uint8_t *rawcart);
-extern int simon_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void simon_detach(void);
-extern void simon_config_init(void);
+void simon_config_setup(uint8_t *rawcart);
+int simon_bin_attach(const char *filename, uint8_t *rawcart);
+int simon_crt_attach(FILE *fd, uint8_t *rawcart);
+void simon_detach(void);
+void simon_config_init(void);
 
 struct snapshot_s;
 
-extern int simon_snapshot_write_module(struct snapshot_s *s);
-extern int simon_snapshot_read_module(struct snapshot_s *s);
+int simon_snapshot_write_module(struct snapshot_s *s);
+int simon_snapshot_read_module(struct snapshot_s *s);
 
 #endif

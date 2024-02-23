@@ -28,8 +28,8 @@
 #ifndef VICE_SCPU64UI_H
 #define VICE_SCPU64UI_H
 
-extern int scpu64ui_init_early(void);
-extern int scpu64ui_init(void);
-extern void scpu64ui_shutdown(void);
+int scpu64ui_init_early(void);
+int scpu64ui_init(void);
+void scpu64ui_shutdown(void);
 
 #endif

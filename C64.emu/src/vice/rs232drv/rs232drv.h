@@ -29,16 +29,16 @@
 
 #include "types.h"
 
-extern int rs232drv_resources_init(void);
-extern void rs232drv_resources_shutdown(void);
-extern int rs232drv_cmdline_options_init(void);
+int rs232drv_resources_init(void);
+void rs232drv_resources_shutdown(void);
+int rs232drv_cmdline_options_init(void);
 
-extern void rs232drv_init(void);
-extern void rs232drv_reset(void);
-extern int rs232drv_open(int device);
-extern void rs232drv_close(int fd);
-extern int rs232drv_putc(int fd, uint8_t b);
-extern int rs232drv_getc(int fd, uint8_t *b);
+void rs232drv_init(void);
+void rs232drv_reset(void);
+int rs232drv_open(int device);
+void rs232drv_close(int fd);
+int rs232drv_putc(int fd, uint8_t b);
+int rs232drv_getc(int fd, uint8_t *b);
 
 enum rs232handshake_out {
     RS232_HSO_RTS = 0x01,
@@ -53,11 +53,11 @@ enum rs232handshake_in {
 };
 
 /* write the output handshake lines */
-extern int rs232drv_set_status(int fd, enum rs232handshake_out status);
+int rs232drv_set_status(int fd, enum rs232handshake_out status);
 
 /* write the output handshake lines */
-extern enum rs232handshake_in rs232drv_get_status(int fd);
+enum rs232handshake_in rs232drv_get_status(int fd);
 
-extern void rs232drv_set_bps(int fd, unsigned int bps);
+void rs232drv_set_bps(int fd, unsigned int bps);
 
 #endif

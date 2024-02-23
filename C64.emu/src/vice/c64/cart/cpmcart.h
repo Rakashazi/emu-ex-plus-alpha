@@ -39,26 +39,26 @@ extern struct z80_regs_s z80_regs;
 struct interrupt_cpu_status_s;
 struct alarm_context_s;
 
-extern void cpmcart_reset(void);
-extern int cpmcart_resources_init(void);
-extern int cpmcart_cmdline_options_init(void);
-extern int cpmcart_cart_enabled(void);
+void cpmcart_reset(void);
+int cpmcart_resources_init(void);
+int cpmcart_cmdline_options_init(void);
+int cpmcart_cart_enabled(void);
 
 #ifdef Z80_4MHZ
-extern void cpmcart_clock_stretch(void);
+void cpmcart_clock_stretch(void);
 #endif
 
-extern void cpmcart_check_and_run_z80(void);
+void cpmcart_check_and_run_z80(void);
 
 typedef int cpmcart_ba_check_callback_t (void);
 typedef void cpmcart_ba_steal_callback_t (void);
 
-extern void cpmcart_ba_register(cpmcart_ba_check_callback_t *ba_check,
+void cpmcart_ba_register(cpmcart_ba_check_callback_t *ba_check,
                                 cpmcart_ba_steal_callback_t *ba_steal,
                                 int *ba_var, int ba_mask);
 
 
-extern int cpmcart_snapshot_write_module(snapshot_t *s);
-extern int cpmcart_snapshot_read_module(snapshot_t *s);
+int cpmcart_snapshot_write_module(snapshot_t *s);
+int cpmcart_snapshot_read_module(snapshot_t *s);
 
 #endif

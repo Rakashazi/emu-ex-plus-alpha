@@ -127,7 +127,7 @@ static void cia1_internal_lightpen_check(uint8_t pa, uint8_t pb)
     uint8_t m;
     int i;
 
-    for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
+    for (m = 0x1, i = 0; i < 8; m = (uint8_t)(m << 1), i++) {
         if (!(msk & m)) {
             val &= ~keyarr[i];
         }

@@ -26,6 +26,7 @@
  */
 
 #include "vice.h"
+#include <stdbool.h>
 
 #include "c64.h"
 #include "c64-midi.h"
@@ -46,7 +47,9 @@
 #include "drive.h"
 #include "drive-check.h"
 #include "driveimage.h"
+#include "driver-select.h"
 #include "drivetypes.h"
+#include "ds1602.h"
 #include "fileio.h"
 #include "fsdevice.h"
 #include "fsdevice-filename.h"
@@ -59,6 +62,7 @@
 #include "machine-bus.h"
 #include "machine-drive.h"
 #include "machine-printer.h"
+#include "pet/petpia.h"
 #include "printer.h"
 #include "sampler.h"
 #include "snapshot.h"
@@ -70,6 +74,9 @@
 #include "tape-snapshot.h"
 #include "userport.h"
 #include "userport_io_sim.h"
+#ifdef HAVE_LIBCURL
+#include "userport_wic64.h"
+#endif
 #include "vdrive.h"
 #include "vdrive-bam.h"
 #include "vdrive-command.h"
@@ -212,7 +219,17 @@ int cartridge_save_image(int type, const char *filename)
     return -1;
 }
 
+int cartridge_save_secondary_image(int type, const char *filename)
+{
+    return -1;
+}
+
 int cartridge_flush_image(int type)
+{
+    return -1;
+}
+
+int cartridge_flush_secondary_image(int type)
 {
     return -1;
 }
@@ -223,6 +240,16 @@ int cartridge_can_save_image(int crtid)
 }
 
 int cartridge_can_flush_image(int crtid)
+{
+    return 0;
+}
+
+int cartridge_can_save_secondary_image(int crtid)
+{
+    return 0;
+}
+
+int cartridge_can_flush_secondary_image(int crtid)
 {
     return 0;
 }
@@ -262,8 +289,7 @@ int cartridge_get_id(int slot)
     return CARTRIDGE_NONE;
 }
 
-/* FIXME: terrible name, we already have cartridge_get_file_name */
-char *cartridge_get_filename(int slot)
+char *cartridge_get_filename_by_slot(int slot)
 {
     return NULL;
 }
@@ -327,7 +353,7 @@ gfxoutputdrv_t *gfxoutput_drivers_iter_init(void)
           not use this table for vsid */
 gfxoutputdrv_format_t ffmpegdrv_formatlist[] =
 {
-    { NULL, NULL, NULL }
+    { NULL, NULL, NULL, 0 }
 };
 
 
@@ -409,6 +435,42 @@ int ds1202_1302_read_snapshot(rtc_ds1202_1302_t *context, snapshot_t *s)
     return -1;
 }
 
+int ds1602_write_snapshot(rtc_ds1602_t *context, snapshot_t *s)
+{
+    return -1;
+}
+
+void ds1602_destroy(rtc_ds1602_t *context, int save)
+{
+}
+
+rtc_ds1602_t *ds1602_init(char *device, time_t offset0)
+{
+    return NULL;
+}
+
+uint8_t ds1602_read_data_line(rtc_ds1602_t *context)
+{
+    return 0;
+}
+
+void ds1602_set_data_line(rtc_ds1602_t *context, uint8_t data)
+{
+}
+
+void ds1602_set_clk_line(rtc_ds1602_t *context, uint8_t data)
+{
+}
+
+void ds1602_set_reset_line(rtc_ds1602_t *context, uint8_t data)
+{
+}
+
+int ds1602_read_snapshot(rtc_ds1602_t *context, snapshot_t *s)
+{
+    return -1;
+}
+
 /*******************************************************************************
     tape
 *******************************************************************************/
@@ -446,6 +508,10 @@ void tape_image_event_playback(unsigned int unit, const char *filename)
 int tape_image_detach(unsigned int unit)
 {
     return 0;
+}
+
+void tape_image_detach_all(void)
+{
 }
 
 int tap_seek_start(tap_t *tap)
@@ -705,6 +771,11 @@ int disk_image_fsimage_create(const char *name, unsigned int type)
 }
 
 int disk_image_fsimage_create_dxm(const char *name, const char *dname, unsigned int type)
+{
+    return 0;
+}
+
+int disk_image_fsimage_create_dhd(const char *name, const char *dname, unsigned int type)
 {
     return 0;
 }
@@ -1112,8 +1183,28 @@ const char *tapeport_get_device_type_desc(int type)
 
 void userport_io_sim_set_pbx_out_lines(uint8_t val)
 {
-    return;
 }
+
+int userport_device_register(int id, userport_device_t *device)
+{
+    return -1;
+}
+
+bool pia1_get_diagnostic_pin(void)
+{
+    return false;
+}
+
+#ifdef HAVE_LIBCURL
+const tzones_t *userport_wic64_get_timezones(size_t *num_zones)
+{
+    return NULL;
+}
+
+void userport_wic64_factory_reset(void)
+{
+}
+#endif
 
 /*******************************************************************************
     Sampler
@@ -1123,3 +1214,65 @@ sampler_device_t *sampler_get_devices(void)
 {
     return NULL;
 }
+
+void sampler_stop(void)
+{
+}
+
+void sampler_start(int channels, char *devname)
+{
+}
+
+uint8_t sampler_get_sample(int channel)
+{
+    return 0;
+}
+
+/*******************************************************************************
+ *  Printer                                                                    *
+ ******************************************************************************/
+
+const driver_select_list_t *driver_select_get_drivers(void)
+{
+    return NULL;
+}
+
+bool driver_select_is_printer(const char *drv_name)
+{
+    return false;
+}
+
+bool driver_select_is_plotter(const char *drv_name)
+{
+    return false;
+}
+
+bool driver_select_has_iec_bus(const char *drv_name)
+{
+    return false;
+}
+
+bool driver_select_has_ieee488_bus(const char *drv_name)
+{
+    return false;
+}
+
+bool driver_select_has_userport(const char *drv_name)
+{
+    return false;
+}
+
+bool driver_select_has_text_output(const char *drv_name)
+{
+    return false;
+}
+
+bool driver_select_has_graphics_output(const char *drv_name)
+{
+    return false;
+}
+
+
+/*******************************************************************************
+    UI
+*******************************************************************************/

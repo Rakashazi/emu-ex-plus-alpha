@@ -27,6 +27,6 @@
 #ifndef VICE_SCPU64MEMINIT_H
 #define VICE_SCPU64MEMINIT_H
 
-extern void scpu64meminit(void);
+void scpu64meminit(void);
 
 #endif

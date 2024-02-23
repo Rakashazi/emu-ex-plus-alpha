@@ -156,6 +156,7 @@ static int rsuser_ctsinv = 0;           /* CTS invert flag - 0 = Normal Kernal l
 static int rsuser_dsrinv = 0;           /* DSR invert flag - 0 = Normal Kernal level, 1 = Inverted level */
 static int rsuser_dcdinv = 0;           /* DCD invert flag - 0 = Normal Kernal level, 1 = Inverted level */
 static int rsuser_dtrinv = 0;           /* DTR invert flag - 0 = Normal Kernal level, 1 = Inverted level */
+static int rsuser_riinv = 0;            /* RI invert flag  - 0 = Normal Kernal level, 1 = Inverted level */
 static int rsuser_baudrate = 300;       /* baudrate the emulated userport is sampled with */
 static int char_clk_ticks = 0;          /* clk ticks per character */
 static int bit_clk_ticks = 0;           /* clk ticks per bit */
@@ -284,6 +285,12 @@ static int set_dtrinv(int value, void *param)
     return 0;
 }
 
+static int set_riinv(int value, void *param)
+{
+    rsuser_riinv = value ? 1 : 0;
+    return 0;
+}
+
 static const resource_int_t resources_int[] = {
     { "RsUserUP9600", 0, RES_EVENT_NO, NULL,
       &rsuser_up9600, set_up9600, NULL},
@@ -301,6 +308,8 @@ static const resource_int_t resources_int[] = {
       &rsuser_dcdinv, set_dcdinv, NULL },
     { "RsUserDTRInv", 0, RES_EVENT_NO, (resource_value_t)0,
       &rsuser_dtrinv, set_dtrinv, NULL },
+    { "RsUserRIInv", 0, RES_EVENT_NO, (resource_value_t)0,
+      &rsuser_riinv, set_riinv, NULL },
     RESOURCE_INT_LIST_END
 };
 
@@ -357,6 +366,12 @@ static const cmdline_option_t cmdline_options[] =
     { "+rsuserdtrinv", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "RsUserDTRInv", (void *)0,
       NULL, "Do not invert RS232 userport emulation DTR line" },
+    { "-rsuserriinv", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "RsUserRIInv", (void *)1,
+      NULL, "Invert RS232 userport emulation RI line" },
+    { "+rsuserriinv", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "RsUserRIInv", (void *)0,
+      NULL, "Do not invert RS232 userport emulation RI line" },
     CMDLINE_LIST_END
 };
 
@@ -674,6 +689,9 @@ static uint8_t rsuser_read_ctrl(uint8_t orig)
               );
     }
 #endif
+    if ((rsuser_riinv ? 0 : RS232_HSI_RI) == (modem_status & RS232_HSI_RI)) {
+        status |= RI_IN;
+    }
     if ((rsuser_ctsinv ? 0 : RS232_HSI_CTS) == (modem_status & RS232_HSI_CTS)) {
         status |= CTS_IN;
     }
@@ -705,10 +723,12 @@ static uint8_t rsuser_read_ctrl(uint8_t orig)
 
 static void rsuser_tx_byte(uint8_t b)
 {
-    buf = (buf << 8) | b;
-    valid += 8;
+    if (rsuser_up9600) {
+        buf = (buf << 8) | b;
+        valid += 8;
 
-    check_tx_buffer();
+        check_tx_buffer();
+    }
 }
 
 static void int_rsuser(CLOCK offset, void *data)

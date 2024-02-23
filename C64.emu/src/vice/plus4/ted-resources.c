@@ -43,20 +43,30 @@
 ted_resources_t ted_resources = { 0 };
 static video_chip_cap_t video_chip_cap;
 
-static int next_border_mode;
-
 static void on_vsync_set_border_mode(void *unused)
 {
     int sync;
+    int pf;
 
     if (resources_get_int("MachineVideoStandard", &sync) < 0) {
         sync = MACHINE_SYNC_PAL;
     }
-
-    if (ted_resources.border_mode != next_border_mode) {
-        ted_resources.border_mode = next_border_mode;
-        machine_change_timing(sync, ted_resources.border_mode);
+#if 0
+    if (resources_get_int("MachinePowerFrequency", &pf) < 0)
+#endif
+    {
+        switch (sync) {
+            case MACHINE_SYNC_PAL:
+            case MACHINE_SYNC_PALN:
+                pf = 50;
+            break;
+            default:
+                pf = 60;
+            break;
+        }
     }
+
+    machine_change_timing(sync, pf, ted_resources.border_mode);
 }
 
 static int set_border_mode(int val, void *param)
@@ -71,7 +81,7 @@ static int set_border_mode(int val, void *param)
             return -1;
     }
 
-    next_border_mode = val;
+    ted_resources.border_mode = val;
     vsync_on_vsync_do(on_vsync_set_border_mode, NULL);
 
     return 0;
@@ -93,7 +103,7 @@ int ted_resources_init(void)
     video_chip_cap.dsize_limit_height = 0;
     video_chip_cap.dscan_allowed = ARCHDEP_TED_DSCAN;
     video_chip_cap.external_palette_name = "yape-pal";
-    video_chip_cap.double_buffering_allowed = ARCHDEP_TED_DBUF;
+    video_chip_cap.video_has_palntsc = 1;
     video_chip_cap.single_mode.sizex = 1;
     video_chip_cap.single_mode.sizey = 1;
     video_chip_cap.single_mode.rmode = VIDEO_RENDER_PAL_NTSC_1X1;

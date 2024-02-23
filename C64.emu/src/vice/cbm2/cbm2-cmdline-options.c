@@ -85,7 +85,7 @@ static int cbm2_set_model(const char *model, void *extra)
 
         mem_powerup();
         mem_load();
-        machine_trigger_reset(MACHINE_RESET_MODE_SOFT);
+        machine_trigger_reset(MACHINE_RESET_MODE_RESET_CPU);
         return 0;
     }
     return -1;
@@ -101,6 +101,12 @@ static const cmdline_option_t cmdline_options[] =
     { "-ntsc", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "MachineVideoStandard", (void *)MACHINE_SYNC_NTSC,
       NULL, "Use NTSC sync factor" },
+    { "-power50", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "MachinePowerFrequency", (void *)50,
+      NULL, "Use 50Hz Power-grid frequency" },
+    { "-power60", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "MachinePowerFrequency", (void *)60,
+      NULL, "Use 60Hz Power-grid frequency" },
     { "-kernal", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "KernalName", NULL,
       "<Name>", "Specify name of Kernal ROM image" },

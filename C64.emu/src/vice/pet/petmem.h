@@ -46,23 +46,23 @@ extern uint8_t mem_6809rom[];
 struct petres_s;
 struct petinfo_s;
 
-extern int pet_mem_init_resources(void);
-extern int pet_mem_init_cmdline_options(void);
+int pet_mem_init_resources(void);
+int pet_mem_init_cmdline_options(void);
 
-extern void mem_initialize_memory(void);
-extern void get_mem_access_tables(read_func_ptr_t **read, store_func_ptr_t **write, uint8_t ***base, int **limit);
-extern int petmem_get_screen_columns(void);
-extern int petmem_get_rom_columns(void);
-extern void petmem_check_info(struct petres_s *pi);
+void mem_initialize_memory(void);
+void get_mem_access_tables(read_func_ptr_t **read, store_func_ptr_t **write, uint8_t ***base, int **limit);
+int petmem_get_screen_columns(void);
+int petmem_get_rom_columns(void);
+void petmem_check_info(struct petres_s *pi);
 
-extern void petmem_reset(void);
-extern int petmem_superpet_diag(void);
-extern void petmem_set_vidmem(void);
+void petmem_reset(void);
+int petmem_superpet_diag(void);
+void petmem_set_vidmem(void);
 
-extern int petmem_dump(FILE *fp);
-extern int petmem_undump(FILE *fp);
+int petmem_dump(FILE *fp);
+int petmem_undump(FILE *fp);
 
-extern int petmem_set_conf_info(const struct petinfo_s *pi);
+int petmem_set_conf_info(const struct petinfo_s *pi);
 
 extern int spet_ramen;
 extern int spet_bank;
@@ -88,17 +88,20 @@ extern uint8_t petmem_2001_buf_ef[];
 
 extern read_func_t mem6809_read;
 extern store_func_t mem6809_store;
-extern void mem6809_store16(uint16_t addr, uint16_t value);
-extern uint16_t mem6809_read16(uint16_t addr);
+
+void mem6809_store16(uint16_t addr, uint16_t value);
+uint16_t mem6809_read16(uint16_t addr);
+
 #ifdef H6309
-extern void mem6809_store32(uint16_t addr, uint32_t value);
-extern uint32_t mem6809_read32(uint16_t addr);
+void mem6809_store32(uint16_t addr, uint32_t value);
+uint32_t mem6809_read32(uint16_t addr);
 #endif
-extern void mem_initialize_memory_6809(void);
-extern void ramsel_changed(void);
 
-extern int superpet_sync(void);
+void mem_initialize_memory_6809(void);
+void ramsel_changed(void);
 
-extern uint8_t read_unused(uint16_t addr);
+int superpet_sync(void);
+
+uint8_t read_unused(uint16_t addr);
 
 #endif

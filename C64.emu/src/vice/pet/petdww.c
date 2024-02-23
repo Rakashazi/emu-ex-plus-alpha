@@ -48,13 +48,14 @@
 #include "resources.h"
 #include "snapshot.h"
 #include "types.h"
+#include "uiapi.h"
 #include "util.h"
 
 /*
  * A DWW (Double-W) board consists of a PIA and 8 K RAM.
  *
  * The PIA is at $EBx0, and the RAM may be mapped at $EC00-$EFFF.
- * Therefore, petres.IOSize must be 2K.
+ * Therefore, petres.model.IOSize must be 2K.
  *
  * The RAM may also be mapped at $9000-AFFF under software control,
  * so we need to hook into the memory mapping system.
@@ -82,10 +83,6 @@ static void petdww_DRAW_40(uint8_t *p, int xstart, int xend, int scr_rel, int ym
 static void petdww_DRAW_80(uint8_t *p, int xstart, int xend, int scr_rel, int ymod8);
 static void petdww_DRAW_blank(uint8_t *p, int xstart, int xend, int scr_rel, int ymod8);
 
-#if 0
-static void petdwwpia_signal(int line, int edge);
-static uint8_t petdwwpia_peek(uint16_t addr);
-#endif
 static int petdwwpia_snapshot_write_module(snapshot_t *);
 static int petdwwpia_snapshot_read_module(snapshot_t *);
 
@@ -112,6 +109,7 @@ static void store_petdww_reg(uint16_t addr, uint8_t value);
 static void store_petdww_ec00_ram(uint16_t addr, uint8_t value);
 static int petdww_dump(void);
 
+/* the $ebxx range is only exposed when the I/O size is big (30xx and superpet models) */
 static io_source_t petdww_reg_device = {
     "PETDWW REG",         /* name of the device */
     IO_DETACH_RESOURCE,   /* use resource to detach the device when involved in a read-collision */
@@ -125,9 +123,11 @@ static io_source_t petdww_reg_device = {
     petdww_dump,          /* device state information dump function */
     IO_CART_ID_NONE,      /* not a cartridge */
     IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
-    0                     /* insertion order, gets filled in by the registration function */
+    0,                    /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE        /* NO mirroring */
 };
 
+/* the $ecxx range is only exposed when the I/O size is big (30xx and superpet models) */
 static io_source_t petdww_ram_ec00_device = {
     "PETDWW RAM",          /* name of the device */
     IO_DETACH_RESOURCE,    /* use resource to detach the device when involved in a read-collision */
@@ -141,9 +141,11 @@ static io_source_t petdww_ram_ec00_device = {
     petdww_dump,           /* device state information dump function */
     IO_CART_ID_NONE,       /* not a cartridge */
     IO_PRIO_NORMAL,        /* normal priority, device read needs to be checked for collisions */
-    0                      /* insertion order, gets filled in by the registration function */
+    0,                     /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE         /* NO mirroring */
 };
 
+/* the $edxx range is only exposed when the I/O size is big (30xx and superpet models) */
 static io_source_t petdww_ram_ed00_device = {
     "PETDWW RAM",          /* name of the device */
     IO_DETACH_RESOURCE,    /* use resource to detach the device when involved in a read-collision */
@@ -157,9 +159,11 @@ static io_source_t petdww_ram_ed00_device = {
     petdww_dump,           /* device state information dump function */
     IO_CART_ID_NONE,       /* not a cartridge */
     IO_PRIO_NORMAL,        /* normal priority, device read needs to be checked for collisions */
-    0                      /* insertion order, gets filled in by the registration function */
+    0,                     /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE         /* NO mirroring */
 };
 
+/* the $eexx range is only exposed when the I/O size is big (30xx and superpet models) */
 static io_source_t petdww_ram_ee00_device = {
     "PETDWW RAM",          /* name of the device */
     IO_DETACH_RESOURCE,    /* use resource to detach the device when involved in a read-collision */
@@ -173,9 +177,11 @@ static io_source_t petdww_ram_ee00_device = {
     petdww_dump,           /* device state information dump function */
     IO_CART_ID_NONE,       /* not a cartridge */
     IO_PRIO_NORMAL,        /* normal priority, device read needs to be checked for collisions */
-    0                      /* insertion order, gets filled in by the registration function */
+    0,                     /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE         /* NO mirroring */
 };
 
+/* the $efxx range is only exposed when the I/O size is big AND the model is NOT a superpet (30xx models) */
 static io_source_t petdww_ram_ef00_device = {
     "PETDWW RAM",          /* name of the device */
     IO_DETACH_RESOURCE,    /* use resource to detach the device when involved in a read-collision */
@@ -189,7 +195,8 @@ static io_source_t petdww_ram_ef00_device = {
     petdww_dump,           /* device state information dump function */
     IO_CART_ID_NONE,       /* not a cartridge */
     IO_PRIO_NORMAL,        /* normal priority, device read needs to be checked for collisions */
-    0                      /* insertion order, gets filled in by the registration function */
+    0,                     /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE         /* NO mirroring */
 };
 
 static io_source_list_t *petdww_reg_list_item = NULL;
@@ -337,12 +344,14 @@ void petdww_reset(void)
 
 static int petdww_activate(void)
 {
-    if (petres.IOSize < 2048) {
-        log_message(petdww_log, "Cannot enable DWW: IOSize too small (%d but must be 2KiB)", petres.IOSize);
+    if (petres.model.IOSize < 2048) {
+        ui_error("Cannot enable DWW: $eb00-$efff range only available on 30xx models");
+        log_message(petdww_log, "Cannot enable DWW: IOSize too small (%d but must be 2KiB)", petres.model.IOSize);
         return -1;
     }
 
-    if (petres.superpet) {
+    if (petres.model.superpet) {
+        ui_error("Cannot enable DWW: not compatible with SuperPET");
         log_message(petdww_log, "Cannot enable DWW: not compatible with SuperPET");
         return -1;
     }
@@ -439,7 +448,7 @@ void petdww_override_std_9toa(read_func_ptr_t *mem_read_tab, store_func_ptr_t *m
     int i;
 
     /* Check this just in case */
-    if (petres.superpet) {
+    if (petres.model.superpet) {
         return;
     }
     /*
@@ -522,7 +531,7 @@ static piareg mypia;
 /* ------------------------------------------------------------------------- */
 /* CPU binding */
 
-static void my_set_int(unsigned int pia_int_num, int a)
+static void my_set_int(unsigned int pia_int_num, int a, CLOCK offset)
 {
 }
 
@@ -675,11 +684,11 @@ static void store_pa(uint8_t byte)
     hires_off = byte & 0x10;
     charrom_on = byte & 0x08;
 #if DWW_DEBUG_REG || DWW_DEBUG_RAM
-    log_message(petdww_log, "mem_bank    = %04x", mem_bank);
+    log_message(petdww_log, "mem_bank    = %04x", (uint16_t)mem_bank);
 #endif
 #if DWW_DEBUG_REG
-    log_message(petdww_log, "hires_off   = %04x", hires_off);
-    log_message(petdww_log, "charrom_on  = %04x", charrom_on);
+    log_message(petdww_log, "hires_off   = %04x", (uint16_t)hires_off);
+    log_message(petdww_log, "charrom_on  = %04x", (uint16_t)charrom_on);
 #endif
     if (petdww_enabled) {
         if (hires_off) {
@@ -689,7 +698,7 @@ static void store_pa(uint8_t byte)
                 crtc_set_hires_draw_callback(petdww_DRAW_blank);
             }
         } else {
-            if (petres.video == 80) {
+            if (petres.model.video == 80) {
                 crtc_set_hires_draw_callback(petdww_DRAW_80);
             } else {
                 crtc_set_hires_draw_callback(petdww_DRAW_40);

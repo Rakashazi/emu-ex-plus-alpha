@@ -31,7 +31,8 @@
 #define ARCHDEP_MKDIR_RWXUG  0770
 #define ARCHDEP_MKDIR_RWXUGO 0777
 
-int archdep_mkdir(const char *pathname, int mode);
+int archdep_mkdir          (const char *pathname, int mode);
+int archdep_mkdir_recursive(const char *pathname, int mode);
 
 #endif
 

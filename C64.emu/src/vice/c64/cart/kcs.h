@@ -31,18 +31,18 @@
 
 #include "types.h"
 
-extern void kcs_freeze(void);
+void kcs_freeze(void);
 
-extern void kcs_config_init(void);
-extern void kcs_config_setup(uint8_t *rawcart);
-extern int kcs_bin_attach(const char *filename, uint8_t *rawcart);
-extern int kcs_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void kcs_detach(void);
-extern void kcs_powerup(void);
+void kcs_config_init(void);
+void kcs_config_setup(uint8_t *rawcart);
+int kcs_bin_attach(const char *filename, uint8_t *rawcart);
+int kcs_crt_attach(FILE *fd, uint8_t *rawcart);
+void kcs_detach(void);
+void kcs_powerup(void);
 
 struct snapshot_s;
 
-extern int kcs_snapshot_write_module(struct snapshot_s *s);
-extern int kcs_snapshot_read_module(struct snapshot_s *s);
+int kcs_snapshot_write_module(struct snapshot_s *s);
+int kcs_snapshot_read_module(struct snapshot_s *s);
 
 #endif

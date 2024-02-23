@@ -721,7 +721,7 @@ static void event_record_start_trap(uint16_t addr, void *data)
             current_timestamp = playback_time;
             break;
         case EVENT_START_MODE_RESET:
-            machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+            machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
             destroy_list();
             create_list();
             record_active = 1;
@@ -889,7 +889,7 @@ static void event_playback_start_trap(uint16_t addr, void *unused)
                 break;
             case EVENT_START_MODE_RESET:
                 /*log_debug("RESET MODE!");*/
-                machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+                machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
                 if (event_list->current->size > 1) {
                     strncpy(event_version, (char *)(&data[1]), 15);
                 }

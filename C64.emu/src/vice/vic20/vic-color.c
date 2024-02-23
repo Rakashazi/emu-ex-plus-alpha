@@ -38,16 +38,16 @@
 #include "victypes.h"
 #include "video.h"
 
-/* undefine for the old "idealized" Pepto colors */
+/* uncomment for the old "idealized" Pepto colors */
 /* #define PEPTO_COLORS */
 
-/* undefine for the new "idealized" Pepto colors, aka "colodore" */
+/* uncomment for the new "idealized" Pepto colors, aka "colodore" */
 /* #define COLODORE_COLORS */
 
-/* undefine for the colors measured by Tobias */
+/* uncomment for the colors measured by Tobias */
 #define TOBIAS_COLORS
 
-/* undefine to use seperate palettes for odd/even lines */
+/* uncomment to use seperate palettes for odd/even lines */
 #define SEPERATE_ODD_EVEN_COLORS
 
 /******************************************************************************/
@@ -56,7 +56,7 @@
 
 /* must stay below 64 to not result in overflows in the CRT renderer (and maybe
    elsewhere). especially the NTSC mode seems to be an edge case */
-#define VIC_SATURATION    63.0f
+#define VIC_SATURATION    48.0f
 
 /* phase shift of all colors */
 
@@ -138,26 +138,34 @@ static video_cbm_palette_t vic_palette_pal =
 };
 #endif
 
-/* FIXME: the following is hand-tuned to somehow match mikes/tokras palette. it
+/* FIXME: the following is hand-tuned to somehow match the reference pictures. it
           is not necessarily correct and should get backed up by measurements. */
+
+/* "The 'normal' colors (2-8) have a phase error on NTSC compared to their lighter
+   variations (9-15) - this is due to how the color signal is generated on the chip. */
+
+#define NTSC_PHASE_ERROR    30.0f
+
 static video_cbm_color_t vic_colors_ntsc[VIC_NUM_COLORS] =
 {
-    { LUMA0 , ANGLE_ORN,         VIC_SATURATION, -0, "Black"       },
-    { LUMA1 , ANGLE_ORN,         VIC_SATURATION, -0, "White"       },
-    { LUMA2 , ANGLE_RED,         VIC_SATURATION,  1, "Red"         },
-    { LUMA3 , ANGLE_RED,         VIC_SATURATION, -1, "Cyan"        },
-    { LUMA4 , ANGLE_GRN + 35.0f, VIC_SATURATION, -1, "Purple"      },
-    { LUMA5 , ANGLE_GRN + 45.0f, VIC_SATURATION,  1, "Green"       },
-    { LUMA6 , ANGLE_BLU,         VIC_SATURATION,  1, "Blue"        },
-    { LUMA7 , ANGLE_BLU,         VIC_SATURATION, -1, "Yellow"      },
-    { LUMA8 , ANGLE_ORN,         VIC_SATURATION, -1, "Orange"      },
-    { LUMA9 , ANGLE_ORN - 30.0f, VIC_SATURATION, -1, "Light Orange"},
-    { LUMA10, ANGLE_RED - 30.0f, VIC_SATURATION,  1, "Pink"        },
-    { LUMA11, ANGLE_RED,         VIC_SATURATION, -1, "Light Cyan"  },
-    { LUMA12, ANGLE_GRN,         VIC_SATURATION, -1, "Light Purple"},
-    { LUMA13, ANGLE_GRN + 30.0f, VIC_SATURATION,  1, "Light Green" },
-    { LUMA14, ANGLE_BLU,         VIC_SATURATION,  1, "Light Blue"  },
-    { LUMA15, ANGLE_BLU,         VIC_SATURATION, -1, "Light Yellow"}
+    { LUMA0 , ANGLE_ORN,                    VIC_SATURATION, -0, "Black"       },
+    { LUMA1 , ANGLE_ORN,                    VIC_SATURATION, -0, "White"       },
+
+    { LUMA2 , ANGLE_RED + NTSC_PHASE_ERROR, VIC_SATURATION,  1, "Red"         },
+    { LUMA3 , ANGLE_RED + NTSC_PHASE_ERROR, VIC_SATURATION, -1, "Cyan"        },
+    { LUMA4 , ANGLE_GRN + NTSC_PHASE_ERROR, VIC_SATURATION, -1, "Purple"      },
+    { LUMA5 , ANGLE_GRN + NTSC_PHASE_ERROR, VIC_SATURATION,  1, "Green"       },
+    { LUMA6 , ANGLE_BLU + NTSC_PHASE_ERROR, VIC_SATURATION,  1, "Blue"        },
+    { LUMA7 , ANGLE_BLU + NTSC_PHASE_ERROR, VIC_SATURATION, -1, "Yellow"      },
+    { LUMA8 , ANGLE_ORN + NTSC_PHASE_ERROR, VIC_SATURATION, -1, "Orange"      },
+
+    { LUMA9 , ANGLE_ORN,                    VIC_SATURATION, -1, "Light Orange"},
+    { LUMA10, ANGLE_RED,                    VIC_SATURATION,  1, "Pink"        },
+    { LUMA11, ANGLE_RED,                    VIC_SATURATION, -1, "Light Cyan"  },
+    { LUMA12, ANGLE_GRN,                    VIC_SATURATION, -1, "Light Purple"},
+    { LUMA13, ANGLE_GRN,                    VIC_SATURATION,  1, "Light Green" },
+    { LUMA14, ANGLE_BLU,                    VIC_SATURATION,  1, "Light Blue"  },
+    { LUMA15, ANGLE_BLU,                    VIC_SATURATION, -1, "Light Yellow"}
 };
 
 static video_cbm_palette_t vic_palette_ntsc =

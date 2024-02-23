@@ -29,10 +29,11 @@
 #define VICE_DD3_H
 
 struct diskunit_context_s;
-extern void dd3_init(struct diskunit_context_s *drv);
-extern void dd3_reset(struct diskunit_context_s *drv);
-extern void dd3_mem_init(struct diskunit_context_s *drv, unsigned int type);
 
-extern void dd3_set_signal(struct diskunit_context_s *diskunit_context);
+void dd3_init(struct diskunit_context_s *drv);
+void dd3_reset(struct diskunit_context_s *drv);
+void dd3_mem_init(struct diskunit_context_s *drv, unsigned int type);
+
+void dd3_set_signal(struct diskunit_context_s *diskunit_context);
 
 #endif

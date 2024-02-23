@@ -29,13 +29,8 @@
 
 #include "types.h"
 
-extern int userport_joystick_cga_resources_init(void);
-extern int userport_joystick_pet_resources_init(void);
-extern int userport_joystick_hummer_resources_init(void);
-extern int userport_joystick_oem_resources_init(void);
-extern int userport_joystick_hit_resources_init(void);
-extern int userport_joystick_kingsoft_resources_init(void);
-extern int userport_joystick_starbyte_resources_init(void);
-extern int userport_joystick_synergy_resources_init(void);
+int userport_joystick_cga_resources_init(void);
+int userport_joystick_pet_resources_init(void);
+int userport_joystick_oem_resources_init(void);
 
 #endif

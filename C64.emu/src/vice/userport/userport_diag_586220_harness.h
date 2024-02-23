@@ -29,6 +29,6 @@
 
 #include "types.h"
 
-extern int userport_diag_586220_harness_resources_init(void);
+int userport_diag_586220_harness_resources_init(void);
 
 #endif

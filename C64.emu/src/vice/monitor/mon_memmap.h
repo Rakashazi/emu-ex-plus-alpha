@@ -30,15 +30,15 @@
 #include "montypes.h"
 #include "types.h"
 
-extern void mon_memmap_init(void);
-extern void mon_memmap_shutdown(void);
+void mon_memmap_init(void);
+void mon_memmap_shutdown(void);
 
-extern int monitor_cpuhistory_allocate(int lines);
-extern void mon_cpuhistory(int count, MEMSPACE filter1, MEMSPACE filter2, MEMSPACE filter3,
-                           MEMSPACE filter4, MEMSPACE filter5);
+int monitor_cpuhistory_allocate(int lines);
+void mon_cpuhistory(int count, MEMSPACE filter1, MEMSPACE filter2, MEMSPACE filter3,
+                    MEMSPACE filter4, MEMSPACE filter5);
 
-extern void mon_memmap_zap(void);
-extern void mon_memmap_show(int mask, MON_ADDR start_addr, MON_ADDR end_addr);
-extern void mon_memmap_save(const char* filename, int format);
+void mon_memmap_zap(void);
+void mon_memmap_show(int mask, MON_ADDR start_addr, MON_ADDR end_addr);
+void mon_memmap_save(const char* filename, int format);
 
 #endif

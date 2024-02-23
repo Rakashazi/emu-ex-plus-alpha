@@ -27,8 +27,8 @@
 #ifndef VICE_PLUS4ROM_H
 #define VICE_PLUS4ROM_H
 
-extern int plus4rom_load_kernal(const char *rom_name);
-extern int plus4rom_load_basic(const char *rom_name);
+int plus4rom_load_kernal(const char *rom_name);
+int plus4rom_load_basic(const char *rom_name);
 
 #define PLUS4_BASIC_NAME            "basic-318006-01.bin"
 

@@ -189,6 +189,13 @@ struct ted_s {
     /* TED registers.  */
     uint8_t regs[64];
 
+    /* Timer 1 reload latch */
+    CLOCK t1_start;
+
+    /* Timers running status */
+
+    unsigned int timer_running[3];
+
     /* Interrupt register.  */
     int irq_status;             /* = 0; */
 
@@ -340,12 +347,12 @@ typedef struct ted_s ted_t;
 extern ted_t ted;
 
 /* Private function calls, used by the other TED modules.  */
-extern void ted_update_memory_ptrs(unsigned int cycle);
-extern void ted_update_video_mode(unsigned int cycle);
-extern void ted_raster_draw_alarm_handler(CLOCK offset, void *data);
-/* extern void ted_resize(void); */
-extern void ted_delay_clk(void);
-extern void ted_delay_oldclk(CLOCK num);
+void ted_update_memory_ptrs(unsigned int cycle);
+void ted_update_video_mode(unsigned int cycle);
+void ted_raster_draw_alarm_handler(CLOCK offset, void *data);
+/* void ted_resize(void); */
+void ted_delay_clk(void);
+void ted_delay_oldclk(CLOCK num);
 
 /* Debugging options.  */
 

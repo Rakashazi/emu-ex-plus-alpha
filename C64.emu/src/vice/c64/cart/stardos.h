@@ -33,20 +33,20 @@
 
 struct snapshot_s;
 
-extern uint8_t stardos_roml_read(uint16_t addr);
-extern uint8_t stardos_romh_read(uint16_t addr);
-extern int stardos_romh_phi1_read(uint16_t addr, uint8_t *value);
-extern int stardos_romh_phi2_read(uint16_t addr, uint8_t *value);
-extern int stardos_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
+uint8_t stardos_roml_read(uint16_t addr);
+uint8_t stardos_romh_read(uint16_t addr);
+int stardos_romh_phi1_read(uint16_t addr, uint8_t *value);
+int stardos_romh_phi2_read(uint16_t addr, uint8_t *value);
+int stardos_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
 
-extern void stardos_config_init(void);
-extern void stardos_reset(void);
-extern void stardos_config_setup(uint8_t *rawcart);
-extern int stardos_bin_attach(const char *filename, uint8_t *rawcart);
-extern int stardos_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void stardos_detach(void);
+void stardos_config_init(void);
+void stardos_reset(void);
+void stardos_config_setup(uint8_t *rawcart);
+int stardos_bin_attach(const char *filename, uint8_t *rawcart);
+int stardos_crt_attach(FILE *fd, uint8_t *rawcart);
+void stardos_detach(void);
 
-extern int stardos_snapshot_write_module(struct snapshot_s *s);
-extern int stardos_snapshot_read_module(struct snapshot_s *s);
+int stardos_snapshot_write_module(struct snapshot_s *s);
+int stardos_snapshot_read_module(struct snapshot_s *s);
 
 #endif

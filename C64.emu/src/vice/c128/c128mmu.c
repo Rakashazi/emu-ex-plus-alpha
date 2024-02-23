@@ -65,8 +65,12 @@
 #define DBGKEY(x)
 #endif
 
+#define NUM_CONFIGS64  32
+#define NUM_CONFIGS128 256
+#define NUM_CONFIGS (NUM_CONFIGS64+NUM_CONFIGS128)
+
 /* MMU register.  */
-static uint8_t mmu[12];
+uint8_t mmu[12];
 
 /* latches for P0H and P1H */
 static uint8_t p0h_latch, p1h_latch;
@@ -249,16 +253,18 @@ static void mmu_switch_cpu(int value)
 #ifdef MMU_DEBUG
         log_message(mmu_log, "Switching to 8502 CPU.");
 #endif
+        monitor_cpu_type_set_value(CPU_6502);
         z80_trigger_dma();
     } else {
 #ifdef MMU_DEBUG
         log_message(mmu_log, "Switching to Z80 CPU.");
 #endif
+        monitor_cpu_type_set_value(CPU_Z80);
         interrupt_trigger_dma(maincpu_int_status, maincpu_clk);
     }
 }
 
-static void mmu_set_ram_bank(uint8_t value)
+void mmu_set_ram_bank(uint8_t value)
 {
     if (c128_full_banks) {
         ram_bank = mem_ram + (((long)value & 0xc0) << 10);
@@ -323,11 +329,15 @@ int mmu_is_c64config(void)
     return (mmu[5] & 0x40) ? 1 : 0;
 }
 
+int in_c64_mode = -1;
+int c64_mode_bank = 0;
+
 static void mmu_switch_to_c64mode(void)
 {
 #ifdef MMU_DEBUG
     log_message(mmu_log, "mmu_switch_to_c64mode\n");
 #endif
+#if 0
     if (force_c64_mode) {
 #ifdef MMU_DEBUG
         log_message(mmu_log, "mmu_switch_to_c64mode: force_c64_mode\n");
@@ -347,12 +357,26 @@ static void mmu_switch_to_c64mode(void)
         mmu[10] = 0;
         mmu_update_page01_pointers();
     }
+#endif
     machine_tape_init_c64();
-    mem_update_config(0x80 + mmu_config64);
+    if (in_c64_mode != 1) {
+        mem_initialize_go64_memory_bank(mmu[6]);
+        if (c128_full_banks) {
+            c64_mode_bank = ((mmu[0] >> 6) & 0x3);
+        } else {
+            c64_mode_bank = ((mmu[0] >> 6) & 0x1);
+        }
+        in_c64_mode = 1;
+        z80mem_update_config(8 + (mmu_config64 & 7));
+    }
+    /* make sure mem_initialize_go64_memory_bank() is run first */
+    mem_update_config(mmu_config64);
     keyboard_alternative_set(1);
     machine_kbdbuf_reset_c64();
     machine_autostart_reset_c64();
+#if 0
     force_c64_mode = 0;
+#endif
 }
 
 static void mmu_switch_to_c128mode(void)
@@ -361,12 +385,12 @@ static void mmu_switch_to_c128mode(void)
     log_message(mmu_log, "mmu_switch_to_c128mode\n");
 #endif
     machine_tape_init_c128();
-    mem_update_config(((mmu[0] & 0x2) ? 0 : 1) |
-                      ((mmu[0] & 0x0c) >> 1) |
-                      ((mmu[0] & 0x30) >> 1) |
-                      ((mmu[0] & 0x40) ? 32 : 0) |
-                      ((mmu[0] & 0x1) ? 0 : 64));
+    mem_update_config(NUM_CONFIGS64 + mmu[0]);
     z80mem_update_config((((mmu[0] & 0x1)) ? 0 : 1) | ((mmu[0] & 0x40) ? 2 : 0) | ((mmu[0] & 0x80) ? 4 : 0));
+    if (in_c64_mode != 0) {
+        mem_initialize_go64_memory_bank(mmu[6]);
+        in_c64_mode = 0;
+    }
     keyboard_alternative_set(0);
     machine_kbdbuf_reset_c128();
     machine_autostart_reset_c128();
@@ -477,10 +501,18 @@ void mmu_store(uint16_t address, uint8_t value)
                 if ((value & 1) ^ (oldvalue & 1)) {
                     mmu_switch_cpu(value & 1);
                 }
+                if (((value & 0x40) ^ (oldvalue & 0x40)) && (value & 0x40)) {
+                   /* tell carts we are in c64 mode */
+                   /* can't do this in mmu_switch_to_c64mode as cart_config calls it */
+                   c128cartridge_switch_mode(1);
+                   /* turn off the forced exrom signal in the mmu_read */
+                   force_c64_mode = 0;
+                }
                 c128fastiec_fast_cpu_direction(value & 8);
                 break;
             case 6: /* RAM configuration register (RCR).  */
                 mmu_set_dma_bank(value);
+                /* must call mmu_set_dma_bank before mem_set_ram_config */
                 mem_set_ram_config(value);
                 break;
             case 8:
@@ -519,6 +551,23 @@ void mmu_store(uint16_t address, uint8_t value)
     }
 }
 
+/* z80 version of the mmu read using in/out, the mmu i/o range for the z80 depends on the mmu i/o bit */
+uint8_t z80_c128_mmu_read(uint16_t addr)
+{
+    if (mmu[0] & 1) {
+        return 0;
+    }
+    return mmu_read(addr);
+}
+
+/* z80 version of the mmu store using in/out, the mmu i/o range for the z80 depends on the mmu i/o bit */
+void z80_c128_mmu_store(uint16_t address, uint8_t value)
+{
+    if (!(mmu[0] & 1)) {
+        mmu_store(address, value);
+    }
+}
+
 /* $FF00 - $FFFF: RAM, Kernal or internal function ROM, with MMU at
    $FF00 - $FF04.  */
 uint8_t mmu_ffxx_read(uint16_t addr)
@@ -526,7 +575,7 @@ uint8_t mmu_ffxx_read(uint16_t addr)
     if (addr >= 0xff00 && addr <= 0xff04) {
         vicii.last_cpu_val = mmu[addr & 0xf];
     } else if ((mmu[0] & 0x30) == 0x00) {
-        vicii.last_cpu_val = c128memrom_kernal_read(addr);
+        vicii.last_cpu_val = hi_read(addr);
     } else if ((mmu[0] & 0x30) == 0x10) {
         vicii.last_cpu_val = internal_function_rom_read(addr);
     } else if ((mmu[0] & 0x30) == 0x20) {
@@ -535,15 +584,6 @@ uint8_t mmu_ffxx_read(uint16_t addr)
         vicii.last_cpu_val = top_shared_read(addr);
     }
     return vicii.last_cpu_val;
-}
-
-uint8_t mmu_ffxx_read_z80(uint16_t addr)
-{
-    if (addr >= 0xff00 && addr <= 0xff04) {
-        return mmu[addr & 0xf];
-    }
-
-    return top_shared_read(addr);
 }
 
 void mmu_ffxx_store(uint16_t addr, uint8_t value)
@@ -558,7 +598,7 @@ void mmu_ffxx_store(uint16_t addr, uint8_t value)
         if (addr <= 0xff04) {
             mmu_store(0, mmu[addr & 0xf]);
         } else {
-            top_shared_store(addr, value);
+            hi_store(addr, value);
         }
     }
 }
@@ -646,7 +686,11 @@ void mmu_reset(void)
     for (i = 0; i < 0xb; i++) {
         mmu[i] = 0;
     }
+    /* defaults */
+    mmu[7] = 0;
+    c128_mem_set_mmu_page_0(mmu[7]);
     mmu[9] = 1;
+    c128_mem_set_mmu_page_1(mmu[9]);
     mmu_update_page01_pointers();
     mmu_set_dma_bank(mmu[6]);
 
@@ -655,4 +699,6 @@ void mmu_reset(void)
                                  &key_ctrl_column4080, &key_flags_column4080);
 
     force_c64_mode = force_c64_mode_res;
+    /* tell carts we are in c128 mode, or c64 if forced */
+    c128cartridge_switch_mode(force_c64_mode);
 }

@@ -184,7 +184,8 @@ int fsimage_read_dxx_image(const disk_image_t *image)
 
     /* check double sided images */
     image_has_two_single_sides = (image->type == DISK_IMAGE_TYPE_D71) && !(buffer[0x03] & 0x80);
-    double_sided_drive = drive_get_disk_drive_type(image->device) == DRIVE_TYPE_1571;
+    double_sided_drive = (drive_get_disk_drive_type(image->device) == DRIVE_TYPE_1571) ||
+                         (drive_get_disk_drive_type(image->device) == DRIVE_TYPE_1571CR);
 
     /* special case for 1571: if we are inserting a d64 image into a 1571, fill
        the second side with "unformatted" data */

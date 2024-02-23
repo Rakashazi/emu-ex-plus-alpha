@@ -31,15 +31,15 @@
 
 #include "types.h"
 
-extern void delaep64_config_init(void);
-extern void delaep64_config_setup(uint8_t *rawcart);
-extern int delaep64_bin_attach(const char *filename, uint8_t *rawcart);
-extern int delaep64_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void delaep64_detach(void);
+void delaep64_config_init(void);
+void delaep64_config_setup(uint8_t *rawcart);
+int delaep64_bin_attach(const char *filename, uint8_t *rawcart);
+int delaep64_crt_attach(FILE *fd, uint8_t *rawcart);
+void delaep64_detach(void);
 
 struct snapshot_s;
 
-extern int delaep64_snapshot_write_module(struct snapshot_s *s);
-extern int delaep64_snapshot_read_module(struct snapshot_s *s);
+int delaep64_snapshot_write_module(struct snapshot_s *s);
+int delaep64_snapshot_read_module(struct snapshot_s *s);
 
 #endif

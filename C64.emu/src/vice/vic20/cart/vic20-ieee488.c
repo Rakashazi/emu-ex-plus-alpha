@@ -82,7 +82,8 @@ static io_source_t ieee488_device = {
     ieee488_dump,                 /* device state information dump function */
     CARTRIDGE_VIC20_IEEE488,      /* cartridge ID */
     IO_PRIO_NORMAL,               /* normal priority, device read needs to be checked for collisions */
-    0                             /* insertion order, gets filled in by the registration function */
+    0,                            /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                /* NO mirroring */
 };
 
 static io_source_list_t *ieee488_list_item = NULL;

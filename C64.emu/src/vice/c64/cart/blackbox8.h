@@ -31,16 +31,16 @@
 
 #include "types.h"
 
-extern void blackbox8_freeze(void);
-extern void blackbox8_config_init(void);
-extern void blackbox8_config_setup(uint8_t *rawcart);
-extern int blackbox8_bin_attach(const char *filename, uint8_t *rawcart);
-extern int blackbox8_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void blackbox8_detach(void);
+void blackbox8_freeze(void);
+void blackbox8_config_init(void);
+void blackbox8_config_setup(uint8_t *rawcart);
+int blackbox8_bin_attach(const char *filename, uint8_t *rawcart);
+int blackbox8_crt_attach(FILE *fd, uint8_t *rawcart);
+void blackbox8_detach(void);
 
 struct snapshot_s;
 
-extern int blackbox8_snapshot_write_module(struct snapshot_s *s);
-extern int blackbox8_snapshot_read_module(struct snapshot_s *s);
+int blackbox8_snapshot_write_module(struct snapshot_s *s);
+int blackbox8_snapshot_read_module(struct snapshot_s *s);
 
 #endif

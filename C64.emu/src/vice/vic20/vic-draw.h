@@ -27,6 +27,6 @@
 #ifndef VICE_VIC_DRAW_H
 #define VICE_VIC_DRAW_H
 
-extern void vic_draw_init(void);
+void vic_draw_init(void);
 
 #endif

@@ -71,7 +71,8 @@ static io_source_t westermann_device = {
     westermann_dump,           /* device state information dump function */
     CARTRIDGE_WESTERMANN,      /* cartridge ID */
     IO_PRIO_NORMAL,            /* normal priority, device read needs to be checked for collisions */
-    0                          /* insertion order, gets filled in by the registration function */
+    0,                         /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE             /* NO mirroring */
 };
 
 static io_source_list_t *westermann_list_item = NULL;

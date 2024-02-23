@@ -70,3 +70,16 @@ int cbmimage_create_dxm_image(const char *name, const char *dname, unsigned int 
 {
     return disk_image_fsimage_create_dxm(name, dname, type);
 }
+
+/** \brief  Create a hard disk image file
+ *
+ * \param[in]   name    name of/path to image
+ * \param[in]   dname   disk name and id
+ * \param[in]   type    hard disk image type enumerator
+ *
+ * \return  0 on success, < 0 on failure
+ */
+int cbmimage_create_dhd_image(const char *name, const char *dname, unsigned int type)
+{
+    return disk_image_fsimage_create_dhd(name, dname, type);
+}

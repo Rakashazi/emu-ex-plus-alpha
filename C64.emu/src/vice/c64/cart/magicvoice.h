@@ -38,43 +38,44 @@
 
 struct machine_context_s;
 
-extern void magicvoice_reset(void);
-extern int magicvoice_cart_enabled(void);
+void magicvoice_reset(void);
+int magicvoice_cart_enabled(void);
 
-extern int magicvoice_a000_bfff_read(uint16_t addr, uint8_t *value);
-extern int magicvoice_roml_read(uint16_t addr, uint8_t *value);
-extern int magicvoice_romh_read(uint16_t addr, uint8_t *value);
-extern int magicvoice_ultimax_read(uint16_t addr, uint8_t *value);
-extern int magicvoice_romh_phi1_read(uint16_t addr, uint8_t *value);
-extern int magicvoice_romh_phi2_read(uint16_t addr, uint8_t *value);
-extern int magicvoice_peek_mem(uint16_t addr, uint8_t *value);
+int magicvoice_a000_bfff_read(uint16_t addr, uint8_t *value);
+int magicvoice_roml_read(uint16_t addr, uint8_t *value);
+int magicvoice_romh_read(uint16_t addr, uint8_t *value);
+int magicvoice_ultimax_read(uint16_t addr, uint8_t *value);
+int magicvoice_romh_phi1_read(uint16_t addr, uint8_t *value);
+int magicvoice_romh_phi2_read(uint16_t addr, uint8_t *value);
+int magicvoice_peek_mem(uint16_t addr, uint8_t *value);
 
-extern void magicvoice_passthrough_changed(export_t *export);
+void magicvoice_passthrough_changed(export_t *export);
 
-extern void magicvoice_init(void);
-extern void magicvoice_shutdown(void);
+void magicvoice_init(void);
+void magicvoice_shutdown(void);
 
-extern void magicvoice_config_init(export_t *export);
-extern void magicvoice_config_setup(uint8_t *rawcart);
-extern void magicvoice_setup_context(struct machine_context_s *machine_context);
+void magicvoice_config_init(export_t *export);
+void magicvoice_config_setup(uint8_t *rawcart);
+void magicvoice_setup_context(struct machine_context_s *machine_context);
 
-extern int magicvoice_resources_init(void);
-extern void magicvoice_resources_shutdown(void);
+int magicvoice_resources_init(void);
+void magicvoice_resources_shutdown(void);
 
-extern int magicvoice_cmdline_options_init(void);
+int magicvoice_cmdline_options_init(void);
 
-extern int magicvoice_bin_attach(const char *filename, uint8_t *rawcart);
-extern int magicvoice_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
-extern int magicvoice_enable(void);
+int magicvoice_bin_attach(const char *filename, uint8_t *rawcart);
+int magicvoice_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
+int magicvoice_enable(void);
 int magicvoice_disable(void);
-extern void magicvoice_detach(void);
-extern const char *magicvoice_get_file_name(void);
-extern int magicvoice_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
+void magicvoice_detach(void);
+const char *magicvoice_get_file_name(void);
+int magicvoice_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
 
-extern void magicvoice_sound_chip_init(void);
+void magicvoice_sound_chip_init(void);
 
 struct snapshot_s;
-extern int magicvoice_snapshot_read_module(struct snapshot_s *s);
-extern int magicvoice_snapshot_write_module(struct snapshot_s *s);
+
+int magicvoice_snapshot_read_module(struct snapshot_s *s);
+int magicvoice_snapshot_write_module(struct snapshot_s *s);
 
 #endif

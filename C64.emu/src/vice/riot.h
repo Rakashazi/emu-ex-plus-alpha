@@ -84,20 +84,18 @@ typedef struct riot_context_s {
 struct alarm_context_s;
 struct snapshot_s;
 
-extern void riotcore_setup_context(riot_context_t *riot_context);
-extern void riotcore_init(riot_context_t *riot_context,
-                          struct alarm_context_s *alarm_context,
-                          unsigned int number);
-extern void riotcore_shutdown(struct riot_context_s *riot_context);
-extern void riotcore_reset(riot_context_t *riot_context);
-extern void riotcore_disable(riot_context_t *riot_context);
-extern void riotcore_signal(riot_context_t *riot_context, int sig, int type);
-extern void riotcore_store(riot_context_t *riot_context, uint16_t addr, uint8_t data);
-extern uint8_t riotcore_read(riot_context_t *riot_context, uint16_t addr);
-extern uint8_t riotcore_peek(riot_context_t *riot_context, uint16_t addr);
-extern void riotcore_dump(riot_context_t *riot_context);
+void riotcore_setup_context(riot_context_t *riot_context);
+void riotcore_init(riot_context_t *riot_context, struct alarm_context_s *alarm_context, unsigned int number);
+void riotcore_shutdown(struct riot_context_s *riot_context);
+void riotcore_reset(riot_context_t *riot_context);
+void riotcore_disable(riot_context_t *riot_context);
+void riotcore_signal(riot_context_t *riot_context, int sig, int type);
+void riotcore_store(riot_context_t *riot_context, uint16_t addr, uint8_t data);
+uint8_t riotcore_read(riot_context_t *riot_context, uint16_t addr);
+uint8_t riotcore_peek(riot_context_t *riot_context, uint16_t addr);
+void riotcore_dump(riot_context_t *riot_context);
 
-extern int riotcore_snapshot_write_module(struct riot_context_s *riot_context, struct snapshot_s *p);
-extern int riotcore_snapshot_read_module(struct riot_context_s *riot_context, struct snapshot_s *p);
+int riotcore_snapshot_write_module(struct riot_context_s *riot_context, struct snapshot_s *p);
+int riotcore_snapshot_read_module(struct riot_context_s *riot_context, struct snapshot_s *p);
 
 #endif

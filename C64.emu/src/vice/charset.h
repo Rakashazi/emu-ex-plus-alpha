@@ -44,23 +44,22 @@
 /* TODO:    Fix these functions to use size_t for lenght, not int
  */
 
-extern uint8_t *charset_petconvstring(uint8_t *c, int mode);
-extern uint8_t charset_p_toascii(uint8_t c, int mode);
-extern uint8_t charset_p_topetcii(uint8_t c);
+uint8_t *charset_petconvstring(uint8_t *c, int mode);
+uint8_t charset_p_toascii(uint8_t c, int mode);
+uint8_t charset_p_topetcii(uint8_t c);
 
-extern uint8_t charset_screencode_to_petcii(uint8_t code);
+uint8_t charset_screencode_to_petcii(uint8_t code);
 
-extern uint8_t charset_petcii_to_screencode(uint8_t code,
-                                         unsigned int reverse_mode);
-extern void charset_petcii_to_screencode_line(const uint8_t *line, uint8_t **buf,
-                                              unsigned int *len);
+uint8_t charset_petcii_to_screencode(uint8_t code, unsigned int reverse_mode);
+void charset_petcii_to_screencode_line(const uint8_t *line, uint8_t **buf,
+                                       unsigned int *len);
 
-extern int charset_petscii_to_ucs(uint8_t c);
-extern int charset_ucs_to_utf8(uint8_t *out, int code, size_t len);
+int charset_petscii_to_ucs(uint8_t c);
+int charset_ucs_to_utf8(uint8_t *out, int code, size_t len);
 
-extern uint8_t *charset_petconv_stralloc(uint8_t *in, int mode);
+uint8_t *charset_petconv_stralloc(uint8_t *in, int mode);
 
-extern char *charset_hexstring_to_byte(char *source, char *destination);
-extern char *charset_replace_hexcodes(char *source);
+char *charset_hexstring_to_byte(char *source, char *destination);
+char *charset_replace_hexcodes(char *source);
 
 #endif

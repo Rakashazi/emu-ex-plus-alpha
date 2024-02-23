@@ -149,7 +149,8 @@ static io_source_t vicii_d000_device = {
     vicii_dump,            /* device state information dump function */
     0,                     /* dummy (not a cartridge) */
     IO_PRIO_HIGH,          /* high priority, device is never involved in collisions */
-    0                      /* insertion order, gets filled in by the registration function */
+    0,                     /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE         /* NO mirroring */
 };
 
 /* When the +60K device is active and the device base is at $d100, this device is used instead of the default VICII device */
@@ -166,7 +167,8 @@ static io_source_t vicii_d000_full_device = {
     vicii_dump,            /* device state information dump function */
     0,                     /* dummy (not a cartridge) */
     IO_PRIO_HIGH,          /* high priority, device and mirrors are never involved in collisions */
-    0                      /* insertion order, gets filled in by the registration function */
+    0,                     /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE         /* NO mirroring */
 };
 
 static io_source_t vicii_d040_device = {
@@ -182,7 +184,8 @@ static io_source_t vicii_d040_device = {
     plus60k_dump,         /* device state information dump function */
     CARTRIDGE_PLUS60K,    /* cartridge ID */
     IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
-    0                     /* insertion order, gets filled in by the registration function */
+    0,                    /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE        /* NO mirroring */
 };
 
 static io_source_t vicii_d100_device = {
@@ -198,7 +201,8 @@ static io_source_t vicii_d100_device = {
     plus60k_dump,         /* device state information dump function */
     CARTRIDGE_PLUS60K,    /* cartridge ID */
     IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
-    0                     /* insertion order, gets filled in by the registration function */
+    0,                    /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE        /* NO mirroring */
 };
 
 static io_source_list_t *vicii_d000_list_item = NULL;
@@ -220,7 +224,7 @@ int set_plus60k_enabled(int value, int disable_reset)
         }
 
         if (!disable_reset) {
-            machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+            machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
         }
         plus60k_enabled = 0;
         return 0;
@@ -230,7 +234,7 @@ int set_plus60k_enabled(int value, int disable_reset)
         }
         plus60k_enabled = 1;
         if (!disable_reset) {
-            machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+            machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
         }
         return 0;
     }

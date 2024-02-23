@@ -28,12 +28,14 @@
 #ifndef VICE_PADDLE_H
 #define VICE_PADDLE_H
 
-extern int mouse_paddle_register(void);
+int paddle_register(void);
+int koalapad_register(void);
+int mf_joystick_register(void);
 
-extern void paddles_button_left(int pressed);
-extern void paddles_button_right(int pressed);
+void paddles_button_left(int pressed);
+void paddles_button_right(int pressed);
 
-extern int paddles_resources_init(void);
-extern int paddles_cmdline_options_init(void);
+int paddles_resources_init(void);
+int paddles_cmdline_options_init(void);
 
 #endif

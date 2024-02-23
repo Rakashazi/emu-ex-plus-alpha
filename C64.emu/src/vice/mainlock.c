@@ -158,6 +158,8 @@ void mainlock_yield(void)
  */
 void mainlock_yield_begin(void)
 {
+    mainlock_assert_is_vice_thread();
+
     pthread_mutex_unlock(&main_lock);
 
     /*

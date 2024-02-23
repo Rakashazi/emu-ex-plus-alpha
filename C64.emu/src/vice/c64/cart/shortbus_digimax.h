@@ -30,21 +30,21 @@
 #include "snapshot.h"
 #include "types.h"
 
-extern int shortbus_digimax_resources_init(void);
-extern void shortbus_digimax_resources_shutdown(void);
+int shortbus_digimax_resources_init(void);
+void shortbus_digimax_resources_shutdown(void);
 
-extern int shortbus_digimax_cmdline_options_init(void);
+int shortbus_digimax_cmdline_options_init(void);
 
-extern void shortbus_digimax_unregister(void);
-extern void shortbus_digimax_register(void);
+void shortbus_digimax_unregister(void);
+void shortbus_digimax_register(void);
 
-extern void shortbus_digimax_reset(void);
+void shortbus_digimax_reset(void);
 
-extern void shortbus_digimax_sound_chip_init(void);
+void shortbus_digimax_sound_chip_init(void);
 
-extern int shortbus_digimax_enabled(void);
+int shortbus_digimax_enabled(void);
 
-extern int shortbus_digimax_write_snapshot_module(snapshot_t *s);
-extern int shortbus_digimax_read_snapshot_module(snapshot_t *s);
+int shortbus_digimax_write_snapshot_module(snapshot_t *s);
+int shortbus_digimax_read_snapshot_module(snapshot_t *s);
 
 #endif

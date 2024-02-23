@@ -82,7 +82,7 @@ int supercard_load(const char *name)
 static uint8_t supercard_read(diskunit_context_t *drv, uint16_t addr)
 {
     DBG(("supercard_read <%04x> <%02x>\n", addr, supercard_rom[addr & 0x07ff]));
-    return supercard_rom[addr & 0x07ff];
+    return drv->cpu->cpu_last_data = supercard_rom[addr & 0x07ff];
 }
 
 void supercard_mem_init(struct diskunit_context_s *drv, unsigned int type)

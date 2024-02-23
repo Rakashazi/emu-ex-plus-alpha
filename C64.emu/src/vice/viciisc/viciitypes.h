@@ -260,7 +260,7 @@ typedef struct vicii_s vicii_t;
 extern vicii_t vicii;
 
 /* Private function calls, used by the other VIC-II modules.  */
-extern void vicii_raster_draw_handler(void);
+void vicii_raster_draw_handler(void);
 
 /* Debugging options.  */
 

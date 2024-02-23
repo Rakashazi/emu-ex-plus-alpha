@@ -71,7 +71,8 @@ static io_source_t sfx_soundsampler_io1_device = {
     NULL,                             /* nothing to dump */
     CARTRIDGE_SFX_SOUND_SAMPLER,      /* cartridge ID */
     IO_PRIO_NORMAL,                   /* normal priority, device read needs to be checked for collisions */
-    0                                 /* insertion order, gets filled in by the registration function */
+    0,                                /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                    /* NO mirroring */
 };
 
 static io_source_t sfx_soundsampler_io2_device = {
@@ -87,7 +88,8 @@ static io_source_t sfx_soundsampler_io2_device = {
     NULL,                             /* nothing to dump */
     CARTRIDGE_SFX_SOUND_SAMPLER,      /* cartridge ID */
     IO_PRIO_NORMAL,                   /* normal priority, device read needs to be checked for collisions */
-    0                                 /* insertion order, gets filled in by the registration function */
+    0,                                /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                    /* NO mirroring */
 };
 
 static io_source_list_t *sfx_soundsampler_io1_list_item = NULL;
@@ -101,10 +103,15 @@ static const export_resource_t export_res = {
 
 /* Some prototypes are needed */
 static int sfx_soundsampler_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec);
-static int sfx_soundsampler_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, CLOCK *delta_t);
 static void sfx_soundsampler_sound_machine_store(sound_t *psid, uint16_t addr, uint8_t val);
 static uint8_t sfx_soundsampler_sound_machine_read(sound_t *psid, uint16_t addr);
 static void sfx_soundsampler_sound_reset(sound_t *psid, CLOCK cpu_clk);
+
+#ifdef SOUND_SYSTEM_FLOAT
+static int sfx_soundsampler_sound_machine_calculate_samples(sound_t **psid, float *pbuf, int nr, int sound_chip_channels, CLOCK *delta_t);
+#else
+static int sfx_soundsampler_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, CLOCK *delta_t);
+#endif
 
 static int sfx_soundsampler_sound_machine_cycle_based(void)
 {
@@ -115,6 +122,16 @@ static int sfx_soundsampler_sound_machine_channels(void)
 {
     return 1;
 }
+
+#ifdef SOUND_SYSTEM_FLOAT
+/* stereo mixing placement of the SFX Sound Sampler sound */
+static sound_chip_mixing_spec_t sfx_soundsampler_sound_mixing_spec[SOUND_CHIP_CHANNELS_MAX] = {
+    {
+        100, /* left channel volume % in case of stereo output, default output to both */
+        100  /* right channel volume % in case of stereo output, default output to both */
+    }
+};
+#endif
 
 /* SFX Sound Sampler cartridge sound chip */
 static sound_chip_t sfx_soundsampler_sound_chip = {
@@ -127,6 +144,9 @@ static sound_chip_t sfx_soundsampler_sound_chip = {
     sfx_soundsampler_sound_reset,                     /* sound chip reset function */
     sfx_soundsampler_sound_machine_cycle_based,       /* sound chip 'is_cycle_based()' function, sound chip is NOT cycle based */
     sfx_soundsampler_sound_machine_channels,          /* sound chip 'get_amount_of_channels()' function, sound chip has 1 channel */
+#ifdef SOUND_SYSTEM_FLOAT
+    sfx_soundsampler_sound_mixing_spec,               /* stereo mixing placement specs */
+#endif
     0                                                 /* chip enabled, toggled when sound chip is (de-)activated */
 };
 
@@ -314,10 +334,18 @@ struct sfx_soundsampler_sound_s {
 
 static struct sfx_soundsampler_sound_s snd;
 
+#ifdef SOUND_SYSTEM_FLOAT
+/* FIXME */
+static int sfx_soundsampler_sound_machine_calculate_samples(sound_t **psid, float *pbuf, int nr, int scc, CLOCK *delta_t)
+{
+    return sound_dac_calculate_samples(&sfx_soundsampler_dac, pbuf, (int)snd.voice0 * 128, nr);
+}
+#else
 static int sfx_soundsampler_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int soc, int scc, CLOCK *delta_t)
 {
-    return sound_dac_calculate_samples(&sfx_soundsampler_dac, pbuf, (int)snd.voice0 * 128, nr, soc, (soc > 1) ? 3 : 1);
+    return sound_dac_calculate_samples(&sfx_soundsampler_dac, pbuf, (int)snd.voice0 * 128, nr, soc, (soc == SOUND_OUTPUT_STEREO) ? SOUND_CHANNELS_1_AND_2 : SOUND_CHANNEL_1);
 }
+#endif
 
 static int sfx_soundsampler_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec)
 {

@@ -84,18 +84,18 @@ typedef struct iecbus_s {
 
 extern iecbus_t iecbus;
 
-extern iecbus_t *iecbus_drive_port(void);
+iecbus_t *iecbus_drive_port(void);
 
-extern void iecbus_init(void);
-extern void iecbus_cpu_undump(uint8_t data);
-extern void iecbus_status_set(unsigned int type, unsigned int unit,
-                              unsigned int enable);
+void iecbus_init(void);
+void iecbus_cpu_undump(uint8_t data);
+void iecbus_status_set(unsigned int type, unsigned int unit, unsigned int enable);
 
 extern uint8_t (*iecbus_callback_read)(CLOCK);
 extern void (*iecbus_callback_write)(uint8_t, CLOCK);
 
-extern uint8_t iecbus_device_read(void);
-extern int  iecbus_device_write(unsigned int unit, uint8_t data);
+uint8_t iecbus_device_read(void);
+int iecbus_device_write(unsigned int unit, uint8_t data);
+
 extern void (*iecbus_update_ports)(void);
 
 #endif

@@ -30,15 +30,15 @@
 #include "traps.h"
 #include "types.h"
 
-extern int flash_trap_init(const struct trap_s *trap_list);
-extern void flash_trap_shutdown(void);
+int flash_trap_init(const struct trap_s *trap_list);
+void flash_trap_shutdown(void);
 
-extern int flash_trap_seek_next(void);
-extern int flash_trap_load_body(void);
-extern void flash_traps_reset(void);
+int flash_trap_seek_next(void);
+int flash_trap_load_body(void);
+void flash_traps_reset(void);
 
-extern int flash_trap_resources_init(void);
-extern void flash_trap_resources_shutdown(void);
-extern int flash_trap_cmdline_options_init(void);
+int flash_trap_resources_init(void);
+void flash_trap_resources_shutdown(void);
+int flash_trap_cmdline_options_init(void);
 
 #endif

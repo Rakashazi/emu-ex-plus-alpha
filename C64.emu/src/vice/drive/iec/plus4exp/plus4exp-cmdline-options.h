@@ -27,6 +27,6 @@
 #ifndef VICE_PLUS4EXP_CMDLINE_OPTIONS_H
 #define VICE_PLUS4EXP_CMDLINE_OPTIONS_H
 
-extern int plus4exp_cmdline_options_init(void);
+int plus4exp_cmdline_options_init(void);
 
 #endif

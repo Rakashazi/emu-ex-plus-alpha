@@ -29,7 +29,7 @@
 
 #include "types.h"
 
-extern void parallel_cable_cpu_undump(int type, uint8_t data);
-extern int parallel_cable_cpu_resources_init(void);
+void parallel_cable_cpu_undump(int type, uint8_t data);
+int parallel_cable_cpu_resources_init(void);
 
 #endif

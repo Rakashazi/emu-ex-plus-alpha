@@ -161,9 +161,10 @@ static int limit_longname(vdrive_t *vdrive, char *longname, int mode)
     DBG(("limit_longname path '%s'\n", prefix));
 
     archdep_dir = archdep_opendir(prefix, ARCHDEP_OPENDIR_ALL_FILES);
-    ret = _limit_longname(archdep_dir, vdrive, longname, mode);
-    archdep_closedir(archdep_dir);
-
+    if (archdep_dir != NULL) {
+        ret = _limit_longname(archdep_dir, vdrive, longname, mode);
+        archdep_closedir(archdep_dir);
+    }
     return ret;
 }
 
@@ -196,6 +197,9 @@ static char *expand_shortname(vdrive_t *vdrive, char *shortname, int mode)
         DBG(("expand_shortname path '%s'\n", prefix));
 
         host_dir = archdep_opendir(prefix, ARCHDEP_OPENDIR_ALL_FILES);
+        if (host_dir == NULL) {
+            return NULL;
+        }
 
         while(1) {
             direntry = archdep_readdir(host_dir);

@@ -37,66 +37,68 @@
 #include <sys/types.h>
 #endif
 
-#define RTC_MONTH_JAN   0
-#define RTC_MONTH_FEB   1
-#define RTC_MONTH_MAR   2
-#define RTC_MONTH_APR   3
-#define RTC_MONTH_MAY   4
-#define RTC_MONTH_JUN   5
-#define RTC_MONTH_JUL   6
-#define RTC_MONTH_AUG   7
-#define RTC_MONTH_SEP   8
-#define RTC_MONTH_OCT   9
-#define RTC_MONTH_NOV   10
-#define RTC_MONTH_DEC   11
+enum {
+    RTC_MONTH_JAN = 0,
+    RTC_MONTH_FEB,
+    RTC_MONTH_MAR,
+    RTC_MONTH_APR,
+    RTC_MONTH_MAY,
+    RTC_MONTH_JUN,
+    RTC_MONTH_JUL,
+    RTC_MONTH_AUG,
+    RTC_MONTH_SEP,
+    RTC_MONTH_OCT,
+    RTC_MONTH_NOV,
+    RTC_MONTH_DEC
+};
 
 /* max amount of RTC's in use at the same time */
 #define RTC_MAX 20
 
-extern uint8_t rtc_get_centisecond(int bcd);
+uint8_t rtc_get_centisecond(int bcd);
 
-extern uint8_t rtc_get_second(time_t time_val, int bcd);         /* 0 - 61 (leap seconds would be 60 and 61) */
-extern uint8_t rtc_get_minute(time_t time_val, int bcd);         /* 0 - 59 */
-extern uint8_t rtc_get_hour(time_t time_val, int bcd);           /* 0 - 23 */
-extern uint8_t rtc_get_hour_am_pm(time_t time_val, int bcd);     /* 1 - 12 + AM/PM in bit 5 (0 = AM, 1 = PM) */
-extern uint8_t rtc_get_day_of_month(time_t time_val, int bcd);   /* 1 - 31 */
-extern uint8_t rtc_get_month(time_t time_val, int bcd);          /* 1 - 12 (1 = January, 2 = Febuary ...etc) */
-extern uint8_t rtc_get_year(time_t time_val, int bcd);           /* 0 - 99 */
-extern uint8_t rtc_get_century(time_t time_val, int bcd);        /* 19 - 20 */
-extern uint8_t rtc_get_weekday(time_t time_val);                 /* 0 - 6 (sunday 0, monday 1 ...etc) */
-extern uint16_t rtc_get_day_of_year(time_t time_val);             /* 0 - 365 */
-extern int rtc_get_dst(time_t time_val);                     /* 0 - >0 (0 no dst, >0 dst) */
-extern time_t rtc_get_latch(time_t offset);
+uint8_t rtc_get_second(time_t time_val, int bcd);         /* 0 - 61 (leap seconds would be 60 and 61) */
+uint8_t rtc_get_minute(time_t time_val, int bcd);         /* 0 - 59 */
+uint8_t rtc_get_hour(time_t time_val, int bcd);           /* 0 - 23 */
+uint8_t rtc_get_hour_am_pm(time_t time_val, int bcd);     /* 1 - 12 + AM/PM in bit 5 (0 = AM, 1 = PM) */
+uint8_t rtc_get_day_of_month(time_t time_val, int bcd);   /* 1 - 31 */
+uint8_t rtc_get_month(time_t time_val, int bcd);          /* 1 - 12 (1 = January, 2 = Febuary ...etc) */
+uint8_t rtc_get_year(time_t time_val, int bcd);           /* 0 - 99 */
+uint8_t rtc_get_century(time_t time_val, int bcd);        /* 19 - 20 */
+uint8_t rtc_get_weekday(time_t time_val);                 /* 0 - 6 (sunday 0, monday 1 ...etc) */
+uint16_t rtc_get_day_of_year(time_t time_val);            /* 0 - 365 */
+int rtc_get_dst(time_t time_val);                         /* 0 - >0 (0 no dst, >0 dst) */
+time_t rtc_get_latch(time_t offset);
 
 /* these functions all return a new offset based on what is changed and the old offset */
 
-extern time_t rtc_set_second(int seconds, time_t offset, int bcd);     /* 0 - 61 (leap seconds would be 60 and 61) */
-extern time_t rtc_set_minute(int minutes, time_t offset, int bcd);     /* 0 - 59 */
-extern time_t rtc_set_hour(int hours, time_t offset, int bcd);         /* 0 - 23 */
-extern time_t rtc_set_hour_am_pm(int hours, time_t offset, int bcd);   /* 1 - 12 + AM/PM in bit 5 (0 = AM, 1 = PM) */
-extern time_t rtc_set_day_of_month(int day, time_t offset, int bcd);   /* 1 - 31 */
-extern time_t rtc_set_month(int month, time_t offset, int bcd);        /* 1 - 12 */
-extern time_t rtc_set_year(int year, time_t offset, int bcd);          /* 0 - 99 */
-extern time_t rtc_set_century(int year, time_t offset, int bcd);       /* 19 - 20 */
-extern time_t rtc_set_weekday(int day, time_t offset);                 /* 0 - 6 (sunday 0, monday 1 ...etc) */
-extern time_t rtc_set_day_of_year(int day, time_t offset);             /* 0 - 365 */
+time_t rtc_set_second(int seconds, time_t offset, int bcd);     /* 0 - 61 (leap seconds would be 60 and 61) */
+time_t rtc_set_minute(int minutes, time_t offset, int bcd);     /* 0 - 59 */
+time_t rtc_set_hour(int hours, time_t offset, int bcd);         /* 0 - 23 */
+time_t rtc_set_hour_am_pm(int hours, time_t offset, int bcd);   /* 1 - 12 + AM/PM in bit 5 (0 = AM, 1 = PM) */
+time_t rtc_set_day_of_month(int day, time_t offset, int bcd);   /* 1 - 31 */
+time_t rtc_set_month(int month, time_t offset, int bcd);        /* 1 - 12 */
+time_t rtc_set_year(int year, time_t offset, int bcd);          /* 0 - 99 */
+time_t rtc_set_century(int year, time_t offset, int bcd);       /* 19 - 20 */
+time_t rtc_set_weekday(int day, time_t offset);                 /* 0 - 6 (sunday 0, monday 1 ...etc) */
+time_t rtc_set_day_of_year(int day, time_t offset);             /* 0 - 365 */
 
 /* these functions all return a new latch based on what is changed and the old latch */
-extern time_t rtc_set_latched_second(int seconds, time_t latch, int bcd);     /* 0 - 61 (leap seconds would be 60 and 61) */
-extern time_t rtc_set_latched_minute(int minutes, time_t latch, int bcd);     /* 0 - 59 */
-extern time_t rtc_set_latched_hour(int hours, time_t latch, int bcd);         /* 0 - 23 */
-extern time_t rtc_set_latched_hour_am_pm(int hours, time_t latch, int bcd);   /* 1 - 12 + AM/PM in bit 5 (0 = AM, 1 = PM) */
-extern time_t rtc_set_latched_day_of_month(int day, time_t latch, int bcd);   /* 1 - 31 */
-extern time_t rtc_set_latched_month(int month, time_t latch, int bcd);        /* 1 - 12 */
-extern time_t rtc_set_latched_year(int year, time_t latch, int bcd);          /* 0 - 99 */
-extern time_t rtc_set_latched_century(int year, time_t latch, int bcd);       /* 19 - 20 */
-extern time_t rtc_set_latched_weekday(int day, time_t latch);                 /* 0 - 6 (sunday 0, monday 1 ...etc) */
-extern time_t rtc_set_latched_day_of_year(int day, time_t latch);             /* 0 - 365 */
+time_t rtc_set_latched_second(int seconds, time_t latch, int bcd);     /* 0 - 61 (leap seconds would be 60 and 61) */
+time_t rtc_set_latched_minute(int minutes, time_t latch, int bcd);     /* 0 - 59 */
+time_t rtc_set_latched_hour(int hours, time_t latch, int bcd);         /* 0 - 23 */
+time_t rtc_set_latched_hour_am_pm(int hours, time_t latch, int bcd);   /* 1 - 12 + AM/PM in bit 5 (0 = AM, 1 = PM) */
+time_t rtc_set_latched_day_of_month(int day, time_t latch, int bcd);   /* 1 - 31 */
+time_t rtc_set_latched_month(int month, time_t latch, int bcd);        /* 1 - 12 */
+time_t rtc_set_latched_year(int year, time_t latch, int bcd);          /* 0 - 99 */
+time_t rtc_set_latched_century(int year, time_t latch, int bcd);       /* 19 - 20 */
+time_t rtc_set_latched_weekday(int day, time_t latch);                 /* 0 - 6 (sunday 0, monday 1 ...etc) */
+time_t rtc_set_latched_day_of_year(int day, time_t latch);             /* 0 - 365 */
 
-extern void rtc_save_context(uint8_t *ram, int ram_size, uint8_t *regs, int reg_size, char *device, time_t offset);
-extern int rtc_load_context(char *device, int ram_size, int reg_size);
-extern uint8_t *rtc_get_loaded_ram(void);
-extern time_t rtc_get_loaded_offset(void);
-extern uint8_t *rtc_get_loaded_clockregs(void);
+void rtc_save_context(uint8_t *ram, int ram_size, uint8_t *regs, int reg_size, char *device, time_t offset);
+int rtc_load_context(char *device, int ram_size, int reg_size);
+uint8_t *rtc_get_loaded_ram(void);
+time_t rtc_get_loaded_offset(void);
+uint8_t *rtc_get_loaded_clockregs(void);
 
 #endif

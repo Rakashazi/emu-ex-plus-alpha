@@ -28,10 +28,15 @@
 #include "vice.h"
 
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "c64/cart/clockport.h"
 #include "cartridge.h"
 #include "mididrv.h"
+#include "pet/petpia.h"
+#ifdef HAVE_LIBCURL
+#include "userport_wic64.h"
+#endif
 
 #ifdef WINDOWS_COMPILE
 void mididrv_ui_reset_device_list(int device)
@@ -50,71 +55,8 @@ char *mididrv_ui_get_next_device_name(int device, int *id)
 
 clockport_supported_devices_t clockport_supported_devices[] = { { 0, NULL } };
 
-/*******************************************************************************
-    cartridge
-*******************************************************************************/
 
-int cartridge_save_image(int type, const char *filename)
+bool pia1_get_diagnostic_pin(void)
 {
-    return -1;
-}
-
-int cartridge_flush_image(int type)
-{
-    return -1;
-}
-
-int cartridge_can_save_image(int crtid)
-{
-    return 0;
-}
-
-int cartridge_can_flush_image(int crtid)
-{
-    return 0;
-}
-
-int cartridge_enable(int crtid)
-{
-    return -1;
-}
-
-int cartridge_disable(int crtid)
-{
-    return -1;
-}
-
-int cartridge_type_enabled(int crtid)
-{
-    return 0;
-}
-
-void cartridge_set_default(void)
-{
-}
-
-void cartridge_unset_default(void)
-{
-}
-
-cartridge_info_t *cartridge_get_info_list(void)
-{
-    return NULL;
-}
-
-/* return cartridge type of main slot
-   returns 0 (CARTRIDGE_CRT) if crt file */
-int cartridge_get_id(int slot)
-{
-    return CARTRIDGE_NONE;
-}
-
-/* FIXME: terrible name, we already have cartridge_get_file_name */
-char *cartridge_get_filename(int slot)
-{
-    return NULL;
-}
-
-void cartridge_trigger_freeze(void)
-{
+    return false;
 }

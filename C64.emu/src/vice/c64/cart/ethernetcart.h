@@ -42,19 +42,19 @@
 #define ETHERNETCART_MODE_RRNET   1
 
 struct snapshot_s;
-extern int ethernetcart_snapshot_read_module(struct snapshot_s *s);
-extern int ethernetcart_snapshot_write_module(struct snapshot_s *s);
+int ethernetcart_snapshot_read_module(struct snapshot_s *s);
+int ethernetcart_snapshot_write_module(struct snapshot_s *s);
 
-extern int ethernetcart_cart_enabled(void);
+int ethernetcart_cart_enabled(void);
 
-extern void ethernetcart_init(void);
-extern int ethernetcart_resources_init(void);
-extern void ethernetcart_resources_shutdown(void);
-extern int ethernetcart_cmdline_options_init(void);
+void ethernetcart_init(void);
+int ethernetcart_resources_init(void);
+void ethernetcart_resources_shutdown(void);
+int ethernetcart_cmdline_options_init(void);
 
-extern void ethernetcart_reset(void);
-extern void ethernetcart_detach(void);
-extern int ethernetcart_enable(void);
+void ethernetcart_reset(void);
+void ethernetcart_detach(void);
+int ethernetcart_enable(void);
 int ethernetcart_disable(void);
 
 #endif

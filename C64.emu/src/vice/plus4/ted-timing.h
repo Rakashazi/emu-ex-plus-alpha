@@ -97,6 +97,6 @@ NTSC display ranges:
 
 struct machine_timing_s;
 
-extern void ted_timing_set(struct machine_timing_s *machine_timing, int bordermode);
+void ted_timing_set(struct machine_timing_s *machine_timing, int bordermode);
 
 #endif

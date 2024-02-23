@@ -30,6 +30,6 @@
 
 #include "types.h"
 
-extern int interface_userport_init_resources(void);
+int interface_userport_init_resources(void);
 
 #endif

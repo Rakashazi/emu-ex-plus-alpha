@@ -30,6 +30,7 @@
 
 #include <string.h>
 
+#include "c64.h"
 #include "c64iec.h"
 #include "c64keyboard.h"
 #include "c64model.h"
@@ -84,6 +85,7 @@ static int is_new_cia(int model)
 
 struct model_s {
     int video;   /* machine video timing */
+    int ciatick;
     int cia;     /* old or new */
     int sid;     /* old or new */
     int board;
@@ -92,81 +94,80 @@ struct model_s {
     int iec;
     int userport;
     int keyboard;
+    int cia2;
     char *chargenname;
     int kernalrev;  /* note: the name of the kernal is in a table in c64-resources.c */
 };
 
-/* FIXME: actually implement the missing IEC, Datasette, userport and keyboard stuff */
-
 static struct model_s c64models[] = {
     /* C64 PAL */
-    { MACHINE_SYNC_PAL, OLD_CIA, OLD_SID, BOARD_C64,
-      IEC_SOFT_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD,
+    { MACHINE_SYNC_PAL, CIATICK_NET, OLD_CIA, OLD_SID, BOARD_C64,
+      IEC_SOFT_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, HAS_CIA2,
       C64_CHARGEN_NAME, C64_KERNAL_REV3 },
 
     /* C64C PAL */
-    { MACHINE_SYNC_PAL, NEW_CIA, NEW_SID, BOARD_C64,
-      IEC_HARD_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD,
+    { MACHINE_SYNC_PAL, CIATICK_NET, NEW_CIA, NEW_SID, BOARD_C64,
+      IEC_HARD_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, HAS_CIA2,
       C64_CHARGEN_NAME, C64_KERNAL_REV3 },
 
     /* C64 OLD PAL */
-    { MACHINE_SYNC_PAL, OLD_CIA, OLD_SID, BOARD_C64,
-      IEC_SOFT_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD,
+    { MACHINE_SYNC_PAL, CIATICK_NET, OLD_CIA, OLD_SID, BOARD_C64,
+      IEC_SOFT_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, HAS_CIA2,
       C64_CHARGEN_NAME, C64_KERNAL_REV2 },
 
     /* C64 NTSC */
-    { MACHINE_SYNC_NTSC, OLD_CIA, OLD_SID, BOARD_C64,
-      IEC_SOFT_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD,
+    { MACHINE_SYNC_NTSC, CIATICK_NET, OLD_CIA, OLD_SID, BOARD_C64,
+      IEC_SOFT_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, HAS_CIA2,
       C64_CHARGEN_NAME, C64_KERNAL_REV3 },
 
     /* C64C NTSC */
-    { MACHINE_SYNC_NTSC, NEW_CIA, NEW_SID, BOARD_C64,
-      IEC_HARD_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD,
+    { MACHINE_SYNC_NTSC, CIATICK_NET, NEW_CIA, NEW_SID, BOARD_C64,
+      IEC_HARD_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, HAS_CIA2,
       C64_CHARGEN_NAME, C64_KERNAL_REV3 },
 
     /* C64 OLD NTSC */
-    { MACHINE_SYNC_NTSCOLD, OLD_CIA, OLD_SID, BOARD_C64,
-      IEC_SOFT_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD,
+    { MACHINE_SYNC_NTSCOLD, CIATICK_NET, OLD_CIA, OLD_SID, BOARD_C64,
+      IEC_SOFT_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, HAS_CIA2,
       C64_CHARGEN_NAME, C64_KERNAL_REV1 },
 
     /* C64 PAL-N */
-    { MACHINE_SYNC_PALN, OLD_CIA, OLD_SID, BOARD_C64,
-      IEC_SOFT_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD,
+    { MACHINE_SYNC_PALN, CIATICK_NET, OLD_CIA, OLD_SID, BOARD_C64,
+      IEC_SOFT_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, HAS_CIA2,
       C64_CHARGEN_NAME, C64_KERNAL_REV3 },
 
     /* SX64 PAL, FIXME: guessed */
-    { MACHINE_SYNC_PAL, OLD_CIA, OLD_SID, BOARD_C64,
-      IEC_SOFT_RESET, NO_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD,
+    { MACHINE_SYNC_PAL, CIATICK_60HZ, OLD_CIA, OLD_SID, BOARD_C64,
+      IEC_SOFT_RESET, NO_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, HAS_CIA2,
       C64_CHARGEN_NAME, C64_KERNAL_SX64 },
 
     /* SX64 NTSC, FIXME: guessed */
-    { MACHINE_SYNC_NTSC, OLD_CIA, OLD_SID, BOARD_C64,
-      IEC_SOFT_RESET, NO_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD,
+    { MACHINE_SYNC_NTSC, CIATICK_60HZ, OLD_CIA, OLD_SID, BOARD_C64,
+      IEC_SOFT_RESET, NO_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, HAS_CIA2,
       C64_CHARGEN_NAME, C64_KERNAL_SX64 },
 
     /* C64 Japanese, FIXME: guessed */
-    { MACHINE_SYNC_NTSC, OLD_CIA, OLD_SID, BOARD_C64,
-      IEC_SOFT_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD,
+    { MACHINE_SYNC_NTSC, CIATICK_NET, OLD_CIA, OLD_SID, BOARD_C64,
+      IEC_SOFT_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, HAS_CIA2,
       C64_CHARGEN_JAP_NAME, C64_KERNAL_JAP },
 
     /* C64 GS, FIXME: guessed */
-    { MACHINE_SYNC_PAL, NEW_CIA, NEW_SID, BOARD_C64,
-      IEC_HARD_RESET, NO_DATASETTE, NO_IEC, NO_USERPORT, NO_KEYBOARD,
+    { MACHINE_SYNC_PAL, CIATICK_NET, NEW_CIA, NEW_SID, BOARD_C64,
+      IEC_HARD_RESET, NO_DATASETTE, NO_IEC, NO_USERPORT, NO_KEYBOARD, HAS_CIA2,
       C64_CHARGEN_NAME, C64_KERNAL_GS64 },
 
     /* PET64 PAL, FIXME: guessed */
-    { MACHINE_SYNC_PAL, OLD_CIA, OLD_SID, BOARD_C64,
-      IEC_SOFT_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD,
+    { MACHINE_SYNC_PAL, CIATICK_NET, OLD_CIA, OLD_SID, BOARD_C64,
+      IEC_SOFT_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, HAS_CIA2,
       C64_CHARGEN_NAME, C64_KERNAL_4064 },
 
     /* PET64 NTSC, FIXME: guessed */
-    { MACHINE_SYNC_NTSC, OLD_CIA, OLD_SID, BOARD_C64,
-      IEC_SOFT_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD,
+    { MACHINE_SYNC_NTSC, CIATICK_NET, OLD_CIA, OLD_SID, BOARD_C64,
+      IEC_SOFT_RESET, HAS_DATASETTE, HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, HAS_CIA2,
       C64_CHARGEN_NAME, C64_KERNAL_4064 },
 
     /* ultimax, FIXME: guessed */
-    { MACHINE_SYNC_NTSC, OLD_CIA, OLD_SID, BOARD_MAX,
-      IEC_SOFT_RESET, HAS_DATASETTE, NO_IEC, NO_USERPORT, HAS_KEYBOARD,
+    { MACHINE_SYNC_NTSC, CIATICK_NET, OLD_CIA, OLD_SID, BOARD_MAX,
+      IEC_SOFT_RESET, HAS_DATASETTE, NO_IEC, NO_USERPORT, HAS_KEYBOARD, NO_CIA2,
       C64_CHARGEN_NAME, C64_KERNAL_NONE },
 };
 
@@ -290,6 +291,7 @@ void c64model_set(int model)
     int old_type;
     int new_sid_model;
     int new_type;
+    int pf;
 
     old_model = c64model_get();
 
@@ -298,6 +300,21 @@ void c64model_set(int model)
     }
 
     resources_set_int("MachineVideoStandard", c64models[model].video);
+    /* Determine the power net frequency for this model. It will be 60Hz in all
+       cases, except for PAL models that get the tick from the power grid */
+    pf = 60;
+    if (c64models[model].ciatick == CIATICK_NET) {
+        switch(c64models[model].video) {
+            case MACHINE_SYNC_PAL:
+            case MACHINE_SYNC_PALN:
+                pf = 50;
+                break;
+            default:
+                break;
+        }
+    }
+    resources_set_int("MachinePowerFrequency", pf);
+
     resources_set_int("CIA1Model", c64models[model].cia);
     resources_set_int("CIA2Model", c64models[model].cia);
     resources_set_int("BoardType", c64models[model].board);
@@ -325,4 +342,5 @@ void c64model_set(int model)
     c64keyboard_enable(c64models[model].keyboard);
     c64iec_enable(c64models[model].iec);
     tapeport_enable(c64models[model].datasette);
+    c64_cia2_enable(c64models[model].cia2);
 }

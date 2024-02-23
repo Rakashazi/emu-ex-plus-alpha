@@ -431,20 +431,20 @@ static void vdc_increment_memory_pointer(void)
 {
     vdc.mem_counter_inc = vdc.screen_text_cols;
     if (vdc.raster.ycounter >= vdc.raster_ycounter_max) {
-        vdc.mem_counter += vdc.mem_counter_inc + vdc.regs[27];
+        vdc.mem_counter += vdc.mem_counter_inc + vdc.skip_after_line;
     }
 
     vdc.raster.ycounter = (vdc.raster.ycounter + 1)
                           % (vdc.raster_ycounter_max + 1);
 
-    vdc.bitmap_counter += vdc.mem_counter_inc + vdc.regs[27];
+    vdc.bitmap_counter += vdc.mem_counter_inc + vdc.skip_after_line;
 }
 
 static void vdc_increment_memory_pointer_interlace_bitmap(void)
 {   /* This is identical to above (and should remain so), we just don't increment the bitmap pointer */
     vdc.mem_counter_inc = vdc.screen_text_cols;
     if (vdc.raster.ycounter >= vdc.raster_ycounter_max) {
-        vdc.mem_counter += vdc.mem_counter_inc + vdc.regs[27];
+        vdc.mem_counter += vdc.mem_counter_inc + vdc.skip_after_line;
     }
     vdc.raster.ycounter = (vdc.raster.ycounter + 1)
                           % (vdc.raster_ycounter_max + 1);
@@ -727,7 +727,7 @@ static void vdc_raster_draw_alarm_handler(CLOCK offset, void *data)
             if (vdc.interlaced & vdc.frame_counter) {
                 vdc.draw_counter_y = (vdc.draw_counter_y + 1)
                           % ((vdc.regs[9] & 0x1F) + 1); /* FIXME this is overly complex and definitely not what the chip does internally.. */
-                vdc.bitmap_counter += vdc.mem_counter_inc + vdc.regs[27];
+                vdc.bitmap_counter += vdc.mem_counter_inc + vdc.skip_after_line;
                 vdc.bitmap_counter &= vdc.vdc_address_mask;
             }
         } else {
@@ -745,14 +745,14 @@ static void vdc_raster_draw_alarm_handler(CLOCK offset, void *data)
                         && (vdc.regs[25] & 0x80)    /* bitmap mode and.. */
                         && !(vdc.frame_counter & 1)) { /* even frame */
                     vdc.mem_counter_inc = vdc.screen_text_cols;
-                    vdc.mem_counter += vdc.mem_counter_inc + vdc.regs[27];
+                    vdc.mem_counter += vdc.mem_counter_inc + vdc.skip_after_line;
                     vdc.mem_counter &= vdc.vdc_address_mask;
                 }
             } else {
                 vdc.draw_counter_y += 1 + vdc.interlaced;
                 vdc.draw_counter_y &= 0x1F;
                 if (vdc.interlaced) {
-                    vdc.bitmap_counter += vdc.mem_counter_inc + vdc.regs[27];
+                    vdc.bitmap_counter += vdc.mem_counter_inc + vdc.skip_after_line;
                     vdc.bitmap_counter &= vdc.vdc_address_mask;
                 }
             }
@@ -774,15 +774,15 @@ static void vdc_raster_draw_alarm_handler(CLOCK offset, void *data)
 
             /* increment memory pointers etc. for a new character row */
             vdc.mem_counter_inc = vdc.screen_text_cols;
-            vdc.mem_counter += vdc.mem_counter_inc + vdc.regs[27];
+            vdc.mem_counter += vdc.mem_counter_inc + vdc.skip_after_line;
             vdc.mem_counter &= vdc.vdc_address_mask;
-            vdc.bitmap_counter += vdc.mem_counter_inc + vdc.regs[27];
+            vdc.bitmap_counter += vdc.mem_counter_inc + vdc.skip_after_line;
             vdc.bitmap_counter &= vdc.vdc_address_mask;
         } else {
             /* increment memory pointers etc. for a new raster line */
             vdc.draw_counter_y += 1 + vdc.interlaced;
             vdc.draw_counter_y &= 0x1F;
-            vdc.bitmap_counter += vdc.mem_counter_inc + vdc.regs[27];
+            vdc.bitmap_counter += vdc.mem_counter_inc + vdc.skip_after_line;
             vdc.bitmap_counter &= vdc.vdc_address_mask;
         }
         if (vdc.draw_counter_y == (vdc.regs[9] & 0x1F) || (vdc.draw_counter_y + vdc.interlaced) == (vdc.regs[9] & 0x1F)) {
@@ -831,8 +831,8 @@ static void vdc_raster_draw_alarm_handler(CLOCK offset, void *data)
             if (j == 82) {
                 j = 41;
             }
-            vdc.attrbuf[(vdc.attrbufdraw ^ 0x100) | j] = vdc_ram_read(vdc.attribute_adr + vdc.mem_counter + vdc.mem_counter_inc + vdc.regs[27] + i);
-            vdc.scrnbuf[(vdc.scrnbufdraw ^ 0x100) | j] = vdc_ram_read(vdc.screen_adr + vdc.mem_counter + vdc.mem_counter_inc + vdc.regs[27] + i);
+            vdc.attrbuf[(vdc.attrbufdraw ^ 0x100) | j] = vdc_ram_read(vdc.attribute_adr + vdc.mem_counter + vdc.mem_counter_inc + vdc.skip_after_line + i);
+            vdc.scrnbuf[(vdc.scrnbufdraw ^ 0x100) | j] = vdc_ram_read(vdc.screen_adr + vdc.mem_counter + vdc.mem_counter_inc + vdc.skip_after_line + i);
         }
     }
 

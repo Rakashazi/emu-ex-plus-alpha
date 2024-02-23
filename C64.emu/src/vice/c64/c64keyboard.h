@@ -27,10 +27,10 @@
 #ifndef VICE_C64KEYBOARD_H
 #define VICE_C64KEYBOARD_H
 
-extern void c64keyboard_init(void);
-extern void c64keyboard_restore_key(int v);
+void c64keyboard_init(void);
+void c64keyboard_restore_key(int v);
 
-extern void c64keyboard_enable(int val);
+void c64keyboard_enable(int val);
 
 extern int c64keyboard_active;
 

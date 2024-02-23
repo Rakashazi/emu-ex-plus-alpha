@@ -1,5 +1,5 @@
 /*
- * paperclip64c.c - Paperclip 64 joyport dongle emulation.
+ * paperclip64.c - Paperclip 64D joyport dongle emulation.
  *
  * Written by
  *  Marco van den Heuvel <blackystardust68@yahoo.com>
@@ -35,24 +35,26 @@
 #include "resources.h"
 #include "snapshot.h"
 
-/* Control port <--> paperclip64 connections:
+/* Control port <--> paperclip64D connections:
 
-   cport | paperclip64 | I/O
-   -------------------------
-     1   |    PROM O0  |  I
-     2   |    PROM O1  |  I
-     3   | COUNTER CLK |  O
-     4   | COUNTER CLR |  O
-     6   |   PROM CE   |  O
+   cport | paperclip64D | I/O
+   --------------------------
+     1   |    PROM O0   |  I
+     2   |    PROM O1   |  I
+     3   | COUNTER CLK  |  O
+     4   | COUNTER CLR  |  O
+     6   |   PROM CE    |  O
+     7   |    +5VDC     |  Power
+     8   |     GND      |  Ground
 
    Works on:
-   - native joystick port(s) (x64/x64sc/xscpu64/x64dtv/x128)
+   - native joystick port(s) (x64/x64sc/xscpu64/x128)
  */
 
 /* Paperclip64D Dongle description:
 
-   This emulation currently does not work for the software using it,
-   help/more information is needed to fix this.
+   This emulation works only for the "paperclip64d" files. Other versions
+   require different dongles (ie. "paperclip64d-sc" is different).
 
    Documentation/information used for making the emulation:
 
@@ -78,8 +80,7 @@
 
    Be aware that the current emulation keeps the 'old' bits set between steps 1 and 2.
 
-   The emulation 'shows' the correct bit pattern when using the monitor to check what the code gets from the port,
-   but it does not work (good enough) for the actual software.
+   The "key" sequence is found below in the code; it has 60 values.
 */
 
 static int paperclip64_enabled[JOYPORT_MAX_PORTS] = {0};
@@ -89,7 +90,7 @@ static int counter[JOYPORT_MAX_PORTS] = {0};
 static uint8_t command[JOYPORT_MAX_PORTS] = {0xff};
 static uint8_t output_enable[JOYPORT_MAX_PORTS] = {0};
 
-static const uint8_t keys[64] = {
+static const uint8_t keys[60] = {
     3, 2, 0, 0, 1, 3, 2, 1,
     3, 2, 1, 2, 1, 2, 1, 2,
     0, 1, 2, 0, 1, 3, 3, 2,
@@ -97,7 +98,7 @@ static const uint8_t keys[64] = {
     3, 3, 2, 0, 1, 2, 0, 1,
     2, 1, 2, 1, 2, 1, 3, 2,
     1, 3, 2, 0, 0, 1, 3, 3,
-    3, 3, 3, 3, 3, 3, 3, 3
+    3, 3, 3, 3
 };
 
 /* ------------------------------------------------------------------------- */
@@ -157,7 +158,7 @@ static void paperclip64_store(int port, uint8_t val)
         if (old_clk && !clk) {
             /* clock line asserted, increment key position */
             counter[port]++;
-            if (counter[port] == 0x3c) {
+            if (counter[port] == 60) {
                 counter[port] = 0;
             }
         }
@@ -182,6 +183,7 @@ static joyport_t joyport_paperclip64_device = {
     JOYPORT_RES_ID_NONE,             /* device can be used in multiple ports at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,         /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,            /* device does NOT use the potentiometer lines */
+    JOYPORT_5VDC_REQUIRED,           /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,        /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_C64_DONGLE,       /* device is a C64 Dongle */
     0x1C,                            /* bits 4, 3 and 2 are output bits */

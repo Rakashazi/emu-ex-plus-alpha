@@ -31,19 +31,19 @@
 
 #include "types.h"
 
-extern uint8_t zippcode48_roml_read(uint16_t addr);
+uint8_t zippcode48_roml_read(uint16_t addr);
 
-extern void zippcode48_reset(void);
+void zippcode48_reset(void);
 
-extern void zippcode48_config_init(void);
-extern void zippcode48_config_setup(uint8_t *rawcart);
-extern int zippcode48_bin_attach(const char *filename, uint8_t *rawcart);
-extern int zippcode48_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void zippcode48_detach(void);
+void zippcode48_config_init(void);
+void zippcode48_config_setup(uint8_t *rawcart);
+int zippcode48_bin_attach(const char *filename, uint8_t *rawcart);
+int zippcode48_crt_attach(FILE *fd, uint8_t *rawcart);
+void zippcode48_detach(void);
 
 struct snapshot_s;
 
-extern int zippcode48_snapshot_write_module(struct snapshot_s *s);
-extern int zippcode48_snapshot_read_module(struct snapshot_s *s);
+int zippcode48_snapshot_write_module(struct snapshot_s *s);
+int zippcode48_snapshot_read_module(struct snapshot_s *s);
 
 #endif

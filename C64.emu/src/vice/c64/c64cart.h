@@ -77,8 +77,15 @@ typedef struct {
 /* this is referenced by the VICII emulation */
 extern export_t export;
 
+/* expose public API symbols for those headers that provide them */
 #define CARTRIDGE_INCLUDE_PUBLIC_API
-#include "cart/expert.h"    /* provide defines for ExpertCartridgeMode resource */
+#include "cart/expert.h"        /* provide defines for ExpertCartridgeMode resource */
+#include "cart/retroreplay.h"   /* provide defines for RRrevision resource */
+#include "cart/mmc64.h"         /* provide defines for MMC64_sd_type and MMC64_revision resources */
+#include "cart/mmcreplay.h"     /* provide defines for MMCRSDType resource */
+#ifdef HAVE_RAWNET
+#include "cart/ethernetcart.h"  /* provide defines for ETHERNETCARTMode resource */
+#endif
 #undef CARTRIDGE_INCLUDE_PUBLIC_API
 
 /* the following is used to hook up the c128 mode in x128 */
@@ -89,8 +96,10 @@ struct c128cartridge_interface_s {
     int (*attach_crt)(int type, FILE *fd, const char *filename, uint8_t *rawcart);
     int (*bin_attach)(int type, const char *filename, uint8_t *rawcart);
     int (*bin_save)(int type, const char *filename);
+    int (*save_secondary_image)(int type, const char *filename);
     int (*crt_save)(int type, const char *filename);
     int (*flush_image)(int type);
+    int (*flush_secondary_image)(int type);
     void (*config_init)(int type);
     void (*config_setup)(int type, uint8_t *rawcart);
     void (*detach_image)(int type);
@@ -99,12 +108,16 @@ struct c128cartridge_interface_s {
     void (*freeze)(void);
     void (*powerup)(void);
     cartridge_info_t* (*get_info_list)(void);
+    int (*can_flush_image)(int type);
+    int (*can_flush_secondary_image)(int type);
+    int (*can_save_image)(int type);
+    int (*can_save_secondary_image)(int type);
 };
 typedef struct c128cartridge_interface_s c128cartridge_interface_t;
 
 extern c128cartridge_interface_t *c128cartridge; /* lives in c64cart.c */
 
 /* only x128 actually implements this function */
-extern void c128cartridge_setup_interface(void);
+void c128cartridge_setup_interface(void);
 
 #endif

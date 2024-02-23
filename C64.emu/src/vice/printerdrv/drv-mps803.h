@@ -29,8 +29,8 @@
 
 #include <stdio.h>
 
-extern int drv_mps803_init_resources(void);
-extern int drv_mps803_init(void);
-extern void drv_mps803_shutdown(void);
+int drv_mps803_init_resources(void);
+int drv_mps803_init(void);
+void drv_mps803_shutdown(void);
 
 #endif

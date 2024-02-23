@@ -46,6 +46,35 @@
 #define DBG(x)
 #endif
 
+#ifdef USE_VICE_THREAD
+/*
+ * It was observed that stdout logging from the UI thread under Windows
+ * wasn't reliable, possibly only when the vice mainlock has not been
+ * obtained.
+ *
+ * This lock serialises access to logging functions without requiring
+ * ownership of the main lock.
+ *
+ *******************************************************************
+ * ANY NEW NON-STATIC FUNCTIONS NEED CALLS TO LOCK() and UNLOCK(). *
+ *******************************************************************
+ */
+
+#include <pthread.h>
+static pthread_mutex_t log_lock;
+
+#define LOCK() pthread_mutex_lock(&log_lock)
+#define UNLOCK() pthread_mutex_unlock(&log_lock)
+#define UNLOCK_AND_RETURN_INT(i) { int result = (i); UNLOCK(); return result; }
+
+#else /* #ifdef USE_VICE_THREAD */
+
+#define LOCK()
+#define UNLOCK()
+#define UNLOCK_AND_RETURN_INT(i) return (i)
+
+#endif /* #ifdef USE_VICE_THREAD */
+
 static FILE *log_file = NULL;
 
 static char **logs = NULL;
@@ -110,28 +139,42 @@ static int log_silent_opt(const char *param, void *extra_param)
 
 int log_set_verbose(int n)
 {
+    LOCK();
+
     if (n) {
-        return log_verbose_opt(NULL, (void*)1);
+        UNLOCK_AND_RETURN_INT(log_verbose_opt(NULL, (void*)1));
     }
-    return log_verbose_opt(NULL, (void*)0);
+
+    UNLOCK_AND_RETURN_INT(log_verbose_opt(NULL, (void*)0));
 }
 
 
 int log_set_silent(int n)
 {
+    LOCK();
+
     log_enabled = !n;
-    return 0;
+
+    UNLOCK_AND_RETURN_INT(0);
 }
 
 
 
-int log_verbose_init(int argc, char **argv)
+int log_early_init(int argc, char **argv)
 {
     int i;
-    DBG(("log_verbose_init: %d %s\n", argc, argv[0]));
+
+#ifdef USE_VICE_THREAD
+    pthread_mutexattr_t lock_attributes;
+    pthread_mutexattr_init(&lock_attributes);
+    pthread_mutexattr_settype(&lock_attributes, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&log_lock, &lock_attributes);
+#endif
+
+    DBG(("log_early_init: %d %s\n", argc, argv[0]));
     if (argc > 1) {
         for (i = 1; i < argc; i++) {
-            DBG(("log_verbose_init: %d %s\n", i, argv[i]));
+            DBG(("log_early_init: %d %s\n", i, argv[i]));
             if (strcmp("-verbose", argv[i]) == 0) {
                 log_set_verbose(1);
                 break;
@@ -161,18 +204,26 @@ static int log_logfile_opt(const char *param, void *extra_param)
 
 int log_resources_init(void)
 {
-    return resources_register_string(resources_string);
+    LOCK();
+
+    UNLOCK_AND_RETURN_INT(resources_register_string(resources_string));
 }
 
 void log_resources_shutdown(void)
 {
+    LOCK();
+
     lib_free(log_file_name);
+
+    UNLOCK();
 }
 
 static const cmdline_option_t cmdline_options[] =
 {
+    /* NOTE: although we use CALL_FUNCTION, we put the resource that will be
+             modified into the array - this helps reconstructing the cmdline */
     { "-logfile", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
-      log_logfile_opt, NULL, NULL, NULL,
+      log_logfile_opt, NULL, "LogFileName", NULL,
       "<Name>", "Specify log file name" },
     { "-verbose", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
       log_verbose_opt, (void*)1, NULL, NULL,
@@ -185,7 +236,9 @@ static const cmdline_option_t cmdline_options[] =
 
 int log_cmdline_options_init(void)
 {
-    return cmdline_register_options(cmdline_options);
+    LOCK();
+
+    UNLOCK_AND_RETURN_INT(cmdline_register_options(cmdline_options));
 }
 #endif
 
@@ -193,16 +246,20 @@ int log_cmdline_options_init(void)
 
 int log_init_with_fd(FILE *f)
 {
+    LOCK();
+
     if (f == NULL) {
-        return -1;
+        UNLOCK_AND_RETURN_INT(-1);
     }
 
     log_file = f;
-    return 0;
+    UNLOCK_AND_RETURN_INT(0);
 }
 
 int log_init(void)
 {
+    LOCK();
+
 #if 0
     /*
      * The current calling order in main.c (log_init() after processing
@@ -212,19 +269,21 @@ int log_init(void)
      * also be preceeded by a modal error requester.  / tlr
      */
     if (logs != NULL) {
-        return -1;
+        UNLOCK_AND_RETURN_INT(-1);
     }
 #endif
 
     log_file_open();
 
-    return (log_file == NULL) ? -1 : 0;
+    UNLOCK_AND_RETURN_INT((log_file == NULL) ? -1 : 0);
 }
 
 log_t log_open(const char *id)
 {
     log_t new_log = 0;
     log_t i;
+
+    LOCK();
 
     for (i = 0; i < num_logs; i++) {
         if (logs[i] == NULL) {
@@ -240,25 +299,30 @@ log_t log_open(const char *id)
     logs[new_log] = lib_strdup(id);
 
     /* printf("log_open(%s) = %d\n", id, (int)new_log); */
+    UNLOCK();
     return new_log;
 }
 
 int log_close(log_t log)
 {
+    LOCK();
+
     /* printf("log_close(%d)\n", (int)log); */
     if (logs[(unsigned int)log] == NULL) {
-        return -1;
+        UNLOCK_AND_RETURN_INT(-1);
     }
 
     lib_free(logs[(unsigned int)log]);
     logs[(unsigned int)log] = NULL;
 
-    return 0;
+    UNLOCK_AND_RETURN_INT(0);
 }
 
 void log_close_all(void)
 {
     log_t i;
+
+    LOCK();
 
     for (i = 0; i < num_logs; i++) {
         log_close(i);
@@ -266,6 +330,8 @@ void log_close_all(void)
 
     lib_free(logs);
     logs = NULL;
+
+    UNLOCK();
 }
 
 static int log_archdep(const char *logtxt, const char *fmt, va_list ap)
@@ -359,11 +425,13 @@ int log_message(log_t log, const char *format, ...)
     va_list ap;
     int rc;
 
+    LOCK();
+
     va_start(ap, format);
     rc = log_helper(log, 0, format, ap);
     va_end(ap);
 
-    return rc;
+    UNLOCK_AND_RETURN_INT(rc);
 }
 
 int log_warning(log_t log, const char *format, ...)
@@ -371,11 +439,13 @@ int log_warning(log_t log, const char *format, ...)
     va_list ap;
     int rc;
 
+    LOCK();
+
     va_start(ap, format);
     rc = log_helper(log, 1, format, ap);
     va_end(ap);
 
-    return rc;
+    UNLOCK_AND_RETURN_INT(rc);
 }
 
 int log_error(log_t log, const char *format, ...)
@@ -383,11 +453,13 @@ int log_error(log_t log, const char *format, ...)
     va_list ap;
     int rc;
 
+    LOCK();
+
     va_start(ap, format);
     rc = log_helper(log, 2, format, ap);
     va_end(ap);
 
-    return rc;
+    UNLOCK_AND_RETURN_INT(rc);
 }
 
 int log_debug(const char *format, ...)
@@ -395,11 +467,13 @@ int log_debug(const char *format, ...)
     va_list ap;
     int rc;
 
+    LOCK();
+
     va_start(ap, format);
     rc = log_helper(LOG_DEFAULT, 0, format, ap);
     va_end(ap);
 
-    return rc;
+    UNLOCK_AND_RETURN_INT(rc);
 }
 
 int log_verbose(const char *format, ...)
@@ -407,16 +481,22 @@ int log_verbose(const char *format, ...)
     va_list ap;
     int rc = 0;
 
+    LOCK();
+
     va_start(ap, format);
     if (verbose) {
         rc = log_helper(LOG_DEFAULT, 0, format, ap);
     }
     va_end(ap);
 
-    return rc;
+    UNLOCK_AND_RETURN_INT(rc);
 }
 
 void log_enable(int on)
 {
+    LOCK();
+
     log_enabled = on;
+
+    UNLOCK();
 }

@@ -42,30 +42,32 @@ typedef struct rtc_72421_s {
     char *device;
 } rtc_72421_t;
 
-#define RTC72421_REGISTER_SECONDS       0
-#define RTC72421_REGISTER_10SECONDS     1
-#define RTC72421_REGISTER_MINUTES       2
-#define RTC72421_REGISTER_10MINUTES     3
-#define RTC72421_REGISTER_HOURS         4
-#define RTC72421_REGISTER_10HOURS       5
-#define RTC72421_REGISTER_MONTHDAYS     6
-#define RTC72421_REGISTER_10MONTHDAYS   7
-#define RTC72421_REGISTER_MONTHS        8
-#define RTC72421_REGISTER_10MONTHS      9
-#define RTC72421_REGISTER_YEARS         10
-#define RTC72421_REGISTER_10YEARS       11
-#define RTC72421_REGISTER_WEEKDAYS      12
-#define RTC72421_REGISTER_CTRL0         13
-#define RTC72421_REGISTER_CTRL1         14
-#define RTC72421_REGISTER_CTRL2         15
+enum {
+    RTC72421_REGISTER_SECONDS = 0,
+    RTC72421_REGISTER_10SECONDS,
+    RTC72421_REGISTER_MINUTES,
+    RTC72421_REGISTER_10MINUTES,
+    RTC72421_REGISTER_HOURS,
+    RTC72421_REGISTER_10HOURS,
+    RTC72421_REGISTER_MONTHDAYS,
+    RTC72421_REGISTER_10MONTHDAYS,
+    RTC72421_REGISTER_MONTHS,
+    RTC72421_REGISTER_10MONTHS,
+    RTC72421_REGISTER_YEARS,
+    RTC72421_REGISTER_10YEARS,
+    RTC72421_REGISTER_WEEKDAYS,
+    RTC72421_REGISTER_CTRL0,
+    RTC72421_REGISTER_CTRL1,
+    RTC72421_REGISTER_CTRL2
+};
 
-extern rtc_72421_t *rtc72421_init(char *device);
-extern void rtc72421_destroy(rtc_72421_t *context, int save);
+rtc_72421_t *rtc72421_init(char *device);
+void rtc72421_destroy(rtc_72421_t *context, int save);
 
-extern uint8_t rtc72421_read(rtc_72421_t *context, uint8_t address);
-extern void rtc72421_write(rtc_72421_t *context, uint8_t address, uint8_t data);
+uint8_t rtc72421_read(rtc_72421_t *context, uint8_t address);
+void rtc72421_write(rtc_72421_t *context, uint8_t address, uint8_t data);
 
-extern int rtc72421_write_snapshot(rtc_72421_t *context, snapshot_t *s);
-extern int rtc72421_read_snapshot(rtc_72421_t *context, snapshot_t *s);
+int rtc72421_write_snapshot(rtc_72421_t *context, snapshot_t *s);
+int rtc72421_read_snapshot(rtc_72421_t *context, snapshot_t *s);
 
 #endif

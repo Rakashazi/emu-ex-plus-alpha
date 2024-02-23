@@ -243,8 +243,8 @@ static int iec_open_write(vdrive_t *vdrive, unsigned int secondary,
 
     if (slot) {
         /* file exists */
-        if ((cmd_parse->command && 
-             (cmd_parse->commandlength > 0) && 
+        if ((cmd_parse->command &&
+             (cmd_parse->commandlength > 0) &&
              (cmd_parse->command[0] == '@')) || /* overwrite with @:filename */
             (((slot[SLOT_TYPE_OFFSET] & 0x80) == 0) &&
              ((slot[SLOT_TYPE_OFFSET] & 7) != CBMDOS_FT_REL)) /* overwrite 'splat file' */
@@ -1027,7 +1027,7 @@ int vdrive_iec_read(vdrive_t *vdrive, uint8_t *data, unsigned int secondary)
 #ifdef DEBUG_DRIVE
                 if (p->mode == BUFFER_COMMAND_CHANNEL) {
                     log_debug("Disk read  %d [%02d %02d] data %02x (%c).",
-                              p->mode, 0, 0, *data, (isprint(*data) ? *data : '.'));
+                              p->mode, 0, 0, *data, (isprint((unsigned char)*data) ? *data : '.'));
                 }
 #endif
                 return SERIAL_EOF;
@@ -1052,7 +1052,7 @@ int vdrive_iec_read(vdrive_t *vdrive, uint8_t *data, unsigned int secondary)
 #ifdef DEBUG_DRIVE
     if (p->mode == BUFFER_COMMAND_CHANNEL) {
         log_debug("Disk read  %u [%02d %02d] data %02x (%c).",
-                  p->mode, 0, 0, *data, (isprint(*data) ? *data : '.'));
+                  p->mode, 0, 0, *data, (isprint((unsigned char)*data) ? *data : '.'));
     }
 #endif
     return status;
@@ -1082,7 +1082,7 @@ int vdrive_iec_write(vdrive_t *vdrive, uint8_t data, unsigned int secondary)
 #ifdef DEBUG_DRIVE
     if (p->mode == BUFFER_COMMAND_CHANNEL) {
         log_debug("Disk write %u [%02d %02d] data %02x (%c).",
-                  p->mode, 0, 0, data, (isprint(data) ? data : '.'));
+                  p->mode, 0, 0, data, (isprint((unsigned char)data) ? data : '.'));
     }
 #endif
 

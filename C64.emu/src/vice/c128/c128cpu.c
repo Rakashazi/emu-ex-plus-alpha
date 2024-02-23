@@ -62,7 +62,7 @@
 /* C128 needs external reg_pc */
 #define NEED_REG_PC
 
-/* Put Z80 registers into monitor sturct.  */
+/* Put Z80 registers into monitor struct.  */
 #define HAVE_Z80_REGS
 
 /* ------------------------------------------------------------------------- */
@@ -85,8 +85,7 @@ CLOCK c128cpu_memory_refresh_clk;
     EXPORT_REGISTERS();                \
     DMA_FUNC;                          \
     interrupt_ack_dma(CPU_INT_STATUS); \
-    IMPORT_REGISTERS();                \
-    JUMP(LOAD_ADDR(0xfffc));
+    IMPORT_REGISTERS();
 
 inline static void c128cpu_clock_add(CLOCK *clock, int amount)
 {

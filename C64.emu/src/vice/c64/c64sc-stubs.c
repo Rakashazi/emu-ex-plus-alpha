@@ -25,5 +25,12 @@
  */
 
 #include "vice.h"
+#include <stdbool.h>
 
 #include "c64.h"
+#include "pet/petpia.h"
+
+bool pia1_get_diagnostic_pin(void)
+{
+    return false;
+}

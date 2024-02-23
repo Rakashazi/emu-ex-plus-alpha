@@ -28,11 +28,11 @@
 #ifndef C128_MAGICDESK128_H_
 #define C128_MAGICDESK128_H_
 
-extern int magicdesk128_bin_attach(const char *filename, uint8_t *rawcart);
-extern int magicdesk128_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void magicdesk128_detach(void);
-extern void magicdesk128_reset(void);
+int magicdesk128_bin_attach(const char *filename, uint8_t *rawcart);
+int magicdesk128_crt_attach(FILE *fd, uint8_t *rawcart);
+void magicdesk128_detach(void);
+void magicdesk128_reset(void);
 
-extern void magicdesk128_config_setup(uint8_t *rawcart);
+void magicdesk128_config_setup(uint8_t *rawcart);
 
 #endif

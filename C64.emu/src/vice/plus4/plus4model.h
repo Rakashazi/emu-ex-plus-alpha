@@ -53,7 +53,7 @@
 #define NO_USERPORT  0
 #define HAS_USERPORT 1
 
-extern int plus4model_get(void);
-extern void plus4model_set(int model);
+int plus4model_get(void);
+void plus4model_set(int model);
 
 #endif

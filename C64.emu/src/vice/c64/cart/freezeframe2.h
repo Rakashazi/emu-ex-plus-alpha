@@ -31,19 +31,19 @@
 
 #include "types.h"
 
-extern void freezeframe2_config_init(void);
-extern void freezeframe2_config_setup(uint8_t *rawcart);
-extern int freezeframe2_bin_attach(const char *filename, uint8_t *rawcart);
-extern int freezeframe2_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void freezeframe2_detach(void);
-extern void freezeframe2_freeze(void);
-extern void freezeframe2_reset(void);
+void freezeframe2_config_init(void);
+void freezeframe2_config_setup(uint8_t *rawcart);
+int freezeframe2_bin_attach(const char *filename, uint8_t *rawcart);
+int freezeframe2_crt_attach(FILE *fd, uint8_t *rawcart);
+void freezeframe2_detach(void);
+void freezeframe2_freeze(void);
+void freezeframe2_reset(void);
 
-extern uint8_t freezeframe2_roml_read(uint16_t addr);
+uint8_t freezeframe2_roml_read(uint16_t addr);
 
 struct snapshot_s;
 
-extern int freezeframe2_snapshot_write_module(struct snapshot_s *s);
-extern int freezeframe2_snapshot_read_module(struct snapshot_s *s);
+int freezeframe2_snapshot_write_module(struct snapshot_s *s);
+int freezeframe2_snapshot_read_module(struct snapshot_s *s);
 
 #endif

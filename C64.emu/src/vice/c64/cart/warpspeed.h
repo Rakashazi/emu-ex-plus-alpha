@@ -31,16 +31,16 @@
 
 #include "types.h"
 
-extern void warpspeed_config_setup(uint8_t *rawcart);
-extern int warpspeed_bin_attach(const char *filename, uint8_t *rawcart);
-extern int warpspeed_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void warpspeed_detach(void);
-extern void warpspeed_config_init(void);
-extern void warpspeed_reset(void);
+void warpspeed_config_setup(uint8_t *rawcart);
+int warpspeed_bin_attach(const char *filename, uint8_t *rawcart);
+int warpspeed_crt_attach(FILE *fd, uint8_t *rawcart);
+void warpspeed_detach(void);
+void warpspeed_config_init(void);
+void warpspeed_reset(void);
 
 struct snapshot_s;
 
-extern int warpspeed_snapshot_write_module(struct snapshot_s *s);
-extern int warpspeed_snapshot_read_module(struct snapshot_s *s);
+int warpspeed_snapshot_write_module(struct snapshot_s *s);
+int warpspeed_snapshot_read_module(struct snapshot_s *s);
 
 #endif

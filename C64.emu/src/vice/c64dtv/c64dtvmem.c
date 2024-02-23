@@ -587,6 +587,8 @@ void store_bank_io(uint16_t addr, uint8_t byte)
         case 0xd400:
         case 0xd500:
         case 0xd600:
+            sid_store(addr, byte);
+            break;
         case 0xd700:
             sid_store(addr, byte);
             debugcart_store(addr, byte);
@@ -1340,6 +1342,15 @@ uint8_t mem_bank_peek(int bank, uint16_t addr, void *context)
             break; /* yes, this could be flash as well */
     }
     return access_rom(addr) ? c64dtvflash_mem[paddr] : mem_ram[paddr];
+}
+
+int mem_get_current_bank_config(void) {
+    return 0; /* TODO: not implemented yet */
+}
+
+uint8_t mem_peek_with_config(int config, uint16_t addr, void *context) {
+    /* TODO, config not implemented yet */
+    return mem_bank_peek(0 /* current */, addr, context);
 }
 
 void mem_bank_write(int bank, uint16_t addr, uint8_t byte, void *context)

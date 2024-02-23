@@ -55,12 +55,7 @@
      9   |  POTX     | X button   |  I
 
    Works on:
-   - native joystick port(s) (x64/x64sc/xscpu64/x128/x64dtv/xcbm5x0/xvic)
-   - hit userport joystick adapter port 1 (x64/x64sc/xscpu64/x128)
-   - kingsoft userport joystick adapter port 1 (x64/x64sc/xscpu64/x128)
-   - starbyte userport joystick adapter port 2 (x64/x64sc/xscpu64/x128)
-   - hummer userport joystick adapter port (x64dtv)
-   - oem userport joystick adapter port (xvic)
+   - native joystick port(s) (x64/x64sc/xscpu64/x128/xvic/xcbm5x0)
    - sidcart joystick adapter port (xplus4)
 
    in compatibility mode the following extra mappings exist:
@@ -80,6 +75,8 @@
      3   |  JOY2     | data bit 2  |  I
      4   |  JOY3     | clock       |  O
      6   |  JOY4     | native mode |  O
+     7   |  +5VDC    | Power
+     8   |  GND      | Ground
 
     Keeping JOY4 low enables native mode
  */
@@ -389,6 +386,7 @@ static joyport_t joyport_protopad_device = {
     JOYPORT_RES_ID_NONE,          /* device can be used in multiple ports at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,      /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,         /* device does NOT use the potentiometer lines */
+    JOYPORT_5VDC_REQUIRED,        /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,     /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_SNES_ADAPTER,  /* device is a SNES adapter */
     0x18,                         /* bits 4, and 3 are output bits */

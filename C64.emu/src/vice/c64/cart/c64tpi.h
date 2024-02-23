@@ -38,35 +38,36 @@
 
 struct machine_context_s;
 
-extern int tpi_cart_enabled(void);
+int tpi_cart_enabled(void);
 
-extern void tpi_config_init(export_t *export);
-extern void tpi_config_setup(uint8_t *rawcart);
-extern void tpi_detach(void);
-extern int tpi_enable(void);
+void tpi_config_init(export_t *export);
+void tpi_config_setup(uint8_t *rawcart);
+void tpi_detach(void);
+int tpi_enable(void);
 int tpi_disable(void);
 
-extern int tpi_cmdline_options_init(void);
-extern int tpi_resources_init(void);
-extern void tpi_resources_shutdown(void);
+int tpi_cmdline_options_init(void);
+int tpi_resources_init(void);
+void tpi_resources_shutdown(void);
 
-extern int tpi_roml_read(uint16_t addr, uint8_t *value);
-extern int tpi_peek_mem(uint16_t addr, uint8_t *value);
+int tpi_roml_read(uint16_t addr, uint8_t *value);
+int tpi_peek_mem(uint16_t addr, uint8_t *value);
 
-extern void tpi_passthrough_changed(export_t *export);
+void tpi_passthrough_changed(export_t *export);
 
-extern void tpi_setup_context(struct machine_context_s *machine_context);
-extern int tpi_bin_attach(const char *filename, uint8_t *rawcart);
-extern int tpi_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
-extern const char *tpi_get_file_name(void);
-extern int tpi_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
+void tpi_setup_context(struct machine_context_s *machine_context);
+int tpi_bin_attach(const char *filename, uint8_t *rawcart);
+int tpi_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
+const char *tpi_get_file_name(void);
+int tpi_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
 
-extern void tpi_reset(void);
-extern void tpi_init(void);
-extern void tpi_shutdown(void);
+void tpi_reset(void);
+void tpi_init(void);
+void tpi_shutdown(void);
 
 struct snapshot_s;
-extern int tpi_snapshot_read_module(struct snapshot_s *s);
-extern int tpi_snapshot_write_module(struct snapshot_s *s);
+
+int tpi_snapshot_read_module(struct snapshot_s *s);
+int tpi_snapshot_write_module(struct snapshot_s *s);
 
 #endif

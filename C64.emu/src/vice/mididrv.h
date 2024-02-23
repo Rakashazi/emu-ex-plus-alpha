@@ -32,29 +32,37 @@
 
 #include "types.h"
 
-extern void mididrv_init(void);
+#if defined(USE_OSS) && defined(USE_ALSA)
+#define MIDI_DRIVER_OSS  0
+#define MIDI_DRIVER_ALSA 1
+#else
+#define MIDI_DRIVER_OSS  0
+#define MIDI_DRIVER_ALSA 0
+#endif
+
+void mididrv_init(void);
 
 /* Opens a MIDI device */
-extern int mididrv_in_open(void);
-extern int mididrv_out_open(void);
+int mididrv_in_open(void);
+int mididrv_out_open(void);
 
 /* Closes the MIDI device */
-extern void mididrv_in_close(void);
-extern void mididrv_out_close(void);
+void mididrv_in_close(void);
+void mididrv_out_close(void);
 
 /* MIDI device I/O */
 /* return: -1 if error, 1 if a byte was read to *b, 0 if no new bytes */
-extern int mididrv_in(uint8_t *b);
-extern void mididrv_out(uint8_t b);
+int mididrv_in(uint8_t *b);
+void mididrv_out(uint8_t b);
 
-extern int mididrv_resources_init(void);
-extern void mididrv_resources_shutdown(void);
-extern int mididrv_cmdline_options_init(void);
+int mididrv_resources_init(void);
+void mididrv_resources_shutdown(void);
+int mididrv_cmdline_options_init(void);
 
 #if defined(WINDOWS_COMPILE)
 /* get the list of MIDI devices */
-extern void mididrv_ui_reset_device_list(int device);
-extern char *mididrv_ui_get_next_device_name(int device, int *id);
+void mididrv_ui_reset_device_list(int device);
+char *mididrv_ui_get_next_device_name(int device, int *id);
 #endif
 
 #endif

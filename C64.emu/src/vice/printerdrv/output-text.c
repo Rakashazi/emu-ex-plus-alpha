@@ -44,30 +44,18 @@
 
 #include "output-text.h"
 
-/* XXX: coproc.c now does the proper includes, and on systems where fork_coproc()
- *      doesn't work an error is logged and -1 returned.
- */
-#if 0
-/* TODO: configure check that matches what arch/shared/coproc.c does... */
-#if defined(HAVE_FORK)
-# if !defined(BEOS_COMPILE)
-#   define COPROC_SUPPORT
-# endif
-#elif defined(WINDOWS_COMPILE)
-# include <windows.h>
-# define COPROC_SUPPORT
-#endif
+/* #define DEBUG_PRINTER */
 
-#ifdef COPROC_SUPPORT
-# include <unistd.h>
-# include "coproc.h"
+#ifdef DEBUG_PRINTER
+#define DBG(x)  log_debug x
+#else
+#define DBG(x)
 #endif
-#endif
-
 
 static char *PrinterDev[NUM_OUTPUT_SELECT] = { NULL, NULL, NULL };
 static int printer_device[NUM_OUTPUT_SELECT];
 static FILE *output_fd[NUM_OUTPUT_SELECT] = { NULL, NULL, NULL };
+static vice_pid_t output_pid[NUM_OUTPUT_SELECT] = { 0, 0, 0 };
 
 static int set_printer_device_name(const char *val, void *param)
 {
@@ -165,11 +153,12 @@ int output_text_init_cmdline_options(void)
  * 2022-04-03:  On systems where this isn't supported fork_coproc() logs an error
  *              and returns -1. --compyx
  */
-static FILE *fopen_or_pipe(char *name)
+static FILE *fopen_or_pipe(char *name, vice_pid_t *pid)
 {
+    *pid = 0; /* always return PID=0, unless we actually spawned a child */
     if (name[0] == '|') {
         int fd_rd, fd_wr;
-        if (fork_coproc(&fd_wr, &fd_rd, name + 1) < 0) {
+        if (fork_coproc(&fd_wr, &fd_rd, name + 1, pid) < 0) {
             log_error(LOG_DEFAULT, "fopen_or_pipe(): Cannot fork process '%s'.", name + 1);
             return NULL;
         }
@@ -195,11 +184,14 @@ static int output_text_open(unsigned int prnr,
 
             if (output_fd[printer_device[prnr]] == NULL) {
                 FILE *fd;
-                fd = fopen_or_pipe(PrinterDev[printer_device[prnr]]);
+                vice_pid_t pid;
+                output_pid[printer_device[prnr]] = 0;
+                fd = fopen_or_pipe(PrinterDev[printer_device[prnr]], &pid);
                 if (fd == NULL) {
                     return -1;
                 }
                 output_fd[printer_device[prnr]] = fd;
+                output_pid[printer_device[prnr]] = pid;
             }
             return 0;
         default:
@@ -213,6 +205,11 @@ static void output_text_close(unsigned int prnr)
         fclose(output_fd[printer_device[prnr]]);
     }
     output_fd[printer_device[prnr]] = NULL;
+
+    if (output_pid[printer_device[prnr]] != 0) {
+        kill_coproc(output_pid[printer_device[prnr]]);
+    }
+    output_pid[printer_device[prnr]] = 0;
 }
 
 static int output_text_putc(unsigned int prnr, uint8_t b)
@@ -236,6 +233,7 @@ static int output_text_getc(unsigned int prnr, uint8_t *b)
 
 static int output_text_flush(unsigned int prnr)
 {
+    DBG(("output_text_flush:%u", prnr));
     if (output_fd[printer_device[prnr]] == NULL) {
         return -1;
     }
@@ -246,6 +244,7 @@ static int output_text_flush(unsigned int prnr)
 
 static int output_text_formfeed(unsigned int prnr)
 {
+    DBG(("output_text_formfeed:%u", prnr));
     return output_text_flush(prnr);
 }
 

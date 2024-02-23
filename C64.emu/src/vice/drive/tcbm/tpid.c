@@ -47,12 +47,13 @@ typedef struct drivetpi_context_s {
 
 void tpid_store(diskunit_context_t *ctxptr, uint16_t addr, uint8_t data)
 {
+    ctxptr->cpu->cpu_last_data = data;
     tpicore_store(ctxptr->tpid, addr, data);
 }
 
 uint8_t tpid_read(diskunit_context_t *ctxptr, uint16_t addr)
 {
-    return tpicore_read(ctxptr->tpid, addr);
+    return ctxptr->cpu->cpu_last_data = tpicore_read(ctxptr->tpid, addr);
 }
 
 uint8_t tpid_peek(diskunit_context_t *ctxptr, uint16_t addr)
@@ -225,7 +226,7 @@ void tpid_setup_context(diskunit_context_t *ctxptr)
     tpi->rmw_flag = &(ctxptr->cpu->rmw_flag);
     tpi->clk_ptr = ctxptr->clk_ptr;
 
-    tpi->myname = lib_msprintf("Drive%dTPI", ctxptr->mynumber);
+    tpi->myname = lib_msprintf("Drive%uTPI", ctxptr->mynumber);
 
     tpicore_setup_context(tpi);
 

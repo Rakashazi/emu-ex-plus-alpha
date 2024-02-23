@@ -41,12 +41,12 @@ typedef struct vicii_sprites_fetch_s vicii_sprites_fetch_t;
 extern const vicii_sprites_fetch_t vicii_sprites_fetch_table[256][4];
 extern const int vicii_sprites_crunch_table[64];
 
-extern void vicii_sprites_init(void);
-extern void vicii_sprites_shutdown(void);
-extern void vicii_sprites_set_x_position(unsigned int num, int new_x, int raster_x);
-extern void vicii_sprites_reset_sprline(void);
-extern void vicii_sprites_init_sprline(void);
-extern void vicii_sprites_reset_xshift(void);
-extern int vicii_sprite_offset(void);
+void vicii_sprites_init(void);
+void vicii_sprites_shutdown(void);
+void vicii_sprites_set_x_position(unsigned int num, int new_x, int raster_x);
+void vicii_sprites_reset_sprline(void);
+void vicii_sprites_init_sprline(void);
+void vicii_sprites_reset_xshift(void);
+int vicii_sprite_offset(void);
 
 #endif

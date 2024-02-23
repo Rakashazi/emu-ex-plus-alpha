@@ -34,19 +34,19 @@
 
 struct snapshot_s;
 
-extern uint8_t exos_romh_read_hirom(uint16_t addr);
-extern int exos_romh_phi1_read(uint16_t addr, uint8_t *value);
-extern int exos_romh_phi2_read(uint16_t addr, uint8_t *value);
-extern int exos_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
+uint8_t exos_romh_read_hirom(uint16_t addr);
+int exos_romh_phi1_read(uint16_t addr, uint8_t *value);
+int exos_romh_phi2_read(uint16_t addr, uint8_t *value);
+int exos_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
 
-extern void exos_config_init(void);
-extern void exos_reset(void);
-extern void exos_config_setup(uint8_t *rawcart);
-extern int exos_bin_attach(const char *filename, uint8_t *rawcart);
-extern int exos_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void exos_detach(void);
+void exos_config_init(void);
+void exos_reset(void);
+void exos_config_setup(uint8_t *rawcart);
+int exos_bin_attach(const char *filename, uint8_t *rawcart);
+int exos_crt_attach(FILE *fd, uint8_t *rawcart);
+void exos_detach(void);
 
-extern int exos_snapshot_write_module(struct snapshot_s *s);
-extern int exos_snapshot_read_module(struct snapshot_s *s);
+int exos_snapshot_write_module(struct snapshot_s *s);
+int exos_snapshot_read_module(struct snapshot_s *s);
 
 #endif

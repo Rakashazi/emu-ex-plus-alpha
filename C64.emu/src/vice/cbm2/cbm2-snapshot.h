@@ -27,8 +27,8 @@
 #ifndef VICE_CBM2_SNAPSHOT_H
 #define VICE_CBM2_SNAPSHOT_H
 
-extern int cbm2_snapshot_write(const char *name, int save_roms, int save_disks,
-                               int event_mode);
-extern int cbm2_snapshot_read(const char *name, int event_mode);
+int cbm2_snapshot_write(const char *name, int save_roms, int save_disks,
+                        int event_mode);
+int cbm2_snapshot_read(const char *name, int event_mode);
 
 #endif

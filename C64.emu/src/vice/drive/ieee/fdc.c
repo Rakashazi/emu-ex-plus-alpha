@@ -975,7 +975,7 @@ void fdc_init(diskunit_context_t *drv)
     log_message(fdc_log, "fdc_init(drive %u)", fnum);
 #endif
 
-    buffer = lib_msprintf("fdc%i", drv->mynumber);
+    buffer = lib_msprintf("fdc%u", drv->mynumber);
     sysfdc->fdc_alarm = alarm_new(drv->cpu->alarm_context, buffer, int_fdc,
                                     drv);
     lib_free(buffer);

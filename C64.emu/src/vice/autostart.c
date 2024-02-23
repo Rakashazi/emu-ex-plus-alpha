@@ -689,27 +689,13 @@ static void init_drive_emulation_state(int unit, int drive)
         unit, drive, get_true_drive_emulation_state(unit), get_iec_device_state(unit),
         get_device_traps_state(unit), vsync_get_warp_mode()
     ));
-    if (orig_drive_true_emulation_state == -1) {
-        orig_drive_true_emulation_state = get_true_drive_emulation_state(unit);
-    }
-    if (orig_device_traps_state == -1) {
-        orig_device_traps_state = get_device_traps_state(unit);
-    }
-    if (orig_iec_device_state == -1) {
-        orig_iec_device_state = get_iec_device_state(unit);
-    }
-    if (orig_warp_mode == -1) {
-        orig_warp_mode = vsync_get_warp_mode();
-    }
-    if (orig_FileSystemDevice8 == -1) {
-        resources_get_int_sprintf("FileSystemDevice%d", &orig_FileSystemDevice8, unit);
-    }
-    if (orig_FSDevice8ConvertP00 == -1) {
-        resources_get_int_sprintf("FSDevice%dConvertP00", &orig_FSDevice8ConvertP00, unit);
-    }
-    if (orig_FSDeviceLongNames == -1) {
-        resources_get_int("FSDeviceLongNames", &orig_FSDeviceLongNames);
-    }
+    orig_drive_true_emulation_state = get_true_drive_emulation_state(unit);
+    orig_device_traps_state = get_device_traps_state(unit);
+    orig_iec_device_state = get_iec_device_state(unit);
+    orig_warp_mode = vsync_get_warp_mode();
+    resources_get_int_sprintf("FileSystemDevice%d", &orig_FileSystemDevice8, unit);
+    resources_get_int_sprintf("FSDevice%dConvertP00", &orig_FSDevice8ConvertP00, unit);
+    resources_get_int("FSDeviceLongNames", &orig_FSDeviceLongNames);
 }
 
 /* restore the state of all settings we changed during autostart.
@@ -1434,7 +1420,7 @@ static void reboot_for_autostart(const char *program_name, unsigned int mode,
     }
     DBG(("reboot_for_autostart - autostart_initial_delay_cycles: %"PRIu64, autostart_initial_delay_cycles));
 
-    machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+    machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
 
     /* enable warp before reset */
     if (mode != AUTOSTART_HASSNAPSHOT) {

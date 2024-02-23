@@ -27,8 +27,8 @@
 #ifndef VICE_CLOCKPORT_RRNET_H
 #define VICE_CLOCKPORT_RRNET_H
 
-extern int clockport_rrnet_init(void);
-extern void clockport_rrnet_shutdown(void);
-extern clockport_device_t *clockport_rrnet_open_device(const char *owner, int deviceid);
+int clockport_rrnet_init(void);
+void clockport_rrnet_shutdown(void);
+clockport_device_t *clockport_rrnet_open_device(const char *owner, int deviceid);
 
 #endif

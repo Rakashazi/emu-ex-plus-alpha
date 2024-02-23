@@ -31,24 +31,24 @@
 
 #include "types.h"
 
-extern uint8_t partner64_roml_read(uint16_t addr);
-extern uint8_t partner64_romh_read(uint16_t addr);
-extern uint8_t partner64_a000_bfff_read(uint16_t addr);
-extern void partner64_a000_bfff_store(uint16_t addr, uint8_t value);
+uint8_t partner64_roml_read(uint16_t addr);
+uint8_t partner64_romh_read(uint16_t addr);
+uint8_t partner64_a000_bfff_read(uint16_t addr);
+void partner64_a000_bfff_store(uint16_t addr, uint8_t value);
 
-extern void partner64_freeze(void);
+void partner64_freeze(void);
 
-extern void partner64_config_init(void);
-extern void partner64_reset(void);
-extern void partner64_config_setup(uint8_t *rawcart);
-extern int partner64_bin_attach(const char *filename, uint8_t *rawcart);
-extern int partner64_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void partner64_detach(void);
-extern void partner64_powerup(void);
+void partner64_config_init(void);
+void partner64_reset(void);
+void partner64_config_setup(uint8_t *rawcart);
+int partner64_bin_attach(const char *filename, uint8_t *rawcart);
+int partner64_crt_attach(FILE *fd, uint8_t *rawcart);
+void partner64_detach(void);
+void partner64_powerup(void);
 
 struct snapshot_s;
 
-extern int partner64_snapshot_write_module(struct snapshot_s *s);
-extern int partner64_snapshot_read_module(struct snapshot_s *s);
+int partner64_snapshot_write_module(struct snapshot_s *s);
+int partner64_snapshot_read_module(struct snapshot_s *s);
 
 #endif

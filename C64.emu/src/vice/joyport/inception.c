@@ -49,9 +49,10 @@
      4   |      D3
      6   |      D4
 
-   Works on:
-   - native joystick port(s) (x64/x64sc/xscpu64/x64dtv/x128/xcbm5x0/xvic)
+   Note that +5VDC is provided for the 8 joystick ports.
 
+   Works on:
+   - native joystick port(s) (x64/x64sc/xscpu64/x128/xvic/xcbm5x0)
  */
 
 static int inception_enabled = 0;
@@ -76,7 +77,9 @@ static int joyport_inception_set_enabled(int port, int enabled)
         /* enabled, activate joystick adapter, clear counter and set extra joy ports to 8 */
         joystick_adapter_activate(JOYSTICK_ADAPTER_ID_INCEPTION, joyport_inception_device.name);
         counter = 0;
-        joystick_adapter_set_ports(8);
+
+        /* Enable 8 extra joystick ports, with +5VDC support */
+        joystick_adapter_set_ports(8, 1);
     } else {
         /* disabled, deactivate joystick adapter */
         joystick_adapter_deactivate();
@@ -91,14 +94,14 @@ static int joyport_inception_set_enabled(int port, int enabled)
 static uint8_t inception_read(int port)
 {
     uint8_t retval;
-    uint16_t joyval1 = get_joystick_value(JOYPORT_3);
-    uint16_t joyval2 = get_joystick_value(JOYPORT_4);
-    uint16_t joyval3 = get_joystick_value(JOYPORT_5);
-    uint16_t joyval4 = get_joystick_value(JOYPORT_6);
-    uint16_t joyval5 = get_joystick_value(JOYPORT_7);
-    uint16_t joyval6 = get_joystick_value(JOYPORT_8);
-    uint16_t joyval7 = get_joystick_value(JOYPORT_9);
-    uint16_t joyval8 = get_joystick_value(JOYPORT_10);
+    uint8_t joyval1 = ~read_joyport_dig(JOYPORT_3);
+    uint8_t joyval2 = ~read_joyport_dig(JOYPORT_4);
+    uint8_t joyval3 = ~read_joyport_dig(JOYPORT_5);
+    uint8_t joyval4 = ~read_joyport_dig(JOYPORT_6);
+    uint8_t joyval5 = ~read_joyport_dig(JOYPORT_7);
+    uint8_t joyval6 = ~read_joyport_dig(JOYPORT_8);
+    uint8_t joyval7 = ~read_joyport_dig(JOYPORT_9);
+    uint8_t joyval8 = ~read_joyport_dig(JOYPORT_10);
 
     switch (counter) {
         case INCEPTION_STATE_IDLE:
@@ -222,6 +225,7 @@ static joyport_t joyport_inception_device = {
     JOYPORT_RES_ID_NONE,              /* device can be used in multiple ports at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,          /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,             /* device does NOT use the potentiometer lines */
+    JOYPORT_5VDC_REQUIRED,            /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_INCEPTION,    /* device is a joystick adapter */
     JOYPORT_DEVICE_JOYSTICK_ADAPTER,  /* device is a Joystick adapter */
     0x1F,                             /* bits 4, 3, 2, 1 and 0 are output bits */

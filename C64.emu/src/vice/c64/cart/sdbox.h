@@ -31,16 +31,16 @@
 
 #include "types.h"
 
-extern void sdbox_config_init(void);
-extern void sdbox_powerup(void);
-extern void sdbox_config_setup(uint8_t *rawcart);
-extern int sdbox_bin_attach(const char *filename, uint8_t *rawcart);
-extern int sdbox_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void sdbox_detach(void);
+void sdbox_config_init(void);
+void sdbox_powerup(void);
+void sdbox_config_setup(uint8_t *rawcart);
+int sdbox_bin_attach(const char *filename, uint8_t *rawcart);
+int sdbox_crt_attach(FILE *fd, uint8_t *rawcart);
+void sdbox_detach(void);
 
 struct snapshot_s;
 
-extern int sdbox_snapshot_write_module(struct snapshot_s *s);
-extern int sdbox_snapshot_read_module(struct snapshot_s *s);
+int sdbox_snapshot_write_module(struct snapshot_s *s);
+int sdbox_snapshot_read_module(struct snapshot_s *s);
 
 #endif

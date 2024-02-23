@@ -41,7 +41,6 @@
 #include "resources.h"
 #include "sid-resources.h"
 #include "sid.h"
-#include "ssi2001.h"
 #include "sound.h"
 #include "types.h"
 
@@ -112,10 +111,9 @@ static int set_sid_engine(int set_engine, void *param)
         case SID_ENGINE_HARDSID:
 #endif
 #ifdef HAVE_PARSID
+#if !defined(WINDOWS_COMPILE) || (defined(WINDOWS_COMPILE) && defined(HAVE_LIBIEEE1284))
         case SID_ENGINE_PARSID:
 #endif
-#ifdef HAVE_SSI2001
-        case SID_ENGINE_SSI2001:
 #endif
             break;
         default:
@@ -260,10 +258,10 @@ static int set_sid_resid_sampling(int val, void *param)
 
 static int set_sid_resid_passband(int i, void *param)
 {
-    if (i < 0) {
-        i = 0;
-    } else if (i > 90) {
-        i = 90;
+    if (i < RESID_6581_PASSBAND_MIN) {
+        i = RESID_6581_PASSBAND_MIN;
+    } else if (i > RESID_6581_PASSBAND_MAX) {
+        i = RESID_6581_PASSBAND_MAX;
     }
 
     sid_resid_passband = i;
@@ -273,10 +271,10 @@ static int set_sid_resid_passband(int i, void *param)
 
 static int set_sid_resid_gain(int i, void *param)
 {
-    if (i < 90) {
-        i = 90;
-    } else if (i > 100) {
-        i = 100;
+    if (i < RESID_6581_FILTER_GAIN_MIN) {
+        i = RESID_6581_FILTER_GAIN_MIN;
+    } else if (i > RESID_6581_FILTER_GAIN_MAX) {
+        i = RESID_6581_FILTER_GAIN_MAX;
     }
 
     sid_resid_gain = i;
@@ -286,10 +284,10 @@ static int set_sid_resid_gain(int i, void *param)
 
 static int set_sid_resid_filter_bias(int i, void *param)
 {
-    if (i < -5000) {
-        i = -5000;
-    } else if (i > 5000) {
-        i = 5000;
+    if (i < RESID_6581_FILTER_BIAS_MIN) {
+        i = RESID_6581_FILTER_BIAS_MIN;
+    } else if (i > RESID_6581_FILTER_BIAS_MAX) {
+        i = RESID_6581_FILTER_BIAS_MAX;
     }
 
     sid_resid_filter_bias = i;
@@ -299,10 +297,10 @@ static int set_sid_resid_filter_bias(int i, void *param)
 
 static int set_sid_resid_8580_passband(int i, void *param)
 {
-    if (i < 0) {
-        i = 0;
-    } else if (i > 90) {
-        i = 90;
+    if (i < RESID_8580_PASSBAND_MIN) {
+        i = RESID_8580_PASSBAND_MIN;
+    } else if (i > RESID_8580_PASSBAND_MAX) {
+        i = RESID_8580_PASSBAND_MAX;
     }
 
     sid_resid_8580_passband = i;
@@ -312,10 +310,10 @@ static int set_sid_resid_8580_passband(int i, void *param)
 
 static int set_sid_resid_8580_gain(int i, void *param)
 {
-    if (i < 90) {
-        i = 90;
-    } else if (i > 100) {
-        i = 100;
+    if (i < RESID_8580_FILTER_GAIN_MIN) {
+        i = RESID_8580_FILTER_GAIN_MIN;
+    } else if (i > RESID_8580_FILTER_GAIN_MAX) {
+        i = RESID_8580_FILTER_GAIN_MAX;
     }
 
     sid_resid_8580_gain = i;
@@ -325,10 +323,10 @@ static int set_sid_resid_8580_gain(int i, void *param)
 
 static int set_sid_resid_8580_filter_bias(int i, void *param)
 {
-    if (i < -5000) {
-        i = -5000;
-    } else if (i > 5000) {
-        i = 5000;
+    if (i < RESID_8580_FILTER_BIAS_MIN) {
+        i = RESID_8580_FILTER_BIAS_MIN;
+    } else if (i > RESID_8580_FILTER_BIAS_MAX) {
+        i = RESID_8580_FILTER_BIAS_MAX;
     }
 
     sid_resid_8580_filter_bias = i;
@@ -386,17 +384,17 @@ static const resource_int_t resid_resources_int[] = {
       &sid_resid_enable_raw_output, set_sid_resid_enable_raw_output, NULL },
     { "SidResidSampling", SID_RESID_SAMPLING_RESAMPLING, RES_EVENT_NO, NULL,
       &sid_resid_sampling, set_sid_resid_sampling, NULL },
-    { "SidResidPassband", 90, RES_EVENT_NO, NULL,
+    { "SidResidPassband", RESID_6581_PASSBAND_DEFAULT, RES_EVENT_NO, NULL,
       &sid_resid_passband, set_sid_resid_passband, NULL },
-    { "SidResidGain", 97, RES_EVENT_NO, NULL,
+    { "SidResidGain", RESID_6581_FILTER_GAIN_DEFAULT, RES_EVENT_NO, NULL,
       &sid_resid_gain, set_sid_resid_gain, NULL },
-    { "SidResidFilterBias", 500, RES_EVENT_NO, NULL,
+    { "SidResidFilterBias", RESID_6581_FILTER_BIAS_DEFAULT, RES_EVENT_NO, NULL,
       &sid_resid_filter_bias, set_sid_resid_filter_bias, NULL },
-    { "SidResid8580Passband", 90, RES_EVENT_NO, NULL,
+    { "SidResid8580Passband", RESID_8580_PASSBAND_DEFAULT, RES_EVENT_NO, NULL,
       &sid_resid_8580_passband, set_sid_resid_8580_passband, NULL },
-    { "SidResid8580Gain", 97, RES_EVENT_NO, NULL,
+    { "SidResid8580Gain", RESID_8580_FILTER_GAIN_DEFAULT, RES_EVENT_NO, NULL,
       &sid_resid_8580_gain, set_sid_resid_8580_gain, NULL },
-    { "SidResid8580FilterBias", 0, RES_EVENT_NO, NULL,
+    { "SidResid8580FilterBias", RESID_8580_FILTER_BIAS_DEFAULT, RES_EVENT_NO, NULL,
       &sid_resid_8580_filter_bias, set_sid_resid_8580_filter_bias, NULL },
     RESOURCE_INT_LIST_END
 };
@@ -549,17 +547,12 @@ static sid_engine_model_t sid_engine_models_hardsid[] = {
 #endif
 
 #ifdef HAVE_PARSID
+#if !defined(WINDOWS_COMPILE) || (defined(WINDOWS_COMPILE) && defined(HAVE_LIBIEEE1284))
 static sid_engine_model_t sid_engine_models_parsid[] = {
     { "ParSID", SID_PARSID },
     { NULL, -1 }
 };
 #endif
-
-#ifdef HAVE_SSI2001
-static sid_engine_model_t sid_engine_models_ssi2001[] = {
-    { "SSI2001", SID_SSI2001 },
-    { NULL, -1 }
-};
 #endif
 
 static void add_sid_engine_models(sid_engine_model_t *sid_engine_models)
@@ -603,15 +596,11 @@ sid_engine_model_t **sid_get_engine_model_list(void)
 #endif
 
 #ifdef HAVE_PARSID
+#if !defined(WINDOWS_COMPILE) || (defined(WINDOWS_COMPILE) && defined(HAVE_LIBIEEE1284))
     if (parsid_available()) {
         add_sid_engine_models(sid_engine_models_parsid);
     }
 #endif
-
-#ifdef HAVE_SSI2001
-    if (ssi2001_available()) {
-        add_sid_engine_models(sid_engine_models_ssi2001);
-    }
 #endif
 
     sid_engine_model_list[num_sid_engine_models] = NULL;
@@ -626,7 +615,6 @@ static int sid_check_engine_model(int engine, int model)
         case SID_ENGINE_CATWEASELMKIII:
         case SID_ENGINE_HARDSID:
         case SID_ENGINE_PARSID:
-        case SID_ENGINE_SSI2001:
             return 0;
         default:
             break;

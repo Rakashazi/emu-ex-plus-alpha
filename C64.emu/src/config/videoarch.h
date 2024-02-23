@@ -14,7 +14,6 @@ struct video_canvas_s
 	struct viewport_s *viewport;
 	struct geometry_s *geometry;
 	struct palette_s *palette;
-	struct video_draw_buffer_callback_s *video_draw_buffer_callback;
 	void *systemPtr;
 	uint8_t *pixmapData;
 	int w;

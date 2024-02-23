@@ -11,6 +11,7 @@
  *
  *  It is not compatible with other display extensions
  *  (DWW hires, HRE hires).
+ *  In real hardware the board would likely be incompatible with 8296.
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -174,7 +175,8 @@ static void init_analog_palette(void)
 
         analog_colors[i].luminance = (float)((r << 5) | (r << 2) | (r >> 1));
         analog_colors[i].angle =     (float)((g << 5) | (g << 2) | (g >> 1));
-        analog_colors[i].direction = (b << 6) | (b << 4) | (b << 2) | b;
+        analog_colors[i].saturation = (b << 6) | (b << 4) | (b << 2) | b;
+        analog_colors[i].direction = 0;
         analog_colors[i].name = "Analog";
     }
 }

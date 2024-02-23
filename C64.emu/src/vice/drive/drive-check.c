@@ -286,6 +286,10 @@ int drive_check_extend_policy(int drive_type)
     case DRIVE_TYPE_1571:
     case DRIVE_TYPE_1571CR:
     case DRIVE_TYPE_2031:
+    /* case DISK_IMAGE_TYPE_D1M: */ /* FIXME: will be always extended */
+    /* case DISK_IMAGE_TYPE_D2M: */ /* FIXME: will be always extended */
+    /* case DISK_IMAGE_TYPE_D4M: */ /* FIXME: will be always extended */
+    /* case DRIVE_TYPE_1581: */ /* FIXME: will be always extended */
         return 1;
     }
     return 0;
@@ -380,7 +384,9 @@ int drive_get_type_by_devnr(int devnr)
 
     if ((machine_class != VICE_MACHINE_CBM5x0) &&
         (machine_class != VICE_MACHINE_CBM6x0) &&
-        (machine_class != VICE_MACHINE_PET)) {
+        (machine_class != VICE_MACHINE_PET) &&
+        /* FIXME: xvic has its own IEC code and doesn't use "IECDevice[8-11]" */
+        (machine_class != VICE_MACHINE_VIC20)) {
         resources_get_int_sprintf("IECDevice%i", &iecdevice, devnr);
         resources_get_int_sprintf("FileSystemDevice%i", &fsdevice, devnr);
     }

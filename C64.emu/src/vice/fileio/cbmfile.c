@@ -24,6 +24,8 @@
  *
  */
 
+/* #define DEBUGCBMFILE */
+
 #include "vice.h"
 
 #include <stdio.h>
@@ -39,6 +41,11 @@
 
 #include "cbmfile.h"
 
+#ifdef DEBUGCBMFILE
+#define DBG(x)  printf x
+#else
+#define DBG(x)
+#endif
 
 static char *cbmfile_find_file(const char *fsname, const char *path)
 {
@@ -160,6 +167,8 @@ unsigned int cbmfile_rename(const char *src_name, const char *dst_name,
 {
     char *src_cbm, *dst_cbm;
     unsigned int rc;
+
+    DBG(("cbmfile_rename '%s' to '%s'\n", src_name, dst_name));
 
     src_cbm = lib_strdup(src_name);
     dst_cbm = lib_strdup(dst_name);

@@ -27,6 +27,6 @@
 #ifndef VICE_SCPU64_CMDLINE_OPTIONS_H
 #define VICE_SCPU64_CMDLINE_OPTIONS_H
 
-extern int scpu64_cmdline_options_init(void);
+int scpu64_cmdline_options_init(void);
 
 #endif

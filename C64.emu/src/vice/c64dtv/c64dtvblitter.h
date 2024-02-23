@@ -35,22 +35,22 @@
 extern int blitter_active;
 extern int blitter_on_irq;
 
-extern int c64dtvblitter_resources_init(void);
-extern void c64dtvblitter_resources_shutdown(void);
-extern int c64dtvblitter_cmdline_options_init(void);
-extern void c64dtvblitter_init(void);
-extern void c64dtvblitter_reset(void);
-extern void c64dtvblitter_shutdown(void);
+int c64dtvblitter_resources_init(void);
+void c64dtvblitter_resources_shutdown(void);
+int c64dtvblitter_cmdline_options_init(void);
+void c64dtvblitter_init(void);
+void c64dtvblitter_reset(void);
+void c64dtvblitter_shutdown(void);
 
-extern uint8_t c64dtv_blitter_read(uint16_t addr);
-extern void c64dtv_blitter_store(uint16_t addr, uint8_t value);
+uint8_t c64dtv_blitter_read(uint16_t addr);
+void c64dtv_blitter_store(uint16_t addr, uint8_t value);
 
-extern void c64dtvblitter_perform_blitter(void);
-extern void c64dtvblitter_trigger_blitter(void);
+void c64dtvblitter_perform_blitter(void);
+void c64dtvblitter_trigger_blitter(void);
 
 struct snapshot_s;
 
-extern int c64dtvblitter_snapshot_write_module(struct snapshot_s *s);
-extern int c64dtvblitter_snapshot_read_module(struct snapshot_s *s);
+int c64dtvblitter_snapshot_write_module(struct snapshot_s *s);
+int c64dtvblitter_snapshot_read_module(struct snapshot_s *s);
 
 #endif

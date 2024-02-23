@@ -31,10 +31,10 @@
 #include "midi.h"
 
 /* returns 1 if interface is at $de00 (on C64) */
-extern int c64_midi_base_de00(void);
+int c64_midi_base_de00(void);
 
-extern int c64_midi_resources_init(void);
-extern int c64_midi_cmdline_options_init(void);
+int c64_midi_resources_init(void);
+int c64_midi_cmdline_options_init(void);
 
 /* Emulated interfaces */
 enum {
@@ -45,19 +45,20 @@ enum {
     MIDI_MODE_MAPLIN            /* Electronics - Maplin magazine */
 };
 
-extern int c64_midi_cart_enabled(void);
-extern int c64_midi_seq_cart_enabled(void);
-extern int c64_midi_pp_cart_enabled(void);
-extern int c64_midi_datel_cart_enabled(void);
-extern int c64_midi_nsoft_cart_enabled(void);
-extern int c64_midi_maplin_cart_enabled(void);
+int c64_midi_cart_enabled(void);
+int c64_midi_seq_cart_enabled(void);
+int c64_midi_pp_cart_enabled(void);
+int c64_midi_datel_cart_enabled(void);
+int c64_midi_nsoft_cart_enabled(void);
+int c64_midi_maplin_cart_enabled(void);
 
-extern int c64_midi_enable(void);
+int c64_midi_enable(void);
 int c64_midi_disable(void);
-extern void c64_midi_detach(void);
+void c64_midi_detach(void);
 
 struct snapshot_s;
-extern int c64_midi_snapshot_read_module(struct snapshot_s *s);
-extern int c64_midi_snapshot_write_module(struct snapshot_s *s);
+
+int c64_midi_snapshot_read_module(struct snapshot_s *s);
+int c64_midi_snapshot_write_module(struct snapshot_s *s);
 
 #endif

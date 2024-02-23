@@ -32,6 +32,9 @@
 #include "c64/cart/clockport.h"
 #include "cartridge.h"
 #include "mididrv.h"
+#ifdef HAVE_LIBCURL
+#include "userport_wic64.h"
+#endif
 
 /* dummy function to satisfy the global cartridge system */
 int cartridge_attach_image(int type, const char *name)
@@ -48,7 +51,17 @@ int cartridge_save_image(int type, const char *filename)
     return -1;
 }
 
+int cartridge_save_secondary_image(int type, const char *filename)
+{
+    return -1;
+}
+
 int cartridge_flush_image(int type)
+{
+    return -1;
+}
+
+int cartridge_flush_secondary_image(int type)
 {
     return -1;
 }
@@ -59,6 +72,16 @@ int cartridge_can_save_image(int crtid)
 }
 
 int cartridge_can_flush_image(int crtid)
+{
+    return 0;
+}
+
+int cartridge_can_save_secondary_image(int crtid)
+{
+    return 0;
+}
+
+int cartridge_can_flush_secondary_image(int crtid)
 {
     return 0;
 }
@@ -98,8 +121,12 @@ int cartridge_get_id(int slot)
     return CARTRIDGE_NONE;
 }
 
-/* FIXME: terrible name, we already have cartridge_get_file_name */
-char *cartridge_get_filename(int slot)
+char *cartridge_get_filename_by_slot(int slot)
+{
+    return NULL;
+}
+
+char *cartridge_get_secondary_filename_by_slot(int slot)
 {
     return NULL;
 }

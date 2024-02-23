@@ -158,14 +158,14 @@ struct cbmdos_cmd_parse_plus_s {
 };
 typedef struct cbmdos_cmd_parse_plus_s cbmdos_cmd_parse_plus_t;
 
-extern const char *cbmdos_errortext(unsigned int code);
-extern const char *cbmdos_filetype_get(unsigned int filetype);
+const char *cbmdos_errortext(unsigned int code);
+const char *cbmdos_filetype_get(unsigned int filetype);
 
-extern unsigned int cbmdos_parse_wildcard_check(const char *name, unsigned int len);
-extern unsigned int cbmdos_parse_wildcard_compare(const uint8_t *name1, const uint8_t *name2);
-extern uint8_t *cbmdos_dir_slot_create(const char *name, unsigned int len);
+unsigned int cbmdos_parse_wildcard_check(const char *name, unsigned int len);
+unsigned int cbmdos_parse_wildcard_compare(const uint8_t *name1, const uint8_t *name2);
+uint8_t *cbmdos_dir_slot_create(const char *name, unsigned int len);
 
-extern unsigned int cbmdos_command_parse(cbmdos_cmd_parse_t *cmd_parse);
-extern unsigned int cbmdos_command_parse_plus(cbmdos_cmd_parse_plus_t *cmd_parse);
+unsigned int cbmdos_command_parse(cbmdos_cmd_parse_t *cmd_parse);
+unsigned int cbmdos_command_parse_plus(cbmdos_cmd_parse_plus_t *cmd_parse);
 
 #endif

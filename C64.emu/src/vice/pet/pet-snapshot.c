@@ -91,7 +91,7 @@ int pet_snapshot_write(const char *name, int save_roms, int save_disks,
         ef = -1;
     }
 
-    if ((!ef) && petres.superpet) {
+    if ((!ef) && petres.model.superpet) {
         ef = acia1_snapshot_write_module(s);
     }
 
@@ -147,7 +147,7 @@ int pet_snapshot_read(const char *name, int event_mode)
     snapshot_close(s);
 
     if (ef) {
-        machine_trigger_reset(MACHINE_RESET_MODE_SOFT);
+        machine_trigger_reset(MACHINE_RESET_MODE_RESET_CPU);
     }
 
     sound_snapshot_finish();

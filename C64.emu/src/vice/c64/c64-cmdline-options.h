@@ -27,6 +27,6 @@
 #ifndef VICE_C64_CMDLINE_OPTIONS_H
 #define VICE_C64_CMDLINE_OPTIONS_H
 
-extern int c64_cmdline_options_init(void);
+int c64_cmdline_options_init(void);
 
 #endif

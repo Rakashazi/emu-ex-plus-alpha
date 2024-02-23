@@ -44,35 +44,35 @@
 #include "log.h"
 #include "types.h"
 
-extern int rawnet_arch_resources_init(void);
-extern int rawnet_arch_cmdline_options_init(void);
-extern void rawnet_arch_resources_shutdown(void);
+int rawnet_arch_resources_init(void);
+int rawnet_arch_cmdline_options_init(void);
+void rawnet_arch_resources_shutdown(void);
 
-extern int rawnet_arch_init(void);
-extern void rawnet_arch_pre_reset(void);
-extern void rawnet_arch_post_reset(void);
-extern int rawnet_arch_activate(const char *interface_name);
-extern void rawnet_arch_deactivate(void);
-extern void rawnet_arch_set_mac(const uint8_t mac[6]);
-extern void rawnet_arch_set_hashfilter(const uint32_t hash_mask[2]);
+int rawnet_arch_init(void);
+void rawnet_arch_pre_reset(void);
+void rawnet_arch_post_reset(void);
+int rawnet_arch_activate(const char *interface_name);
+void rawnet_arch_deactivate(void);
+void rawnet_arch_set_mac(const uint8_t mac[6]);
+void rawnet_arch_set_hashfilter(const uint32_t hash_mask[2]);
 
-extern void rawnet_arch_recv_ctl(int bBroadcast, int bIA, int bMulticast, int bCorrect, int bPromiscuous, int bIAHash);
+void rawnet_arch_recv_ctl(int bBroadcast, int bIA, int bMulticast, int bCorrect, int bPromiscuous, int bIAHash);
 
-extern void rawnet_arch_line_ctl(int bEnableTransmitter, int bEnableReceiver);
+void rawnet_arch_line_ctl(int bEnableTransmitter, int bEnableReceiver);
 
-extern void rawnet_arch_transmit(int force, int onecoll, int inhibit_crc, int tx_pad_dis, int txlength, uint8_t *txframe);
+void rawnet_arch_transmit(int force, int onecoll, int inhibit_crc, int tx_pad_dis, int txlength, uint8_t *txframe);
 
-extern int rawnet_arch_receive(uint8_t *pbuffer, int *plen, int *phashed, int *phash_index, int *prx_ok, int *pcorrect_mac, int *pbroadcast, int *pcrc_error);
+int rawnet_arch_receive(uint8_t *pbuffer, int *plen, int *phashed, int *phash_index, int *prx_ok, int *pcorrect_mac, int *pbroadcast, int *pcrc_error);
 
-extern int rawnet_arch_enumadapter_open(void);
-extern int rawnet_arch_enumadapter(char **ppname, char **ppdescription);
-extern int rawnet_arch_enumadapter_close(void);
-extern char *rawnet_arch_get_standard_interface(void);
+int rawnet_arch_enumadapter_open(void);
+int rawnet_arch_enumadapter(char **ppname, char **ppdescription);
+int rawnet_arch_enumadapter_close(void);
+char *rawnet_arch_get_standard_interface(void);
 
-extern int rawnet_arch_enumdriver_open(void);
-extern int rawnet_arch_enumdriver(char **ppname, char **ppdescription);
-extern int rawnet_arch_enumdriver_close(void);
-extern char *rawnet_arch_get_standard_driver(void);
+int rawnet_arch_enumdriver_open(void);
+int rawnet_arch_enumdriver(char **ppname, char **ppdescription);
+int rawnet_arch_enumdriver_close(void);
+char *rawnet_arch_get_standard_driver(void);
 
 #ifdef UNIX_COMPILE
 
@@ -80,7 +80,7 @@ extern char *rawnet_arch_get_standard_driver(void);
 /** #define RAWNET_DEBUG_PKTDUMP 1 **/
 
 #ifdef RAWNET_DEBUG_PKTDUMP
-extern void rawnet_arch_debug_output(const char *text, uint8_t *what, int count);
+void rawnet_arch_debug_output(const char *text, uint8_t *what, int count);
 #endif
 
 /* Logging device to be used by rawnet drivers */

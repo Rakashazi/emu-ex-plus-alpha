@@ -31,11 +31,11 @@
 
 extern int petreu_enabled;
 
-extern int petreu_resources_init(void);
-extern void petreu_resources_shutdown(void);
-extern int petreu_cmdline_options_init(void);
-extern void petreu_init(void);
-extern void petreu_reset(void);
-extern void petreu_shutdown(void);
+int petreu_resources_init(void);
+void petreu_resources_shutdown(void);
+int petreu_cmdline_options_init(void);
+void petreu_init(void);
+void petreu_reset(void);
+void petreu_shutdown(void);
 
 #endif

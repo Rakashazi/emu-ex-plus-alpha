@@ -138,7 +138,7 @@ static uint8_t refresh_counter(unsigned int num)
 {
     uint8_t offset;
 
-    offset = 0xff - (VICII_RASTER_Y(maincpu_clk) * 5 + num);
+    offset = (uint8_t)(0xff - (int)(VICII_RASTER_Y(maincpu_clk) * 5 + num));
 
     return vicii.ram_base_phi1[vicii.vbank_phi1 + 0x3f00 + offset];
 }

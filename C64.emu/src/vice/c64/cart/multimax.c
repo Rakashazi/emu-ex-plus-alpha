@@ -46,6 +46,7 @@
 #include "types.h"
 #include "util.h"
 #include "crt.h"
+#include "vicii-phi1.h"
 
 /*
     MultiMAX
@@ -56,11 +57,25 @@
     2K RAM
     - RAM is mapped to $0800
 
-    one register in the entire I/O1 space:
+    One register in the entire I/O1 (or extended RAM for the MAX Machine) space.
+    The register latches the lowbyte of the *address* (not the value written):
 
-    bit 7       when set, the register is disabled and can only be
-                reenabled by reset
+    bit 7       when set, a) the register is disabled and can only be
+                re-enabled by reset and b) the extra RAM is enabled and replaces
+                the register latch.
     bit 0-5     select ROM bank 0-63
+
+    The menu software does this:
+
+    lda $05 ; bank number
+    tax
+    sta $de80,x
+    sta $0880,x
+
+    ... so it stores the bank number as a value and address, which indicates
+    that during development it was changed from value to address - which would
+    also explain the inconsistent documentation.
+
 */
 
 #define CART_RAM_SIZE (2 * 1024)
@@ -68,18 +83,22 @@
 static uint8_t currbank = 0;
 static uint8_t reg_enabled = 1;
 
+/* this is used on regular C64s */
 static void multimax_io1_store(uint16_t addr, uint8_t value)
 {
-    /* printf("io1 %04x %02x\n", addr, value); */
+    /*printf("io1 w %04x %02x\n", addr, value);*/
     if (reg_enabled) {
-        currbank = value & 0x3f;
-        reg_enabled = ((value >> 7) & 1) ^ 1;
+        currbank = addr & 0x3f;
+        reg_enabled = ((addr >> 7) & 1) ^ 1;
+        /*printf("Bank: %02x Register: %s RAM: %s\n", currbank,
+               reg_enabled ? "enabled" : "disabled", reg_enabled ? "disabled" : "enabled");*/
     }
 }
 
 static int multimax_dump(void)
 {
     mon_out("Register is %s.\n", reg_enabled ? "enabled" : "disabled");
+    mon_out("Extra RAM is %s.\n", reg_enabled ? "disabled" : "enabled");
     mon_out("ROM Bank: %d\n", currbank);
     return 0;
 }
@@ -97,7 +116,8 @@ static io_source_t multimax_device = {
     multimax_dump,            /* device state information dump function */
     CARTRIDGE_MULTIMAX,       /* cartridge ID */
     IO_PRIO_NORMAL,           /* normal priority, device read needs to be checked for collisions */
-    0                         /* insertion order, gets filled in by the registration function */
+    0,                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE            /* NO mirroring */
 };
 
 static io_source_list_t *multimax_list_item = NULL;
@@ -110,16 +130,25 @@ static const export_resource_t export_res = {
 
 uint8_t multimax_0800_0fff_read(uint16_t addr)
 {
-    return export_ram0[addr & 0x07ff];
+    if (reg_enabled == 0) {
+        /*printf("ram r %04x %02x\n", addr, export_ram0[addr & 0x07ff]);*/
+        return export_ram0[addr & 0x07ff];
+    }
+    return vicii_read_phi1();
 }
 
 void multimax_0800_0fff_store(uint16_t addr, uint8_t value)
 {
     if (reg_enabled) {
-        currbank = value & 0x7f;
-        reg_enabled = ((value >> 7) & 1) ^ 1;
+        /*printf("reg w %04x %02x\n", addr, value);*/
+        currbank = addr & 0x7f;
+        reg_enabled = ((addr >> 7) & 1) ^ 1;
+        /*printf("Bank: %02x Register: %s RAM: %s\n", currbank,
+               reg_enabled ? "enabled" : "disabled", reg_enabled ? "disabled" : "enabled");*/
+    } else {
+        /*printf("ram w %04x %02x\n", addr, value);*/
+        export_ram0[addr & 0x07ff] = value;
     }
-    export_ram0[addr & 0x07ff] = value;
 }
 
 uint8_t multimax_roml_read(uint16_t addr)

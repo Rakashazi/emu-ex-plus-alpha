@@ -29,11 +29,12 @@
 
 #include "vice.h"
 
-extern int init_resources(void);
-extern int init_cmdline_options(void);
-extern int init_main(void);
+int init_resources(void);
+int init_cmdline_options(void);
+int init_main(void);
+int init_main_is_done(void);
 
-extern void init_resource_fail(const char *module);
-extern void init_cmdline_options_fail(const char *module);
+void init_resource_fail(const char *module);
+void init_cmdline_options_fail(const char *module);
 
 #endif

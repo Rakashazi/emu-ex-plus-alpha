@@ -29,6 +29,6 @@
 
 #include "types.h"
 
-extern void portaudio_init(void);
+void portaudio_init(void);
 
 #endif

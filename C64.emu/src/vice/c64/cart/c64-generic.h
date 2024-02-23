@@ -33,29 +33,29 @@
 
 struct snapshot_s;
 
-extern void generic_8kb_config_init(void);
-extern void generic_16kb_config_init(void);
-extern void generic_ultimax_config_init(void);
-extern void generic_8kb_config_setup(uint8_t *rawcart);
-extern void generic_16kb_config_setup(uint8_t *rawcart);
-extern void generic_ultimax_config_setup(uint8_t *rawcart);
-extern int generic_8kb_bin_attach(const char *filename, uint8_t *rawcart);
-extern int generic_16kb_bin_attach(const char *filename, uint8_t *rawcart);
-extern int generic_ultimax_bin_attach(const char *filename, uint8_t *rawcart);
-extern int generic_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void generic_8kb_detach(void);
-extern void generic_16kb_detach(void);
-extern void generic_ultimax_detach(void);
+void generic_8kb_config_init(void);
+void generic_16kb_config_init(void);
+void generic_ultimax_config_init(void);
+void generic_8kb_config_setup(uint8_t *rawcart);
+void generic_16kb_config_setup(uint8_t *rawcart);
+void generic_ultimax_config_setup(uint8_t *rawcart);
+int generic_8kb_bin_attach(const char *filename, uint8_t *rawcart);
+int generic_16kb_bin_attach(const char *filename, uint8_t *rawcart);
+int generic_ultimax_bin_attach(const char *filename, uint8_t *rawcart);
+int generic_crt_attach(FILE *fd, uint8_t *rawcart);
+void generic_8kb_detach(void);
+void generic_16kb_detach(void);
+void generic_ultimax_detach(void);
 
-extern uint8_t generic_roml_read(uint16_t addr);
-extern void generic_roml_store(uint16_t addr, uint8_t value);
-extern uint8_t generic_romh_read(uint16_t addr);
-extern int generic_romh_phi1_read(uint16_t addr, uint8_t *value);
-extern int generic_romh_phi2_read(uint16_t addr, uint8_t *value);
-extern int generic_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
-extern void generic_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
+uint8_t generic_roml_read(uint16_t addr);
+void generic_roml_store(uint16_t addr, uint8_t value);
+uint8_t generic_romh_read(uint16_t addr);
+int generic_romh_phi1_read(uint16_t addr, uint8_t *value);
+int generic_romh_phi2_read(uint16_t addr, uint8_t *value);
+int generic_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
+void generic_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
 
-extern int generic_snapshot_write_module(struct snapshot_s *s, int type);
-extern int generic_snapshot_read_module(struct snapshot_s *s, int type);
+int generic_snapshot_write_module(struct snapshot_s *s, int type);
+int generic_snapshot_read_module(struct snapshot_s *s, int type);
 
 #endif

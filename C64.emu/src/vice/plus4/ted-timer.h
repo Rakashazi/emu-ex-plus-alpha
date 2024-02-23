@@ -29,10 +29,10 @@
 
 #include "types.h"
 
-extern void ted_timer_init(void);
-extern void ted_timer_reset(void);
+void ted_timer_init(void);
+void ted_timer_reset(void);
 
-extern void ted_timer_store(uint16_t addr, uint8_t value);
-extern uint8_t ted_timer_read(uint16_t addr);
+void ted_timer_store(uint16_t addr, uint8_t value);
+uint8_t ted_timer_read(uint16_t addr);
 
 #endif

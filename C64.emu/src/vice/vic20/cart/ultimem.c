@@ -182,7 +182,8 @@ static io_source_t ultimem_io2 = {
     NULL,                    /* TODO: device state information dump function */
     CARTRIDGE_VIC20_UM,      /* cartridge ID */
     IO_PRIO_NORMAL,          /* normal priority, device read needs to be checked for collisions */
-    0                        /* insertion order, gets filled in by the registration function */
+    0,                       /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE           /* NO mirroring */
 };
 
 static io_source_t ultimem_io3 = {
@@ -198,7 +199,8 @@ static io_source_t ultimem_io3 = {
     vic_um_mon_dump,         /* device state information dump function */
     CARTRIDGE_VIC20_UM,      /* cartridge ID */
     IO_PRIO_NORMAL,          /* normal priority, device read needs to be checked for collisions */
-    0                        /* insertion order, gets filled in by the registration function */
+    0,                       /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE           /* NO mirroring */
 };
 
 static io_source_list_t *io2_list_item = NULL;
@@ -545,7 +547,7 @@ static void vic_um_io3_store(uint16_t addr, uint8_t value)
             case 0:
                 value |= ultimem_reset[0];
                 if (value & 0x40) {
-                    machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+                    machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
                 }
                 break;
             case 3:

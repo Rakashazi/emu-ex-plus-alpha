@@ -65,6 +65,16 @@ static int sidcart_sound_machine_init(sound_t *psid, int speed, int cycles_per_s
     }
 }
 
+#ifdef SOUND_SYSTEM_FLOAT
+/* stereo mixing placement of the PLUS4 SID cartridge sound */
+static sound_chip_mixing_spec_t sidcart_sound_mixing_spec[SOUND_CHIP_CHANNELS_MAX] = {
+    {
+        100, /* left channel volume % in case of stereo output, default output to both */
+        100  /* right channel volume % in case of stereo output, default output to both */
+    }
+};
+#endif
+
 /* PLUS4 SID cartridge sound chip */
 static sound_chip_t sidcart_sound_chip = {
     sid_sound_machine_open,              /* sound chip open function */
@@ -76,6 +86,9 @@ static sound_chip_t sidcart_sound_chip = {
     sid_sound_machine_reset,             /* sound chip reset function */
     sid_sound_machine_cycle_based,       /* sound chip 'is_cycle_based()' function, RESID engine is cycle based, all other engines are NOT */
     sid_sound_machine_channels,          /* sound chip 'get_amount_of_channels()' function, sound chip has 1 channel */
+#ifdef SOUND_SYSTEM_FLOAT
+    sidcart_sound_mixing_spec,           /* stereo mixing placement specs */
+#endif
     0                                    /* sound chip enabled flag, toggled upon device (de-)activation */
 };
 
@@ -105,7 +118,8 @@ static io_source_t sidcart_fd40_device = {
     sid_dump,             /* device state information dump function */
     IO_CART_ID_NONE,      /* not a cartridge */
     IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
-    0                     /* insertion order, gets filled in by the registration function */
+    0,                    /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE        /* NO mirroring */
 };
 
 static io_source_t sidcart_fe80_device = {
@@ -121,7 +135,8 @@ static io_source_t sidcart_fe80_device = {
     sid_dump,             /* device state information dump function */
     IO_CART_ID_NONE,      /* not a cartridge */
     IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
-    0                     /* insertion order, gets filled in by the registration function */
+    0,                    /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE        /* NO mirroring */
 };
 
 static io_source_t sidcart_joy_device = {
@@ -137,7 +152,8 @@ static io_source_t sidcart_joy_device = {
     NULL,                     /* TODO: device state information dump function */
     IO_CART_ID_NONE,          /* not a cartridge */
     IO_PRIO_NORMAL,           /* normal priority, device read needs to be checked for collisions */
-    0                         /* insertion order, gets filled in by the registration function */
+    0,                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE            /* NO mirroring */
 };
 
 static io_source_list_t *sidcartjoy_list_item = NULL;
@@ -312,10 +328,10 @@ void sidcart_cmdline_options_shutdown(void)
 
 static void sidcartjoy_store(uint16_t addr, uint8_t value)
 {
-    store_joyport_dig(JOYPORT_6, value, 0xff);
+    store_joyport_dig(JOYPORT_PLUS4_SIDCART, value, 0xff);
 }
 
 static uint8_t sidcartjoy_read(uint16_t addr)
 {
-    return read_joyport_dig(JOYPORT_6);
+    return read_joyport_dig(JOYPORT_PLUS4_SIDCART);
 }

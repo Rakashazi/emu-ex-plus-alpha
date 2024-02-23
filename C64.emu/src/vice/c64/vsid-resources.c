@@ -68,6 +68,11 @@
    calculated as 65536 * drive_clk / clk_[main machine] */
 static int sync_factor;
 
+#if 0
+/* Frequency of the power grid in Hz */
+static int power_freq = 1;
+#endif
+
 /* Name of the character ROM.  */
 static char *chargen_rom_name = NULL;
 
@@ -168,7 +173,7 @@ static int set_kernal_revision(int val, void *param)
     memcpy(c64memrom_kernal64_trap_rom, c64memrom_kernal64_rom, C64_KERNAL_ROM_SIZE);
 
     if (kernal_revision != rev) {
-        machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+        machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
     }
 
     kernal_revision = rev;
@@ -179,6 +184,7 @@ static int set_kernal_revision(int val, void *param)
 static int set_sync_factor(int val, void *param)
 {
     int change_timing = 0;
+    int pf;
 
     if (sync_factor != val) {
         change_timing = 1;
@@ -186,36 +192,49 @@ static int set_sync_factor(int val, void *param)
 
     switch (val) {
         case MACHINE_SYNC_PAL:
-            sync_factor = val;
-            if (change_timing) {
-                machine_change_timing(MACHINE_SYNC_PAL, 0);
-            }
+        case MACHINE_SYNC_PALN:
+            pf = 50;
             break;
         case MACHINE_SYNC_NTSC:
-            sync_factor = val;
-            if (change_timing) {
-                machine_change_timing(MACHINE_SYNC_NTSC, 0);
-            }
-            break;
         case MACHINE_SYNC_NTSCOLD:
-            sync_factor = val;
-            if (change_timing) {
-                machine_change_timing(MACHINE_SYNC_NTSCOLD, 0);
-            }
-            break;
-        case MACHINE_SYNC_PALN:
-            sync_factor = val;
-            if (change_timing) {
-                machine_change_timing(MACHINE_SYNC_PALN, 0);
-            }
+            pf = 60;
             break;
         default:
             return -1;
+    }
+    sync_factor = val;
+    if (change_timing) {
+        machine_change_timing(val, pf, 0);
     }
 
     return 0;
 }
 
+#if 0
+static int set_power_freq(int val, void *param)
+{
+    int change_timing = 0;
+
+    if (power_freq != val) {
+        change_timing = 1;
+    }
+
+    switch (val) {
+        case 50:
+        case 60:
+            break;
+        default:
+            return -1;
+    }
+    power_freq = val;
+    if (change_timing) {
+        if (sync_factor > 0) {
+            machine_change_timing(sync_factor, val, 0);
+        }
+    }
+    return 0;
+}
+#endif
 
 static int set_hvsc_root(const char *path, void *param)
 {
@@ -256,6 +275,10 @@ static const resource_string_t resources_string[] = {
 static const resource_int_t resources_int[] = {
     { "MachineVideoStandard", MACHINE_SYNC_PAL, RES_EVENT_SAME, NULL,
       &sync_factor, set_sync_factor, NULL },
+#if 0
+    { "MachinePowerFrequency", 50, RES_EVENT_SAME, NULL,
+      &power_freq, set_power_freq, NULL },
+#endif
     { "KernalRev", C64_KERNAL_REV3, RES_EVENT_SAME, NULL,
       &kernal_revision, set_kernal_revision, NULL },
     { "Sid2AddressStart", 0xde00, RES_EVENT_SAME, NULL,

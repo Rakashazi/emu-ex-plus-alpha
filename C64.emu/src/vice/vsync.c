@@ -79,7 +79,6 @@
 /* public metrics, updated every vsync */
 static double vsync_metric_cpu_percent;
 static double vsync_metric_emulated_fps;
-static int    vsync_metric_warp_enabled;
 
 #ifdef USE_VICE_THREAD
 #   include <pthread.h>
@@ -376,7 +375,7 @@ void vsyncarch_get_metrics(double *cpu_percent, double *emulated_fps, int *is_wa
 
     *cpu_percent = vsync_metric_cpu_percent;
     *emulated_fps = vsync_metric_emulated_fps;
-    *is_warp_enabled = vsync_metric_warp_enabled;
+    *is_warp_enabled = warp_enabled;
 
     METRIC_UNLOCK();
 }
@@ -474,7 +473,6 @@ static void update_performance_metrics(tick_t frame_tick)
     /* smooth and make public */
     vsync_metric_cpu_percent  = (MEASUREMENT_SMOOTH_FACTOR * vsync_metric_cpu_percent)  + (1.0 - MEASUREMENT_SMOOTH_FACTOR) * (clock_delta_seconds / frame_timespan_seconds * 100.0);
     vsync_metric_emulated_fps = (MEASUREMENT_SMOOTH_FACTOR * vsync_metric_emulated_fps) + (1.0 - MEASUREMENT_SMOOTH_FACTOR) * ((double)measurement_count / frame_timespan_seconds);
-    vsync_metric_warp_enabled = warp_enabled;
 
     /* printf("%.3f seconds - %0.3f%% cpu, %.3f fps (CLOCK delta: %u)\n", frame_timespan_seconds, vsync_metric_cpu_percent, vsync_metric_emulated_fps, clock_deltas[next_measurement_index]); fflush(stdout); */
 
@@ -511,7 +509,11 @@ void vsync_do_end_of_line(void)
      */
 
     if (archdep_is_exiting()) {
-        mainlock_yield();
+        /* UI thread shutdown code can end up here ... :( */
+        if (mainlock_is_vice_thread()) {
+            mainlock_yield();
+        }
+
         return;
     }
 
@@ -710,5 +712,5 @@ void vsync_do_vsync(struct video_canvas_s *c)
 
     last_vsync = now;
 }
-#endif
 
+#endif

@@ -126,7 +126,8 @@ static io_source_t rrnetmk3_io1_device = {
     rrnetmk3_dump,           /* device state information dump function */
     CARTRIDGE_RRNETMK3,      /* cartridge ID */
     IO_PRIO_NORMAL,          /* normal priority, device read needs to be checked for collisions */
-    0                        /* insertion order, gets filled in by the registration function */
+    0,                       /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE           /* NO mirroring */
 };
 
 static io_source_t rrnetmk3_cs8900_io1_device = {
@@ -142,7 +143,8 @@ static io_source_t rrnetmk3_cs8900_io1_device = {
     rrnetmk3_cs8900_dump,    /* device state information dump function */
     CARTRIDGE_RRNETMK3,      /* cartridge ID */
     IO_PRIO_NORMAL,          /* normal priority, device read needs to be checked for collisions */
-    0                        /* insertion order, gets filled in by the registration function */
+    0,                       /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE           /* NO mirroring */
 };
 
 static io_source_list_t *rrnetmk3_io1_list_item = NULL;

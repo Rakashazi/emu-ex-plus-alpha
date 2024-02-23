@@ -48,21 +48,21 @@ typedef uint32_t tick_t;
 #define TICK_TO_NANO(tick)  ((uint64_t) (uint64_t)((double)(tick) * ((double)NANO_PER_SECOND  / TICK_PER_SECOND)))
 #define NANO_TO_TICK(nano)  ((tick_t)   (uint64_t)((double)(nano) / ((double)NANO_PER_SECOND  / TICK_PER_SECOND)))
 
-extern void tick_init(void);
+void tick_init(void);
 
 /* number of ticks per second */
-extern tick_t tick_per_second(void);
+tick_t tick_per_second(void);
 
 /* Get time in ticks. */
-extern tick_t tick_now(void);
+tick_t tick_now(void);
 
 /* Get time in ticks, compensating for the +/- 1 tick that is possible on Windows. */
-extern tick_t tick_now_after(tick_t previous_tick);
+tick_t tick_now_after(tick_t previous_tick);
 
 /* Get number of ticks since a previous tick, compensating for the +/- 1 tick that is possible on Windows. */
-extern tick_t tick_now_delta(tick_t previous_tick);
+tick_t tick_now_delta(tick_t previous_tick);
 
 /* Sleep a number of ticks. */
-extern void tick_sleep(tick_t delay);
+void tick_sleep(tick_t delay);
 
 #endif

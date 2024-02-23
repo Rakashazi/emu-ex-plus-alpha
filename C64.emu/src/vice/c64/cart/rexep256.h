@@ -31,15 +31,15 @@
 
 #include "types.h"
 
-extern void rexep256_config_init(void);
-extern void rexep256_config_setup(uint8_t *rawcart);
-extern int rexep256_bin_attach(const char *filename, uint8_t *rawcart);
-extern int rexep256_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void rexep256_detach(void);
+void rexep256_config_init(void);
+void rexep256_config_setup(uint8_t *rawcart);
+int rexep256_bin_attach(const char *filename, uint8_t *rawcart);
+int rexep256_crt_attach(FILE *fd, uint8_t *rawcart);
+void rexep256_detach(void);
 
 struct snapshot_s;
 
-extern int rexep256_snapshot_write_module(struct snapshot_s *s);
-extern int rexep256_snapshot_read_module(struct snapshot_s *s);
+int rexep256_snapshot_write_module(struct snapshot_s *s);
+int rexep256_snapshot_read_module(struct snapshot_s *s);
 
 #endif

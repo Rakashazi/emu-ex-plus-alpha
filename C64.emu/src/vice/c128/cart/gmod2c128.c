@@ -67,7 +67,7 @@
     see https://www.freepascal.org/~daniel/gmod2/
 */
 
-#define DEBUGGMOD2
+/* #define DEBUGGMOD2 */
 
 #ifdef DEBUGGMOD2
 #define DBG(x)  printf x
@@ -119,7 +119,8 @@ static io_source_t c128gmod2_io1_device = {
     c128gmod2_dump,                 /* device state information dump function */
     CARTRIDGE_C128_GMOD2C128,       /* cartridge ID */
     IO_PRIO_NORMAL,                 /* normal priority, device read needs to be checked for collisions */
-    0                               /* insertion order, gets filled in by the registration function */
+    0,                              /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                  /* NO mirroring */
 };
 
 static io_source_list_t *c128gmod2_io1_list_item = NULL;
@@ -243,6 +244,7 @@ static int set_c128gmod2_eeprom_filename(const char *name, void *param)
 static int set_c128gmod2_eeprom_rw(int val, void* param)
 {
     c128gmod2_eeprom_rw = val ? 1 : 0;
+    m93c86_set_image_rw(c128gmod2_eeprom_rw);
     return 0;
 }
 
@@ -430,6 +432,39 @@ int c128gmod2_flush_image(void)
         return c128gmod2_crt_save(c128gmod2_filename);
     }
     return -1;
+}
+
+int c128gmod2_can_save_eeprom(void)
+{
+    return 1;
+}
+
+int c128gmod2_can_flush_eeprom(void)
+{
+    if ((c128gmod2_eeprom_filename != NULL) && (*c128gmod2_eeprom_filename != 0)) {
+        return 1;
+    }
+    return 0;
+}
+
+/** \brief  Save a copy of the GMod2 EEPROM image to a file
+ *
+ * \param[in]   filename    filename for EEPROM image copy
+ *
+ * \return  0 on success, -1 on failre
+ */
+int c128gmod2_eeprom_save(const char *filename)
+{
+    return m93c86_save_image(filename);
+}
+
+/** \brief  FLush current contents of the GMod2 EEPROM to file
+ *
+ * \return  0 on success, -1 on failure
+ */
+int c128gmod2_flush_eeprom(void)
+{
+    return m93c86_flush_image();
 }
 
 void c128gmod2_detach(void)

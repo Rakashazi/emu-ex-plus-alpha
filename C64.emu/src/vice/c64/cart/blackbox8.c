@@ -76,7 +76,8 @@ static io_source_t final3_io2_device = {
     blackbox8_dump,           /* device state information dump function */
     CARTRIDGE_BLACKBOX8,      /* cartridge ID */
     IO_PRIO_NORMAL,           /* normal priority, device read needs to be checked for collisions */
-    0                         /* insertion order, gets filled in by the registration function */
+    0,                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE            /* NO mirroring */
 };
 
 static io_source_list_t *final3_io2_list_item = NULL;

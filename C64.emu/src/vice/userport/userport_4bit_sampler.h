@@ -29,6 +29,6 @@
 
 #include "types.h"
 
-extern int userport_4bit_sampler_resources_init(void);
+int userport_4bit_sampler_resources_init(void);
 
 #endif

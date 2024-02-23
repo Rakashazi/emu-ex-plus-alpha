@@ -27,10 +27,10 @@
 #ifndef VICE_SERIAL_IEC_DEVICE_H
 #define VICE_SERIAL_IEC_DEVICE_H
 
-extern int serial_iec_device_resources_init(void);
-extern int serial_iec_device_cmdline_options_init(void);
+int serial_iec_device_resources_init(void);
+int serial_iec_device_cmdline_options_init(void);
 
-extern void serial_iec_device_init(void);
-extern void serial_iec_device_reset(void);
+void serial_iec_device_init(void);
+void serial_iec_device_reset(void);
 
 #endif

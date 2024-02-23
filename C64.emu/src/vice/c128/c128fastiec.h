@@ -29,11 +29,12 @@
 
 #include "types.h"
 
-extern void c128fastiec_init(void);
+void c128fastiec_init(void);
 
-extern void c128fastiec_fast_cpu_write(uint8_t data);
-extern void c128fastiec_fast_cpu_direction(int direction);
-extern void c64fastiec_fast_cpu_write(uint8_t data);
+void c128fastiec_fast_cpu_write(uint8_t data);
+void c128fastiec_fast_cpu_direction(int direction);
+void c64fastiec_fast_cpu_write(uint8_t data);
+
 extern int burst_mod;
 
 #endif

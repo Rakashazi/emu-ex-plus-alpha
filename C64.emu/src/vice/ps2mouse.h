@@ -31,20 +31,20 @@
 
 #include "types.h"
 
-extern void ps2mouse_reset(void);
+void ps2mouse_reset(void);
 
-extern uint8_t ps2mouse_read(void);
-extern void ps2mouse_store(uint8_t value);
+uint8_t ps2mouse_read(void);
+void ps2mouse_store(uint8_t value);
 
-extern int ps2mouse_resources_init(void);
-extern int ps2mouse_cmdline_options_init(void);
+int ps2mouse_resources_init(void);
+int ps2mouse_cmdline_options_init(void);
 
 extern int ps2mouse_enabled;
 
-extern int mouse_ps2_resources_init(void);
-extern int mouse_ps2_cmdline_options_init(void);
-extern void mouse_ps2_init(void);
-extern void mouse_ps2_shutdown(void);
+int mouse_ps2_resources_init(void);
+int mouse_ps2_cmdline_options_init(void);
+void mouse_ps2_init(void);
+void mouse_ps2_shutdown(void);
 
 extern int _mouse_enabled;
 

@@ -27,14 +27,14 @@
 #ifndef VICE_VICII_DRAW_CYCLE_H
 #define VICE_VICII_DRAW_CYCLE_H
 
-extern void vicii_draw_cycle(void);
-extern void vicii_draw_cycle_init(void);
+void vicii_draw_cycle(void);
+void vicii_draw_cycle_init(void);
 
-extern void vicii_monitor_colreg_store(int reg, int value);
+void vicii_monitor_colreg_store(int reg, int value);
 
 struct snapshot_module_s;
 
-extern int vicii_draw_cycle_snapshot_write(struct snapshot_module_s *m);
-extern int vicii_draw_cycle_snapshot_read(struct snapshot_module_s *m);
+int vicii_draw_cycle_snapshot_write(struct snapshot_module_s *m);
+int vicii_draw_cycle_snapshot_read(struct snapshot_module_s *m);
 
 #endif

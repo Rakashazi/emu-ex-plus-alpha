@@ -42,6 +42,10 @@
    This device provides a way of simulating the data input and
    output lines of a joyport device, can be used to test the
    joyport system.
+
+   Works on:
+   - native joystick port(s) (x64/x64sc/xscpu64/x64dtv/x128/xvic/xcbm5x0/xplus4)
+   - sidcart joystick adapter port (xplus4)
 */
 
 /* #define HOST_HARDWARE_IO */
@@ -161,6 +165,7 @@ static joyport_t joyport_io_hw_device = {
     JOYPORT_RES_ID_NONE,          /* device can be used in multiple ports at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,      /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,         /* device does NOT use the potentiometer lines */
+    JOYPORT_5VDC_NOT_NEEDED,      /* device does NOT need +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,     /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_IO_SIMULATION, /* device is a SNES adapter */
     0,                            /* output bits are programmable */
@@ -181,6 +186,7 @@ static joyport_t joyport_io_sim_device = {
     JOYPORT_RES_ID_NONE,           /* device can be used in multiple ports at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,       /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,          /* device does NOT use the potentiometer lines */
+    JOYPORT_5VDC_NOT_NEEDED,       /* device does NOT need +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,      /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_IO_SIMULATION,  /* device is a SNES adapter */
     0,                             /* output bits are programmable */

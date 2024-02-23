@@ -63,7 +63,7 @@ int profdos_load_1571(const char *name)
 
 static uint8_t profdos_read(diskunit_context_t *drv, uint16_t addr)
 {
-    return profdos_1571_rom[addr & 0x1fff];
+    return drv->cpu->cpu_last_data = profdos_1571_rom[addr & 0x1fff];
 }
 
 static uint8_t profdos_read2(diskunit_context_t *drv, uint16_t addr)
@@ -79,7 +79,7 @@ static uint8_t profdos_read2(diskunit_context_t *drv, uint16_t addr)
         profdos_al[drv->mynumber] = addr & 15;
     }
 
-    return profdos_1571_rom[addr & 0x1fff];
+    return drv->cpu->cpu_last_data = profdos_1571_rom[addr & 0x1fff];
 }
 
 void profdos_mem_init(struct diskunit_context_s *drv, unsigned int type)

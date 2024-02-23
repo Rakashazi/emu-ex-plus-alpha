@@ -314,6 +314,43 @@ static int parcor_output_sample(t6721_state *t6721, int16_t value)
 /*
     render one output sample
 */
+#ifdef SOUND_SYSTEM_FLOAT
+static float output_update_sample(t6721_state *t6721)
+{
+    static float from, to;
+    int next_rptr;
+    float this;
+
+    this = ((from * (1.0f - upsmpcnt)) + (to * upsmpcnt)) / 32767.0;
+
+    upsmpcnt += (1.0f / upsmp);
+    if (upsmpcnt >= 1.0f) {
+        upsmpcnt -= 1.0f;
+        from = to;
+        if (ringbuffer_state == RBSTATE_STOP) {
+            if (phrase_sample_len > RBSTATE_DELAY_SAMPLES) {
+                ringbuffer_state = RBSTATE_PLAY;
+            }
+        } else {
+            if (phrase_sample_len > 0) {
+                next_rptr = ringbuffer_rptr + 1;
+                if (next_rptr == PARCOR_BUFFER_LEN) {
+                    next_rptr = 0;
+                }
+                if (next_rptr != ringbuffer_wptr) {
+                    ringbuffer_rptr = next_rptr;
+                    phrase_sample_len--;
+                }
+            } else {
+                ringbuffer_state = RBSTATE_STOP;
+            }
+        }
+        to = (float) ringbuffer[ringbuffer_rptr];
+    }
+
+    return this;
+}
+#else
 static int16_t output_update_sample(t6721_state *t6721)
 {
     static float from, to;
@@ -349,6 +386,7 @@ static int16_t output_update_sample(t6721_state *t6721)
 
     return this;
 }
+#endif
 
 static const int framestretch[0x10] =
 {
@@ -772,6 +810,29 @@ void t6721_update_ticks(t6721_state *t6721, int ticks)
 float up2smp = 0;
 
 /* render num samples into output buffer, run remaining cycles (if any) */
+#ifdef SOUND_SYSTEM_FLOAT
+/* FIXME */
+void t6721_update_output(t6721_state *t6721, float *buf, int num)
+{
+    int i;
+    int cycles;
+
+    cycles = (int)((num * up2smp) - t6721->cycles_done);
+    if (cycles > 0) {
+        /* run chip for remaining cycles */
+        t6721_update_ticks(t6721, cycles);
+        t6721->cycles_done = 0;
+    } else {
+        /* carry over remaining cycles to next sound frame */
+        t6721->cycles_done = 0 - cycles;
+    }
+
+    /* render output samples */
+    for (i = 0; i < num; i++) {
+        *buf++ = output_update_sample(t6721);
+    }
+}
+#else
 void t6721_update_output(t6721_state *t6721, int16_t *buf, int num)
 {
     int i;
@@ -792,6 +853,7 @@ void t6721_update_output(t6721_state *t6721, int16_t *buf, int num)
         *buf++ = output_update_sample(t6721);
     }
 }
+#endif
 
 /*****************************************************************************
     Chip Command Handling

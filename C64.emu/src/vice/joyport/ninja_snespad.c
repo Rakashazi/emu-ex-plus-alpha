@@ -48,10 +48,11 @@
      3   |   DATA PAD 3 |  I
      4   |     CLOCK    |  O
      6   |     LATCH    |  O
+     7   |     +5VDC    | Power
+     8   |     GND      | Ground
 
    Works on:
-   - native joystick ports (x64/x64sc/xscpu64/x64dtv/x128/xcbm5x0)
-   - sidcart joystick adapter port (xplus4)
+   - native joystick ports (x64/x64sc/xscpu64/x128/xvic/xcbm5x0)
  */
 
 /* Since there are currently no games that use more than 3 snes pads,
@@ -82,8 +83,20 @@ static int joyport_snespad_set_enabled(int port, int enabled)
         /* enabled, activate joystick adapter and set amount of ports to 3 */
         joystick_adapter_activate(JOYSTICK_ADAPTER_ID_NINJA_SNES, joyport_snespad_device.name);
         counter = 0;
-        joystick_adapter_set_ports(3);
+
+        /* enable 3 extra ports, since this is a snes adapter no +5VDC support */
+        joystick_adapter_set_ports(3, 0);
+
+        /* enabled, enable snes mapping on ports 3, 4 and 5 */
+        joystick_set_snes_mapping(JOYPORT_3);
+        joystick_set_snes_mapping(JOYPORT_4);
+        joystick_set_snes_mapping(JOYPORT_5);
     } else {
+        /* disabled, disable snes mapping on ports 3, 4 and 5 */
+        joyport_clear_mapping(JOYPORT_3);
+        joyport_clear_mapping(JOYPORT_4);
+        joyport_clear_mapping(JOYPORT_5);
+
         /* disabled, deactivate joystick adapter */
         joystick_adapter_deactivate();
     }
@@ -147,17 +160,17 @@ static uint8_t snespad_read(int port)
             retval |= (uint8_t)JOYPORT_BIT_SHIFT(joyval3, JOYPORT_UP_BIT, JOYPORT_LEFT_BIT);   /* output snespad 3 up on joyport 'left' pin */
             break;
         case SNESPAD_DOWN:
-            retval = (uint8_t)JOYPORT_BIT_SHIFT(joyval2, JOYPORT_DOWN_BIT, JOYPORT_UP_BIT);      /* output snespad 1 down on joyport 'up' pin */
+            retval = (uint8_t)JOYPORT_BIT_SHIFT(joyval1, JOYPORT_DOWN_BIT, JOYPORT_UP_BIT);      /* output snespad 1 down on joyport 'up' pin */
             retval |= (uint8_t)JOYPORT_BIT_SHIFT(joyval2, JOYPORT_DOWN_BIT, JOYPORT_DOWN_BIT);   /* output snespad 2 down on joyport 'down' pin */
             retval |= (uint8_t)JOYPORT_BIT_SHIFT(joyval3, JOYPORT_DOWN_BIT, JOYPORT_LEFT_BIT);   /* output snespad 3 down on joyport 'left' pin */
             break;
         case SNESPAD_LEFT:
-            retval = (uint8_t)JOYPORT_BIT_SHIFT(joyval2, JOYPORT_LEFT_BIT, JOYPORT_UP_BIT);      /* output snespad 1 left on joyport 'up' pin */
+            retval = (uint8_t)JOYPORT_BIT_SHIFT(joyval1, JOYPORT_LEFT_BIT, JOYPORT_UP_BIT);      /* output snespad 1 left on joyport 'up' pin */
             retval |= (uint8_t)JOYPORT_BIT_SHIFT(joyval2, JOYPORT_LEFT_BIT, JOYPORT_DOWN_BIT);   /* output snespad 2 left on joyport 'down' pin */
             retval |= (uint8_t)JOYPORT_BIT_SHIFT(joyval3, JOYPORT_LEFT_BIT, JOYPORT_LEFT_BIT);   /* output snespad 3 left on joyport 'left' pin */
             break;
         case SNESPAD_RIGHT:
-            retval = (uint8_t)JOYPORT_BIT_SHIFT(joyval2, JOYPORT_RIGHT_BIT, JOYPORT_UP_BIT);      /* output snespad 1 right on joyport 'up' pin */
+            retval = (uint8_t)JOYPORT_BIT_SHIFT(joyval1, JOYPORT_RIGHT_BIT, JOYPORT_UP_BIT);      /* output snespad 1 right on joyport 'up' pin */
             retval |= (uint8_t)JOYPORT_BIT_SHIFT(joyval2, JOYPORT_RIGHT_BIT, JOYPORT_DOWN_BIT);   /* output snespad 2 right on joyport 'down' pin */
             retval |= (uint8_t)JOYPORT_BIT_SHIFT(joyval3, JOYPORT_RIGHT_BIT, JOYPORT_LEFT_BIT);   /* output snespad 3 right on joyport 'left' pin */
             break;
@@ -214,6 +227,7 @@ static joyport_t joyport_snespad_device = {
     JOYPORT_RES_ID_NONE,              /* device can be used in multiple ports at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,          /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,             /* device does NOT use the potentiometer lines */
+    JOYPORT_5VDC_REQUIRED,            /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_NINJA_SNES,   /* device is a joystick adapter */
     JOYPORT_DEVICE_SNES_ADAPTER,      /* device is a SNES adapter */
     0,                                /* NO output bits */

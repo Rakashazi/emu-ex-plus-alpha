@@ -31,15 +31,15 @@
 
 #include "types.h"
 
-extern void bisplus_config_init(void);
-extern void bisplus_config_setup(uint8_t *rawcart);
-extern int bisplus_bin_attach(const char *filename, uint8_t *rawcart);
-extern int bisplus_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void bisplus_detach(void);
+void bisplus_config_init(void);
+void bisplus_config_setup(uint8_t *rawcart);
+int bisplus_bin_attach(const char *filename, uint8_t *rawcart);
+int bisplus_crt_attach(FILE *fd, uint8_t *rawcart);
+void bisplus_detach(void);
 
 struct snapshot_s;
 
-extern int bisplus_snapshot_write_module(struct snapshot_s *s);
-extern int bisplus_snapshot_read_module(struct snapshot_s *s);
+int bisplus_snapshot_write_module(struct snapshot_s *s);
+int bisplus_snapshot_read_module(struct snapshot_s *s);
 
 #endif

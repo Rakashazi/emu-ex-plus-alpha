@@ -29,8 +29,8 @@
 
 #include "types.h"
 
-extern uint8_t pio2_read(uint16_t addr);
-extern void pio2_store(uint16_t addr, uint8_t value);
+uint8_t pio2_read(uint16_t addr);
+void pio2_store(uint16_t addr, uint8_t value);
 
 extern uint8_t pio2_kbd;
 

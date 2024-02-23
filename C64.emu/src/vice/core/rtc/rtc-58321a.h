@@ -42,34 +42,36 @@ typedef struct rtc_58321a_s {
     char *device;
 } rtc_58321a_t;
 
-#define RTC58321A_REGISTER_SECONDS       0
-#define RTC58321A_REGISTER_10SECONDS     1
-#define RTC58321A_REGISTER_MINUTES       2
-#define RTC58321A_REGISTER_10MINUTES     3
-#define RTC58321A_REGISTER_HOURS         4
-#define RTC58321A_REGISTER_10HOURS       5
-#define RTC58321A_REGISTER_WEEKDAYS      6
-#define RTC58321A_REGISTER_MONTHDAYS     7
-#define RTC58321A_REGISTER_10MONTHDAYS   8
-#define RTC58321A_REGISTER_MONTHS        9
-#define RTC58321A_REGISTER_10MONTHS      10
-#define RTC58321A_REGISTER_YEARS         11
-#define RTC58321A_REGISTER_10YEARS       12
-#define RTC58321A_REGISTER_RESET         13
-#define RTC58321A_REGISTER_SS0           14
-#define RTC58321A_REGISTER_SS1           15
+enum {
+    RTC58321A_REGISTER_SECONDS = 0,
+    RTC58321A_REGISTER_10SECONDS,
+    RTC58321A_REGISTER_MINUTES,
+    RTC58321A_REGISTER_10MINUTES,
+    RTC58321A_REGISTER_HOURS,
+    RTC58321A_REGISTER_10HOURS,
+    RTC58321A_REGISTER_WEEKDAYS,
+    RTC58321A_REGISTER_MONTHDAYS,
+    RTC58321A_REGISTER_10MONTHDAYS,
+    RTC58321A_REGISTER_MONTHS,
+    RTC58321A_REGISTER_10MONTHS,
+    RTC58321A_REGISTER_YEARS,
+    RTC58321A_REGISTER_10YEARS,
+    RTC58321A_REGISTER_RESET,
+    RTC58321A_REGISTER_SS0,
+    RTC58321A_REGISTER_SS1
+};
 
-extern rtc_58321a_t *rtc58321a_init(char *device);
-extern void rtc58321a_destroy(rtc_58321a_t *context, int save);
+rtc_58321a_t *rtc58321a_init(char *device);
+void rtc58321a_destroy(rtc_58321a_t *context, int save);
 
-extern uint8_t rtc58321a_read(rtc_58321a_t *context);
-extern void rtc58321a_write_address(rtc_58321a_t *context, uint8_t address);
-extern void rtc58321a_write_data(rtc_58321a_t *context, uint8_t data);
+uint8_t rtc58321a_read(rtc_58321a_t *context);
+void rtc58321a_write_address(rtc_58321a_t *context, uint8_t address);
+void rtc58321a_write_data(rtc_58321a_t *context, uint8_t data);
 
-extern void rtc58321a_stop_clock(rtc_58321a_t *context);
-extern void rtc58321a_start_clock(rtc_58321a_t *context);
+void rtc58321a_stop_clock(rtc_58321a_t *context);
+void rtc58321a_start_clock(rtc_58321a_t *context);
 
-extern int rtc58321a_write_snapshot(rtc_58321a_t *context, snapshot_t *s);
-extern int rtc58321a_read_snapshot(rtc_58321a_t *context, snapshot_t *s);
+int rtc58321a_write_snapshot(rtc_58321a_t *context, snapshot_t *s);
+int rtc58321a_read_snapshot(rtc_58321a_t *context, snapshot_t *s);
 
 #endif

@@ -31,15 +31,15 @@
 
 #include "types.h"
 
-extern void p64_config_init(void);
-extern void p64_config_setup(uint8_t *rawcart);
-extern int p64_bin_attach(const char *filename, uint8_t *rawcart);
-extern int p64_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void p64_detach(void);
+void p64_config_init(void);
+void p64_config_setup(uint8_t *rawcart);
+int p64_bin_attach(const char *filename, uint8_t *rawcart);
+int p64_crt_attach(FILE *fd, uint8_t *rawcart);
+void p64_detach(void);
 
 struct snapshot_s;
 
-extern int p64_snapshot_write_module(struct snapshot_s *s);
-extern int p64_snapshot_read_module(struct snapshot_s *s);
+int p64_snapshot_write_module(struct snapshot_s *s);
+int p64_snapshot_read_module(struct snapshot_s *s);
 
 #endif

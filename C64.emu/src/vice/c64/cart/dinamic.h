@@ -31,15 +31,15 @@
 
 #include "types.h"
 
-extern void dinamic_config_init(void);
-extern void dinamic_config_setup(uint8_t *rawcart);
-extern int dinamic_bin_attach(const char *filename, uint8_t *rawcart);
-extern int dinamic_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void dinamic_detach(void);
+void dinamic_config_init(void);
+void dinamic_config_setup(uint8_t *rawcart);
+int dinamic_bin_attach(const char *filename, uint8_t *rawcart);
+int dinamic_crt_attach(FILE *fd, uint8_t *rawcart);
+void dinamic_detach(void);
 
 struct snapshot_s;
 
-extern int dinamic_snapshot_write_module(struct snapshot_s *s);
-extern int dinamic_snapshot_read_module(struct snapshot_s *s);
+int dinamic_snapshot_write_module(struct snapshot_s *s);
+int dinamic_snapshot_read_module(struct snapshot_s *s);
 
 #endif

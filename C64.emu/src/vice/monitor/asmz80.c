@@ -27,65 +27,65 @@
 
 #include "vice.h"
 
+#include <stdlib.h>
+
 #include "asm.h"
+#include "archdep_exit.h"
+#include "log.h"
 #include "mon_assemble.h"
 #include "mon_register.h"
 #include "montypes.h"
 #include "types.h"
 
-static const int addr_mode_size[] = {
-    /* 6502 */
-    1, /* ASM_ADDR_MODE_IMPLIED */
-    1, /* ASM_ADDR_MODE_ACCUMULATOR */
-    2, /* ASM_ADDR_MODE_IMMEDIATE */
-    2, /* ASM_ADDR_MODE_ZERO_PAGE */        /* INA $12 */
-    2, /* ASM_ADDR_MODE_ZERO_PAGE_X */
-    2, /* ASM_ADDR_MODE_ZERO_PAGE_Y */
-    3, /* ASM_ADDR_MODE_ABSOLUTE */
-    3, /* ASM_ADDR_MODE_ABSOLUTE_X */
-    3, /* ASM_ADDR_MODE_ABSOLUTE_Y */
-    3, /* ASM_ADDR_MODE_ABS_INDIRECT */     /* LD IX, ($1234) */
-    2, /* ASM_ADDR_MODE_INDIRECT_X */
-    2, /* ASM_ADDR_MODE_INDIRECT_Y */
-    2, /* ASM_ADDR_MODE_RELATIVE */
+/* NOTE: the value from this table is added to the total opcode size, so 0 may
+         be valid, is this intended? */
+static const int addr_mode_size[ASM_ADDR_MODE_LAST] = {
+    /* (reused from) 6502 */
+    [ASM_ADDR_MODE_IMPLIED] = 1,
+    [ASM_ADDR_MODE_ACCUMULATOR] = 1,
+    [ASM_ADDR_MODE_IMMEDIATE] = 2,
+    [ASM_ADDR_MODE_ZERO_PAGE] = 2,        /* INA $12 */
+    [ASM_ADDR_MODE_ABSOLUTE] = 3,
+    [ASM_ADDR_MODE_ABS_INDIRECT] = 3,     /* LD IX, ($1234) */
+    [ASM_ADDR_MODE_RELATIVE] = 2,
     /* z80 */
-    3, /* ASM_ADDR_MODE_ABSOLUTE_A */
-    3, /* ASM_ADDR_MODE_ABSOLUTE_HL */      /* LD ($1234), HL */
-    3, /* ASM_ADDR_MODE_ABSOLUTE_IX */
-    3, /* ASM_ADDR_MODE_ABSOLUTE_IY */
-    3, /* ASM_ADDR_MODE_Z80_ABSOLUTE_BC */
-    3, /* ASM_ADDR_MODE_Z80_ABSOLUTE_DE */
-    3, /* ASM_ADDR_MODE_Z80_ABSOLUTE_SP */
-    2, /* ASM_ADDR_MODE_ABS_INDIRECT_ZP */
-    3, /* ASM_ADDR_MODE_Z80_ABS_INDIRECT_EXT */
-    3, /* ASM_ADDR_MODE_IMMEDIATE_16 */
-    1, /* ASM_ADDR_MODE_REG_B */
-    1, /* ASM_ADDR_MODE_REG_C */
-    1, /* ASM_ADDR_MODE_REG_D */
-    1, /* ASM_ADDR_MODE_REG_E */
-    1, /* ASM_ADDR_MODE_REG_H */
-    1, /* ASM_ADDR_MODE_REG_IXH */
-    1, /* ASM_ADDR_MODE_REG_IYH */
-    1, /* ASM_ADDR_MODE_REG_L */
-    1, /* ASM_ADDR_MODE_REG_IXL */
-    1, /* ASM_ADDR_MODE_REG_IYL */
-    1, /* ASM_ADDR_MODE_REG_AF */
-    1, /* ASM_ADDR_MODE_REG_BC */
-    1, /* ASM_ADDR_MODE_REG_DE */
-    1, /* ASM_ADDR_MODE_REG_HL */
-    1, /* ASM_ADDR_MODE_REG_IX */
-    1, /* ASM_ADDR_MODE_REG_IY */
-    1, /* ASM_ADDR_MODE_REG_SP */
-    1, /* ASM_ADDR_MODE_REG_IND_BC */
-    1, /* ASM_ADDR_MODE_REG_IND_DE */
-    1, /* ASM_ADDR_MODE_REG_IND_HL */
-    2, /* ASM_ADDR_MODE_REG_IND_IX */
-    2, /* ASM_ADDR_MODE_REG_IND_IY */
-    1, /* ASM_ADDR_MODE_REG_IND_SP */
-    3, /* ASM_ADDR_MODE_Z80_IND_IMMEDIATE */    /* LD (IX+$12), #$34 */
-    2, /* ASM_ADDR_MODE_Z80_IND_REG */
-    2, /* ASM_ADDR_MODE_IND_IX_REG */
-    2, /* ASM_ADDR_MODE_IND_IY_REG */
+    [ASM_ADDR_MODE_ABSOLUTE_A] = 3,
+    [ASM_ADDR_MODE_ABSOLUTE_HL] = 3,      /* LD ($1234), HL */
+    [ASM_ADDR_MODE_ABSOLUTE_IX] = 3,
+    [ASM_ADDR_MODE_ABSOLUTE_IY] = 3,
+    [ASM_ADDR_MODE_Z80_ABSOLUTE_BC] = 3,
+    [ASM_ADDR_MODE_Z80_ABSOLUTE_DE] = 3,
+    [ASM_ADDR_MODE_Z80_ABSOLUTE_SP] = 3,
+    [ASM_ADDR_MODE_ABS_INDIRECT_ZP] = 2,
+    [ASM_ADDR_MODE_Z80_ABS_INDIRECT_EXT] = 3,
+    [ASM_ADDR_MODE_IMMEDIATE_16] = 3,
+    [ASM_ADDR_MODE_REG_B] = 1,
+    [ASM_ADDR_MODE_REG_C] = 1,
+    [ASM_ADDR_MODE_REG_D] = 1,
+    [ASM_ADDR_MODE_REG_E] = 1,
+    [ASM_ADDR_MODE_REG_H] = 1,
+    [ASM_ADDR_MODE_REG_IXH] = 1,
+    [ASM_ADDR_MODE_REG_IYH] = 1,
+    [ASM_ADDR_MODE_REG_L] = 1,
+    [ASM_ADDR_MODE_REG_IXL] = 1,
+    [ASM_ADDR_MODE_REG_IYL] = 1,
+    [ASM_ADDR_MODE_REG_AF] = 1,
+    [ASM_ADDR_MODE_REG_BC] = 1,
+    [ASM_ADDR_MODE_REG_DE] = 1,
+    [ASM_ADDR_MODE_REG_HL] = 1,
+    [ASM_ADDR_MODE_REG_IX] = 1,
+    [ASM_ADDR_MODE_REG_IY] = 1,
+    [ASM_ADDR_MODE_REG_SP] = 1,
+    [ASM_ADDR_MODE_REG_IND_BC] = 1,
+    [ASM_ADDR_MODE_REG_IND_DE] = 1,
+    [ASM_ADDR_MODE_REG_IND_HL] = 1,
+    [ASM_ADDR_MODE_REG_IND_IX] = 2,
+    [ASM_ADDR_MODE_REG_IND_IY] = 2,
+    [ASM_ADDR_MODE_REG_IND_SP] = 1,
+    [ASM_ADDR_MODE_Z80_IND_IMMEDIATE] = 3,    /* LD (IX+$12), #$34 */
+    [ASM_ADDR_MODE_Z80_IND_REG] = 2,
+    [ASM_ADDR_MODE_IND_IX_REG] = 2,
+    [ASM_ADDR_MODE_IND_IY_REG] = 2,
     /* CAUTION: when adding z80 modes also update: asm6809.c, asm65816.c, asmR6502.c */
 };
 
@@ -1942,8 +1942,15 @@ static const asm_opcode_info_t *asm_opcode_info_get(unsigned int p0, unsigned in
     return opcode_list + p0;
 }
 
+/* must return a positive number (opcode length in bytes) */
 static unsigned int asm_addr_mode_get_size(unsigned int mode, unsigned int p0, unsigned int p1, unsigned int p2, unsigned int p3)
 {
+#if 0
+    if (addr_mode_size[mode] < 1) {
+        log_error(LOG_DEFAULT, "internal error: asm_addr_mode_get_size size in table is < 1");
+        archdep_vice_exit(EXIT_FAILURE);
+    }
+#endif
     if (p0 == 0xcb) {
         return addr_mode_size[mode] + 1;
     }

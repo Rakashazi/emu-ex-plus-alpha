@@ -83,8 +83,8 @@
 
 struct snapshot_s;
 
-extern int cbm2_c500_snapshot_write_module(struct snapshot_s *p);
-extern int cbm2_c500_snapshot_read_module(struct snapshot_s *p);
+int cbm2_c500_snapshot_write_module(struct snapshot_s *p);
+int cbm2_c500_snapshot_read_module(struct snapshot_s *p);
 
 struct cia_context_s;
 struct tpi_context_s;

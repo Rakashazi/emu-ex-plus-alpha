@@ -40,7 +40,8 @@
 #include "types.h"
 #include "util.h"
 #include "viciitypes.h"
-
+#include "cartridge.h"
+#include "ltkernal.h"
 
 #define INTERNAL_FUNCTION_ROM_SIZE 0x8000
 
@@ -201,6 +202,13 @@ static int functionrom_load_internal(void)
 
 uint8_t internal_function_rom_read(uint16_t addr)
 {
+    /* LTK MMU modification prioritises over internal function rom */
+    if (cartridge_get_id(0) == CARTRIDGE_LT_KERNAL) {
+        if (c128ltkernal_ram_read(addr, &(vicii.last_cpu_val))) {
+            return vicii.last_cpu_val;
+        }
+    }
+
     if (internal_function_rom_enabled == INT_FUNCTION_RTC) {
         vicii.last_cpu_val = bq4830y_read(rtc1_context, (uint16_t)(addr & 0x7fff));
     } else {
@@ -209,9 +217,25 @@ uint8_t internal_function_rom_read(uint16_t addr)
     return vicii.last_cpu_val;
 }
 
+uint8_t internal_function_rom_peek(uint16_t addr)
+{
+    if (internal_function_rom_enabled == INT_FUNCTION_RTC) {
+/* FIXME: this RTC should have a peek function */
+/*        return bq4830y_peek(rtc1_context, (uint16_t)(addr & 0x7fff)); */
+        return 0;
+    }
+    return int_function_rom[addr & (INTERNAL_FUNCTION_ROM_SIZE - 1)];
+}
+
 void internal_function_rom_store(uint16_t addr, uint8_t value)
 {
     vicii.last_cpu_val = value;
+    /* LTK MMU modification prioritises over internal function rom */
+    if (cartridge_get_id(0) == CARTRIDGE_LT_KERNAL) {
+        if (c128ltkernal_ram_store(addr, value)) {
+            return;
+        }
+    }
     if (internal_function_rom_enabled == INT_FUNCTION_RTC) {
         bq4830y_store(rtc1_context, (uint16_t)(addr & 0x7fff), value);
         ram_store(addr, value);

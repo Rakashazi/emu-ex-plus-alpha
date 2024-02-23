@@ -35,41 +35,42 @@
 
 #include "types.h"
 
-extern int isepic_cart_enabled(void);
-extern int isepic_cart_active(void);
-extern int isepic_freeze_allowed(void);
-extern void isepic_freeze(void);
-extern void isepic_reset(void);
-extern void isepic_config_init(void);
-extern void isepic_config_setup(uint8_t *rawcart);
-extern void isepic_powerup(void);
+int isepic_cart_enabled(void);
+int isepic_cart_active(void);
+int isepic_freeze_allowed(void);
+void isepic_freeze(void);
+void isepic_reset(void);
+void isepic_config_init(void);
+void isepic_config_setup(uint8_t *rawcart);
+void isepic_powerup(void);
 
-extern int isepic_resources_init(void);
-extern void isepic_resources_shutdown(void);
-extern int isepic_cmdline_options_init(void);
+int isepic_resources_init(void);
+void isepic_resources_shutdown(void);
+int isepic_cmdline_options_init(void);
 
-extern uint8_t isepic_romh_read(uint16_t addr);
-extern void isepic_romh_store(uint16_t addr, uint8_t byte);
-extern uint8_t isepic_page_read(uint16_t addr);
-extern void isepic_page_store(uint16_t addr, uint8_t byte);
-extern int isepic_romh_phi1_read(uint16_t addr, uint8_t *value);
-extern int isepic_romh_phi2_read(uint16_t addr, uint8_t *value);
-extern int isepic_peek_mem(uint16_t addr, uint8_t *value);
-extern void isepic_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
+uint8_t isepic_romh_read(uint16_t addr);
+void isepic_romh_store(uint16_t addr, uint8_t byte);
+uint8_t isepic_page_read(uint16_t addr);
+void isepic_page_store(uint16_t addr, uint8_t byte);
+int isepic_romh_phi1_read(uint16_t addr, uint8_t *value);
+int isepic_romh_phi2_read(uint16_t addr, uint8_t *value);
+int isepic_peek_mem(uint16_t addr, uint8_t *value);
+void isepic_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
 
-extern int isepic_bin_attach(const char *filename, uint8_t *rawcart);
-extern int isepic_bin_save(const char *filename);
-extern int isepic_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
-extern int isepic_crt_save(const char *filename);
-extern int isepic_flush_image(void);
-extern void isepic_detach(void);
-extern int isepic_enable(void);
+int isepic_bin_attach(const char *filename, uint8_t *rawcart);
+int isepic_bin_save(const char *filename);
+int isepic_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
+int isepic_crt_save(const char *filename);
+int isepic_flush_image(void);
+void isepic_detach(void);
+int isepic_enable(void);
 int isepic_disable(void);
 
-extern const char *isepic_get_file_name(void);
+const char *isepic_get_file_name(void);
 
 struct snapshot_s;
-extern int isepic_snapshot_read_module(struct snapshot_s *s);
-extern int isepic_snapshot_write_module(struct snapshot_s *s);
+
+int isepic_snapshot_read_module(struct snapshot_s *s);
+int isepic_snapshot_write_module(struct snapshot_s *s);
 
 #endif

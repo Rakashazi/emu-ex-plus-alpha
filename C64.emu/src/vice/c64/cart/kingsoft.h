@@ -31,18 +31,18 @@
 
 #include "types.h"
 
-extern void kingsoft_config_init(void);
-extern void kingsoft_config_setup(uint8_t *rawcart);
-extern int kingsoft_bin_attach(const char *filename, uint8_t *rawcart);
-extern int kingsoft_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void kingsoft_detach(void);
+void kingsoft_config_init(void);
+void kingsoft_config_setup(uint8_t *rawcart);
+int kingsoft_bin_attach(const char *filename, uint8_t *rawcart);
+int kingsoft_crt_attach(FILE *fd, uint8_t *rawcart);
+void kingsoft_detach(void);
 
-extern uint8_t kingsoft_roml_read(uint16_t addr);
-extern uint8_t kingsoft_romh_read(uint16_t addr);
+uint8_t kingsoft_roml_read(uint16_t addr);
+uint8_t kingsoft_romh_read(uint16_t addr);
 
 struct snapshot_s;
 
-extern int kingsoft_snapshot_write_module(struct snapshot_s *s);
-extern int kingsoft_snapshot_read_module(struct snapshot_s *s);
+int kingsoft_snapshot_write_module(struct snapshot_s *s);
+int kingsoft_snapshot_read_module(struct snapshot_s *s);
 
 #endif

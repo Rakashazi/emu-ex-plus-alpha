@@ -102,12 +102,15 @@
 #include "types.h"
 #include "userport.h"
 #include "userport_dac.h"
+#include "userport_hummer_joystick.h"
 #include "userport_io_sim.h"
 #include "userport_joystick.h"
 #include "userport_petscii_snespad.h"
 #include "userport_rtc_58321a.h"
 #include "userport_rtc_ds1307.h"
 #include "userport_spt_joystick.h"
+#include "userport_synergy_joystick.h"
+#include "userport_woj_joystick.h"
 #include "util.h"
 #include "via.h"
 #include "vice-event.h"
@@ -185,6 +188,7 @@ static joyport_port_props_t joy_adapter_control_port_1 =
     0,                      /* has NO lightpen support on this port */
     0,                      /* has NO joystick adapter on this port */
     1,                      /* has output support on this port */
+    0,                      /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                       /* port can be switched on/off */
 };
 
@@ -195,6 +199,7 @@ static joyport_port_props_t joy_adapter_control_port_2 =
     0,                      /* has NO lightpen support on this port */
     0,                      /* has NO joystick adapter on this port */
     1,                      /* has output support on this port */
+    0,                      /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                       /* port can be switched on/off */
 };
 
@@ -205,6 +210,62 @@ static joyport_port_props_t joy_adapter_control_port_3 =
     0,                      /* has NO lightpen support on this port */
     0,                      /* has NO joystick adapter on this port */
     1,                      /* has output support on this port */
+    0,                      /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
+    0                       /* port can be switched on/off */
+};
+
+static joyport_port_props_t joy_adapter_control_port_4 =
+{
+    "Joystick adapter port 4",
+    0,                      /* has NO potentiometer connected to this port */
+    0,                      /* has NO lightpen support on this port */
+    0,                      /* has NO joystick adapter on this port */
+    1,                      /* has output support on this port */
+    0,                      /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
+    0                       /* port can be switched on/off */
+};
+
+static joyport_port_props_t joy_adapter_control_port_5 =
+{
+    "Joystick adapter port 5",
+    0,                      /* has NO potentiometer connected to this port */
+    0,                      /* has NO lightpen support on this port */
+    0,                      /* has NO joystick adapter on this port */
+    1,                      /* has output support on this port */
+    0,                      /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
+    0                       /* port can be switched on/off */
+};
+
+static joyport_port_props_t joy_adapter_control_port_6 =
+{
+    "Joystick adapter port 6",
+    0,                      /* has NO potentiometer connected to this port */
+    0,                      /* has NO lightpen support on this port */
+    0,                      /* has NO joystick adapter on this port */
+    1,                      /* has output support on this port */
+    0,                      /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
+    0                       /* port can be switched on/off */
+};
+
+static joyport_port_props_t joy_adapter_control_port_7 =
+{
+    "Joystick adapter port 7",
+    0,                      /* has NO potentiometer connected to this port */
+    0,                      /* has NO lightpen support on this port */
+    0,                      /* has NO joystick adapter on this port */
+    1,                      /* has output support on this port */
+    0,                      /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
+    0                       /* port can be switched on/off */
+};
+
+static joyport_port_props_t joy_adapter_control_port_8 =
+{
+    "Joystick adapter port 8",
+    0,                      /* has NO potentiometer connected to this port */
+    0,                      /* has NO lightpen support on this port */
+    0,                      /* has NO joystick adapter on this port */
+    1,                      /* has output support on this port */
+    0,                      /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                       /* port can be switched on/off */
 };
 
@@ -216,7 +277,22 @@ static int init_joyport_ports(void)
     if (joyport_port_register(JOYPORT_4, &joy_adapter_control_port_2) < 0) {
         return -1;
     }
-    return joyport_port_register(JOYPORT_5, &joy_adapter_control_port_3);
+    if (joyport_port_register(JOYPORT_5, &joy_adapter_control_port_3) < 0) {
+        return -1;
+    }
+    if (joyport_port_register(JOYPORT_6, &joy_adapter_control_port_4) < 0) {
+        return -1;
+    }
+    if (joyport_port_register(JOYPORT_7, &joy_adapter_control_port_5) < 0) {
+        return -1;
+    }
+    if (joyport_port_register(JOYPORT_8, &joy_adapter_control_port_6) < 0) {
+        return -1;
+    }
+    if (joyport_port_register(JOYPORT_9, &joy_adapter_control_port_7) < 0) {
+        return -1;
+    }
+    return joyport_port_register(JOYPORT_10, &joy_adapter_control_port_8);
 }
 
 /* PET-specific resource initialization.  This is called before initializing
@@ -295,18 +371,6 @@ int machine_resources_init(void)
         init_resource_fail("joyport devices");
         return -1;
     }
-    if (joyport_sampler2bit_resources_init() < 0) {
-        init_resource_fail("joyport 2bit sampler");
-        return -1;
-    }
-    if (joyport_sampler4bit_resources_init() < 0) {
-        init_resource_fail("joyport 4bit sampler");
-        return -1;
-    }
-    if (joyport_bbrtc_resources_init() < 0) {
-        init_resource_fail("joyport bbrtc");
-        return -1;
-    }
     if (joystick_resources_init() < 0) {
         init_resource_fail("joystick");
         return -1;
@@ -382,6 +446,10 @@ int machine_resources_init(void)
         init_resource_fail("userport synergy joystick");
         return -1;
     }
+    if (userport_joystick_woj_resources_init() < 0) {
+        init_resource_fail("userport woj joystick");
+        return -1;
+    }
     if (userport_spt_joystick_resources_init() < 0) {
         init_resource_fail("userport stupid pet tricks joystick");
         return -1;
@@ -428,9 +496,9 @@ void machine_resources_shutdown(void)
     cartio_shutdown();
     userport_rtc_58321a_resources_shutdown();
     userport_rtc_ds1307_resources_shutdown();
-    joyport_bbrtc_resources_shutdown();
     tapeport_resources_shutdown();
     debugcart_resources_shutdown();
+    joyport_resources_shutdown();
 }
 
 /* PET-specific command-line option initialization.  */
@@ -498,10 +566,6 @@ int machine_cmdline_options_init(void)
     }
     if (joyport_cmdline_options_init() < 0) {
         init_cmdline_options_fail("joyport");
-        return -1;
-    }
-    if (joyport_bbrtc_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("bbrtc");
         return -1;
     }
     if (joystick_cmdline_options_init() < 0) {
@@ -579,11 +643,11 @@ int machine_cmdline_options_init(void)
 
 /* ------------------------------------------------------------------------- */
 
-#define SIGNAL_VERT_BLANK_OFF   pia1_signal(PIA_SIG_CB1, PIA_SIG_RISE);
+#define SIGNAL_VERT_BLANK_OFF   pia1_signal(PIA_SIG_CB1, PIA_SIG_RISE, offset);
 
-#define SIGNAL_VERT_BLANK_ON    pia1_signal(PIA_SIG_CB1, PIA_SIG_FALL);
+#define SIGNAL_VERT_BLANK_ON    pia1_signal(PIA_SIG_CB1, PIA_SIG_FALL, offset);
 
-static void pet_crtc_signal(unsigned int signal)
+static void pet_crtc_signal(unsigned int signal, CLOCK offset)
 {
     if (signal) {
         SIGNAL_VERT_BLANK_ON
@@ -664,7 +728,7 @@ int machine_specific_init(void)
         return -1;
     }
 
-    crtc_set_retrace_type(petres.crtc);
+    crtc_set_retrace_type(petres.model.crtc);
     crtc_set_retrace_callback(pet_crtc_signal);
     pet_crtc_set_screen();
     petcolour_init();
@@ -841,7 +905,7 @@ void machine_get_line_cycle(unsigned int *line, unsigned int *cycle, int *half_c
     *half_cycle = (int)-1;
 }
 
-void machine_change_timing(int timeval, int border_mode)
+void machine_change_timing(int timeval, int powerfreq, int border_mode)
 {
     switch (timeval) {
         case MACHINE_SYNC_PAL:
@@ -850,7 +914,7 @@ void machine_change_timing(int timeval, int border_mode)
             machine_timing.rfsh_per_sec = PET_PAL_RFSH_PER_SEC;
             machine_timing.cycles_per_line = PET_PAL_CYCLES_PER_LINE;
             machine_timing.screen_lines = PET_PAL_SCREEN_LINES;
-            machine_timing.power_freq = 50;
+            machine_timing.power_freq = powerfreq;
             break;
         case MACHINE_SYNC_NTSC:
             machine_timing.cycles_per_sec = PET_NTSC_CYCLES_PER_SEC;
@@ -858,7 +922,7 @@ void machine_change_timing(int timeval, int border_mode)
             machine_timing.rfsh_per_sec = PET_NTSC_RFSH_PER_SEC;
             machine_timing.cycles_per_line = PET_NTSC_CYCLES_PER_LINE;
             machine_timing.screen_lines = PET_NTSC_SCREEN_LINES;
-            machine_timing.power_freq = 60;
+            machine_timing.power_freq = powerfreq;
             break;
         default:
             log_error(pet_log, "Unknown machine timing.");
@@ -874,7 +938,7 @@ void machine_change_timing(int timeval, int border_mode)
     sid_set_machine_parameter(machine_timing.cycles_per_sec);
 #endif
 
-    machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+    machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
 }
 
 /* Set the screen refresh rate, as this is variable in the CRTC */
@@ -925,7 +989,7 @@ void pet_crtc_set_screen(void)
 {
     int cols, vmask;
 
-    cols = petres.video;
+    cols = petres.model.video;
     vmask = petres.vmask;
 
     /* mem_initialize_memory(); */
@@ -944,26 +1008,35 @@ void pet_crtc_set_screen(void)
     }
 /*
     log_message(pet_mem_log, "set_screen(vmask=%04x, cols=%d, crtc=%d)",
-                vmask, cols, petres.crtc);
+                vmask, cols, petres.model.crtc);
 */
-/*
-    crtc_set_screen_mode(mem_ram + 0x8000, vmask, cols, (cols==80) ? 2 : 0);
-*/
+    int hwflag = (cols == 80) ? CRTC_HW_DOUBLE_CHARS : 0;
+    /* Note: see bug #1954.
+     * The real cause for the timing difference is unknown so far.
+     * If found, the condition below will probably change. */
+    if (cols == 80 && petres.map != PET_MAP_8296) {
+        hwflag |= CRTC_HW_LATE_BEAM;
+    }
     crtc_set_screen_options(cols, 25 * 10);
     crtc_set_screen_addr(mem_ram + 0x8000);
-    crtc_set_hw_options((cols == 80) ? 2 : 0, vmask, 0x2000, 512, 0x1000);
-    crtc_set_retrace_type(petres.crtc ? 1 : 0);
+    crtc_set_hw_options(hwflag,
+                        vmask,
+                        0x2000,         /* vchar: MA13 */
+                        512,            /* vcoffset */
+                        0x1000);        /* vrevmask: MA12 */
+    crtc_set_retrace_type(petres.model.crtc ? CRTC_RETRACE_TYPE_CRTC
+                                            : CRTC_RETRACE_TYPE_DISCRETE);
 
     /* No CRTC -> assume 40 columns and 60 Hz */
-    if (!petres.crtc) {
+    if (!petres.model.crtc) {
         static uint8_t crtc_values[14] = {
             /*
              * Set the CRTC to display 60 frames per second.
              *
              * Tuned specifically for 64 clocks (= chars) per scanline,
              * for the Cursor #18 Hi-Res program.
-             * The exact time of the IRQ is probably not 100% right,
-             * but close enough to get a visual effect.
+             * Unless CRTC_BEAM_RACING is enabled, the exact time of the IRQ is
+             * not 100% right, but close enough to get a visual effect.
              *
              * 15625 Hz horizontal
              * PET: cycles per frame set to 16640, refresh to 60.096Hz
@@ -975,9 +1048,18 @@ void pet_crtc_set_screen(void)
              * Presumably this should correct the frequency which is
              * slightly over 60 Hz: 60.096 * 622 / 623 = 59.99954.
              *
-             * Note that with the granularity of 1 scanline we cannot
-             * really get closer to the "real" freqency, assuming that
-             * the 622/623 fix is perfect: 60 * 623 / 622 = 60.096 463.
+             * However, 60.096 * 625 / 626 = 60.0000...
+             * so it could have done even better.
+             *
+             * Since we use the CRTC, a raster line is considered to start at
+             * the left edge of the visible characters. So the right border,
+             * horizontal retrace, and left border are at the end of the line.
+             * Likewise, scan line 0 is the first text scan line.
+             * There are 200 text lines, 20 bottom border, 20 vertical retrace
+             * and 20 top border lines.
+             * The "off-screen" signal, which triggers the IRQ, goes on just
+             * after the last text character, and comes on 3*20 lines later, at
+             * the same place in line -1 (259).
              */
               63, /* R0 total horizontal characters - 1 */
               40, /* R1 displayed horizontal characters */
@@ -993,14 +1075,6 @@ void pet_crtc_set_screen(void)
                0, /* R11 CURSOREND */
             0x10, /* R12 DISPSTARTH */
             0x00, /* R13 DISPSTARTL */
-#if 0
-            /*
-             * Original values.
-             * PET: cycles per frame set to 17920, refresh to 55.803Hz
-             */
-            63, 40, 50, 8, 32, 16, 25, 29,
-            0, 7, 0, 0, 0x10, 0,
-#endif
         };
         int r;
 

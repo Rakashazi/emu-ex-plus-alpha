@@ -502,7 +502,7 @@ int fliplist_load_list(unsigned int unit, const char *filename, int autoattach)
 
         /* remove trailing whitespace (linefeeds etc) */
         b = buffer + strlen(buffer);
-        while ((b > buffer) && (isspace((unsigned int)(b[-1])))) {
+        while ((b > buffer) && (isspace((unsigned char)(b[-1])))) {
             b--;
             *b = '\0';
         }

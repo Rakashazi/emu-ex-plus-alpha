@@ -92,7 +92,7 @@ int stardos_exp_load(const char *name)
 static uint8_t stardos_exp_read(diskunit_context_t *drv, uint16_t addr)
 {
     DBG(("stardos_exp_read <%04x> <%02x>\n", addr, stardos_rom[addr & 0x1fff]));
-    return stardos_rom[addr & 0x1fff];
+    return drv->cpu->cpu_last_data = stardos_rom[addr & 0x1fff];
 }
 
 void stardos_exp_mem_init(struct diskunit_context_s *drv, unsigned int type)

@@ -31,21 +31,23 @@
 
 #include "types.h"
 
-extern uint8_t behrbonz_blk13_read(uint16_t addr);
-extern uint8_t behrbonz_blk25_read(uint16_t addr);
+uint8_t behrbonz_blk13_read(uint16_t addr);
+uint8_t behrbonz_blk25_read(uint16_t addr);
 
-extern void behrbonz_init(void);
-extern void behrbonz_reset(void);
+void behrbonz_init(void);
+void behrbonz_reset(void);
 
-extern void behrbonz_config_setup(uint8_t *rawcart);
-extern int behrbonz_bin_attach(const char *filename);
-/* extern int behrbonz_bin_attach(const char *filename, uint8_t *rawcart); */
-extern int behrbonz_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void behrbonz_detach(void);
+void behrbonz_config_setup(uint8_t *rawcart);
+int behrbonz_bin_attach(const char *filename);
+
+/* int behrbonz_bin_attach(const char *filename, uint8_t *rawcart); */
+
+int behrbonz_crt_attach(FILE *fd, uint8_t *rawcart);
+void behrbonz_detach(void);
 
 struct snapshot_s;
 
-extern int behrbonz_snapshot_write_module(struct snapshot_s *s);
-extern int behrbonz_snapshot_read_module(struct snapshot_s *s);
+int behrbonz_snapshot_write_module(struct snapshot_s *s);
+int behrbonz_snapshot_read_module(struct snapshot_s *s);
 
 #endif

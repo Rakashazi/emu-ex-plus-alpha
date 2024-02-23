@@ -595,6 +595,103 @@ void cartridge_detach_image(int type)
     cartridge_is_from_snapshot = 0;
 }
 
+/*
+    attach a cartridge without setting an image name
+*/
+int cartridge_enable(int type)
+{
+    DBG(("CART: enable type: %d\n", type));
+    switch (type) {
+        case CARTRIDGE_DIGIMAX:
+            digimax_enable();
+            break;
+        case CARTRIDGE_DS12C887RTC:
+            ds12c887rtc_enable();
+            break;
+        case CARTRIDGE_GEORAM:
+            georam_enable();
+            break;
+        case CARTRIDGE_SFX_SOUND_EXPANDER:
+            sfx_soundexpander_enable();
+            break;
+        case CARTRIDGE_SFX_SOUND_SAMPLER:
+            sfx_soundsampler_enable();
+            break;
+#ifdef HAVE_RAWNET
+        case CARTRIDGE_TFE:
+            ethernetcart_enable();
+            break;
+#endif
+        default:
+            DBG(("CART: no enable hook %d\n", type));
+            break;
+    }
+
+#if 0
+    /* FIXME: cart_type_enabled not implemented */
+    if (cart_type_enabled(type)) {
+        return 0;
+    }
+    log_error(LOG_ERR, "Failed to enable cartridge with ID %d.\n", type);
+    return -1;
+#endif
+    return 0;
+}
+
+
+/** \brief  Disable cartridge by \a type
+ *
+ * \return  0 on success, -1 on failure
+ *
+ * \todo    More or less copy cartridge_enable() while replacing
+ *          ${cart}_enable() with ${cart_disable(). The various disable
+ *          functions still need to be written at the moment.
+ */
+int cartridge_disable(int type)
+{
+    /*
+    fprintf(stderr, "%s:%d: %s() isn't implemented yet, continuing\n",
+            __FILE__, __LINE__, __func__);
+    */
+    DBG(("CART: enable type: %d\n", type));
+    switch (type) {
+        case CARTRIDGE_DIGIMAX:
+            digimax_disable();
+            break;
+        case CARTRIDGE_DS12C887RTC:
+            ds12c887rtc_disable();
+            break;
+        case CARTRIDGE_GEORAM:
+            georam_disable();
+            break;
+        case CARTRIDGE_SFX_SOUND_EXPANDER:
+            sfx_soundexpander_disable();
+            break;
+        case CARTRIDGE_SFX_SOUND_SAMPLER:
+            sfx_soundsampler_disable();
+            break;
+#ifdef HAVE_RAWNET
+        case CARTRIDGE_TFE:
+            ethernetcart_disable();
+            break;
+#endif
+        default:
+            DBG(("CART: no disable hook %d\n", type));
+            break;
+    }
+
+#if 0
+    /* FIXME: cart_type_enabled not implemented */
+    /* make sure the cart has been disabled */
+    if (!cart_type_enabled(type)) {
+        return 0;
+    }
+    log_error(LOG_ERR, "Failed to disable cartridge with ID %d.\n", type);
+    return -1;
+#endif
+    return 0;
+}
+
 void cartridge_set_default(void)
 {
     if (cartridge_is_from_snapshot) {
@@ -621,7 +718,7 @@ void cartridge_unset_default(void)
     cartridge_type = CARTRIDGE_NONE;
 }
 
-const char *cartridge_get_file_name(int addr)
+const char *cartridge_get_filename_by_type(int addr)
 {
     if (vic20cart_type == CARTRIDGE_VIC20_GENERIC) {
         /* special case handling for the multiple file generic type */
@@ -679,6 +776,11 @@ int cartridge_flush_image(int type)
     return -1;
 }
 
+int cartridge_flush_secondary_image(int type)
+{
+    return -1;
+}
+
 int cartridge_save_image(int type, const char *filename)
 {
 /* FIXME: this can be used once we implement a crt like format for vic20 */
@@ -689,6 +791,11 @@ int cartridge_save_image(int type, const char *filename)
     }
 #endif
     return cartridge_bin_save(type, filename);
+}
+
+int cartridge_save_secondary_image(int type, const char *filename)
+{
+    return -1;
 }
 
 int cartridge_type_enabled(int crtid)
@@ -710,11 +817,16 @@ int cartridge_can_flush_image(int crtid)
     if (!cartridge_type_enabled(crtid)) {
         return 0;
     }
-    p = cartridge_get_file_name(crtid);
+    p = cartridge_get_filename_by_type(crtid);
     if ((p == NULL) || (*p == '\x0')) {
         return 0;
     }
     return 1;
+}
+
+int cartridge_can_flush_secondary_image(int crtid)
+{
+    return 0;
 }
 
 /* returns 1 when cartridge (ROM) image can be saved */
@@ -724,6 +836,49 @@ int cartridge_can_save_image(int crtid)
         return 0;
     }
     return 1;
+}
+
+int cartridge_can_save_secondary_image(int crtid)
+{
+    return 0;
+}
+
+cartridge_info_t *cartridge_get_info_list(void)
+{
+    return NULL;
+}
+
+/* return cartridge type of main slot
+   returns 0 (CARTRIDGE_CRT) if crt file */
+int cartridge_get_id(int slot)
+{
+    return CARTRIDGE_NONE;
+}
+
+/* FIXME: slot arg is ignored right now.
+   this should return a pointer to a filename, or NULL
+*/
+char *cartridge_get_filename_by_slot(int slot)
+{
+    if (vic20cart_type == CARTRIDGE_VIC20_GENERIC) {
+        /* special case handling for the multiple file generic type */
+        /* return generic_get_file_name((uint16_t)addr); */
+        log_warning(LOG_DEFAULT, "FIXME: cartridge_get_filename_by_slot not implemented for generic type");
+    }
+
+    return cartfile;
+}
+
+/* FIXME: slot arg is ignored right now.
+   this should return a pointer to a filename, or NULL
+*/
+char *cartridge_get_secondary_filename_by_slot(int slot)
+{
+    return NULL;
+}
+
+void cartridge_trigger_freeze(void)
+{
 }
 
 /* ------------------------------------------------------------------------- */

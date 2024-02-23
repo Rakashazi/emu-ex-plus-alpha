@@ -30,12 +30,12 @@
 struct disk_image_s;
 struct drive_s;
 
-extern void drive_image_init(void);
-extern void drive_image_init_track_size_d64(struct drive_s *drive);
-extern int drive_check_image_format(unsigned int format, unsigned int dnr);
-extern int drive_image_type_to_drive_type(unsigned int type);
+void drive_image_init(void);
+void drive_image_init_track_size_d64(struct drive_s *drive);
+int drive_check_image_format(unsigned int format, unsigned int dnr);
+int drive_image_type_to_drive_type(unsigned int type);
 
-extern int drive_image_attach(struct disk_image_s *image, unsigned int unit, unsigned int drive);
-extern int drive_image_detach(struct disk_image_s *image, unsigned int unit, unsigned int drive);
+int drive_image_attach(struct disk_image_s *image, unsigned int unit, unsigned int drive);
+int drive_image_detach(struct disk_image_s *image, unsigned int unit, unsigned int drive);
 
 #endif

@@ -32,6 +32,7 @@
 
 #include "archdep.h"
 #include "c64dtvmem.h"
+#include "c64dtvmodel.h"
 #include "c64memrom.h"
 #include "c64mem.h"
 #include "cmdline.h"
@@ -46,17 +47,25 @@
 
 #include "c64dtvflash.h"
 
-#define DTVROM_NAME_DEFAULT   "dtvrom.bin"
+/* #define DEBUG */
 
-#ifdef DEBUG
+#define DTVROM_PALV2_NAME_DEFAULT   "dtvrom.bin" /* FIXME: rename (who made this?) */
+#define DTVROM_PALV3_NAME_DEFAULT   "dtvrom.bin" /* FIXME: rename (who made this?) */
+#define DTVROM_NTSCV2_NAME_DEFAULT  "dtvrom.bin" /* FIXME: rename (who made this?) */
+#define DTVROM_NTSCV3_NAME_DEFAULT  "dtvrom.bin" /* FIXME: rename (who made this?) */
+#define DTVROM_HUMMER_NAME_DEFAULT  "dtvrom.bin" /* FIXME: rename (who made this?) */
+
 static log_t c64dtvflash_log = LOG_ERR;
+#ifdef DEBUG
 static int flash_log_enabled = 0;
 #endif
 
 #define C64_ROM_SIZE 0x200000
 
 /* Filenames of C64DTV RAM/ROM */
-static char *c64dtvflash_filename = NULL;
+static char *c64dtvflash_filename[DTVMODEL_NUM] = { NULL, NULL, NULL, NULL, NULL };
+
+static int c64dtvflash_revision = 0;
 
 /* (Flash)ROM array */
 uint8_t c64dtvflash_mem[C64_ROM_SIZE];
@@ -437,24 +446,26 @@ void c64dtvflash_create_blank_image(char *filename, int copyroms)
 
 int c64dtvflash_rom_loaded = 0;
 
-static int c64dtvflash_load_rom(void)
+static int c64dtvflash_load_rom(int idx)
 {
     int retval = 0;     /* need to change this when ui gets changed for error indication */
+    /*int idx = c64dtvflash_revision;*/ /* DTVFlashRevision */
+
 #ifdef DEBUG
     if (flash_log_enabled) {
         log_message(c64dtvflash_log, "loading ROM");
     }
 #endif
-    if (!util_check_null_string(c64dtvflash_filename)) {
-        if ((retval = util_file_load(c64dtvflash_filename, c64dtvflash_mem, (size_t)0x200000, UTIL_FILE_LOAD_RAW)) < 0) {
-#ifdef DEBUG
-            log_message(c64dtvflash_log, "Reading C64DTV ROM image %s failed.", c64dtvflash_filename);
-#endif
+    if (!util_check_null_string(c64dtvflash_filename[idx])) {
+        if ((retval = sysfile_load(c64dtvflash_filename[idx], machine_name, c64dtvflash_mem, 0, (size_t)0x200000)) < 0) {
+            log_error(c64dtvflash_log, "Reading C64DTV ROM rev:%d image: '%s' failed. (ret:%d)",
+                      idx, c64dtvflash_filename[idx], retval);
             retval = -1;
         } else {
 #ifdef DEBUG
-            log_message(c64dtvflash_log, "Read C64DTV ROM image %s.", c64dtvflash_filename);
+            log_message(c64dtvflash_log, "Read C64DTV ROM image:%d '%s'.", idx, c64dtvflash_filename[idx]);
 #endif
+            retval = 0; /* no error, sysfile_load returns file length */
         }
     } else {
 #ifdef DEBUG
@@ -462,7 +473,6 @@ static int c64dtvflash_load_rom(void)
 #endif
         retval = -2;
     }
-
 
     /* copy ROMs to Flash ROM emulation if no image file specified */
     if (retval) {
@@ -495,7 +505,7 @@ void c64dtvflash_init(void)
     }
 #endif
 
-    c64dtvflash_load_rom();
+    c64dtvflash_load_rom(c64dtvflash_revision);  /* DTVFlashRevision */
 
 #ifdef DEBUG
     if (flash_log_enabled) {
@@ -506,16 +516,13 @@ void c64dtvflash_init(void)
 
 void c64dtvflash_shutdown(void)
 {
-    if (!util_check_null_string(c64dtvflash_filename)) {
+    int idx = c64dtvflash_revision; /* DTVFlashRevision */
+    if (!util_check_null_string(c64dtvflash_filename[idx])) {
         if (c64dtvflash_mem_rw) {
-            if (util_file_save(c64dtvflash_filename, c64dtvflash_mem, 0x200000) < 0) {
-#ifdef DEBUG
-                log_message(c64dtvflash_log, "Writing C64DTV ROM image %s failed.", c64dtvflash_filename);
-#endif
+            if (util_file_save(c64dtvflash_filename[idx], c64dtvflash_mem, 0x200000) < 0) {
+                log_error(c64dtvflash_log, "Writing C64DTV ROM image %s failed.", c64dtvflash_filename[idx]);
             } else {
-#ifdef DEBUG
-                log_message(c64dtvflash_log, "Wrote C64DTV ROM image %s.", c64dtvflash_filename);
-#endif
+                log_message(c64dtvflash_log, "Wrote C64DTV ROM image %s.", c64dtvflash_filename[idx]);
             }
         }
     }
@@ -537,29 +544,46 @@ void c64dtvflash_reset(void)
 }
 
 /* ------------------------------------------------------------------------- */
+static int set_c64dtvflash_revision(int val, void *param)
+{
+    int oldval = c64dtvflash_revision;
+    if (val < 0 || val > (DTVMODEL_NUM - 1)) {
+        c64dtvflash_revision = 0;
+        return -1;
+    } else {
+        c64dtvflash_revision = val;
+    }
+    if (oldval != c64dtvflash_revision) {
+        c64dtvflash_load_rom(c64dtvflash_revision /* DTVFlashRevision */);
+    }
+    return 0;
+}
 
 static int set_c64dtvflash_filename(const char *name, void *param)
 {
     int retval = 0;
+    int idx = vice_ptr_to_int(param);
 
     char *complete_path = NULL;
 
-    if (c64dtvflash_filename != NULL && name != NULL && strcmp(name, c64dtvflash_filename) == 0) {
+    if (c64dtvflash_filename[idx] != NULL && name != NULL && strcmp(name, c64dtvflash_filename[idx]) == 0) {
         return 0;
     }
 
-    if (c64dtvflash_mem_rw && c64dtvflash_filename != NULL && *c64dtvflash_filename != '\0') {
-        if (util_file_save(c64dtvflash_filename, c64dtvflash_mem, 0x200000) < 0) {
+    if (c64dtvflash_mem_rw && c64dtvflash_filename[idx] != NULL && *c64dtvflash_filename[idx] != '\0') {
+        if (util_file_save(c64dtvflash_filename[idx], c64dtvflash_mem, 0x200000) < 0) {
 #ifdef DEBUG
-            log_message(c64dtvflash_log, "Writing C64DTV ROM image %s failed.", c64dtvflash_filename);
+            log_message(c64dtvflash_log, "Writing C64DTV ROM image %s failed.", c64dtvflash_filename[idx]);
 #endif
         } else {
 #ifdef DEBUG
-            log_message(c64dtvflash_log, "Wrote C64DTV ROM image %s.", c64dtvflash_filename);
+            log_message(c64dtvflash_log, "Wrote C64DTV ROM image %s.", c64dtvflash_filename[idx]);
 #endif
         }
     }
 
+#if 0 /* FIXME: why would we want to do this? one drawback is, that this way we always have "non default"
+                values in these resources */
     /* check if the given rom file can be found in a sys dir and set resource with absolute path */
     if (name != NULL && *name != '\0' && !util_file_exists(name)) {
         sysfile_locate(name, "C64DTV", &complete_path);
@@ -567,18 +591,19 @@ static int set_c64dtvflash_filename(const char *name, void *param)
             name = complete_path;
         }
     }
+#endif
 
-    util_string_set(&c64dtvflash_filename, name);
+    util_string_set(&c64dtvflash_filename[idx], name);
 
     lib_free(complete_path);
 
-    if (c64dtvflash_filename != NULL && *c64dtvflash_filename != '\0') {
-        retval = c64dtvflash_load_rom();
+    if (c64dtvflash_filename[idx] != NULL && *c64dtvflash_filename[idx] != '\0') {
+        retval = c64dtvflash_load_rom(idx);
     }
 
     /* for now always reset machine, later can become optional */
     if (!retval) {
-        machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+        machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
     }
 
     return 0;
@@ -601,12 +626,22 @@ static int set_flash_log(int val, void *param)
 #endif
 
 static const resource_string_t resources_string[] = {
-    { "c64dtvromfilename", DTVROM_NAME_DEFAULT, RES_EVENT_NO, NULL,
-      &c64dtvflash_filename, set_c64dtvflash_filename, NULL },
+    { "DTVNTSCV2FlashName", DTVROM_NTSCV2_NAME_DEFAULT, RES_EVENT_NO, NULL,
+      &c64dtvflash_filename[DTVMODEL_V2_NTSC], set_c64dtvflash_filename, (void*)DTVMODEL_V2_NTSC },
+    { "DTVPALV2FlashName", DTVROM_PALV2_NAME_DEFAULT, RES_EVENT_NO, NULL,
+      &c64dtvflash_filename[DTVMODEL_V2_PAL], set_c64dtvflash_filename, (void*)DTVMODEL_V2_PAL },
+    { "DTVNTSCV3FlashName", DTVROM_NTSCV3_NAME_DEFAULT, RES_EVENT_NO, NULL,
+      &c64dtvflash_filename[DTVMODEL_V3_NTSC], set_c64dtvflash_filename, (void*)DTVMODEL_V3_NTSC },
+    { "DTVPALV3FlashName", DTVROM_PALV3_NAME_DEFAULT, RES_EVENT_NO, NULL,
+      &c64dtvflash_filename[DTVMODEL_V3_PAL], set_c64dtvflash_filename, (void*)DTVMODEL_V3_PAL },
+    { "DTVHummerFlashName", DTVROM_HUMMER_NAME_DEFAULT, RES_EVENT_NO, NULL,
+      &c64dtvflash_filename[DTVMODEL_HUMMER_NTSC], set_c64dtvflash_filename, (void*)DTVMODEL_HUMMER_NTSC },
     RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
+    { "DTVFlashRevision", DTVMODEL_V3_PAL, RES_EVENT_NO, NULL,
+      &c64dtvflash_revision, set_c64dtvflash_revision, NULL },
     { "c64dtvromrw", 0, RES_EVENT_SAME, NULL,
       &c64dtvflash_mem_rw, set_c64dtvflash_mem_rw, NULL },
 #ifdef DEBUG
@@ -627,14 +662,29 @@ int c64dtvflash_resources_init(void)
 
 void c64dtvflash_resources_shutdown(void)
 {
-    lib_free(c64dtvflash_filename);
+    int idx;
+    for (idx = 0; idx < DTVMODEL_NUM; idx++) {
+        lib_free(c64dtvflash_filename[idx]);
+    }
 }
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-c64dtvromimage", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
-      NULL, NULL, "c64dtvromfilename", NULL,
-      "<Name>", "Specify name of C64DTV ROM image" },
+    { "-ntscv2romimage", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "DTVNTSCV2FlashName", NULL,
+      "<Name>", "Specify name of C64DTV NTSC v2 ROM image" },
+    { "-palv2romimage", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "DTVPALV2FlashName", NULL,
+      "<Name>", "Specify name of C64DTV PAL v2 ROM image" },
+    { "-ntscv3romimage", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "DTVNTSCV3FlashName", NULL,
+      "<Name>", "Specify name of C64DTV NTSC v3 ROM image" },
+    { "-palv3romimage", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "DTVPALV3FlashName", NULL,
+      "<Name>", "Specify name of C64DTV PAL v3 ROM image" },
+    { "-hummerromimage", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "DTVHummerFlashName", NULL,
+      "<Name>", "Specify name of C64DTV Hummer ROM image" },
     { "-c64dtvromrw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "c64dtvromrw", (void *)1,
       NULL, "Enable writes to C64DTV ROM image" },

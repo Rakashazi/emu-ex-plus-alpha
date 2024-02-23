@@ -229,42 +229,39 @@ typedef struct vdrive_s {
 
 /* ------------------------------------------------------------------------- */
 
-extern void vdrive_init(void);
-extern int vdrive_device_setup(vdrive_t *vdrive, unsigned int unit);
-extern void vdrive_device_shutdown(vdrive_t *vdrive);
-extern int vdrive_attach_image(struct disk_image_s *image, unsigned int unit, unsigned int drive, vdrive_t *vdrive);
-extern void vdrive_detach_image(struct disk_image_s *image, unsigned int unit, unsigned int drive, vdrive_t *vdrive);
-extern void vdrive_close_all_channels(vdrive_t *vdrive);
-extern void vdrive_close_all_channels_partition(vdrive_t *vdrive, int part);
-extern int vdrive_get_max_sectors(vdrive_t *vdrive, unsigned int track);
-extern int vdrive_get_max_sectors_per_head(vdrive_t *vdrive, unsigned int track);
-extern void vdrive_get_last_read(unsigned int *track, unsigned int *sector, uint8_t **buffer);
-extern void vdrive_set_last_read(unsigned int track, unsigned int sector, uint8_t *buffer);
+void vdrive_init(void);
+int vdrive_device_setup(vdrive_t *vdrive, unsigned int unit);
+void vdrive_device_shutdown(vdrive_t *vdrive);
+int vdrive_attach_image(struct disk_image_s *image, unsigned int unit, unsigned int drive, vdrive_t *vdrive);
+void vdrive_detach_image(struct disk_image_s *image, unsigned int unit, unsigned int drive, vdrive_t *vdrive);
+void vdrive_close_all_channels(vdrive_t *vdrive);
+void vdrive_close_all_channels_partition(vdrive_t *vdrive, int part);
+int vdrive_get_max_sectors(vdrive_t *vdrive, unsigned int track);
+int vdrive_get_max_sectors_per_head(vdrive_t *vdrive, unsigned int track);
+void vdrive_get_last_read(unsigned int *track, unsigned int *sector, uint8_t **buffer);
+void vdrive_set_last_read(unsigned int track, unsigned int sector, uint8_t *buffer);
 
-extern void vdrive_alloc_buffer(struct bufferinfo_s *p, int mode);
-extern void vdrive_free_buffer(struct bufferinfo_s *p);
-extern void vdrive_set_disk_geometry(vdrive_t *vdrive);
-extern int vdrive_read_sector(vdrive_t *vdrive, uint8_t *buf, unsigned int track, unsigned int sector);
-extern int vdrive_write_sector(vdrive_t *vdrive, const uint8_t *buf, unsigned int track, unsigned int sector);
-extern int vdrive_read_sector_physical(vdrive_t *vdrive, uint8_t *buf, unsigned int track, unsigned int sector);
-extern int vdrive_write_sector_physical(vdrive_t *vdrive, const uint8_t *buf, unsigned int track, unsigned int sector);
+void vdrive_alloc_buffer(struct bufferinfo_s *p, int mode);
+void vdrive_free_buffer(struct bufferinfo_s *p);
+void vdrive_set_disk_geometry(vdrive_t *vdrive);
+int vdrive_read_sector(vdrive_t *vdrive, uint8_t *buf, unsigned int track, unsigned int sector);
+int vdrive_write_sector(vdrive_t *vdrive, const uint8_t *buf, unsigned int track, unsigned int sector);
+int vdrive_read_sector_physical(vdrive_t *vdrive, uint8_t *buf, unsigned int track, unsigned int sector);
+int vdrive_write_sector_physical(vdrive_t *vdrive, const uint8_t *buf, unsigned int track, unsigned int sector);
 
-extern struct disk_image_s *vdrive_get_image(vdrive_t *vdrive, unsigned int drive);
+struct disk_image_s *vdrive_get_image(vdrive_t *vdrive, unsigned int drive);
 
-extern void vdrive_refresh(unsigned int unit);
-extern void vdrive_flush(unsigned int unit);
-extern int vdrive_find_sys(vdrive_t *vdrive);
-extern int vdrive_read_partition_table(vdrive_t *vdrive);
-extern int vdrive_ispartvalid(vdrive_t *vdrive, int part);
-extern int vdrive_write_partition_table(vdrive_t *vdrive);
-extern int vdrive_pack_parts(vdrive_t *vdrive);
-extern int vdrive_switch(vdrive_t *vdrive, int part);
-extern int vdrive_realpart(vdrive_t *vdrive, int part);
+void vdrive_refresh(unsigned int unit);
+void vdrive_flush(unsigned int unit);
+int vdrive_find_sys(vdrive_t *vdrive);
+int vdrive_read_partition_table(vdrive_t *vdrive);
+int vdrive_ispartvalid(vdrive_t *vdrive, int part);
+int vdrive_write_partition_table(vdrive_t *vdrive);
+int vdrive_pack_parts(vdrive_t *vdrive);
+int vdrive_switch(vdrive_t *vdrive, int part);
+int vdrive_realpart(vdrive_t *vdrive, int part);
 
-extern int vdrive_ext_read_sector(vdrive_t *vdrive, int drive, uint8_t *buf,
-    unsigned int track, unsigned int sector);
-extern int vdrive_ext_write_sector(vdrive_t *vdrive, int drive, const uint8_t *buf,
-    unsigned int track, unsigned int sector);
-
+int vdrive_ext_read_sector(vdrive_t *vdrive, int drive, uint8_t *buf, unsigned int track, unsigned int sector);
+int vdrive_ext_write_sector(vdrive_t *vdrive, int drive, const uint8_t *buf, unsigned int track, unsigned int sector);
 
 #endif

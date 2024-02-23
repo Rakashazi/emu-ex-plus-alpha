@@ -46,9 +46,14 @@
 
 /* Some prototypes are needed */
 static int digiblaster_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec);
-static int digiblaster_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, CLOCK *delta_t);
 static void digiblaster_sound_machine_store(sound_t *psid, uint16_t addr, uint8_t val);
 static void digiblaster_sound_reset(sound_t *psid, CLOCK cpu_clk);
+
+#ifdef SOUND_SYSTEM_FLOAT
+static int digiblaster_sound_machine_calculate_samples(sound_t **psid, float *pbuf, int nr, int sound_chip_channels, CLOCK *delta_t);
+#else
+static int digiblaster_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, CLOCK *delta_t);
+#endif
 
 static int digiblaster_sound_machine_cycle_based(void)
 {
@@ -59,6 +64,16 @@ static int digiblaster_sound_machine_channels(void)
 {
     return 1;
 }
+
+#ifdef SOUND_SYSTEM_FLOAT
+/* stereo mixing placement of the PLUS4 DigiBlaster cartridge sound */
+static sound_chip_mixing_spec_t digiblaster_sound_mixing_spec[SOUND_CHIP_CHANNELS_MAX] = {
+    {
+        100, /* left channel volume % in case of stereo output, default output to both */
+        100  /* right channel volume % in case of stereo output, default output to both */
+    }
+};
+#endif
 
 /* PLUS4 DigiBlaster cartridge sound chip */
 static sound_chip_t digiblaster_sound_chip = {
@@ -71,6 +86,9 @@ static sound_chip_t digiblaster_sound_chip = {
     digiblaster_sound_reset,                     /* sound chip reset function */
     digiblaster_sound_machine_cycle_based,       /* sound chip 'is_cycle_based()' function, chip is NOT cycle based */
     digiblaster_sound_machine_channels,          /* sound chip 'get_amount_of_channels()' function, sound chip has 1 channel */
+#ifdef SOUND_SYSTEM_FLOAT
+    digiblaster_sound_mixing_spec,               /* stereo mixing placement specs */
+#endif
     0                                            /* sound chip enabled flag, toggled upon device (de-)activation */
 };
 
@@ -101,7 +119,8 @@ static io_source_t digiblaster_fd5e_device = {
     NULL,                 /* nothing to dump */
     IO_CART_ID_NONE,      /* not a cartridge */
     IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
-    0                     /* insertion order, gets filled in by the registration function */
+    0,                    /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE        /* NO mirroring */
 };
 
 static io_source_t digiblaster_fe9e_device = {
@@ -117,7 +136,8 @@ static io_source_t digiblaster_fe9e_device = {
     NULL,                 /* nothing to dump */
     IO_CART_ID_NONE,      /* not a cartridge */
     IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
-    0                     /* insertion order, gets filled in by the registration function */
+    0,                    /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE        /* NO mirroring */
 };
 
 static io_source_list_t *digiblaster_list_item = NULL;
@@ -202,10 +222,18 @@ struct digiblaster_sound_s {
 
 static struct digiblaster_sound_s snd;
 
+#ifdef SOUND_SYSTEM_FLOAT
+/* FIXME */
+static int digiblaster_sound_machine_calculate_samples(sound_t **psid, float *pbuf, int nr, int scc, CLOCK *delta_t)
+{
+    return sound_dac_calculate_samples(&digiblaster_dac, pbuf, (int)snd.voice0 * 128, nr);
+}
+#else
 static int digiblaster_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int soc, int scc, CLOCK *delta_t)
 {
-    return sound_dac_calculate_samples(&digiblaster_dac, pbuf, (int)snd.voice0 * 128, nr, soc, (soc > 1) ? 3 : 1);
+    return sound_dac_calculate_samples(&digiblaster_dac, pbuf, (int)snd.voice0 * 128, nr, soc, (soc == SOUND_OUTPUT_STEREO) ? SOUND_CHANNELS_1_AND_2 : SOUND_CHANNEL_1);
 }
+#endif
 
 static int digiblaster_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec)
 {

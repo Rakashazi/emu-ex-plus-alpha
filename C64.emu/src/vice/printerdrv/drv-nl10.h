@@ -27,9 +27,9 @@
 #ifndef VICE_DRV_NL10_H
 #define VICE_DRV_NL10_H
 
-extern int drv_nl10_init_resources(void);
-extern int drv_nl10_init(void);
-extern void drv_nl10_shutdown(void);
-extern void drv_nl10_reset(void);
+int drv_nl10_init_resources(void);
+int drv_nl10_init(void);
+void drv_nl10_shutdown(void);
+void drv_nl10_reset(void);
 
 #endif

@@ -68,6 +68,7 @@
 #include "delaep7x8.h"
 #include "dinamic.h"
 #include "dqbb.h"
+#include "drean.h"
 #include "easyflash.h"
 #include "epyxfastload.h"
 #include "exos.h"
@@ -85,7 +86,7 @@
 #include "gmod2.h"
 #include "gmod3.h"
 #include "gs.h"
-#include "drean.h"
+#include "hyperbasic.h"
 #include "ide64.h"
 #include "ieeeflash64.h"
 #include "isepic.h"
@@ -2374,6 +2375,7 @@ static uint8_t cartridge_peek_mem_slotmain(uint16_t addr)
             break;
     }
 
+/* FIXME: if the kernal ROM is exposed here, it doesn't return it, just ram */
     switch (res) {
         case CART_READ_VALID:
             return value;

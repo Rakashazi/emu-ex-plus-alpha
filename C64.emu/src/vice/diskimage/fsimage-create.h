@@ -32,9 +32,10 @@
 #ifndef VICE_FSIMAGE_CREATE_H
 #define VICE_FSIMAGE_CREATE_H
 
-extern void fsimage_create_init(void);
+void fsimage_create_init(void);
 
-extern int  fsimage_create(const char *name, unsigned int type);
-extern int  fsimage_create_dxm(const char *name, const char *diskname, unsigned int type);
+int  fsimage_create(const char *name, unsigned int type);
+int  fsimage_create_dxm(const char *name, const char *diskname, unsigned int type);
+int  fsimage_create_dhd(const char *name, const char *diskname, unsigned int type);
 
 #endif

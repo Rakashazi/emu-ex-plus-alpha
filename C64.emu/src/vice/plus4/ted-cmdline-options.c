@@ -56,8 +56,10 @@ static int border_set_func(const char *value, void *extra_param)
 /* TED command-line options.  */
 static const cmdline_option_t cmdline_options[] =
 {
+    /* NOTE: although we use CALL_FUNCTION, we put the resource that will be
+             modified into the array - this helps reconstructing the cmdline */
     { "-TEDborders", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
-      border_set_func, NULL, NULL, NULL,
+      border_set_func, NULL, "TEDBorderMode", NULL,
       "<Mode>", "Set border display mode (0: normal, 1: full, 2: debug, 3: none)" },
     CMDLINE_LIST_END
 };

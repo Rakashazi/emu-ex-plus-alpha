@@ -461,7 +461,7 @@ static const cmdline_option_t cmdline_options[] =
       NULL, "Disable tapecart .tcrt image optimization on write" },
     { "-tapecartloglevel", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "TapecartLogLevel", NULL,
-      NULL, "Set tapecart log verbosity" },
+      "<Loglevel>", "Set tapecart log verbosity" },
     CMDLINE_LIST_END
 };
 

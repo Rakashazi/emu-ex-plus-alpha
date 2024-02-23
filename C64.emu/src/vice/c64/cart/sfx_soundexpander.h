@@ -30,20 +30,21 @@
 #include "types.h"
 #include "sound.h"
 
-extern int sfx_soundexpander_cart_enabled(void);
-extern void sfx_soundexpander_reset(void);
-extern int sfx_soundexpander_enable(void);
+int sfx_soundexpander_cart_enabled(void);
+void sfx_soundexpander_reset(void);
+int sfx_soundexpander_enable(void);
 int sfx_soundexpander_disable(void);
-extern void sfx_soundexpander_detach(void);
+void sfx_soundexpander_detach(void);
 
-extern int sfx_soundexpander_resources_init(void);
-extern void sfx_soundexpander_resources_shutdown(void);
-extern int sfx_soundexpander_cmdline_options_init(void);
+int sfx_soundexpander_resources_init(void);
+void sfx_soundexpander_resources_shutdown(void);
+int sfx_soundexpander_cmdline_options_init(void);
 
-extern void sfx_soundexpander_sound_chip_init(void);
+void sfx_soundexpander_sound_chip_init(void);
 
 struct snapshot_s;
-extern int sfx_soundexpander_snapshot_read_module(struct snapshot_s *s);
-extern int sfx_soundexpander_snapshot_write_module(struct snapshot_s *s);
+
+int sfx_soundexpander_snapshot_read_module(struct snapshot_s *s);
+int sfx_soundexpander_snapshot_write_module(struct snapshot_s *s);
 
 #endif

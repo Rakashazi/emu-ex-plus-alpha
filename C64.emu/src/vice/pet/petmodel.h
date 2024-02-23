@@ -45,7 +45,7 @@
 #define PETMODEL_NUM 12
 #define PETMODEL_UNKNOWN 99
 
-extern int petmodel_get(void);
-extern void petmodel_set(int model);
+int petmodel_get(void);
+void petmodel_set(int model);
 
 #endif

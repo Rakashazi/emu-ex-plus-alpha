@@ -141,8 +141,8 @@ static int fsdevice_open_directory(vdrive_t *vdrive, unsigned int secondary,
     host_dir = archdep_opendir((char *)(cmd_parse->parsecmd), ARCHDEP_OPENDIR_ALL_FILES);
     if (host_dir == NULL) {
         for (p = (uint8_t *)(cmd_parse->parsecmd); *p; p++) {
-            if (isupper((int)*p)) {
-                *p = tolower((int)*p);
+            if (isupper((unsigned char)*p)) {
+                *p = tolower((unsigned char)*p);
             }
         }
         host_dir = archdep_opendir((char *)(cmd_parse->parsecmd), ARCHDEP_OPENDIR_ALL_FILES);

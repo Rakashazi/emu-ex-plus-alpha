@@ -35,18 +35,18 @@
 #include "uiapi.h"
 #include "vicesocket.h"
 
-extern int monitor_network_resources_init(void);
-extern void monitor_network_resources_shutdown(void);
-extern int monitor_network_cmdline_options_init(void);
+int monitor_network_resources_init(void);
+void monitor_network_resources_shutdown(void);
+int monitor_network_cmdline_options_init(void);
 
-extern void monitor_check_remote(void);
-extern int monitor_network_receive(char * buffer, size_t buffer_length);
-extern int monitor_network_transmit(const char * buffer, size_t buffer_length);
-extern int monitor_network_get_command_line(char **prompt);
+void monitor_check_remote(void);
+int monitor_network_receive(char * buffer, size_t buffer_length);
+int monitor_network_transmit(const char * buffer, size_t buffer_length);
+int monitor_network_get_command_line(char **prompt);
 
-extern int monitor_is_remote(void);
-extern vice_network_socket_t *monitor_get_connected_socket(void);
+int monitor_is_remote(void);
+vice_network_socket_t *monitor_get_connected_socket(void);
 
-extern ui_jam_action_t monitor_network_ui_jam_dialog(const char *format, ...) VICE_ATTR_PRINTF;
+ui_jam_action_t monitor_network_ui_jam_dialog(const char *format, ...) VICE_ATTR_PRINTF;
 
 #endif

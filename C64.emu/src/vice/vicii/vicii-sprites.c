@@ -691,9 +691,18 @@ inline static void draw_hires_sprite_normal(uint8_t *data_ptr, int n,
         }
     }
 
-    collmsk = (((((uint32_t)msk_ptr[1] << 24) | (msk_ptr[2] << 16)
-                 | (msk_ptr[3] << 8) | msk_ptr[4]) << lshift)
-               | (msk_ptr[5] >> (8 - lshift)));
+    collmsk =
+        (
+            (
+                (  (uint32_t)msk_ptr[1] << 24
+                 | (uint32_t)msk_ptr[2] << 16
+                 | (uint32_t)msk_ptr[3] << 8
+                 | (uint32_t)msk_ptr[4]
+                )
+                << lshift
+             )
+            | ((uint32_t)msk_ptr[5] >> (8 - lshift))
+        );
 
     collmsk = (collmsk >> (32 - size));
 
@@ -779,7 +788,7 @@ inline static void draw_mc_sprite_expanded(uint8_t *data_ptr, int n, uint32_t *c
         collmsk = (collmsk << 2 ) | (((msk_ptr[5] << 8) | msk_ptr[6]) >> (14 - lshift));
         data0 = (data_ptr[0] << 1) | (data_ptr[1] >> 7);
         data1 = (data_ptr[1] << 1);
-        sprmsk = (sprite_doubling_table[mcsprtable[data0]] << 16) | sprite_doubling_table[mcsprtable[data1]];
+        sprmsk = ((uint32_t)sprite_doubling_table[mcsprtable[data0]] << 16) | sprite_doubling_table[mcsprtable[data1]];
     }
 
     if (delayed_load) {

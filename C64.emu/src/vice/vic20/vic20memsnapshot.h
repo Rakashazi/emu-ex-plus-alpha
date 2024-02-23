@@ -29,7 +29,7 @@
 
 struct snapshot_s;
 
-extern int vic20_snapshot_write_module(struct snapshot_s *s, int save_roms);
-extern int vic20_snapshot_read_module(struct snapshot_s *s);
+int vic20_snapshot_write_module(struct snapshot_s *s, int save_roms);
+int vic20_snapshot_read_module(struct snapshot_s *s);
 
 #endif

@@ -33,7 +33,7 @@
 
 extern sid_engine_t fastsid_hooks;
 
-extern void fastsid_state_read(struct sound_s *psid, struct sid_fastsid_snapshot_state_s *sid_state);
-extern void fastsid_state_write(struct sound_s *psid, struct sid_fastsid_snapshot_state_s *sid_state);
+void fastsid_state_read(struct sound_s *psid, struct sid_fastsid_snapshot_state_s *sid_state);
+void fastsid_state_write(struct sound_s *psid, struct sid_fastsid_snapshot_state_s *sid_state);
 
 #endif

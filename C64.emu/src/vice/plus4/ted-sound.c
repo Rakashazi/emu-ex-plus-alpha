@@ -48,9 +48,14 @@
 
 /* Some prototypes are needed */
 static int ted_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec);
-static int ted_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, CLOCK *delta_t);
 static void ted_sound_machine_store(sound_t *psid, uint16_t addr, uint8_t val);
 static uint8_t ted_sound_machine_read(sound_t *psid, uint16_t addr);
+
+#ifdef SOUND_SYSTEM_FLOAT
+static int ted_sound_machine_calculate_samples(sound_t **psid, float *pbuf, int nr, int sound_chip_channels, CLOCK *delta_t);
+#else
+static int ted_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, CLOCK *delta_t);
+#endif
 
 static int ted_sound_machine_cycle_based(void)
 {
@@ -61,6 +66,16 @@ static int ted_sound_machine_channels(void)
 {
     return 1;
 }
+
+#ifdef SOUND_SYSTEM_FLOAT
+/* stereo mixing placement of the TED sound */
+static sound_chip_mixing_spec_t ted_sound_mixing_spec[SOUND_CHIP_CHANNELS_MAX] = {
+    {
+        100, /* left channel volume % in case of stereo output, default output to both */
+        100  /* right channel volume % in case of stereo output, default output to both */
+    }
+};
+#endif
 
 /* TED sound device */
 static sound_chip_t ted_sound_chip = {
@@ -73,6 +88,9 @@ static sound_chip_t ted_sound_chip = {
     ted_sound_reset,                     /* sound chip reset function */
     ted_sound_machine_cycle_based,       /* sound chip 'is_cycle_based()' function, chip is NOT cycle based */
     ted_sound_machine_channels,          /* sound chip 'get_amount_of_channels()' function, sound chip has 1 channel */
+#ifdef SOUND_SYSTEM_FLOAT
+    ted_sound_mixing_spec,               /* stereo mixing placement specs */
+#endif
     1                                    /* sound chip enabled flag, chip is always enabled */
 };
 
@@ -173,6 +191,107 @@ static const int16_t volume_tab[16] = {
     0x3fff, 0x3fff, 0x3fff, 0x3fff, 0x3fff, 0x3fff, 0x3fff, 0x3fff
 };
 
+#ifdef SOUND_SYSTEM_FLOAT
+/* FIXME */
+static int ted_sound_machine_calculate_samples(sound_t **psid, float *pbuf, int nr, int scc, CLOCK *delta_t)
+{
+    int i;
+    int j;
+    int16_t volume;
+    float sample;
+
+    if (snd.digital) {
+        for (i = 0; i < nr; i++) {
+            sample = (snd.volume * (snd.voice0_output_enabled + snd.voice1_output_enabled)) / 32767.0;
+            pbuf[i] = sample;
+        }
+    } else {
+        for (i = 0; i < nr; i++) {
+            snd.sample_position_remainder += snd.sample_length_remainder;
+            if (snd.sample_position_remainder >= snd.speed) {
+                snd.sample_position_remainder -= snd.speed;
+                snd.sample_position_integer++;
+            }
+            snd.sample_position_integer += snd.sample_length_integer;
+            if (snd.sample_position_integer >= 8) {
+                /* Advance state engine */
+                uint32_t ticks = snd.sample_position_integer >> 3;
+                if (snd.voice0_accu <= ticks) {
+                    uint32_t delay = ticks - snd.voice0_accu;
+                    snd.voice0_sign ^= 1;
+                    snd.voice0_accu = 1023 - snd.voice0_reload;
+                    if (snd.voice0_accu == 0) {
+                        snd.voice0_accu = 1024;
+                    }
+                    if (delay >= snd.voice0_accu) {
+                        snd.voice0_sign = ((delay / snd.voice0_accu)
+                                           & 1) ? snd.voice0_sign ^ 1
+                                          : snd.voice0_sign;
+                        snd.voice0_accu = snd.voice0_accu - (delay % snd.voice0_accu);
+                    } else {
+                        snd.voice0_accu -= delay;
+                    }
+                } else {
+                    snd.voice0_accu -= ticks;
+                }
+
+                if (snd.voice1_accu <= ticks) {
+                    uint32_t delay = ticks - snd.voice1_accu;
+                    snd.voice1_sign ^= 1;
+                    snd.noise_shift_register
+                        = (snd.noise_shift_register << 1) +
+                          ( 1 ^ ((snd.noise_shift_register >> 7) & 1) ^
+                            ((snd.noise_shift_register >> 5) & 1) ^
+                            ((snd.noise_shift_register >> 4) & 1) ^
+                            ((snd.noise_shift_register >> 1) & 1));
+                    snd.voice1_accu = 1023 - snd.voice1_reload;
+                    if (snd.voice1_accu == 0) {
+                        snd.voice1_accu = 1024;
+                    }
+                    if (delay >= snd.voice1_accu) {
+                        snd.voice1_sign = ((delay / snd.voice1_accu)
+                                           & 1) ? snd.voice1_sign ^ 1
+                                          : snd.voice1_sign;
+                        for (j = 0; j < (int)(delay / snd.voice1_accu);
+                             j++) {
+                            snd.noise_shift_register
+                                = (snd.noise_shift_register << 1) +
+                                  ( 1 ^ ((snd.noise_shift_register >> 7) & 1) ^
+                                    ((snd.noise_shift_register >> 5) & 1) ^
+                                    ((snd.noise_shift_register >> 4) & 1) ^
+                                    ((snd.noise_shift_register >> 1) & 1));
+                        }
+                        snd.voice1_accu = snd.voice1_accu - (delay % snd.voice1_accu);
+                    } else {
+                        snd.voice1_accu -= delay;
+                    }
+                } else {
+                    snd.voice1_accu -= ticks;
+                }
+            }
+            snd.sample_position_integer = snd.sample_position_integer & 7;
+
+            volume = 0;
+
+            if (snd.voice0_output_enabled && snd.voice0_sign) {
+                volume += snd.volume;
+            }
+            if (snd.voice1_output_enabled && !snd.noise && snd.voice1_sign) {
+                volume += snd.volume;
+            }
+            if (snd.voice1_output_enabled && snd.noise && (!(snd.noise_shift_register & 1))) {
+                volume += snd.volume;
+            }
+
+
+            sample = volume / 32767.0;
+
+            pbuf[i] = sample;
+        }
+    }
+    return nr;
+}
+#else
 static int ted_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int soc, int scc, CLOCK *delta_t)
 {
     int i;
@@ -182,7 +301,7 @@ static int ted_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, in
     if (snd.digital) {
         for (i = 0; i < nr; i++) {
             pbuf[i * soc] = sound_audio_mix(pbuf[i * soc], (snd.volume * (snd.voice0_output_enabled + snd.voice1_output_enabled)));
-            if (soc > 1) {
+            if (soc == SOUND_OUTPUT_STEREO) {
                 pbuf[(i * soc) + 1] = sound_audio_mix(pbuf[(i * soc) + 1], (snd.volume * (snd.voice0_output_enabled + snd.voice1_output_enabled)));
             }
         }
@@ -265,13 +384,14 @@ static int ted_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, in
             }
 
             pbuf[i * soc] = sound_audio_mix(pbuf[i * soc], volume);
-            if (soc > 1) {
+            if (soc == SOUND_OUTPUT_STEREO) {
                 pbuf[(i * soc) + 1] = sound_audio_mix(pbuf[(i * soc) + 1], volume);
             }
         }
     }
     return nr;
 }
+#endif
 
 static int ted_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec)
 {

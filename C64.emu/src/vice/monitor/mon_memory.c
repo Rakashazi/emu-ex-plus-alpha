@@ -224,7 +224,7 @@ static void memory_to_string(char *buf, MEMSPACE mem, uint16_t addr,
             val = charset_p_toascii(val, CONVERT_WITHOUT_CTRLCODES);
         }
 
-        buf[i] = isprint(val) ? val : '.';
+        buf[i] = isprint((unsigned char)val) ? val : '.';
 #else
         /* Handle control chars. that wouldn't be printed verbatim */
         switch (val) {

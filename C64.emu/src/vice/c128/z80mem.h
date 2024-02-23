@@ -30,12 +30,20 @@
 #include "mem.h"
 #include "types.h"
 
-extern void z80mem_update_config(int config);
+#define Z80_C128_ROM        0
+#define Z80_C128_INT_FUNC   1
+#define Z80_C128_EXT_FUNC   2
+#define Z80_C128_RAM        3
 
-extern int z80mem_load(void);
+void z80mem_update_config(int config);
+
+int z80mem_load(void);
+
 extern uint8_t z80bios_rom[0x1000];
 
-extern void z80mem_initialize(void);
+extern int z80mem_config;
+
+void z80mem_initialize(void);
 
 /* Pointers to the currently used memory read and write tables.  */
 extern read_func_ptr_t *_z80mem_read_tab_ptr;
@@ -43,8 +51,10 @@ extern store_func_ptr_t *_z80mem_write_tab_ptr;
 extern uint8_t **_z80mem_read_base_tab_ptr;
 extern int *z80mem_read_limit_tab_ptr;
 
-extern uint8_t bios_read(uint16_t addr);
-extern void bios_store(uint16_t addr, uint8_t value);
+uint8_t bios_read(uint16_t addr);
+void bios_store(uint16_t addr, uint8_t value);
+
+uint8_t z80mem_peek_with_config(int config, uint16_t addr, void *context);
 
 extern store_func_ptr_t io_write_tab[];
 extern read_func_ptr_t io_read_tab[];

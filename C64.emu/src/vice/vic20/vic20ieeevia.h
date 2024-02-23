@@ -33,20 +33,20 @@
 struct machine_context_s;
 struct via_context_s;
 
-extern int ieeevia1_dump(void);
-extern void vic20ieeevia1_setup_context(struct machine_context_s *machine_context);
-extern void ieeevia1_init(struct via_context_s *via_context);
-extern void ieeevia1_store(uint16_t addr, uint8_t byte);
-extern uint8_t ieeevia1_read(uint16_t addr);
-extern uint8_t ieeevia1_peek(uint16_t addr);
+int ieeevia1_dump(void);
+void vic20ieeevia1_setup_context(struct machine_context_s *machine_context);
+void ieeevia1_init(struct via_context_s *via_context);
+void ieeevia1_store(uint16_t addr, uint8_t byte);
+uint8_t ieeevia1_read(uint16_t addr);
+uint8_t ieeevia1_peek(uint16_t addr);
 
-extern int ieeevia2_dump(void);
-extern void vic20ieeevia2_setup_context(struct machine_context_s *machine_context);
-extern void ieeevia2_init(struct via_context_s *via_context);
-extern void ieeevia2_store(uint16_t addr, uint8_t byte);
-extern uint8_t ieeevia2_read(uint16_t addr);
-extern uint8_t ieeevia2_peek(uint16_t addr);
+int ieeevia2_dump(void);
+void vic20ieeevia2_setup_context(struct machine_context_s *machine_context);
+void ieeevia2_init(struct via_context_s *via_context);
+void ieeevia2_store(uint16_t addr, uint8_t byte);
+uint8_t ieeevia2_read(uint16_t addr);
+uint8_t ieeevia2_peek(uint16_t addr);
 
-extern void ieeevia2_set_tape_sense(int v);
+void ieeevia2_set_tape_sense(int v);
 
 #endif

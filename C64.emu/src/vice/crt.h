@@ -50,12 +50,13 @@ typedef struct crt_chip_header_s {
 } crt_chip_header_t;
 
 FILE *crt_open(const char *filename, crt_header_t *header);
-extern int crt_getid(const char *filename);
-extern int crt_read_chip_header(crt_chip_header_t *header, FILE *fd);
-extern int crt_read_chip(uint8_t *rawcart, int offset, crt_chip_header_t *chip, FILE *fd);
-extern FILE *crt_create(const char *filename, int type, int exrom, int game, const char *name);
-extern int crt_write_chip(uint8_t *data, crt_chip_header_t *header, FILE *fd);
+int crt_getid(const char *filename);
+int crt_read_chip_header(crt_chip_header_t *header, FILE *fd);
+int crt_read_chip(uint8_t *rawcart, int offset, crt_chip_header_t *chip, FILE *fd);
+FILE *crt_create(const char *filename, int type, int exrom, int game, const char *name);
+int crt_write_chip(uint8_t *data, crt_chip_header_t *header, FILE *fd);
+
 /* create v1.1 header with sub type */
-extern FILE *crt_create_v11(const char *filename, int type, int subtype, int exrom, int game, const char *name);
+FILE *crt_create_v11(const char *filename, int type, int subtype, int exrom, int game, const char *name);
 
 #endif

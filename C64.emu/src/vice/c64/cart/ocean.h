@@ -31,17 +31,17 @@
 
 #include "types.h"
 
-extern void ocean_config_setup(uint8_t *rawcart);
-extern void ocean_config_init(void);
-extern int ocean_bin_attach(const char *filename, uint8_t *rawcart);
-extern int ocean_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void ocean_detach(void);
+void ocean_config_setup(uint8_t *rawcart);
+void ocean_config_init(void);
+int ocean_bin_attach(const char *filename, uint8_t *rawcart);
+int ocean_crt_attach(FILE *fd, uint8_t *rawcart);
+void ocean_detach(void);
 
-extern uint8_t ocean_romh_read(uint16_t addr);
+uint8_t ocean_romh_read(uint16_t addr);
 
 struct snapshot_s;
 
-extern int ocean_snapshot_write_module(struct snapshot_s *s);
-extern int ocean_snapshot_read_module(struct snapshot_s *s);
+int ocean_snapshot_write_module(struct snapshot_s *s);
+int ocean_snapshot_read_module(struct snapshot_s *s);
 
 #endif

@@ -29,6 +29,6 @@
 
 #include "types.h"
 
-extern int joyport_trapthem_snespad_resources_init(void);
+int joyport_trapthem_snespad_resources_init(void);
 
 #endif

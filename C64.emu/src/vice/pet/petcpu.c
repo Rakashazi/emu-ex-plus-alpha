@@ -54,13 +54,14 @@
 
 #define DMA_FUNC h6809_mainloop(CPU_INT_STATUS, ALARM_CONTEXT)
 
-#define DMA_ON_RESET                                                             \
-    while (petres.superpet && petres.superpet_cpu_switch == SUPERPET_CPU_6809) { \
-        EXPORT_REGISTERS();                                                      \
-        cpu6809_reset();                                                         \
-        DMA_FUNC;                                                                \
-        interrupt_ack_dma(CPU_INT_STATUS);                                       \
-        IMPORT_REGISTERS();                                                      \
+#define DMA_ON_RESET                                                         \
+    while (petres.model.superpet &&                                          \
+           petres.superpet_cpu_switch == SUPERPET_CPU_6809) {                \
+        EXPORT_REGISTERS();                                                  \
+        cpu6809_reset();                                                     \
+        DMA_FUNC;                                                            \
+        interrupt_ack_dma(CPU_INT_STATUS);                                   \
+        IMPORT_REGISTERS();                                                  \
     }
 
 #define HAVE_6809_REGS

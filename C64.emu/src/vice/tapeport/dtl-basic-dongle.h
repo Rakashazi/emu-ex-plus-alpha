@@ -29,6 +29,6 @@
 
 #include "types.h"
 
-extern int dtlbasic_dongle_resources_init(int amount);
+int dtlbasic_dongle_resources_init(int amount);
 
 #endif

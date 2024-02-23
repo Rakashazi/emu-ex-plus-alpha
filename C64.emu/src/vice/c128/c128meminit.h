@@ -27,6 +27,6 @@
 #ifndef VICE_C128MEMINIT_H
 #define VICE_C128MEMINIT_H
 
-extern void c128meminit(void);
+void c128meminit(int base);
 
 #endif

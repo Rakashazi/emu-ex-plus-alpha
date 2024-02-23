@@ -41,9 +41,13 @@
    --------------------------
      1   | D0           |  I
      2   | D1           |  I
+     7   | +5VDC        |  Power
+     8   | GND          |  Ground
 
-   Works on all joystick ports and adapters
-
+   Works on:
+   - native joystick port(s) (x64/x64sc/xscpu64/x128/xvic/xcbm5x0/xplus4)
+   - inception joystick adapter ports (x64/x64sc/xscpu64/x128/xvic/xcbm5x0)
+   - sidcart joystick adapter port (xplus4)
  */
 
 static int sampler_enabled = 0;
@@ -88,6 +92,7 @@ static joyport_t joyport_sampler_device = {
     JOYPORT_RES_ID_SAMPLER,      /* device is a sampler, only 1 sampler can be active at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,     /* device is NOT a lightpen */
     JOYPORT_POT_OPTIONAL,        /* device does NOT use the potentiometer lines */
+    JOYPORT_5VDC_REQUIRED,       /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,    /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_SAMPLER,      /* device is a Sampler */
     0,                           /* NO output bits */

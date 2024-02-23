@@ -1,5 +1,5 @@
 /*
- * riotcore.c - Core functions for RIOT emulation.
+ * riotcore.c - Core functions for 6532 RAM Input/Output Timer (RIOT) emulation.
  *
  * Written by
  *  Andre Fachat <fachat@physik.tu-chemnitz.de>
@@ -32,6 +32,7 @@
 #include "alarm.h"
 #include "lib.h"
 #include "log.h"
+#include "monitor.h"
 #include "riot.h"
 #include "snapshot.h"
 #include "types.h"
@@ -311,13 +312,13 @@ uint8_t riotcore_peek(riot_context_t *riot_context, uint16_t addr)
     if ((addr & 0x04) == 0) {           /* I/O */
         switch (addr & 3) {
             case 0:       /* ORA */
-                ret = riot_context->read_pra(riot_context); /* FIXME */
+                ret = riot_context->riot_io[0]; /* FIXME */
                 break;
             case 1:       /* DDRA */
                 ret = riot_context->riot_io[1];
                 break;
             case 2:       /* ORB */
-                ret = riot_context->read_prb(riot_context); /* FIXME */
+                ret = riot_context->riot_io[2]; /* FIXME */
                 break;
             case 3:       /* DDRB */
                 ret = riot_context->riot_io[3];
@@ -333,7 +334,12 @@ uint8_t riotcore_peek(riot_context_t *riot_context, uint16_t addr)
 
 void riotcore_dump(riot_context_t *riot_context)
 {
-    /* TODO: implement dump feature */
+    CLOCK rclk = *(riot_context->clk_ptr); /* FIXME */
+    unsigned int timer = (uint8_t)(riot_context->r_N - (rclk - riot_context->r_write_clk) / riot_context->r_divider);
+    mon_out("ORA: $%02x DDRA: $%02x\n", riot_context->riot_io[0], riot_context->riot_io[1]);
+    mon_out("ORB: $%02x DDRB: $%02x\n", riot_context->riot_io[2], riot_context->riot_io[3]);
+    mon_out("Timer: $%04x\n", timer);
+    mon_out("IRQ Flags: $%02x\n", riot_context->r_irqfl);
 }
 
 static void riotcore_int_riot(CLOCK offset, void *data)

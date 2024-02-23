@@ -105,7 +105,7 @@ Revision History:
 
 /* sinwave entries */
 #define SIN_BITS 10
-#define SIN_LEN  (1 << SIN_BITS)
+#define SIN_LEN  (1u << SIN_BITS)
 #define SIN_MASK (SIN_LEN - 1)
 
 #define TL_RES_LEN (256)        /* 8 bits addressing (real chip) */

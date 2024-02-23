@@ -37,6 +37,7 @@
 #include "cmdline.h"
 #include "diskimage.h"
 #include "driveimage.h"
+#include "drive.h"
 #include "fsdevice.h"
 #include "fliplist.h"
 #include "lib.h"
@@ -386,7 +387,7 @@ static int set_attach_device_readonly(int value, void *param)
 static int vdrive_device_setup_if_no_image(vdrive_t *vdrive, unsigned int unit, unsigned int drive)
 {
     if (vdrive != NULL && vdrive_get_image(vdrive, drive) == NULL) {
-        return vdrive_device_setup(vdrive, unit, drive);
+        return vdrive_device_setup(vdrive, unit /*, drive */); /* FIXME: drive number */
     }
 
     return 0;
@@ -421,9 +422,9 @@ static int set_file_system_device(int val, void *param)
 
     vdrive = file_system_get_vdrive(unit);
 
-   if (vdrive == NULL) {
+    if (vdrive == NULL) {
         /* file_system_set_serial_hooks() requires non-NULL... */
-        DBG(("set_file_system_device: Too early in initialization; unit %u: vdrive is NULL", unit));
+        DBG(("set_file_system_device: Too early in initialization; unit %u: vdrive is NULL (file_system_init not called?)", unit));
         return 0;
     }
 
@@ -748,6 +749,20 @@ void file_system_detach_disk(unsigned int unit, unsigned int drive)
     }
 
     file_system_detach_disk_internal(unit, drive);
+}
+
+void file_system_detach_disk_all(void)
+{
+    int unit;
+
+    for (unit = DRIVE_UNIT_MIN; unit <= DRIVE_UNIT_MAX; unit++) {
+        /* detaching will restore the vdrive hooks, so we must test if vdrive
+           is not NULL */
+        if (file_system_get_vdrive(unit) != NULL) {
+            file_system_detach_disk(unit, 0);
+            file_system_detach_disk(unit, 1);
+        }
+    }
 }
 
 void file_system_detach_disk_shutdown(void)

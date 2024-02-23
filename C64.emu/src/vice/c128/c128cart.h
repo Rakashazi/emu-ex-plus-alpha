@@ -27,21 +27,33 @@
 #ifndef VICE_C128CART_H
 #define VICE_C128CART_H
 
-extern int c128cartridge_cmdline_options_init(void);
-extern int c128cartridge_resources_init(void);
-extern void c128cartridge_resources_shutdown(void);
+#include "types.h"
+
+int c128cartridge_cmdline_options_init(void);
+int c128cartridge_resources_init(void);
+void c128cartridge_resources_shutdown(void);
 
 /* only x128 actually implements this function */
-extern void c128cartridge_setup_interface(void);
+void c128cartridge_setup_interface(void);
 
 /* Image of the external function ROM.  */
 #define EXTERNAL_FUNCTION_ROM_SIZE  0x8000
 #define EXTERNAL_FUNCTION_ROM_BANKS 0x40    /* max: "Magic Desk 128" has 64 */
 extern uint8_t ext_function_rom[EXTERNAL_FUNCTION_ROM_SIZE * EXTERNAL_FUNCTION_ROM_BANKS];
-extern void external_function_rom_set_bank(int value);
 
-extern uint8_t external_function_rom_read(uint16_t addr);
-extern void external_function_rom_store(uint16_t addr, uint8_t value);
-extern void external_function_top_shared_store(uint16_t addr, uint8_t value);
+void external_function_rom_set_bank(int value);
+
+uint8_t external_function_rom_read(uint16_t addr);
+void external_function_rom_store(uint16_t addr, uint8_t value);
+void external_function_top_shared_store(uint16_t addr, uint8_t value);
+uint8_t external_function_rom_peek(uint16_t addr);
+uint8_t c128cartridge_hi_read(uint16_t addr, uint8_t *value);
+uint8_t c128cartridge_hi_store(uint16_t addr, uint8_t value);
+uint8_t c128cartridge_basic_hi_read(uint16_t addr, uint8_t *value);
+uint8_t c128cartridge_basic_hi_store(uint16_t addr, uint8_t value);
+uint8_t c128cartridge_ram_read(uint16_t addr, uint8_t *value);
+uint8_t c128cartridge_ram_store(uint16_t addr, uint8_t value);
+int c128cartridge_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit, int mem_config);
+void c128cartridge_switch_mode(int mode);
 
 #endif

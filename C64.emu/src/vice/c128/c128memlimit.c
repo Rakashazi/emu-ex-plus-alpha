@@ -28,7 +28,10 @@
 
 #include "c128memlimit.h"
 
+/* all code here has been replace with new code in c128meminit as well as
+   using the c64 code */
 
+#if 0
 #define NUM_SEGMENTS 14
 #define NUM_CONFIGS 256
 
@@ -550,3 +553,4 @@ void mem_limit_init(int mem_read_limit_tab[NUM_CONFIGS][0x101])
         mem_read_limit_tab[i][0x100] = 0;
     }
 }
+#endif

@@ -180,6 +180,11 @@ void c64iec_enable(int val)
     c64iec_active = val ? 1 : 0;
 }
 
+int c64iec_get_active_state(void)
+{
+    return c64iec_active;
+}
+
 /* KLUDGES: dummy to satisfy linker, unused */
 uint8_t plus4tcbm_outputa[2], plus4tcbm_outputb[2], plus4tcbm_outputc[2];
 

@@ -219,38 +219,33 @@ typedef struct via_context_s {
     void (*restore_int)(struct via_context_s *, unsigned int, int);
     void (*set_ca2)(struct via_context_s *, int state);
     void (*set_cb1)(struct via_context_s *, int state);
-    void (*set_cb2)(struct via_context_s *, int state);
+    void (*set_cb2)(struct via_context_s *, int state, int offset);
     void (*reset)(struct via_context_s *);
 } via_context_t;
 
 
-extern void viacore_setup_context(struct via_context_s *via_context);
-extern void viacore_init(struct via_context_s *via_context,
-                         struct alarm_context_s *alarm_context,
-                         struct interrupt_cpu_status_s *int_status);
-extern void viacore_shutdown(struct via_context_s *via_context);
-extern void viacore_reset(struct via_context_s *via_context);
-extern void viacore_disable(struct via_context_s *via_context);
-extern void viacore_signal(struct via_context_s *via_context, int line,
-                           int edge);
+void viacore_setup_context(struct via_context_s *via_context);
+void viacore_init(struct via_context_s *via_context,
+                  struct alarm_context_s *alarm_context,
+                  struct interrupt_cpu_status_s *int_status);
+void viacore_shutdown(struct via_context_s *via_context);
+void viacore_reset(struct via_context_s *via_context);
+void viacore_disable(struct via_context_s *via_context);
+void viacore_signal(struct via_context_s *via_context, int line, int edge);
 
-extern void viacore_store(struct via_context_s *via_context,
-                          uint16_t addr, uint8_t data);
-extern uint8_t viacore_read(struct via_context_s *via_context,
-                         uint16_t addr);
-extern uint8_t viacore_peek(struct via_context_s *via_context,
-                         uint16_t addr);
+void viacore_store(struct via_context_s *via_context,
+                   uint16_t addr, uint8_t data);
+uint8_t viacore_read(struct via_context_s *via_context, uint16_t addr);
+uint8_t viacore_peek(struct via_context_s *via_context, uint16_t addr);
 
 /* WARNING: this is a hack */
-extern void viacore_set_sr(via_context_t *via_context, uint8_t data);
+void viacore_set_sr(via_context_t *via_context, uint8_t data);
 
-extern void viacore_set_cb1(struct via_context_s *via_context, bool data);
-extern void viacore_set_cb2(struct via_context_s *via_context, bool data);
+void viacore_set_cb1(struct via_context_s *via_context, bool data);
+void viacore_set_cb2(struct via_context_s *via_context, bool data);
 
-extern int viacore_snapshot_write_module(struct via_context_s *via_context,
-                                         struct snapshot_s *s);
-extern int viacore_snapshot_read_module(struct via_context_s *via_context,
-                                        struct snapshot_s *s);
-extern int viacore_dump(via_context_t *via_context);
+int viacore_snapshot_write_module(struct via_context_s *via_context, struct snapshot_s *s);
+int viacore_snapshot_read_module(struct via_context_s *via_context, struct snapshot_s *s);
+int viacore_dump(via_context_t *via_context);
 
 #endif

@@ -27,10 +27,10 @@
 #ifndef VICE_C64_RESOURCES_H
 #define VICE_C64_RESOURCES_H
 
-extern int c64_resources_init(void);
-extern void c64_resources_shutdown(void);
+int c64_resources_init(void);
+void c64_resources_shutdown(void);
 
-extern void c64_resources_update_cia_models(int model);
+void c64_resources_update_cia_models(int model);
 
 extern int acia_de_enabled;
 

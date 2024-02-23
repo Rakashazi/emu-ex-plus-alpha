@@ -32,29 +32,29 @@
 struct cia_context_s;
 struct machine_context_s;
 
-extern void cia1_setup_context(struct machine_context_s *machine_context);
-extern void cia2_setup_context(struct machine_context_s *machine_context);
+void cia1_setup_context(struct machine_context_s *machine_context);
+void cia2_setup_context(struct machine_context_s *machine_context);
 
-extern void cia1_init(struct cia_context_s *cia_context);
-extern void cia1_store(uint16_t addr, uint8_t value);
-extern uint8_t cia1_read(uint16_t addr);
-extern uint8_t cia1_peek(uint16_t addr);
-extern void cia1_set_extended_keyboard_rows_mask(uint8_t value);
+void cia1_init(struct cia_context_s *cia_context);
+void cia1_store(uint16_t addr, uint8_t value);
+uint8_t cia1_read(uint16_t addr);
+uint8_t cia1_peek(uint16_t addr);
+void cia1_set_extended_keyboard_rows_mask(uint8_t value);
 
-extern void cia2_init(struct cia_context_s *cia_context);
-extern void cia2_store(uint16_t addr, uint8_t value);
-extern uint8_t cia2_read(uint16_t addr);
-extern uint8_t cia2_peek(uint16_t addr);
+void cia2_init(struct cia_context_s *cia_context);
+void cia2_store(uint16_t addr, uint8_t value);
+uint8_t cia2_read(uint16_t addr);
+uint8_t cia2_peek(uint16_t addr);
 
-extern void cia2_set_flagx(void);
-extern void cia2_set_sdrx(uint8_t received_byte);
+void cia2_set_flagx(void);
+void cia2_set_sdrx(uint8_t received_byte);
 
-extern void cia1_check_lightpen(void);
+void cia1_check_lightpen(void);
 
-extern void cia1_update_model(void);
-extern void cia2_update_model(void);
+void cia1_update_model(void);
+void cia2_update_model(void);
 
-extern void cia1_set_timing(struct cia_context_s *cia_context, int tickspersec, int powerfreq);
-extern void cia2_set_timing(struct cia_context_s *cia_context, int tickspersec, int powerfreq);
+void cia1_set_timing(struct cia_context_s *cia_context, int tickspersec, int powerfreq);
+void cia2_set_timing(struct cia_context_s *cia_context, int tickspersec, int powerfreq);
 
 #endif

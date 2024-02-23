@@ -113,6 +113,11 @@ static int set_system_path(const char *val, void *param)
     return 0;
 }
 
+const char *get_system_path(void)
+{
+    return expanded_system_path;
+}
+
 static const resource_string_t resources_string[] = {
     { "Directory", "$$", RES_EVENT_NO, NULL,
       &system_path, set_system_path, NULL },
@@ -178,6 +183,11 @@ FILE *sysfile_open(const char *name, const char *subpath, char **complete_path_r
         return NULL;
     }
 
+    /*
+     * name      - filename or command we are looking for in the resulting path
+     * expanded_system_path  - list of search path(es), separated by target specific separator
+     * subpath  - path tail component, will be appended to the resulting path
+     */
     p = findpath(name, expanded_system_path, subpath, ARCHDEP_ACCESS_R_OK);
 
     if (p == NULL) {
@@ -186,6 +196,18 @@ FILE *sysfile_open(const char *name, const char *subpath, char **complete_path_r
         }
         return NULL;
     } else {
+        unsigned int isdir = 0;
+
+        /* make sure we're not opening a directory */
+        archdep_stat(p, NULL, &isdir);
+        if (isdir) {
+            log_error(LOG_ERR, "'%s' is a directory, not a file.", p);
+            if (complete_path_return != NULL) {
+                *complete_path_return = NULL;
+            }
+            return NULL;
+        }
+
         f = fopen(p, open_mode);
 
         if (f == NULL || complete_path_return == NULL) {
@@ -278,8 +300,9 @@ int sysfile_load(const char *name, const char *subpath, uint8_t *dest, int minsi
     if (load_at_end && rsize < ((size_t)maxsize)) {
         dest += maxsize - rsize;
     } else if (rsize > ((size_t)maxsize)) {
-        log_warning(LOG_DEFAULT, "ROM `%s': long file, discarding end.",
-                    complete_path);
+        log_warning(LOG_DEFAULT,
+                    "ROM `%s': long file (%"PRI_SIZE_T"), discarding end (%"PRI_SIZE_T" bytes).",
+                    complete_path, rsize, rsize - maxsize);
         rsize = maxsize;
     }
     if ((rsize = fread((char *)dest, 1, rsize, fp)) < ((size_t)minsize)) {

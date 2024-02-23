@@ -43,7 +43,6 @@
 #include "sid.h"
 #include "sound.h"
 #include "snapshot.h"
-#include "ssi2001.h"
 #include "types.h"
 
 /* Take care of possible failures to set the sid engine and fall back to fastsid */
@@ -862,6 +861,7 @@ static int sid_snapshot_read_hs_module(snapshot_module_t *m, int sidnr, uint8_t 
  */
 
 #ifdef HAVE_PARSID
+#if !defined(WINDOWS_COMPILE) || (defined(WINDOWS_COMPILE) && defined(HAVE_LIBIEEE1284))
 static int sid_snapshot_write_parsid_module(snapshot_module_t *m, int sidnr)
 {
     sid_parsid_snapshot_state_t sid_state;
@@ -891,43 +891,6 @@ static int sid_snapshot_read_parsid_module(snapshot_module_t *m, int sidnr)
     return 0;
 }
 #endif
-
-/* ---------------------------------------------------------------------*/
-
-/* SIDEXTENDED (for ssi2001 engine) snapshot module format:
-
-   type  | name      | description
-   -------------------------------
-   ARRAY | registers | 32 BYTES of register data
- */
-
-#ifdef HAVE_SSI2001
-static int sid_snapshot_write_ssi2001_module(snapshot_module_t *m, int sidnr)
-{
-    sid_ssi2001_snapshot_state_t sid_state;
-
-    ssi2001_state_read(sidnr, &sid_state);
-
-    if (0
-        || SMW_BA(m, sid_state.regs, 32) < 0) {
-        return -1;
-    }
-    return 0;
-}
-
-static int sid_snapshot_read_ssi2001_module(snapshot_module_t *m, int sidnr)
-{
-    sid_ssi2001_snapshot_state_t sid_state;
-
-    if (0
-        || SMR_BA(m, sid_state.regs, 32) < 0) {
-        return -1;
-    }
-
-    ssi2001_state_write(sidnr, &sid_state);
-
-    return 0;
-}
 #endif
 
 /* ---------------------------------------------------------------------*/
@@ -994,18 +957,13 @@ static int sid_snapshot_write_module_extended(snapshot_t *s, int sidnr)
             break;
 #endif
 #ifdef HAVE_PARSID
+#if !defined(WINDOWS_COMPILE) || (defined(WINDOWS_COMPILE) && defined(HAVE_LIBIEEE1284))
         case SID_ENGINE_PARSID:
             if (sid_snapshot_write_parsid_module(m, sidnr) < 0) {
                 goto fail;
             }
             break;
 #endif
-#ifdef HAVE_SSI2001
-        case SID_ENGINE_SSI2001:
-            if (sid_snapshot_write_ssi2001_module(m, sidnr) < 0) {
-                goto fail;
-            }
-            break;
 #endif
 #ifdef HAVE_FASTSID
         case SID_ENGINE_FASTSID:
@@ -1117,18 +1075,13 @@ static int sid_snapshot_read_module_extended(snapshot_t *s, int sidnr)
             break;
 #endif
 #ifdef HAVE_PARSID
+#if !defined(WINDOWS_COMPILE) || (defined(WINDOWS_COMPILE) && defined(HAVE_LIBIEEE1284))
         case SID_ENGINE_PARSID:
             if (sid_snapshot_read_parsid_module(m, sidnr) < 0) {
                 goto fail;
             }
             break;
 #endif
-#ifdef HAVE_SSI2001
-        case SID_ENGINE_SSI2001:
-            if (sid_snapshot_read_ssi2001_module(m, sidnr) < 0) {
-                goto fail;
-            }
-            break;
 #endif
 #ifdef HAVE_FASTSID
         case SID_ENGINE_FASTSID:

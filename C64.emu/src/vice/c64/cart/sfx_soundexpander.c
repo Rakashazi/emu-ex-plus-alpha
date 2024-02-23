@@ -85,7 +85,8 @@ static io_source_t sfx_soundexpander_sound_device = {
     NULL,                              /* TODO: device state information dump function */
     CARTRIDGE_SFX_SOUND_EXPANDER,      /* cartridge ID */
     IO_PRIO_NORMAL,                    /* normal priority, device read needs to be checked for collisions */
-    0                                  /* insertion order, gets filled in by the registration function */
+    0,                                 /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                     /* NO mirroring */
 };
 
 #if 0
@@ -127,10 +128,15 @@ static const export_resource_t export_res_piano = {
 /* Some prototypes are needed */
 static int sfx_soundexpander_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec);
 static void sfx_soundexpander_sound_machine_close(sound_t *psid);
-static int sfx_soundexpander_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, CLOCK *delta_t);
 static void sfx_soundexpander_sound_machine_store(sound_t *psid, uint16_t addr, uint8_t val);
 static uint8_t sfx_soundexpander_sound_machine_read(sound_t *psid, uint16_t addr);
 static void sfx_soundexpander_sound_reset(sound_t *psid, CLOCK cpu_clk);
+
+#ifdef SOUND_SYSTEM_FLOAT
+static int sfx_soundexpander_sound_machine_calculate_samples(sound_t **psid, float *pbuf, int nr, int sound_chip_channels, CLOCK *delta_t);
+#else
+static int sfx_soundexpander_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, CLOCK *delta_t);
+#endif
 
 static int sfx_soundexpander_sound_machine_cycle_based(void)
 {
@@ -141,6 +147,16 @@ static int sfx_soundexpander_sound_machine_channels(void)
 {
     return 1;     /* FIXME: needs to become stereo for stereo capable ports */
 }
+
+#ifdef SOUND_SYSTEM_FLOAT
+/* stereo mixing placement of the SFX Sound Expander sound */
+static sound_chip_mixing_spec_t sfx_soundexpander_mixing_sound_spec[SOUND_CHIP_CHANNELS_MAX] = {
+    {
+        100, /* left channel volume % in case of stereo output, default output to both */
+        100  /* right channel volume % in case of stereo output, default output to both */
+    }
+};
+#endif
 
 /* SFX Sound Expander cartridge sound chip */
 static sound_chip_t sfx_soundexpander_sound_chip = {
@@ -153,6 +169,9 @@ static sound_chip_t sfx_soundexpander_sound_chip = {
     sfx_soundexpander_sound_reset,                     /* sound chip reset function */
     sfx_soundexpander_sound_machine_cycle_based,       /* sound chip 'is_cycle_based()' function, sound chip is NOT cycle based */
     sfx_soundexpander_sound_machine_channels,          /* sound chip 'get_amount_of_channels()' function, sound chip has 1 channel */
+#ifdef SOUND_SYSTEM_FLOAT
+    sfx_soundexpander_mixing_sound_spec,               /* stereo mixing placement specs */
+#endif
     0                                                  /* chip enabled, toggled when sound chip is (de-)activated */
 };
 
@@ -359,6 +378,29 @@ struct sfx_soundexpander_sound_s {
 
 static struct sfx_soundexpander_sound_s snd;
 
+#ifdef SOUND_SYSTEM_FLOAT
+/* FIXME */
+static int sfx_soundexpander_sound_machine_calculate_samples(sound_t **psid, float *pbuf, int nr, int scc, CLOCK *delta_t)
+{
+    int i;
+    int16_t *buffer;
+
+    buffer = lib_malloc(nr * sizeof(int16_t));
+
+    if (sfx_soundexpander_chip == 3812 && YM3812_chip) {
+        ym3812_update_one(YM3812_chip, buffer, nr);
+    } else if (sfx_soundexpander_chip == 3526 && YM3526_chip) {
+        ym3526_update_one(YM3526_chip, buffer, nr);
+    }
+
+    for (i = 0; i < nr; i++) {
+        pbuf[i] = buffer[i] / 32767.0;
+    }
+    lib_free(buffer);
+
+    return nr;
+}
+#else
 static int sfx_soundexpander_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int soc, int scc, CLOCK *delta_t)
 {
     int i;
@@ -374,7 +416,7 @@ static int sfx_soundexpander_sound_machine_calculate_samples(sound_t **psid, int
 
     for (i = 0; i < nr; i++) {
         pbuf[i * soc] = sound_audio_mix(pbuf[i * soc], buffer[i]);
-        if (soc > 1) {
+        if (soc == SOUND_OUTPUT_STEREO) {
             pbuf[(i * soc) + 1] = sound_audio_mix(pbuf[(i * soc) + 1], buffer[i]);
         }
     }
@@ -382,6 +424,7 @@ static int sfx_soundexpander_sound_machine_calculate_samples(sound_t **psid, int
 
     return nr;
 }
+#endif
 
 static int sfx_soundexpander_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec)
 {

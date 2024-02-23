@@ -46,12 +46,12 @@ typedef struct export_list_s {
 } export_list_t;
 
 /* returns head of list if param is NULL, else the next item */
-extern export_list_t *export_query_list(export_list_t *item);
-extern void export_dump(void);
+export_list_t *export_query_list(export_list_t *item);
+void export_dump(void);
 
-extern int export_add(const export_resource_t *export_res);
-extern int export_remove(const export_resource_t *export_res);
+int export_add(const export_resource_t *export_res);
+int export_remove(const export_resource_t *export_res);
 
-extern int export_resources_init(void);
+int export_resources_init(void);
 
 #endif

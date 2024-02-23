@@ -30,9 +30,9 @@
 
 #include "mouse.h"
 
-extern int mousedrv_resources_init(mouse_func_t *funcs);
-extern int mousedrv_cmdline_options_init(void);
-extern void mousedrv_init(void);
+static int mousedrv_resources_init(const mouse_func_t *funcs) { return 0; }
+static int mousedrv_cmdline_options_init(void) { return 0; }
+static void mousedrv_init(void) {}
 
 extern void mousedrv_mouse_changed(void);
 

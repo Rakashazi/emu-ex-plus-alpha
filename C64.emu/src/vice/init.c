@@ -68,6 +68,14 @@
 #define DBG(x)
 #endif
 
+static int init_done = 0;
+
+/* returns true once everything is initialized and the UI has started up */
+int init_main_is_done(void)
+{
+    return init_done;
+}
+
 void init_resource_fail(const char *module)
 {
     archdep_startup_log_error("Cannot initialize %s resources.\n",
@@ -224,6 +232,41 @@ int init_cmdline_options(void)
     return 0;
 }
 
+/*
+    RANT AHEAD: The way VICE initializes its resources ("global variables") at
+    startup, and then by reading the config file, is a mess. There is no way to
+    make sure a certain order of events without putting a silly amount of work
+    into it and be extra careful every time a detail changes or is added. This,
+    more than once, produced really hard to solve "chicken and egg" problems.
+
+    Sometimes, solving these problems can be done in a simple, yet very ugly.
+    way: after all init was done, we "touch" certain resources again, ie we change
+    their value to another and back to the original, triggering the setup callbacks.
+
+    This is the place to collect this sort of hacks - do not put them elsewhere,
+    so we always know what parts of the code cause this kind of problem.
+ */
+static int main_init_hack(void)
+{
+    /* The FileSystemDeviceX resources do not exist in VSID: */
+    if (machine_class != VICE_MACHINE_VSID) {
+        int n;
+        int dev;
+
+        /* When initializing FileSystemDeviceX resources, vdrive is not properly
+           initialized. Switching forth and back seems to solve the following:
+           - real device does not work when saved into vicerc
+           - real device does not work in xvic
+        */
+        for (n = 0; n < NUM_DISK_UNITS; n++) {
+            resources_get_int_sprintf("FileSystemDevice%d", &dev, n + 8);
+            resources_set_int_sprintf("FileSystemDevice%d", dev == 1 ? 0 : 1, n + 8);
+            resources_set_int_sprintf("FileSystemDevice%d", dev, n + 8);
+        }
+    }
+    return 0;
+}
+
 int init_main(void)
 {
     signals_init(debug.do_core_dumps);
@@ -265,6 +308,10 @@ int init_main(void)
     }
 
     ui_init_finalize();
+
+    main_init_hack();
+
+    init_done = 1;
 
     return 0;
 }

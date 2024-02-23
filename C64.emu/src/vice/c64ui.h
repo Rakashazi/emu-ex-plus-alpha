@@ -28,16 +28,16 @@
 #ifndef VICE_C64UI_H
 #define VICE_C64UI_H
 
-extern int c64ui_init_early(void);
-extern int c64ui_init(void);
-extern void c64ui_shutdown(void);
+int c64ui_init_early(void);
+int c64ui_init(void);
+void c64ui_shutdown(void);
 
-extern int c64scui_init_early(void);
-extern int c64scui_init(void);
-extern void c64scui_shutdown(void);
+int c64scui_init_early(void);
+int c64scui_init(void);
+void c64scui_shutdown(void);
 
-extern int c64dtvui_init_early(void);
-extern int c64dtvui_init(void);
-extern void c64dtvui_shutdown(void);
+int c64dtvui_init_early(void);
+int c64dtvui_init(void);
+void c64dtvui_shutdown(void);
 
 #endif

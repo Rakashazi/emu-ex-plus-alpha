@@ -29,7 +29,7 @@
 #include "vice.h"
 
 #ifdef HAVE_PARSID
-
+#ifdef HAVE_LIBIEEE1284
 #include "parsid.h"
 #include "types.h"
 
@@ -222,4 +222,5 @@ void parsid_state_write(int chipno, struct sid_parsid_snapshot_state_s *sid_stat
         parsid_ctrport[chipno] = sid_state->parsid_ctrport;
     }
 }
+#endif
 #endif

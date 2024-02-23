@@ -133,11 +133,21 @@ int cartridge_get_id(int slot)
     return type;
 }
 
-/* FIXME: terrible name, we already have cartridge_get_file_name */
-char *cartridge_get_filename(int slot)
+/* FIXME: slot arg is ignored right now.
+   this should return a pointer to a filename, or NULL
+*/
+char *cartridge_get_filename_by_slot(int slot)
 {
-    DBG(("cartridge_get_filename(slot:%d)\n", slot));
+    DBG(("cartridge_get_filename_by_slot(slot:%d)\n", slot));
     return cartfile;
+}
+
+/* FIXME: slot arg is ignored right now.
+   this should return a pointer to a filename, or NULL
+*/
+char *cartridge_get_secondary_filename_by_slot(int slot)
+{
+    return NULL;
 }
 
 /* ---------------------------------------------------------------------*/
@@ -425,7 +435,7 @@ static void cart_power_off(void)
 {
     if (plus4cartridge_reset) {
         /* "Turn off machine before removing cartridge" */
-        machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+        machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
     }
 }
 
@@ -778,6 +788,62 @@ void cartridge_trigger_freeze(void)
     alarm_set(cartridge_freeze_alarm, cart_freeze_alarm_time);
 #endif
     DBG(("cartridge_trigger_freeze delay %d cycles", delay));
+}
+
+
+int cartridge_save_image(int type, const char *filename)
+{
+    return -1;
+}
+
+int cartridge_save_secondary_image(int type, const char *filename)
+{
+    return -1;
+}
+
+int cartridge_flush_image(int type)
+{
+    return -1;
+}
+
+int cartridge_flush_secondary_image(int type)
+{
+    return -1;
+}
+
+int cartridge_can_save_image(int crtid)
+{
+    return 0;
+}
+
+int cartridge_can_flush_image(int crtid)
+{
+    return 0;
+}
+
+int cartridge_can_save_secondary_image(int crtid)
+{
+    return 0;
+}
+
+int cartridge_can_flush_secondary_image(int crtid)
+{
+    return 0;
+}
+
+int cartridge_enable(int crtid)
+{
+    return -1;
+}
+
+int cartridge_disable(int crtid)
+{
+    return -1;
+}
+
+int cartridge_type_enabled(int crtid)
+{
+    return 0;
 }
 
 /* ------------------------------------------------------------------------- */

@@ -261,8 +261,8 @@ static int attach_image(int type, const char *filename)
             } else if (addr == 0x6000) {
                 type = CARTRIDGE_VIC20_16KB_6000;
             } else {
-            	  type = CARTRIDGE_VIC20_16KB_6000;
-            	  log_message(LOG_DEFAULT, "could not determine type of cartridge, defaulting to 16KiB $6000-$bfff");
+                type = CARTRIDGE_VIC20_16KB_6000;
+                log_message(LOG_DEFAULT, "could not determine type of cartridge, defaulting to 16KiB $6000-$bfff");
             }
         } else if (len == 0x2000) {
             /* 8K image */

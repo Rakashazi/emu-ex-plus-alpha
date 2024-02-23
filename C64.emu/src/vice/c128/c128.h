@@ -44,14 +44,16 @@
 /* $01 bit 7 fall-off cycles (1->0), average is about 53 msec for a 8502 */
 #define C128_CPU8502_DATA_PORT_FALL_OFF_CYCLES 53000
 
-#define C128_MACHINE_INT       0
-#define C128_MACHINE_FINNISH   1
-#define C128_MACHINE_FRENCH    2
-#define C128_MACHINE_GERMAN    3
-#define C128_MACHINE_ITALIAN   4
-#define C128_MACHINE_NORWEGIAN 5
-#define C128_MACHINE_SWEDISH   6
-#define C128_MACHINE_SWISS     7
+enum {
+    C128_MACHINE_INT = 0,
+    C128_MACHINE_FINNISH,
+    C128_MACHINE_FRENCH,
+    C128_MACHINE_GERMAN,
+    C128_MACHINE_ITALIAN,
+    C128_MACHINE_NORWEGIAN,
+    C128_MACHINE_SWEDISH,
+    C128_MACHINE_SWISS
+};
 
 struct cia_context_s;
 struct printer_context_s;
@@ -66,11 +68,11 @@ typedef struct machine_context_s {
 
 extern machine_context_t machine_context;
 
-extern void machine_kbdbuf_reset_c128(void);
-extern void machine_kbdbuf_reset_c64(void);
-extern void machine_autostart_reset_c128(void);
-extern void machine_autostart_reset_c64(void);
-extern void machine_tape_init_c64(void);
-extern void machine_tape_init_c128(void);
+void machine_kbdbuf_reset_c128(void);
+void machine_kbdbuf_reset_c64(void);
+void machine_autostart_reset_c128(void);
+void machine_autostart_reset_c64(void);
+void machine_tape_init_c64(void);
+void machine_tape_init_c128(void);
 
 #endif

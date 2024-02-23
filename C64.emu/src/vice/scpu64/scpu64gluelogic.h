@@ -32,17 +32,17 @@
 #define GLUE_LOGIC_DISCRETE  0
 #define GLUE_LOGIC_CUSTOM_IC 1
 
-extern void c64_glue_set_vbank(int vbank, int ddr_flag);
-extern void c64_glue_undump(int vbank);
-extern void c64_glue_reset(void);
+void c64_glue_set_vbank(int vbank, int ddr_flag);
+void c64_glue_undump(int vbank);
+void c64_glue_reset(void);
 
-extern void scpu64_glue_init(void);
-extern int scpu64_glue_resources_init(void);
-extern int scpu64_glue_cmdline_options_init(void);
+void scpu64_glue_init(void);
+int scpu64_glue_resources_init(void);
+int scpu64_glue_cmdline_options_init(void);
 
 struct snapshot_s;
 
-extern int scpu64_glue_snapshot_write_module(struct snapshot_s *s);
-extern int scpu64_glue_snapshot_read_module(struct snapshot_s *s);
+int scpu64_glue_snapshot_write_module(struct snapshot_s *s);
+int scpu64_glue_snapshot_read_module(struct snapshot_s *s);
 
 #endif

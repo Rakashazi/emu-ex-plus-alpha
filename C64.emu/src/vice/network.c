@@ -485,6 +485,7 @@ exiterror:
     return ret;
 }
 
+/* triggers on the server, when the client connects */
 static void network_server_connect_trap(uint16_t addr, void *data)
 {
     FILE *f;
@@ -563,6 +564,7 @@ static void network_server_connect_trap(uint16_t addr, void *data)
     lib_free(snapshotfilename);
 }
 
+/* triggers on the client, when it connects to the server */
 static void network_client_connect_trap(uint16_t addr, void *data)
 {
     uint8_t *buf;
@@ -575,7 +577,7 @@ static void network_client_connect_trap(uint16_t addr, void *data)
     vsync_suspend_speed_eval();
     sound_suspend();
 
-    /* Set proper settings */
+    /* Setup strict event safe values for the resources that need it */
     if (resources_set_event_safe() < 0) {
         ui_error("Warning! Failed to set netplay-safe settings.");
     }
@@ -726,7 +728,7 @@ int network_start_server(void)
             break;
         }
 
-        /* Set proper settings */
+        /* Setup strict event safe values for the resources that need it */
         if (resources_set_event_safe() < 0) {
             ui_error("Warning! Failed to set netplay-safe settings.");
         }

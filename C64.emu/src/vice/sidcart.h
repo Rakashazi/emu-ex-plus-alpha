@@ -34,21 +34,21 @@
 
 extern int sidcartjoy_enabled;
 
-extern int sidcart_cmdline_options_init(void);
-extern int sidcart_resources_init(void);
+int sidcart_cmdline_options_init(void);
+int sidcart_resources_init(void);
 
-extern int sidcart_enabled(void);
+int sidcart_enabled(void);
 
 extern int sidcart_address;
 extern int sidcart_clock;
 
-extern void sidcart_sound_chip_init(void);
+void sidcart_sound_chip_init(void);
 
-extern void sidcart_detach(void);
+void sidcart_detach(void);
 
-extern int sidcart_snapshot_write_module(snapshot_t *s);
-extern int sidcart_snapshot_read_module(snapshot_t *s);
+int sidcart_snapshot_write_module(snapshot_t *s);
+int sidcart_snapshot_read_module(snapshot_t *s);
 
-extern void sidcart_cmdline_options_shutdown(void);
+void sidcart_cmdline_options_shutdown(void);
 
 #endif

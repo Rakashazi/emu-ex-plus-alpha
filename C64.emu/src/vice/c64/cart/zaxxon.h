@@ -34,16 +34,16 @@
 
 struct snapshot_s;
 
-extern uint8_t zaxxon_roml_read(uint16_t addr);
-extern int zaxxon_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
+uint8_t zaxxon_roml_read(uint16_t addr);
+int zaxxon_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
 
-extern void zaxxon_config_init(void);
-extern void zaxxon_config_setup(uint8_t *rawcart);
-extern int zaxxon_bin_attach(const char *filename, uint8_t *rawcart);
-extern int zaxxon_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void zaxxon_detach(void);
+void zaxxon_config_init(void);
+void zaxxon_config_setup(uint8_t *rawcart);
+int zaxxon_bin_attach(const char *filename, uint8_t *rawcart);
+int zaxxon_crt_attach(FILE *fd, uint8_t *rawcart);
+void zaxxon_detach(void);
 
-extern int zaxxon_snapshot_write_module(struct snapshot_s *s);
-extern int zaxxon_snapshot_read_module(struct snapshot_s *s);
+int zaxxon_snapshot_write_module(struct snapshot_s *s);
+int zaxxon_snapshot_read_module(struct snapshot_s *s);
 
 #endif

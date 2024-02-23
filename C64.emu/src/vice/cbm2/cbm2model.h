@@ -29,29 +29,33 @@
 
 #include "types.h"
 
-/* TODO: turn into enum so a compiler can check missing cases */
-#define CBM2MODEL_510_PAL           0
-#define CBM2MODEL_510_NTSC          1
-#define CBM2MODEL_610_PAL           2
-#define CBM2MODEL_610_NTSC          3
-#define CBM2MODEL_620_PAL           4
-#define CBM2MODEL_620_NTSC          5
-#define CBM2MODEL_620PLUS_PAL       6
-#define CBM2MODEL_620PLUS_NTSC      7
-#define CBM2MODEL_710_NTSC          8
-#define CBM2MODEL_720_NTSC          9
-#define CBM2MODEL_720PLUS_NTSC     10
+enum {
+    CBM2MODEL_510_PAL = 0,
+    CBM2MODEL_510_NTSC,
+    CBM2MODEL_610_PAL,
+    CBM2MODEL_610_NTSC,
+    CBM2MODEL_620_PAL,
+    CBM2MODEL_620_NTSC,
+    CBM2MODEL_620PLUS_PAL,
+    CBM2MODEL_620PLUS_NTSC,
+    CBM2MODEL_710_NTSC,
+    CBM2MODEL_720_NTSC,
+    CBM2MODEL_720PLUS_NTSC,
 
-#define CBM2MODEL_NUM 11
+    /* This entry always needs to be at the end */
+    CBM2MODEL_NUM
+};
 
 #define CBM2MODEL_UNKNOWN 99
 
 #define HAS_CRTC    0
 #define HAS_VICII   1
 
-#define LINE_7x0_50HZ  0
-#define LINE_6x0_60HZ  1
-#define LINE_6x0_50HZ  2
+enum {
+    LINE_7x0_50HZ = 0,
+    LINE_6x0_60HZ,
+    LINE_6x0_50HZ
+};
 
 int cbm2model_get(void);
 void cbm2model_set(int model);

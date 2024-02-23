@@ -473,7 +473,7 @@ static void int_midi(CLOCK offset, void *data)
     }
 
     midi_update_int();
-    
+
     midi_alarm_clk = maincpu_clk + midi_ticks;
     alarm_set(midi_alarm, midi_alarm_clk);
     alarm_active = 1;

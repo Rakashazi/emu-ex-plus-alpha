@@ -34,6 +34,6 @@ typedef struct {
     int isdefined;
 } feature_list_t;
 
-extern const feature_list_t *vice_get_feature_list(void);
+const feature_list_t *vice_get_feature_list(void);
 
 #endif

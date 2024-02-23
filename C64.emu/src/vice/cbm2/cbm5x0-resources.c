@@ -52,6 +52,9 @@
 
 static int sync_factor;
 
+/* Frequency of the power grid in Hz */
+static int power_freq = 1;
+
 static char *kernal_rom_name = NULL;
 static char *chargen_name = NULL;
 static char *basic_rom_name = NULL;
@@ -106,7 +109,7 @@ static int set_ramsize(int rs, void *param)
     ramsize = rs;
     vsync_suspend_speed_eval();
     mem_initialize_memory();
-    machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+    machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
 
     return 0;
 }
@@ -168,20 +171,44 @@ static int cbm5x0_set_sync_factor(int val, void *param)
 
     switch (val) {
         case MACHINE_SYNC_PAL:
-            sync_factor = val;
-            if (change_timing) {
-                machine_change_timing(MACHINE_SYNC_PAL, vicii_resources.border_mode);
-            }
-            break;
         case MACHINE_SYNC_NTSC:
-            sync_factor = val;
-            if (change_timing) {
-                machine_change_timing(MACHINE_SYNC_NTSC, vicii_resources.border_mode);
-            }
             break;
         default:
             return -1;
     }
+
+    sync_factor = val;
+    if (change_timing) {
+        if (power_freq > 0) {
+            machine_change_timing(val, power_freq, vicii_resources.border_mode);
+        }
+    }
+    return 0;
+}
+
+static int set_power_freq(int val, void *param)
+{
+    int change_timing = 0;
+
+    if (power_freq != val) {
+        change_timing = 1;
+    }
+
+    switch (val) {
+        case 50:
+        case 60:
+            break;
+        default:
+            return -1;
+    }
+
+    power_freq = val;
+    if (change_timing) {
+        if (sync_factor > 0) {
+            machine_change_timing(sync_factor, val, vicii_resources.border_mode);
+        }
+    }
+
     return 0;
 }
 
@@ -200,6 +227,8 @@ static const resource_string_t cbm5x0_resources_string[] = {
 static const resource_int_t cbm5x0_resources_int[] = {
     { "MachineVideoStandard", MACHINE_SYNC_PAL, RES_EVENT_SAME, NULL,
       &sync_factor, cbm5x0_set_sync_factor, NULL },
+    { "MachinePowerFrequency", 50, RES_EVENT_SAME, NULL,
+      &power_freq, set_power_freq, NULL },
     { "RamSize", 64, RES_EVENT_SAME, NULL,
       &ramsize, set_ramsize, NULL },
     { "ModelLine", LINE_6x0_50HZ, RES_EVENT_SAME, NULL,

@@ -34,7 +34,10 @@
 static const char * const machine_romset_resources_list[] = {
     "ChargenIntName",
     "ChargenDEName",
+    "ChargenFIName",
     "ChargenFRName",
+    "ChargenITName",
+    "ChargenNOName",
     "ChargenSEName",
     "KernalIntName",
     "KernalDEName",

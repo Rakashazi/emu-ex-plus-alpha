@@ -29,6 +29,6 @@
 
 #include <stdio.h>
 
-extern int zipcode_read_sector(FILE *zip_fd, int track, int *sector, char *buf);
+int zipcode_read_sector(FILE *zip_fd, int track, int *sector, char *buf);
 
 #endif /* _ZIPCODE_H */

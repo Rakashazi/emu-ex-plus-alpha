@@ -28,21 +28,16 @@
 #ifndef VICE_SID_RESOURCES_H
 #define VICE_SID_RESOURCES_H
 
-#define SID_RESID_SAMPLING_FAST                 0
-#define SID_RESID_SAMPLING_INTERPOLATION        1
-#define SID_RESID_SAMPLING_RESAMPLING           2
-#define SID_RESID_SAMPLING_FAST_RESAMPLING      3
+int sid_resources_init(void);
+int sid_common_resources_init(void);
 
-extern int sid_resources_init(void);
-extern int sid_common_resources_init(void);
-
-extern int sid_set_sid2_address(int val, void *param);
-extern int sid_set_sid3_address(int val, void *param);
-extern int sid_set_sid4_address(int val, void *param);
-extern int sid_set_sid5_address(int val, void *param);
-extern int sid_set_sid6_address(int val, void *param);
-extern int sid_set_sid7_address(int val, void *param);
-extern int sid_set_sid8_address(int val, void *param);
+int sid_set_sid2_address(int val, void *param);
+int sid_set_sid3_address(int val, void *param);
+int sid_set_sid4_address(int val, void *param);
+int sid_set_sid5_address(int val, void *param);
+int sid_set_sid6_address(int val, void *param);
+int sid_set_sid7_address(int val, void *param);
+int sid_set_sid8_address(int val, void *param);
 
 extern int sid_stereo;
 extern int checking_sid_stereo;

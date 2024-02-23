@@ -27,6 +27,6 @@
 #ifndef VICE_C64DTV_CMDLINE_OPTIONS_H
 #define VICE_C64DTV_CMDLINE_OPTIONS_H
 
-extern int c64dtv_cmdline_options_init(void);
+int c64dtv_cmdline_options_init(void);
 
 #endif

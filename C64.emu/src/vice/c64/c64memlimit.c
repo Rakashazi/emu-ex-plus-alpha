@@ -28,7 +28,9 @@
 #include "vice.h"
 
 #include "c64memlimit.h"
+#include "c64mem.h"
 
+#define NUM_CONFIGS 32
 #define NUM_SEGMENTS 7
 
 static const int mstart[NUM_SEGMENTS] = {
@@ -84,21 +86,21 @@ static const uint32_t limit_tab[NUM_SEGMENTS][NUM_CONFIGS] = {
                0,          0,          0,          0,          0,          0,          0,          0,
       0x0002fffd, 0xe000fffd, 0xe000fffd, 0xe000fffd, 0x0002fffd, 0xe000fffd, 0xe000fffd, 0xe000fffd } };
 
-void mem_limit_init(uint32_t mem_read_limit_tab[NUM_CONFIGS][0x101])
+void mem_limit_init(void)
 {
     int i, j, k;
 
     for (i = 0; i < NUM_CONFIGS; i++) {
         for (j = 0; j < NUM_SEGMENTS; j++) {
             for (k = mstart[j]; k <= mend[j]; k++) {
-                mem_read_limit_tab[i][k] = limit_tab[j][i];
+                mem_read_limit_set(i, k, limit_tab[j][i]);
             }
         }
-        mem_read_limit_tab[i][0x100] = 0;
+        mem_read_limit_set(i, 0x100, 0);
     }
 }
 
-void mem_limit_plus60k_init(uint32_t mem_read_limit_tab[NUM_CONFIGS][0x101])
+void mem_limit_plus60k_init(void)
 {
     int i, j, k;
 
@@ -106,31 +108,31 @@ void mem_limit_plus60k_init(uint32_t mem_read_limit_tab[NUM_CONFIGS][0x101])
         for (j = 0; j < NUM_SEGMENTS; j++) {
             for (k = mstart[j]; k <= mend[j]; k++) {
                 if (k < 0x10) {
-                    mem_read_limit_tab[i][k] = 0x00020ffd;
+                    mem_read_limit_set(i, k, 0x00020ffd);
                 } else {
-                    mem_read_limit_tab[i][k] = 0;
+                    mem_read_limit_set(i, k, 0);
                 }
             }
         }
-        mem_read_limit_tab[i][0x100] = 0;
+        mem_read_limit_set(i, 0x100, 0);
     }
 }
 
-void mem_limit_256k_init(uint32_t mem_read_limit_tab[NUM_CONFIGS][0x101])
+void mem_limit_256k_init(void)
 {
     int i, j, k;
 
     for (i = 0; i < NUM_CONFIGS; i++) {
         for (j = 0; j < NUM_SEGMENTS; j++) {
             for (k = mstart[j]; k <= mend[j]; k++) {
-                mem_read_limit_tab[i][k] = 0;
+                mem_read_limit_set(i, k, 0);
             }
         }
-        mem_read_limit_tab[i][0x100] = 0;
+        mem_read_limit_set(i, 0x100, 0);
     }
 }
 
-void mem_limit_max_init(uint32_t mem_read_limit_tab[NUM_CONFIGS][0x101])
+void mem_limit_max_init(void)
 {
     int i, j, k;
 
@@ -138,12 +140,12 @@ void mem_limit_max_init(uint32_t mem_read_limit_tab[NUM_CONFIGS][0x101])
         for (j = 0; j < NUM_SEGMENTS; j++) {
             for (k = mstart[j]; k <= mend[j]; k++) {
                 if (k < 0x8) {
-                    mem_read_limit_tab[i][k] = 0x000207fd;
+                    mem_read_limit_set(i, k, 0x000207fd);
                 } else {
-                    mem_read_limit_tab[i][k] = 0;
+                    mem_read_limit_set(i, k, 0);
                 }
             }
         }
-        mem_read_limit_tab[i][0x100] = 0;
+        mem_read_limit_set(i, 0x100, 0);
     }
 }

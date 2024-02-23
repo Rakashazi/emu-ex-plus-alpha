@@ -27,6 +27,6 @@
 #ifndef VICE_VICII_LIGHTPEN_H
 #define VICE_VICII_LIGHTPEN_H
 
-extern void vicii_trigger_light_pen_internal(int retrigger);
+void vicii_trigger_light_pen_internal(int retrigger);
 
 #endif

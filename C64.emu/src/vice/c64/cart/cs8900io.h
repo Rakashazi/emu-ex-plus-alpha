@@ -36,22 +36,22 @@
 
 #include "types.h"
 
-extern int cs8900io_cart_enabled(void);
+int cs8900io_cart_enabled(void);
 
-extern void cs8900io_init(void);
-extern int cs8900io_resources_init(void);
-extern void cs8900io_resources_shutdown(void);
-extern int cs8900io_cmdline_options_init(void);
+void cs8900io_init(void);
+int cs8900io_resources_init(void);
+void cs8900io_resources_shutdown(void);
+int cs8900io_cmdline_options_init(void);
 
-extern void cs8900io_reset(void);
-extern void cs8900io_detach(void);
-extern int cs8900io_enable(const char *owner);
-extern int cs8900io_disable(void);
+void cs8900io_reset(void);
+void cs8900io_detach(void);
+int cs8900io_enable(const char *owner);
+int cs8900io_disable(void);
 
-extern void cs8900io_store(uint16_t io_address, uint8_t byte);
-extern uint8_t cs8900io_read(uint16_t io_address);
-extern uint8_t cs8900io_peek(uint16_t io_address);
-extern int cs8900io_dump(void);
+void cs8900io_store(uint16_t io_address, uint8_t byte);
+uint8_t cs8900io_read(uint16_t io_address);
+uint8_t cs8900io_peek(uint16_t io_address);
+int cs8900io_dump(void);
 
 #endif
 #endif

@@ -34,16 +34,16 @@ struct drive_s;
 /* 875ns delay (14*62.5ns R cycles) for data bus read access */
 #define BUS_READ_DELAY 14
 
-extern void rotation_init(int freq, unsigned int dnr);
-extern void rotation_reset(struct drive_s *drive);
-extern void rotation_speed_zone_set(unsigned int zone, unsigned int dnr);
-extern void rotation_table_get(uint32_t *rotation_table_ptr);
-extern void rotation_table_set(uint32_t *rotation_table_ptr);
-extern void rotation_overflow_callback(CLOCK sub, unsigned int dnr);
-extern void rotation_change_mode(unsigned int dnr);
-extern void rotation_begins(struct drive_s *dptr);
-extern void rotation_rotate_disk(struct drive_s *dptr);
-extern uint8_t rotation_sync_found(struct drive_s *dptr);
-extern void rotation_byte_read(struct drive_s *dptr);
+void rotation_init(int freq, unsigned int dnr);
+void rotation_reset(struct drive_s *drive);
+void rotation_speed_zone_set(unsigned int zone, unsigned int dnr);
+void rotation_table_get(uint32_t *rotation_table_ptr);
+void rotation_table_set(uint32_t *rotation_table_ptr);
+void rotation_overflow_callback(CLOCK sub, unsigned int dnr);
+void rotation_change_mode(unsigned int dnr);
+void rotation_begins(struct drive_s *dptr);
+void rotation_rotate_disk(struct drive_s *dptr);
+uint8_t rotation_sync_found(struct drive_s *dptr);
+void rotation_byte_read(struct drive_s *dptr);
 
 #endif

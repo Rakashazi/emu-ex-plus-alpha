@@ -28,6 +28,6 @@
 #ifndef VICE_DRIVE_CMDLINE_OPTIONS_H
 #define VICE_DRIVE_CMDLINE_OPTIONS_H
 
-extern int drive_cmdline_options_init(void);
+int drive_cmdline_options_init(void);
 
 #endif

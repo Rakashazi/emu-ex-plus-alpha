@@ -31,9 +31,9 @@
 
 #include "types.h"
 
-extern void vic20iec_init(void);
-extern uint8_t iec_pa_read(void);
-extern void iec_pa_write(uint8_t data);
-extern void iec_pcr_write(uint8_t data);
+void vic20iec_init(void);
+uint8_t iec_pa_read(void);
+void iec_pa_write(uint8_t data);
+void iec_pcr_write(uint8_t data);
 
 #endif

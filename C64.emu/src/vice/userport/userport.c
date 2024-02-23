@@ -24,6 +24,94 @@
  *
  */
 
+/*
+    C64/C128/VIC20/Plus4/PET
+
+     1  2  3  4  5  6  7  8  9 10 11 12
+    --|-- -- -- -- -- -- -- -- --|-- --
+     A  B  C  D  E  F  H  J  K  L  M  N
+
+
+        C64/C128         C64DTV    VIC20               Plus4               PET                 CBM2 (internal)
+
+     1  GND                        GND                 GND                 GND
+     2  +5V DC                     +5V DC              +5V DC              TV Video
+     3  !RESET                     !RESET              !RESET              IEEE-SRQ
+     4  CNT1 (CIA1)                JOY0                P2                  IEEE-EOI
+     5  SP1                        JOY1                P3                  Diagnostic Sense
+     6  CNT2 (CIA2)                JOY2                P4                  Tape#2 Read
+     7  SP2                        Lightpen Fire       P5                  Cass Write
+     8  PC2                        PA6, Tape Sense     RS232 clock         Tape#1 Read          5 (?)
+     9  Serial ATN in              Serial ATN in       ATN (Cpu Port)      TV Vertical          4 (?)
+    10  9V AC                      9V AC               9V AC               TV Horizontal
+    11  9V AC                      9V AC               9V AC               Graphic
+    12  GND                        GND                 GND                 GND
+
+     A  GND                        GND                 GND                 GND
+     B  !FLAG2                     CB1                 P0                  CA1
+     C  PB0 (CIA2)       PB0       PB0                 RXD (ACIA)          PA0                 14 (?)
+     D  PB1              PB1       PB1                 RTS (ACIA)          PA1                 13 (?)
+     E  PB2              PB2       PB2                 DTR (ACIA)          PA2                 12 (?)
+     F  PB3              PB3       PB3                 P7                  PA3                 11 (?)
+     H  PB4              PB4       PB4                 DCD (ACIA)          PA4                 10 (?)
+     J  PB5              PB5       PB5                 P6                  PA5                  9 (?)
+     K  PB6              PB6       PB6                 P1                  PA6                  8 (?)
+     L  PB7              PB7       PB7                 DSR (ACIA)          PA7                  7 (?)
+     M  PA2 (CIA2)       PA2       CB2                 TXD (ACIA)          CB2                  2 (?)
+     N  GND                        GND                 GND                 GND
+
+   CBM2 (internal)
+
+     25 o o o o o o o 9 7 5 3 1
+     26 o o o o o o o o 8 6 4 2
+
+    FIXME: indicate what pin goes where
+
+    Pin  ID     IC          Use
+     1   GND
+     2   PB2    TPI 6525    PRB2
+     3   GND
+     4   PB3    TPI 6525    PRB3
+     5   !PC    CIA 6526    -PC         (Handshake PRB I/0, Output)
+     6   !FL.   Cass-Read   -FLAG       (Interrupt, Input)
+     7   2D7    CIA 6526    PRB7
+     8   2D6    CIA 6526    PRB6
+     9   2D5    CIA 6526    PRB5
+    10   2D4    CIA 6526    PRB4
+    11   2D3    CIA 6526    PRB3
+    12   2D2    CIA 6526    PRB2
+    13   2D1    CIA 6526    PRB1
+    14   2D0    CIA 6526    PRB0
+    15   1D7    CIA 6526    PRA7
+    16   1D6    CIA 6526    PRA6
+    17   1D5    CIA 6526    PRA5
+    18   1D4    CIA 6526    PRA4
+    19   lD3    CIA 6526    PRA3
+    20   1D2    CIA 6526    PRA2
+    21   1D1    CIA 6526    PRA1
+    22   1D0    CIA 6526    PRA0
+    23   !CNT   CIA 6526    -CNT
+    24   +5V DC
+    25   !IRQ   TPI 6525    PRC5
+    26   SP     CIA 6526    SP          (Serial Port I/O)
+
+    C64DTV (internal)
+
+    - "Userport" pins must be tapped at the ASIC
+    - DTV V1 has no userport pins exposed
+    - "Hummer" has only PB0-PB4
+
+    PA2
+    PB7
+    PB6
+    PB5
+    PB4
+    PB3
+    PB2
+    PB1
+    PB0
+ */
+
 #include "vice.h"
 
 #include <stdio.h>
@@ -31,6 +119,7 @@
 #include <ctype.h>
 
 #include "cmdline.h"
+#include "drive.h"
 #include "joyport.h"
 #include "lib.h"
 #include "log.h"
@@ -40,6 +129,7 @@
 #include "uiapi.h"
 #include "userport.h"
 #include "util.h"
+#include "init.h"
 
 
 typedef struct type2text_s {
@@ -56,6 +146,9 @@ static type2text_t device_type_desc[] = {
     { USERPORT_DEVICE_TYPE_AUDIO_OUTPUT, "Audio output" },
     { USERPORT_DEVICE_TYPE_SAMPLER, "Sampler" },
     { USERPORT_DEVICE_TYPE_RTC, "Real-time clock" },
+#ifdef HAVE_LIBCURL
+    { USERPORT_DEVICE_TYPE_WIFI, "WiFi modem" },
+#endif
 #ifdef USERPORT_EXPERIMENTAL_DEVICES
     { USERPORT_DEVICE_TYPE_HARNESS, "Diagnostic harness" },
 #endif
@@ -156,9 +249,15 @@ int userport_device_register(int id, userport_device_t *device)
 
 /* ---------------------------------------------------------------------------------------------------------- */
 
+static int userport_reset_started = 0;
+
+
 /* attach device 'id' to the userport */
 static int userport_set_device(int id)
 {
+    int hasparcable = 0;
+    int dnr;
+
     /* 1st some sanity checks */
     if (id < USERPORT_DEVICE_NONE || id >= USERPORT_MAX_DEVICES) {
         return -1;
@@ -198,6 +297,34 @@ static int userport_set_device(int id)
         }
     }
     userport_current_device = id;
+
+    /* check if any drive has a parallel cable enabled */
+    for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
+        int cable;
+        resources_get_int_sprintf("Drive%iParallelCable", &cable, dnr + 8);
+        if (cable != DRIVE_PC_NONE) {
+            hasparcable = 1;
+        }
+    }
+
+    if ((userport_current_device == USERPORT_DEVICE_DRIVE_PAR_CABLE) && (hasparcable == 0)) {
+        if (init_main_is_done()) {
+            /* show a message if parallel cable was enabled on the user port, but no drive has it enabled */
+            ui_message("Remember that you'll have to select a parallel cable in the drive settings.\n");
+        }
+    } else if ((userport_current_device == USERPORT_DEVICE_NONE) && (hasparcable == 1)) {
+        /* if parallel cable was removed from user port, disable it in the drive settings as well */
+        for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
+            resources_set_int_sprintf("Drive%iParallelCable", 0, dnr + 8);
+        }
+    } else if ((userport_current_device != USERPORT_DEVICE_DRIVE_PAR_CABLE) && (hasparcable == 1)) {
+        if (init_main_is_done()) {
+            /* if user port device was set to something that isn't parallel cable, and any drive has
+            parallel cable enabled, show a message */
+            ui_message("Some drive(s) still have parallel cable enabled - remember you'll have to change this setting "
+                    "back to parallel cable in order to use it\n");
+        }
+    }
 
     return 0;
 }
@@ -281,12 +408,14 @@ uint8_t read_userport_pbx(uint8_t orig)
 
 void store_userport_pbx(uint8_t val, int pulse)
 {
-    if (userport_active) {
-        /* store to new userport system if the device has been registered */
-        if (userport_current_device != USERPORT_DEVICE_NONE) {
-            if (userport_device[userport_current_device].name) {
-                if (userport_device[userport_current_device].store_pbx) {
-                    userport_device[userport_current_device].store_pbx(val, pulse);
+    if (!userport_reset_started) {
+        if (userport_active) {
+            /* store to new userport system if the device has been registered */
+            if (userport_current_device != USERPORT_DEVICE_NONE) {
+                if (userport_device[userport_current_device].name) {
+                    if (userport_device[userport_current_device].store_pbx) {
+                        userport_device[userport_current_device].store_pbx(val, pulse);
+                    }
                 }
             }
         }
@@ -450,6 +579,16 @@ void userport_reset(void)
     }
 }
 
+void userport_reset_start(void)
+{
+    userport_reset_started = 1;
+}
+
+void userport_reset_end(void)
+{
+    userport_reset_started = 0;
+}
+
 /* ---------------------------------------------------------------------------------------------------------- */
 
 static int set_userport_device(int val, void *param)
@@ -543,6 +682,8 @@ static const struct userport_opt_s id_match[] = {
     { "iosimulation",       USERPORT_DEVICE_IO_SIMULATION },
 #ifdef USERPORT_EXPERIMENTAL_DEVICES
     { "wic",                USERPORT_DEVICE_WIC64 },
+#endif
+#ifdef HAVE_LIBCURL
     { "wic64",              USERPORT_DEVICE_WIC64 },
 #endif
     { "space",              USERPORT_DEVICE_SPACEBALLS },
@@ -556,7 +697,7 @@ static int is_a_number(const char *str)
     size_t len = strlen(str);
 
     for (i = 0; i < len; i++) {
-        if (!isdigit(str[i])) {
+        if (!isdigit((unsigned char)str[i])) {
             return 0;
         }
     }
@@ -632,6 +773,11 @@ int userport_cmdline_options_init(void)
 void userport_enable(int val)
 {
     userport_active = val ? 1 : 0;
+}
+
+int userport_get_active_state(void)
+{
+    return userport_active;
 }
 
 /* ---------------------------------------------------------------------------------------------------------- */

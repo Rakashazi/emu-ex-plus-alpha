@@ -38,20 +38,21 @@ typedef struct ata_drive_geometry_s {
     int cylinders, heads, sectors, size;
 } ata_drive_geometry_t;
 
-extern ata_drive_t *ata_init(int drive);
-extern void ata_shutdown(ata_drive_t *drv);
-extern void ata_register_store(ata_drive_t *cdrive, uint16_t addr, uint16_t value);
-extern uint16_t ata_register_read(ata_drive_t *cdrive, uint16_t addr, uint16_t bus);
-extern uint16_t ata_register_peek(ata_drive_t *cdrive, uint16_t addr);
-extern int ata_register_dump(ata_drive_t *cdrive);
-extern void ata_image_attach(ata_drive_t *cdrive, char *filename, ata_drive_type_t type, ata_drive_geometry_t geometry);
-extern void ata_image_detach(ata_drive_t *cdrive);
-extern int ata_image_change(ata_drive_t *cdrive, char *filename, ata_drive_type_t type, ata_drive_geometry_t geometry);
-extern void ata_reset(ata_drive_t *cdrive);
+ata_drive_t *ata_init(int drive);
+void ata_shutdown(ata_drive_t *drv);
+void ata_register_store(ata_drive_t *cdrive, uint16_t addr, uint16_t value);
+uint16_t ata_register_read(ata_drive_t *cdrive, uint16_t addr, uint16_t bus);
+uint16_t ata_register_peek(ata_drive_t *cdrive, uint16_t addr);
+int ata_register_dump(ata_drive_t *cdrive);
+void ata_image_attach(ata_drive_t *cdrive, char *filename, ata_drive_type_t type, ata_drive_geometry_t geometry);
+void ata_image_detach(ata_drive_t *cdrive);
+int ata_image_change(ata_drive_t *cdrive, char *filename, ata_drive_type_t type, ata_drive_geometry_t geometry);
+void ata_reset(ata_drive_t *cdrive);
 void ata_update_timing(ata_drive_t *drv, CLOCK cycles_1s);
 
 struct snapshot_s;
-extern int ata_snapshot_read_module(ata_drive_t *drv, struct snapshot_s *s);
-extern int ata_snapshot_write_module(ata_drive_t *drv, struct snapshot_s *s);
+
+int ata_snapshot_read_module(ata_drive_t *drv, struct snapshot_s *s);
+int ata_snapshot_write_module(ata_drive_t *drv, struct snapshot_s *s);
 
 #endif

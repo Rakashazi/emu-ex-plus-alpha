@@ -250,18 +250,41 @@ inline void vicii_handle_pending_alarms(CLOCK num_write_cycles)
     }
 }
 
+/*
+ * This function is called externally, often with 1 + maincpu_rmw_flag.
+ * Since we have eliminated the flag, we must use another way to detect
+ * multiple consecutive write cycles.
+ */
 void vicii_handle_pending_alarms_external(CLOCK num_write_cycles)
 {
     if (vicii.initialized) {
-        vicii_handle_pending_alarms(num_write_cycles);
+        if (num_write_cycles) {
+            vicii_handle_pending_alarms_external_write();
+        } else {
+            vicii_handle_pending_alarms(0);
+        }
     }
 }
 
+/*
+ * As mentioned elsewhere, BA won't interrupt the CPU's write cycles, but it can
+ * stop it at read cycles.
+ * This function makes sure the fetch_alarm_handler and the draw_alarm are handled
+ * up to the current set of consecutive write cycles.
+ * It is called in cases where it is known a write cycle happens (but not in
+ * all of those cases).
+ * If there are several write cycles in a row, then no further alarms are handled
+ * for the subsequent ones.
+ * This usually happens for read-modify-write instructions.
+ * Note that this can be called multiple times for the same clock value.
+ */
 void vicii_handle_pending_alarms_external_write(void)
 {
-    /* WARNING: assumes `maincpu_rmw_flag' is 0 or 1.  */
     if (vicii.initialized) {
-        vicii_handle_pending_alarms(maincpu_rmw_flag + 1);
+        if (maincpu_clk > vicii.last_write_clk + 1) {
+            vicii_handle_pending_alarms(1);
+        }
+        vicii.last_write_clk = maincpu_clk;
     }
 }
 
@@ -469,6 +492,7 @@ void vicii_reset(void)
     vicii.raster.display_ystop = vicii.row_25_stop_line;
 
     vicii.store_clk = CLOCK_MAX;
+    vicii.last_write_clk = 0;
 
     vicii.counta = 0;
     vicii.counta_mod = 0;
@@ -781,7 +805,7 @@ void vicii_update_memory_ptrs(unsigned int cycle)
     bitmap_bank = tmp & 0xe000;
     bitmap_low_base = vicii.ram_base_phi1 + bitmap_bank;
 
-    VICII_DEBUG_REGISTER(("Bitmap memory at $%04X", tmp & 0xe000));
+    VICII_DEBUG_REGISTER(("Bitmap memory at $%04X", tmp & 0xE000u));
 
     if (export.ultimax_phi2 != 0) {
         /* phi2 fetch from expansion port in ultimax mode */
@@ -1435,7 +1459,7 @@ int vicii_dump(void)
         mon_out("              MuCol1: %2d MuCol2: %2d\n", vicii.regs[0x22], vicii.regs[0x23]);
     }
     mon_out("Scroll X/Y:   %d/%d\n", vicii.regs[0x16] & 0x07, vicii.regs[0x11] & 0x07);
-    mon_out("Screen Size:  %d x %d\n", 39 + ((vicii.regs[0x16] >> 3) & 1), 24 + ((vicii.regs[0x11] >> 3) & 1));
+    mon_out("Screen Size:  %d x %d\n", 38 + ((vicii.regs[0x16] >> 2) & 2), 24 + ((vicii.regs[0x11] >> 3) & 1));
 
     mon_out("\nVIC Memory Bank:   $%04x - $%04x\n",
            (unsigned int)v_bank, (unsigned int)(v_bank + 0x3fff));

@@ -36,30 +36,31 @@
 #include "types.h"
 #include "c64cart.h"
 
-extern int rrnetmk3_cart_enabled(void);
-extern void rrnetmk3_config_init(void);
-extern int rrnetmk3_roml_read(uint16_t addr);
-extern int rrnetmk3_roml_store(uint16_t addr, uint8_t byte);
-extern int rrnetmk3_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
+int rrnetmk3_cart_enabled(void);
+void rrnetmk3_config_init(void);
+int rrnetmk3_roml_read(uint16_t addr);
+int rrnetmk3_roml_store(uint16_t addr, uint8_t byte);
+int rrnetmk3_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
 
-extern void rrnetmk3_config_setup(uint8_t *rawcart);
+void rrnetmk3_config_setup(uint8_t *rawcart);
 
-extern int rrnetmk3_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
-extern int rrnetmk3_bin_attach(const char *filename, uint8_t *rawcart);
-extern int rrnetmk3_bin_save(const char *filename);
-extern int rrnetmk3_crt_save(const char *filename);
-extern int rrnetmk3_flush_image(void);
+int rrnetmk3_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
+int rrnetmk3_bin_attach(const char *filename, uint8_t *rawcart);
+int rrnetmk3_bin_save(const char *filename);
+int rrnetmk3_crt_save(const char *filename);
+int rrnetmk3_flush_image(void);
 
-extern int rrnetmk3_resources_init(void);
-extern void rrnetmk3_resources_shutdown(void);
-extern int rrnetmk3_cmdline_options_init(void);
-extern void rrnetmk3_init(void);
-extern void rrnetmk3_detach(void);
-extern void rrnetmk3_reset(void);
-extern int rrnetmk3_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
+int rrnetmk3_resources_init(void);
+void rrnetmk3_resources_shutdown(void);
+int rrnetmk3_cmdline_options_init(void);
+void rrnetmk3_init(void);
+void rrnetmk3_detach(void);
+void rrnetmk3_reset(void);
+int rrnetmk3_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
 
 struct snapshot_s;
-extern int rrnetmk3_snapshot_read_module(struct snapshot_s *s);
-extern int rrnetmk3_snapshot_write_module(struct snapshot_s *s);
+
+int rrnetmk3_snapshot_read_module(struct snapshot_s *s);
+int rrnetmk3_snapshot_write_module(struct snapshot_s *s);
 
 #endif

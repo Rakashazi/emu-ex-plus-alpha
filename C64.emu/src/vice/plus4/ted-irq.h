@@ -29,20 +29,20 @@
 
 #include "types.h"
 
-extern void ted_irq_raster_set(CLOCK mclk);
-extern void ted_irq_raster_clear(CLOCK mclk);
-extern void ted_irq_timer1_set(void);
-extern void ted_irq_timer1_clear(void);
-extern void ted_irq_timer2_set(void);
-extern void ted_irq_timer2_clear(void);
-extern void ted_irq_timer3_set(void);
-extern void ted_irq_timer3_clear(void);
+void ted_irq_raster_set(CLOCK mclk);
+void ted_irq_raster_clear(CLOCK mclk);
+void ted_irq_timer1_set(void);
+void ted_irq_timer1_clear(void);
+void ted_irq_timer2_set(void);
+void ted_irq_timer2_clear(void);
+void ted_irq_timer3_set(void);
+void ted_irq_timer3_clear(void);
 
-extern void ted_irq_set_raster_line(unsigned int line);
-extern void ted_irq_check_state(uint8_t value, unsigned int high);
-extern void ted_irq_set_line(void);
-extern void ted_irq_next_frame(void);
+void ted_irq_set_raster_line(unsigned int line);
+void ted_irq_check_state(uint8_t value, unsigned int high);
+void ted_irq_set_line(void);
+void ted_irq_next_frame(void);
 
-extern void ted_irq_init(void);
+void ted_irq_init(void);
 
 #endif

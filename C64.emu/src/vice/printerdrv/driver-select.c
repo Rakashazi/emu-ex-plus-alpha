@@ -3,6 +3,7 @@
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
+ *  Bas Wassink <b.wassink@ziggo.nl>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -29,6 +30,7 @@
 #include "vice.h"
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 
 #include "cmdline.h"
@@ -36,17 +38,13 @@
 #include "drv-ascii.h"
 #include "lib.h"
 #include "log.h"
+#include "printer.h"
 #include "resources.h"
 #include "types.h"
 #include "util.h"
 
-static log_t driver_select_log = LOG_ERR;
 
-struct driver_select_list_s {
-    driver_select_t driver_select;
-    struct driver_select_list_s *next;
-};
-typedef struct driver_select_list_s driver_select_list_t;
+static log_t driver_select_log = LOG_ERR;
 
 /* Currently used printer driver.  */
 static driver_select_t driver_select[NUM_DRIVER_SELECT];
@@ -54,79 +52,187 @@ static driver_select_t driver_select[NUM_DRIVER_SELECT];
 /* Pointer to registered printer driver.  */
 static driver_select_list_t *driver_select_list = NULL;
 
+/* Pointer to tail of registered printer driver list */
+static driver_select_list_t *driver_select_list_tail = NULL;
+
+#if 0
 static const char * const userprinter_names[] = { "ascii", "nl10", "raw", NULL };
 
-static const char * const printer_names[] = { "ascii", "mps803", "nl10", "raw", NULL };
+static const char * const printer_names[] = { "ascii", "2022", "4023", "8023",
+    "mps801", "mps802", "mps803", "nl10", "raw", NULL };
 
 static const char * const plotter_names[] = { "1520", "raw", NULL };
+#endif
 
-static int userprinter_name_is_valid(const char *name)
+/** \brief  Check boolean propery of a printer driver
+ *
+ * Iterate registered printer drivers for drive \a name and call function
+ * \a propcheck to test a boolean propery.
+ *
+ * \param[in]   name        printer driver name
+ * \param[in]   propcheck   function to call to check property
+ *
+ * \return  \c true if \a name is valid and \a propcheck returned \a true,
+ *          \c false otherwise
+ */
+static bool check_property(const char *name,
+                           bool (*propcheck)(const driver_select_t *))
 {
-    int i = 0;
+    const driver_select_list_t *node = driver_select_list;
 
-    while (userprinter_names[i]) {
-        if (!strcmp(userprinter_names[i], name)) {
-            return 1;
+    while (node != NULL) {
+        if ((strcmp(name, node->driver_select.drv_name) == 0)
+                && propcheck(&(node->driver_select))) {
+            return true;
         }
-        i++;
+        node = node->next;
     }
-    return 0;
+    return false;
 }
 
-static int printer_name_is_valid(const char *name)
-{
-    int i = 0;
-
-    while (printer_names[i]) {
-        if (!strcmp(printer_names[i], name)) {
-            return 1;
-        }
-        i++;
+/** \brief  Define printer driver property check function
+ *
+ * \param[in]   property    boolean member to test for \c true
+ */
+#define PROP_CHECK_FUNC(property)                                 \
+    static bool check_prop_##property(const driver_select_t *drv) \
+    {                                                             \
+        return drv->property;                                     \
     }
-    return 0;
+
+/* property check functions */
+PROP_CHECK_FUNC(printer);
+PROP_CHECK_FUNC(plotter);
+PROP_CHECK_FUNC(iec);
+PROP_CHECK_FUNC(ieee488);
+PROP_CHECK_FUNC(userport);
+PROP_CHECK_FUNC(text);
+PROP_CHECK_FUNC(graphics);
+
+
+/** \brief  Determine if drive is a printer driver
+ *
+ * \param[in]   drv_name    driver name
+ *
+ * \return  \c true if \a drv_name is a printer driver
+ */
+bool driver_select_is_printer(const char *drv_name)
+{
+    return check_property(drv_name, check_prop_printer);
 }
 
-static int plotter_name_is_valid(const char *name)
+/** \brief  Determine if driver is a plotter driver
+ *
+ * \param[in]   drv_name    driver name
+ *
+ * \return  \c true if \a drv_name is a plotter driver
+ */
+bool driver_select_is_plotter(const char *drv_name)
 {
-    int i = 0;
-
-    while (plotter_names[i]) {
-        if (!strcmp(plotter_names[i], name)) {
-            return 1;
-        }
-        i++;
-    }
-    return 0;
+    return check_property(drv_name, check_prop_plotter);
 }
+
+/** \brief  Determine if driver supports an IEC bus-connected device
+ *
+ * \param[in]   drv_name    driver name
+ *
+ * \return  \c true if \a drv_name is an IEC driver
+ */
+bool driver_select_has_iec_bus(const char *drv_name)
+{
+    return check_property(drv_name, check_prop_iec);
+}
+
+/** \brief  Determine if driver supports an IEEE-488 bus-connected device
+ *
+ * \param[in]   drv_name    driver name
+ *
+ * \return  \c true if \a drv_name is an IEEE-488 driver
+ */
+bool driver_select_has_ieee488_bus(const char *drv_name)
+{
+    return check_property(drv_name, check_prop_ieee488);
+}
+
+/** \brief  Determine if driver supports a userport-connected device
+ *
+ * \param[in]   drv_name    driver name
+ *
+ * \return  \c true if \a drv_name is a userport driver
+ */
+bool driver_select_has_userport(const char *drv_name)
+{
+    return check_property(drv_name, check_prop_userport);
+}
+
+/** \brief  Determine if driver supports text output
+ *
+ * \param[in]   drv_name    driver name
+ *
+ * \return  \c true if \a drv_name supports text output
+ */
+bool driver_select_has_text_output(const char *drv_name)
+{
+    return check_property(drv_name, check_prop_text);
+}
+
+/** \brief  Determine if driver supports graphics output
+ *
+ * \param[in]   drv_name    driver name
+ *
+ * \return  \c true if \a drv_name supports graphics output
+ */
+bool driver_select_has_graphics_output(const char *drv_name)
+{
+    return check_property(drv_name, check_prop_graphics);
+}
+
+/** \brief  Get list of registered printer drivers
+ *
+ * \return  singly-linked list of registered drivers
+ */
+const driver_select_list_t *driver_select_get_drivers(void)
+{
+    return driver_select_list;
+}
+
 
 static int set_printer_driver(const char *name, void *param)
 {
     driver_select_list_t *list;
-    int prnr = vice_ptr_to_int(param);
+    int                    prnr;
 
-    if (prnr == 2) {
-        if (!plotter_name_is_valid(name)) {
+    prnr = vice_ptr_to_int(param);
+    list = driver_select_list;
+    if (list == NULL) {
+        return -1;
+    }
+
+    if ((prnr == PRINTER_IEC_4) || (prnr == PRINTER_IEC_5)) {
+        if (!driver_select_is_printer(name)) {
             return -1;
         }
-    } else if (prnr == 3) {
-        if (!userprinter_name_is_valid(name)) {
+    } else if (prnr == PRINTER_IEC_6) {
+        if (!driver_select_is_plotter(name)) {
+            return -1;
+        }
+    } else if (prnr == PRINTER_USERPORT) {
+        if (!driver_select_has_userport(name)) {
             return -1;
         }
     } else {
-        if (!printer_name_is_valid(name)) {
-            return -1;
-        }
-    }
-
-    list = driver_select_list;
-
-    if (list == NULL) {
         return -1;
     }
 
     do {
         if (!strcmp(list->driver_select.drv_name, name)) {
-            driver_select[prnr] = list->driver_select;
+            memcpy(&(driver_select[prnr]), &(list->driver_select), sizeof(driver_select_t));
+            if(driver_select[prnr].drv_select) {
+#ifdef DEBUG_PRINTER
+                log_debug(driver_select_log, "driver_select[%d].drv_select != NULL", prnr);
+#endif
+                driver_select[prnr].drv_select(prnr);
+            }
             return 0;
         }
         list = list->next;
@@ -136,7 +242,7 @@ static int set_printer_driver(const char *name, void *param)
 }
 
 static const resource_string_t resources_string[] = {
-    { "Printer4Driver", "ascii", RES_EVENT_NO, NULL,
+    { "Printer4Driver", "mps803", RES_EVENT_NO, NULL,
       (char **)&driver_select[0].drv_name, set_printer_driver, (void *)0 },
     { "Printer5Driver", "ascii", RES_EVENT_NO, NULL,
       (char **)&driver_select[1].drv_name, set_printer_driver, (void *)1 },
@@ -165,10 +271,10 @@ static const cmdline_option_t cmdline_options[] =
 {
     { "-pr4drv", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "Printer4Driver", NULL,
-      "<Name>", "Specify name of printer driver for device #4. (ascii/mps803/nl10/raw)" },
+      "<Name>", "Specify name of printer driver for device #4. (ascii/raw/mps801/mps802/mps803/220/4032/8023/nl10)" },
     { "-pr5drv", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "Printer5Driver", NULL,
-      "<Name>", "Specify name of printer driver for device #5. (ascii/mps803/nl10/raw)" },
+      "<Name>", "Specify name of printer driver for device #5. (ascii/raw/mps801/mps802/mps803/220/4032/8023/nl10)" },
     { "-pr6drv", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "Printer6Driver", NULL,
       "<Name>", "Specify name of printer driver for device #6. (1520/raw)" },
@@ -202,36 +308,38 @@ void driver_select_init(void)
 
 void driver_select_register(driver_select_t *drv_select)
 {
-    driver_select_list_t *list, *prev;
+    driver_select_list_t *node;
 
-    prev = driver_select_list;
-    while (prev != NULL && prev->next != NULL) {
-        prev = prev->next;
-    }
 
-    list = lib_malloc(sizeof(driver_select_list_t));
-    memcpy(&(list->driver_select), drv_select, sizeof(driver_select_t));
-    list->next = NULL;
+    node = lib_malloc(sizeof *node);
+    node->driver_select          = *drv_select;
+    node->driver_select.drv_name = lib_strdup(drv_select->drv_name);
+    node->driver_select.ui_name  = lib_strdup(drv_select->ui_name);
+    node->next                   = NULL;
 
-    if (driver_select_list != NULL) {
-        prev->next = list;
+    if (driver_select_list == NULL) {
+        driver_select_list = node;
     } else {
-        driver_select_list = list;
+        driver_select_list_tail->next = node;
     }
+    driver_select_list_tail = node;
 }
+
 
 void driver_select_shutdown(void)
 {
-    driver_select_list_t *list, *next;
+    driver_select_list_t *node = driver_select_list;
 
-    list = driver_select_list;
+    while (node != NULL) {
+        driver_select_list_t *next = node->next;
 
-    while (list != NULL) {
-        next = list->next;
-        lib_free(list);
-        list = next;
+        lib_free(node->driver_select.drv_name);
+        lib_free(node->driver_select.ui_name);
+        lib_free(node);
+        node = next;
     }
 }
+
 
 /* ------------------------------------------------------------------------- */
 
@@ -276,5 +384,8 @@ int driver_select_formfeed(unsigned int prnr)
 #ifdef DEBUG_PRINTER
     log_message(driver_select_log, "Formfeed device #%u", prnr + 4);
 #endif
-    return driver_select[prnr].drv_formfeed(prnr);
+    if (driver_select[prnr].drv_formfeed)
+        return driver_select[prnr].drv_formfeed(prnr);
+    else
+        return 0;
 }

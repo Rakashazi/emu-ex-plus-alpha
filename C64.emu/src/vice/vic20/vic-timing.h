@@ -72,6 +72,6 @@
 
 
 struct machine_timing_s;
-extern void vic_timing_set(struct machine_timing_s *machine_timing, int border_mode);
+void vic_timing_set(struct machine_timing_s *machine_timing, int border_mode);
 
 #endif

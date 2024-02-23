@@ -27,9 +27,11 @@
 #include "vice.h"
 
 #include <stddef.h>
+#include <stdbool.h>
 
 #include "c64/cart/clockport.h"
 #include "cartridge.h"
+#include "pet/petpia.h"
 #include "vic20.h"
 
 /*******************************************************************************
@@ -38,38 +40,7 @@
 
 clockport_supported_devices_t clockport_supported_devices[] = { { 0, NULL } };
 
-/*******************************************************************************
-    cartridge
-*******************************************************************************/
-
-int cartridge_enable(int crtid)
+bool pia1_get_diagnostic_pin(void)
 {
-    return -1;
-}
-
-int cartridge_disable(int crtid)
-{
-    return -1;
-}
-
-cartridge_info_t *cartridge_get_info_list(void)
-{
-    return NULL;
-}
-
-/* return cartridge type of main slot
-   returns 0 (CARTRIDGE_CRT) if crt file */
-int cartridge_get_id(int slot)
-{
-    return CARTRIDGE_NONE;
-}
-
-/* FIXME: terrible name, we already have cartridge_get_file_name */
-char *cartridge_get_filename(int slot)
-{
-    return NULL;
-}
-
-void cartridge_trigger_freeze(void)
-{
+    return false;
 }

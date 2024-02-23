@@ -121,8 +121,8 @@ static int c64_snapshot_read_rom_module(snapshot_t *s)
     }
 
     memcpy(c64memrom_kernal64_trap_rom, c64memrom_kernal64_rom, C64_KERNAL_ROM_SIZE);
-    c64rom_get_kernal_checksum();
-    c64rom_get_basic_checksum();
+    c64rom_print_kernal_info();
+    c64rom_print_basic_info();
 
     return 0;
 

@@ -29,6 +29,6 @@
 
 #include "types.h"
 
-extern int tape_diag_586220_harness_resources_init(int amount);
+int tape_diag_586220_harness_resources_init(int amount);
 
 #endif

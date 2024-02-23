@@ -649,7 +649,7 @@ int vicii_dump(void)
     }
 
     mon_out("Scroll X/Y: %d/%d, RC %d, Idle: %d, ", vicii.regs[0x16] & 0x07, vicii.regs[0x11] & 0x07, vicii.rc, vicii.idle_state);
-    mon_out("%dx%d\n", 39 + ((vicii.regs[0x16] >> 3) & 1), 24 + ((vicii.regs[0x11] >> 3) & 1));
+    mon_out("%dx%d\n", 38 + ((vicii.regs[0x16] >> 2) & 2), 24 + ((vicii.regs[0x11] >> 3) & 1));
 
     mon_out("VC $%03x, VCBASE $%03x, VMLI %2d, Phi1 $%02x\n",
             (unsigned int)vicii.vc, (unsigned int)vicii.vcbase,

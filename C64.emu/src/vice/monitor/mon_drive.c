@@ -129,12 +129,15 @@ void mon_drive_execute_disk_cmd(char *cmd)
     unsigned int len;
     vdrive_t *vdrive;
 
-    /* Unit? */
+    /* FIXME: Unit/Drive? */
     vdrive = file_system_get_vdrive(8);
 
     len = (unsigned int)strlen(cmd);
     charset_petconvstring((uint8_t*)cmd, CONVERT_TO_PETSCII);
     vdrive_command_execute(vdrive, (uint8_t *)cmd, len);
+    if (vdrive->buffers[15].buffer) {
+        mon_out("%s\n", vdrive->buffers[15].buffer);
+    }
 }
 
 /* FIXME: this function should perhaps live elsewhere */

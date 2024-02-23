@@ -29,8 +29,8 @@
 
 #include "types.h"
 
-extern void reset_try_flags(void);
-extern int try_cartridge_attach(int c);
+void reset_try_flags(void);
+int try_cartridge_attach(int c);
 
 #define TRY_RESOURCE_CARTTYPE (1 << 0)
 #define TRY_RESOURCE_CARTNAME (1 << 1)
@@ -47,11 +47,11 @@ extern int cartridge_is_from_snapshot;
 
 struct snapshot_s;
 /* FIXME: rename functions to cartridge_... and remove these prototypes (they are in cartridge.h) */
-extern int vic20cart_snapshot_write_module(struct snapshot_s *s);
-extern int vic20cart_snapshot_read_module(struct snapshot_s *s);
+int vic20cart_snapshot_write_module(struct snapshot_s *s);
+int vic20cart_snapshot_read_module(struct snapshot_s *s);
 
 /* used internally, don't call from UI or other non cart related code */
-extern void cartridge_attach(int type, uint8_t *rawcart);
-extern void cartridge_detach(int type);
+void cartridge_attach(int type, uint8_t *rawcart);
+void cartridge_detach(int type);
 
 #endif

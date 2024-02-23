@@ -42,6 +42,7 @@
 #include "vic20mem.h"
 #include "vic20memrom.h"
 #include "vic20.h"
+#include "vic20via.h"
 #include "videoarch.h"
 #include "viewport.h"
 
@@ -220,9 +221,6 @@ static inline void vic_cycle_latch_rows(void)
 
 /* ------------------------------------------------------------------------- */
 /* Fetch hendling */
-
-extern int vic20_vflihack_userport;
-extern unsigned char vfli_ram[0x4000];
 
 /* Perform actual fetch */
 static inline uint8_t vic_cycle_do_fetch(int addr, uint8_t *color)

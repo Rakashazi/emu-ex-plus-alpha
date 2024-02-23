@@ -39,9 +39,11 @@
 
 int machine_drive_resources_init(void)
 {
-    return drive_resources_type_init(DRIVE_TYPE_1551)
-           | iec_drive_resources_init() | iec_plus4exp_resources_init()
-           | tcbm_drive_resources_init();
+    /* init drive type resource last, so the ROMs are loaded when it initializes */
+    return iec_drive_resources_init() |
+           iec_plus4exp_resources_init() |
+           tcbm_drive_resources_init() |
+           drive_resources_type_init(DRIVE_TYPE_1551);
 }
 
 void machine_drive_resources_shutdown(void)

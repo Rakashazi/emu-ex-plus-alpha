@@ -196,6 +196,7 @@ HDIGIT  [0-9a-f]
         keybuf          { BEGIN(ROL);           return CMD_KEYBUF; }
         list            { BEGIN(INITIAL);       return CMD_LIST; }
         load|l          { BEGIN(FNAME);         return CMD_LOAD; }
+        loadbasic|ldb   { BEGIN(FNAME);         return CMD_BASICLOAD; }
         load_labels|ll  { BEGIN(FNAME);         return CMD_LOAD_LABELS; }
         log             { BEGIN(INITIAL);       return CMD_LOG; }
         logname         { BEGIN(FNAME);         return CMD_LOGNAME; }
@@ -210,6 +211,7 @@ HDIGIT  [0-9a-f]
         next|n          { BEGIN(INITIAL);       return CMD_NEXT; }
         playback|pb     { BEGIN(FNAME);         return CMD_PLAYBACK; }
         print|p         { BEGIN(INITIAL);       return CMD_PRINT; }
+        profile|prof    { BEGIN(INITIAL);       return CMD_PROFILE; }
         pwd             { BEGIN(INITIAL);       return CMD_PWD; }
         quit|q          { BEGIN(INITIAL);       return CMD_QUIT; }
         radix|rad       { BEGIN(RADIX);         return CMD_RADIX; }
@@ -240,7 +242,15 @@ HDIGIT  [0-9a-f]
         verify|v        { BEGIN(FNAME);         return CMD_VERIFY; }
         watch|w         { BEGIN(INITIAL);       return CMD_WATCH; }
         warp            { BEGIN(INITIAL);       return CMD_WARP; }
-        yydebug         { BEGIN(INITIAL);       return CMD_YYDEBUG; }
+
+        yydebug         {
+                BEGIN(INITIAL);
+#if YYDEBUG
+                return CMD_YYDEBUG;
+#else
+                return 0;
+#endif
+            }
         maincpu_trace   { BEGIN(INITIAL);       return CMD_MAINCPU_TRACE; }
 }
  /* this is not a real command, but could be a label name for a label assignment */
@@ -252,6 +262,14 @@ HDIGIT  [0-9a-f]
 on  		{ yylval.i = e_ON; return TOGGLE; }
 off 		{ yylval.i = e_OFF; return TOGGLE; }
 toggle		{ yylval.i = e_TOGGLE; return TOGGLE; }
+
+flat		{ return FLAT; }
+graph		{ return GRAPH; }
+func		{ return FUNC; }
+depth		{ return DEPTH; }
+disass		{ return DISASS; }
+context	{ return PROFILE_CONTEXT; }
+clear		{ return CLEAR; }
 
 load { yylval.i = e_load; return MEM_OP; }
 store { yylval.i = e_store; return MEM_OP; }

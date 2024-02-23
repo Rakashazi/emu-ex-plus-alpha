@@ -307,12 +307,16 @@ int crt_getid(const char *filename)
     return -1;
 }
 
-
-void ui_hotkeys_init(void)
-{
-}
-
 int drive_get_disk_drive_type(int dnr)
 {
     return DRIVE_TYPE_NONE;
 }
+
+void tape_image_detach_all(void)
+{
+}
+
+void file_system_detach_disk_all(void)
+{
+}
+

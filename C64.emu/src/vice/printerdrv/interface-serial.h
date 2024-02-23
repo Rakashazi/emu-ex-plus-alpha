@@ -27,12 +27,12 @@
 #ifndef VICE_INTERFACE_SERIAL_H
 #define VICE_INTERFACE_SERIAL_H
 
-extern void interface_serial_init(void);
-extern int interface_serial_init_resources(void);
-extern int interface_serial_init_cmdline_options(void);
-extern void interface_serial_shutdown(void);
+void interface_serial_init(void);
+int interface_serial_init_resources(void);
+int interface_serial_init_cmdline_options(void);
+void interface_serial_shutdown(void);
 
-extern int interface_serial_late_init(void);
-extern int interface_serial_close(unsigned int unit);
+int interface_serial_late_init(void);
+int interface_serial_close(unsigned int unit);
 
 #endif

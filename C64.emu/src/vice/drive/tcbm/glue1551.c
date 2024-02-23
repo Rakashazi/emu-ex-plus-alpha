@@ -148,7 +148,7 @@ void glue1551_init(diskunit_context_t *drv)
 {
     char *buffer;
 
-    buffer = lib_msprintf("GLUE1551D%i", drv->mynumber);
+    buffer = lib_msprintf("GLUE1551D%u", drv->mynumber);
 
     glue1551[drv->mynumber].timer_alarm = alarm_new(drv->cpu->alarm_context,
                                                     buffer, glue1551_timer,
@@ -161,8 +161,11 @@ void glue1551_init(diskunit_context_t *drv)
 void glue1551_reset(diskunit_context_t *drv)
 {
     alarm_unset(glue1551[drv->mynumber].timer_alarm);
-    alarm_set(glue1551[drv->mynumber].timer_alarm,
-              *(drv->clk_ptr) + GLUE1551_ALARM_TICKS_OFF);
+
+    if (drv->type == DRIVE_TYPE_1551) {
+        alarm_set(glue1551[drv->mynumber].timer_alarm,
+                  *(drv->clk_ptr) + GLUE1551_ALARM_TICKS_OFF);
+    }
     glue1551[drv->mynumber].irq_line = 0;
 
     drv->drives[0]->led_status = 1;

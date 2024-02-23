@@ -30,6 +30,6 @@
 
 struct video_chip_cap_s;
 
-extern int raster_cmdline_options_chip_init(const char *chipname, struct video_chip_cap_s *video_chip_cap);
+int raster_cmdline_options_chip_init(const char *chipname, struct video_chip_cap_s *video_chip_cap);
 
 #endif

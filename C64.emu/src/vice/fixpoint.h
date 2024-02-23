@@ -31,7 +31,9 @@
 
 #ifdef FIXPOINT_ARITHMETIC
 #define FIXPOINT_PREC   12
+
 typedef int vreal_t;
+
 #define REAL_VALUE(x) ((vreal_t)((x) * (1 << FIXPOINT_PREC)))
 #define REAL_MULT(x, y) fixpoint_mult(x, y)
 #define REAL_TO_INT(x) ((int)((x) >> FIXPOINT_PREC))
@@ -48,8 +50,8 @@ typedef unsigned long soundclk_t;
 #ifdef INLINE_FIXPOINT_FUNCTIONS
 #include "fixpoint.c"
 #else  /* INLINE_FIXPOINT_FUNCTIONS */
-extern vreal_t fixpoint_mult(vreal_t x, vreal_t y);
-extern soundclk_t soundclk_mult(soundclk_t a, soundclk_t b);
+vreal_t fixpoint_mult(vreal_t x, vreal_t y);
+soundclk_t soundclk_mult(soundclk_t a, soundclk_t b);
 #endif /* INLINE_FIXPOINT_FUNCTIONS */
 
 #else  /* FIXPOINT_ARITHMETIC */

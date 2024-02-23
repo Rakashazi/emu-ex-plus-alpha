@@ -29,15 +29,15 @@
 
 #include "snapshot.h"
 
-extern int ioramcart_resources_init(void);
-extern int ioramcart_cmdline_options_init(void);
+int ioramcart_resources_init(void);
+int ioramcart_cmdline_options_init(void);
 
-extern void ioramcart_io2_detach(void);
-extern void ioramcart_io3_detach(void);
+void ioramcart_io2_detach(void);
+void ioramcart_io3_detach(void);
 
-extern int ioramcart_io2_snapshot_write_module(snapshot_t *s);
-extern int ioramcart_io2_snapshot_read_module(snapshot_t *s);
-extern int ioramcart_io3_snapshot_write_module(snapshot_t *s);
-extern int ioramcart_io3_snapshot_read_module(snapshot_t *s);
+int ioramcart_io2_snapshot_write_module(snapshot_t *s);
+int ioramcart_io2_snapshot_read_module(snapshot_t *s);
+int ioramcart_io3_snapshot_write_module(snapshot_t *s);
+int ioramcart_io3_snapshot_read_module(snapshot_t *s);
 
 #endif

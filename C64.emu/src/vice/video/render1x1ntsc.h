@@ -33,11 +33,11 @@
 
 #include "video.h"
 
-extern void render_32_1x1_ntsc(video_render_color_tables_t *color_tab,
-                               const uint8_t *src, uint8_t *trg,
-                               const unsigned int width, const unsigned int height,
-                               const unsigned int xs, const unsigned int ys,
-                               const unsigned int xt, const unsigned int yt,
-                               const unsigned int pitchs,
-                               const unsigned int pitcht);
+void render_32_1x1_ntsc(video_render_color_tables_t *color_tab,
+                        const uint8_t *src, uint8_t *trg,
+                        const unsigned int width, const unsigned int height,
+                        const unsigned int xs, const unsigned int ys,
+                        const unsigned int xt, const unsigned int yt,
+                        const unsigned int pitchs,
+                        const unsigned int pitcht);
 #endif

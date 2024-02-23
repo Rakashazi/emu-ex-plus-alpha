@@ -50,6 +50,7 @@
 #include "video.h"
 #include "viewport.h"
 #include "util.h"
+#include "ui.h"
 
 /*-----------------------------------------------------------------------*/
 /* global resources.  */
@@ -309,6 +310,44 @@ static resource_int_t resources_chip_fullscreen_mode[] =
 };
 #endif
 
+#if defined(USE_SDLUI) || defined(USE_SDL2UI)
+
+/* <CHIP>FullscreenCustomWidth (SDL only) */
+static int set_fullscreen_custom_width(int w, void *canvas)
+{
+    if (w <= 0) {
+        return -1;
+    }
+    return ui_set_fullscreen_custom_width(w, canvas);
+}
+
+/* <CHIP>FullscreenCustomHeight (SDL only) */
+static int set_fullscreen_custom_height(int h, void *canvas)
+{
+    if (h <= 0) {
+        return -1;
+    }
+    return ui_set_fullscreen_custom_height(h, canvas);
+}
+
+static const char * const vname_chip_fullscreen_size[] = {
+    "FullscreenCustomWidth",
+    "FullscreenCustomHeight",
+    NULL };
+
+#define FULLSCREENCUSTOMWIDTH_DEFAULT   800
+#define FULLSCREENCUSTOMHEIGHT_DEFAULT  600
+
+static resource_int_t resources_chip_fullscreen_size[] =
+{
+    { NULL, FULLSCREENCUSTOMWIDTH_DEFAULT, RES_EVENT_NO, NULL,
+      NULL, set_fullscreen_custom_width, NULL },
+    { NULL, FULLSCREENCUSTOMHEIGHT_DEFAULT, RES_EVENT_NO, NULL,
+      NULL, set_fullscreen_custom_height, NULL },
+    RESOURCE_INT_LIST_END
+};
+#endif
+
 /** \brief  Setter for the boolean resource "${CHIP}ExternalPalette"
  *
  * \param[in]   external    use external palette
@@ -359,29 +398,114 @@ static resource_int_t resources_chip_palette_int[] =
     RESOURCE_INT_LIST_END
 };
 
-/** \brief  Setter for the boolean resource "${CHIP}DoubleBuffer"
+#if defined(USE_SDLUI) || defined(USE_SDL2UI) || defined(USE_GTK3UI)
+/** \brief  Setter for the integer resource "${CHIP}AspectMode"
  *
- * \param[in]   double_buffer   enable double buffering
- * \param[in]   canvas          video canvas
+ * \param[in]   mode        aspect mode
+ * \param[in]   canvas      video canvas
  *
  * \return  0
  */
-static int set_double_buffer_enabled(int double_buffer, void *canvas)
+static int set_aspect_mode(int mode, void *canvas)
 {
-    video_canvas_t *cv = canvas;
-
-    cv->videoconfig->double_buffer = double_buffer ? 1 : 0;
-    return 0;
+    if ((mode < VIDEO_ASPECT_MODE_NONE) || (mode > VIDEO_ASPECT_MODE_TRUE)) {
+        return 0;
+    }
+    return ui_set_aspect_mode(mode, canvas);
 }
 
-/** \brief  Resource registration template for "${CHIP}DoubleBuffer"
+/** \brief  Setter for the resource "${CHIP}AspectRatio"
+ *
+ * \param[in]   string      ratio
+ * \param[in]   canvas      video canvas
+ *
+ * \return  0
  */
-static resource_int_t resources_chip_double_buffer[] =
+static int set_aspect_ratio(const char *val, void *canvas)
 {
-    { NULL, 0, RES_EVENT_NO, NULL,
-      NULL, set_double_buffer_enabled, NULL },
+    video_canvas_t *cv = canvas;
+    double new_aspect;
+    char buf[20];
+
+    if (val) {
+        char *endptr;
+
+        util_string_set(&(cv->videoconfig->aspect_ratio_s), val);
+
+        new_aspect = strtod(val, &endptr);
+        if (val == endptr) {
+            new_aspect = 1.0;
+        } else if (new_aspect < 0.5) {
+            new_aspect = 0.5;
+        } else if (new_aspect > 2.0) {
+            new_aspect = 2.0;
+        }
+    } else {
+        new_aspect = 1.0;
+    }
+    cv->videoconfig->aspect_ratio = new_aspect;
+    sprintf(buf, "%f", new_aspect);
+    util_string_set(&(cv->videoconfig->aspect_ratio_s), buf);
+
+    return ui_set_aspect_ratio(new_aspect, canvas);
+}
+
+static int set_glfilter(int val, void *canvas)
+{
+    return ui_set_glfilter(val, canvas);
+}
+
+static int set_flipx(int val, void *canvas)
+{
+    return ui_set_flipx(val, canvas);
+}
+
+static int set_flipy(int val, void *canvas)
+{
+    return ui_set_flipy(val, canvas);
+}
+
+static int set_rotate(int val, void *canvas)
+{
+    return ui_set_rotate(val, canvas);
+}
+
+static int set_vsync(int val, void *canvas)
+{
+    return ui_set_vsync(val, canvas);
+}
+
+static const char * const vname_chip_gloptions_int[] = {
+    "AspectMode",
+    "GLFilter",
+    "FlipX",
+    "FlipY",
+    "Rotate",
+    "VSync",
+    NULL };
+
+/** \brief  Resource registration template for "${CHIP}AspectMode"
+ */
+static resource_int_t resources_chip_gloptions_int[] =
+{
+    { NULL, VIDEO_ASPECT_MODE_TRUE, RES_EVENT_NO, NULL, NULL, set_aspect_mode, NULL },
+    { NULL, VIDEO_GLFILTER_BICUBIC, RES_EVENT_NO, NULL, NULL, set_glfilter, NULL },
+    { NULL, 0                     , RES_EVENT_NO, NULL, NULL, set_flipx, NULL },
+    { NULL, 0                     , RES_EVENT_NO, NULL, NULL, set_flipy, NULL },
+    { NULL, 0                     , RES_EVENT_NO, NULL, NULL, set_rotate, NULL },
+    { NULL, 1                     , RES_EVENT_NO, NULL, NULL, set_vsync, NULL },
     RESOURCE_INT_LIST_END
 };
+
+/** \brief  Resource registration template for "${CHIP}AspectRatio"
+ */
+static resource_string_t resources_chip_gloptions_string[] =
+{
+    { NULL, NULL, RES_EVENT_NO, NULL,
+      NULL, set_aspect_ratio, NULL },
+    RESOURCE_STRING_LIST_END
+};
+#endif
 
 /*
       resources for the color/palette generator
@@ -458,8 +582,14 @@ static int set_color_tint(int val, void *param)
 }
 
 static const char * const vname_chip_colors[] = {
-    "ColorSaturation", "ColorContrast", "ColorBrightness", "ColorGamma", "ColorTint", NULL };
+    "ColorSaturation",
+    "ColorContrast",
+    "ColorBrightness",
+    "ColorGamma",
+    "ColorTint",
+    NULL };
 
+/* TODO: we should have different sets of defaults per video mode */
 static resource_int_t resources_chip_colors[] =
 {
     { NULL, 1000, RES_EVENT_NO, NULL,
@@ -468,7 +598,7 @@ static resource_int_t resources_chip_colors[] =
       NULL, set_color_contrast, NULL },
     { NULL, 1000, RES_EVENT_NO, NULL,
       NULL, set_color_brightness, NULL },
-    { NULL, 2200, RES_EVENT_NO, NULL,
+    { NULL, 1000, RES_EVENT_NO, NULL,
       NULL, set_color_gamma, NULL },
     { NULL, 1000, RES_EVENT_NO, NULL,
       NULL, set_color_tint, NULL },
@@ -546,7 +676,10 @@ static int set_audioleak(int val, void *param)
 }
 
 static const char * const vname_chip_crtemu[] = {
-    "PALScanLineShade", "PALBlur", "PALOddLinePhase", "PALOddLineOffset", "PALDelaylineType", "AudioLeak", NULL };
+    "PALScanLineShade",
+    "PALBlur",
+    "AudioLeak",
+    NULL };
 
 static resource_int_t resources_chip_crtemu[] =
 {
@@ -554,14 +687,25 @@ static resource_int_t resources_chip_crtemu[] =
       NULL, set_pal_scanlineshade, NULL },
     { NULL, 500, RES_EVENT_NO, NULL,
       NULL, set_pal_blur, NULL },
+    { NULL, 0, RES_EVENT_NO, NULL,
+      NULL, set_audioleak, NULL },
+    RESOURCE_INT_LIST_END
+};
+
+static const char * const vname_chip_crtemu_palntsc[] = {
+    "PALOddLinePhase",
+    "PALOddLineOffset",
+    "PALDelaylineType",
+    NULL };
+
+static resource_int_t resources_chip_crtemu_palntsc[] =
+{
     { NULL, 1500, RES_EVENT_NO, NULL,
       NULL, set_pal_oddlinesphase, NULL },
     { NULL, 500, RES_EVENT_NO, NULL,
       NULL, set_pal_oddlinesoffset, NULL },
     { NULL, 0, RES_EVENT_NO, NULL,
       NULL, set_delaylinetype, NULL },
-    { NULL, 0, RES_EVENT_NO, NULL,
-      NULL, set_audioleak, NULL },
     RESOURCE_INT_LIST_END
 };
 
@@ -735,6 +879,29 @@ int video_resources_chip_init(const char *chipname,
         if (result < 0) {
             return -1;
         }
+        /* <CHIP>FullscreenCustomWidth */
+        /* <CHIP>FullscreenCustomHeight */
+        resources_chip_fullscreen_size[0].name
+            = util_concat(chipname,
+                          vname_chip_fullscreen_size[0], NULL);
+        resources_chip_fullscreen_size[0].value_ptr
+            = &((*canvas)->videoconfig->fullscreen_custom_width);
+        resources_chip_fullscreen_size[0].param = *canvas;
+
+        resources_chip_fullscreen_size[1].name
+            = util_concat(chipname,
+                          vname_chip_fullscreen_size[1], NULL);
+        resources_chip_fullscreen_size[1].value_ptr
+            = &((*canvas)->videoconfig->fullscreen_custom_height);
+        resources_chip_fullscreen_size[1].param = *canvas;
+
+        result = resources_register_int(resources_chip_fullscreen_size);
+        lib_free(resources_chip_fullscreen_size[0].name);
+        lib_free(resources_chip_fullscreen_size[1].name);
+        if (result < 0) {
+            return -1;
+        }
+
     } else {
         set_fullscreen_mode(0, (void *)resource_chip_mode);
     }
@@ -775,25 +942,6 @@ int video_resources_chip_init(const char *chipname,
         set_palette_is_external(0, *canvas);
     }
 
-    /* ${CHIP}DoubleBuffer: double buffering  */
-    if (video_chip_cap->double_buffering_allowed != 0) {
-        if (machine_class != VICE_MACHINE_VSID) {
-            resources_chip_double_buffer[0].name
-                = util_concat(chipname, "DoubleBuffer", NULL);
-            resources_chip_double_buffer[0].value_ptr
-                = &((*canvas)->videoconfig->double_buffer);
-            resources_chip_double_buffer[0].param = *canvas;
-
-            result = resources_register_int(resources_chip_double_buffer);
-            lib_free(resources_chip_double_buffer[0].name);
-            if (result < 0) {
-                return -1;
-            }
-        } else {
-            set_double_buffer_enabled(0, *canvas);
-        }
-    }
-
     /* palette generator */
     if (machine_class != VICE_MACHINE_VSID) {
         i = 0;
@@ -810,8 +958,12 @@ int video_resources_chip_init(const char *chipname,
 
         resources_chip_colors[0].factory_value = 1000; /* saturation */
         resources_chip_colors[1].factory_value = 1000; /* contrast */
+
+        /* TODO: perhaps we should not do this and let the user decide about
+           cranking up brightness/saturation/contrast if needed? */
+#if 1
         if (!strcmp(chipname, "VIC")) {
-            resources_chip_colors[0].factory_value = 1500; /* saturation */
+            resources_chip_colors[0].factory_value = 1250; /* saturation */
             resources_chip_colors[1].factory_value = 1250; /* contrast */
         } else if (!strcmp(chipname, "VICII")) {
             resources_chip_colors[0].factory_value = 1250; /* saturation */
@@ -819,10 +971,9 @@ int video_resources_chip_init(const char *chipname,
         } else if (!strcmp(chipname, "TED")) {
             resources_chip_colors[0].factory_value = 1250; /* saturation */
         } else if (!strcmp(chipname, "Crtc")) {
-            resources_chip_colors[0].factory_value = 1250; /* saturation */
             resources_chip_colors[1].factory_value = 1250; /* contrast */
         }
-
+#endif
         if (resources_register_int(resources_chip_colors) < 0) {
             return -1;
         }
@@ -836,12 +987,13 @@ int video_resources_chip_init(const char *chipname,
         set_color_saturation(1000, (void *)*canvas);
         set_color_contrast(1000, (void *)*canvas);
         set_color_brightness(1000, (void *)*canvas);
-        set_color_gamma(2200, (void *)*canvas);
+        set_color_gamma(1000, (void *)*canvas);
         set_color_tint(1000, (void *)*canvas);
     }
 
     /* crt emulation */
     if (machine_class != VICE_MACHINE_VSID) {
+        /* crt emulation */
         i = 0;
         while (vname_chip_crtemu[i]) {
             resources_chip_crtemu[i].name = util_concat(chipname, vname_chip_crtemu[i], NULL);
@@ -850,23 +1002,7 @@ int video_resources_chip_init(const char *chipname,
         }
         resources_chip_crtemu[0].value_ptr = &((*canvas)->videoconfig->video_resources.pal_scanlineshade);
         resources_chip_crtemu[1].value_ptr = &((*canvas)->videoconfig->video_resources.pal_blur);
-        resources_chip_crtemu[2].value_ptr = &((*canvas)->videoconfig->video_resources.pal_oddlines_phase);
-        resources_chip_crtemu[3].value_ptr = &((*canvas)->videoconfig->video_resources.pal_oddlines_offset);
-        resources_chip_crtemu[4].value_ptr = &((*canvas)->videoconfig->video_resources.delaylinetype);
-        resources_chip_crtemu[5].value_ptr = &((*canvas)->videoconfig->video_resources.audioleak);
-
-        resources_chip_crtemu[2].factory_value = 1000; /* oddlines phase */
-        resources_chip_crtemu[3].factory_value = 1000; /* oddlines offset */
-        if (!strcmp(chipname, "VIC")) {
-            resources_chip_crtemu[2].factory_value = 1125; /* oddlines phase */
-            resources_chip_crtemu[3].factory_value = 1125; /* oddlines offset */
-        } else if (!strcmp(chipname, "VICII")) {
-            resources_chip_crtemu[2].factory_value = 1250; /* oddlines phase */
-            resources_chip_crtemu[3].factory_value = 750; /* oddlines offset */
-        } else if (!strcmp(chipname, "TED")) {
-            resources_chip_crtemu[2].factory_value = 1250; /* oddlines phase */
-            resources_chip_crtemu[3].factory_value = 750; /* oddlines offset */
-        }
+        resources_chip_crtemu[2].value_ptr = &((*canvas)->videoconfig->video_resources.audioleak);
 
         if (resources_register_int(resources_chip_crtemu) < 0) {
             return -1;
@@ -877,13 +1013,52 @@ int video_resources_chip_init(const char *chipname,
             lib_free(resources_chip_crtemu[i].name);
             ++i;
         }
+
+        if (video_chip_cap->video_has_palntsc) {
+            /* PAL/NTSC emulation options */
+            i = 0;
+            while (vname_chip_crtemu_palntsc[i]) {
+                resources_chip_crtemu_palntsc[i].name = util_concat(chipname, vname_chip_crtemu_palntsc[i], NULL);
+                resources_chip_crtemu_palntsc[i].param = (void *)*canvas;
+                ++i;
+            }
+            resources_chip_crtemu_palntsc[0].value_ptr = &((*canvas)->videoconfig->video_resources.pal_oddlines_phase);
+            resources_chip_crtemu_palntsc[1].value_ptr = &((*canvas)->videoconfig->video_resources.pal_oddlines_offset);
+            resources_chip_crtemu_palntsc[2].value_ptr = &((*canvas)->videoconfig->video_resources.delaylinetype);
+
+            resources_chip_crtemu_palntsc[0].factory_value = 1000; /* oddlines phase */
+            resources_chip_crtemu_palntsc[1].factory_value = 1000; /* oddlines offset */
+#if 1
+            if (!strcmp(chipname, "VIC")) {
+                resources_chip_crtemu_palntsc[0].factory_value = 1125; /* oddlines phase */
+                resources_chip_crtemu_palntsc[1].factory_value = 1125; /* oddlines offset */
+            } else if (!strcmp(chipname, "VICII")) {
+                resources_chip_crtemu_palntsc[0].factory_value = 1250; /* oddlines phase */
+                resources_chip_crtemu_palntsc[1].factory_value = 750; /* oddlines offset */
+            } else if (!strcmp(chipname, "TED")) {
+                resources_chip_crtemu_palntsc[0].factory_value = 1250; /* oddlines phase */
+                resources_chip_crtemu_palntsc[1].factory_value = 750; /* oddlines offset */
+            }
+#endif
+            if (resources_register_int(resources_chip_crtemu_palntsc) < 0) {
+                return -1;
+            }
+
+            i = 0;
+            while (vname_chip_crtemu_palntsc[i]) {
+                lib_free(resources_chip_crtemu_palntsc[i].name);
+                ++i;
+            }
+        }
     } else {
+        /* crt emulation */
         set_pal_scanlineshade(1000, (void *)*canvas);
         set_pal_blur(0, (void *)*canvas);
+        set_audioleak(0, (void *)*canvas);
+        /* PAL/NTSC emulation options */
         set_pal_oddlinesphase(1000, (void *)*canvas);
         set_pal_oddlinesoffset(1000, (void *)*canvas);
         set_delaylinetype(0, (void *)*canvas);
-        set_audioleak(0, (void *)*canvas);
     }
 
     /* ${CHIP}Filter */
@@ -918,11 +1093,64 @@ int video_resources_chip_init(const char *chipname,
         lib_free(resources_chip_show_statusbar[0].name);
     }
 
+    /* Open GL options */
+#if defined(USE_SDLUI) || defined(USE_SDL2UI) || defined(USE_GTK3UI)
+    /* CHIPAspectMode, CHIPGLFilter, CHIPFlipX, CHIPFlipY, CHIPRotate */
+    if (machine_class != VICE_MACHINE_VSID) {
+        int res = 0;
+        i = 0;
+        while (vname_chip_gloptions_int[i] != NULL) {
+            resources_chip_gloptions_int[i].name
+                = util_concat(chipname, vname_chip_gloptions_int[i], NULL);
+            resources_chip_gloptions_int[i].param = (void *)*canvas;
+            ++i;
+        }
+
+        resources_chip_gloptions_int[0].value_ptr = &((*canvas)->videoconfig->aspect_mode);
+        resources_chip_gloptions_int[1].value_ptr = &((*canvas)->videoconfig->glfilter);
+        resources_chip_gloptions_int[2].value_ptr = &((*canvas)->videoconfig->flipx);
+        resources_chip_gloptions_int[3].value_ptr = &((*canvas)->videoconfig->flipy);
+        resources_chip_gloptions_int[4].value_ptr = &((*canvas)->videoconfig->rotate);
+        resources_chip_gloptions_int[5].value_ptr = &((*canvas)->videoconfig->vsync);
+
+        res = resources_register_int(resources_chip_gloptions_int);
+        i = 0;
+        while (vname_chip_gloptions_int[i] != NULL) {
+            lib_free(resources_chip_gloptions_int[i].name);
+            ++i;
+        }
+        if (res < 0) {
+            return -1;
+        }
+    }
+
+    /* CHIPAspectRatio */
+    if (machine_class != VICE_MACHINE_VSID) {
+        char buf[20];
+        resources_chip_gloptions_string[0].name
+            = util_concat(chipname, "AspectRatio", NULL);
+        /* KLUDGES: setup the factory default with a string, needs to be done at
+        runtime since float format depends on locale */
+        snprintf(buf, sizeof buf, "%f", 1.0f);
+        util_string_set(&((*canvas)->videoconfig->aspect_ratio_factory_value_s), buf);
+        resources_chip_gloptions_string[0].factory_value = ((*canvas)->videoconfig->aspect_ratio_factory_value_s);
+        resources_chip_gloptions_string[0].value_ptr
+            = &((*canvas)->videoconfig->aspect_ratio_s);
+        resources_chip_gloptions_string[0].param = *canvas;
+        if (resources_register_string(resources_chip_gloptions_string) < 0) {
+            lib_free(resources_chip_gloptions_string[0].name);
+            return -1;
+        }
+        lib_free(resources_chip_gloptions_string[0].name);
+    }
+#endif
     return 0;
 }
 
 void video_resources_chip_shutdown(struct video_canvas_s *canvas)
 {
+    lib_free(canvas->videoconfig->aspect_ratio_s);
+    lib_free(canvas->videoconfig->aspect_ratio_factory_value_s);
     lib_free(canvas->videoconfig->external_palette_name);
     lib_free(canvas->videoconfig->chip_name);
 

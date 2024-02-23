@@ -96,6 +96,9 @@
 #include "network.h"
 #include "ninja_snespad.h"
 #include "paperclip64.h"
+#include "paperclip64e.h"
+#include "paperclip64sc.h"
+#include "paperclip2.h"
 #include "parallel.h"
 #include "plus60k.h"
 #include "plus256k.h"
@@ -128,6 +131,8 @@
 #include "userport_dac.h"
 #include "userport_diag_586220_harness.h"
 #include "userport_digimax.h"
+#include "userport_hks_joystick.h"
+#include "userport_hummer_joystick.h"
 #include "userport_io_sim.h"
 #include "userport_joystick.h"
 #include "userport_petscii_snespad.h"
@@ -135,7 +140,9 @@
 #include "userport_rtc_ds1307.h"
 #include "userport_spt_joystick.h"
 #include "userport_superpad64.h"
+#include "userport_synergy_joystick.h"
 #include "userport_wic64.h"
+#include "userport_woj_joystick.h"
 #include "vdc.h"
 #include "vdc-mem.h"
 #include "vice-event.h"
@@ -374,6 +381,13 @@ static machine_timing_t machine_timing;
 
 /* ------------------------------------------------------------------------ */
 
+static int cia2_dump(void)
+{
+    return ciacore_dump(machine_context.cia2);
+}
+
+/* ------------------------------------------------------------------------ */
+
 /* C128-specific I/O initialization. */
 
 static io_source_t vicii_d000_device = {
@@ -482,7 +496,7 @@ static io_source_t vdc_d600_device = {
     "VDC",                 /* name of the chip */
     IO_DETACH_NEVER,       /* chip is never involved in collisions, so no detach */
     IO_DETACH_NO_RESOURCE, /* does not use a resource for detach */
-    0xd600, 0xd601, 0x01,  /* main SID registers $d400-$d41f */
+    0xd600, 0xd6ff, 0x01,  /* regs: $d600-$d601, mirrors: $d602-$d6ff */
     1,                     /* read is always valid */
     vdc_store,             /* store function */
     NULL,                  /* NO poke function */
@@ -492,7 +506,24 @@ static io_source_t vdc_d600_device = {
     IO_CART_ID_NONE,       /* not a cartridge */
     IO_PRIO_NORMAL,        /* high priority, mirrors never involved in collisions */
     0,                     /* insertion order, gets filled in by the registration function */
-    IO_MIRROR_NONE         /* this is not a mirror */
+    IO_MIRROR_MASK         /* contains mirrors, defined by mask */
+};
+
+static io_source_t cia2_dd00_device = {
+    "CIA2",                /* name of the chip */
+    IO_DETACH_NEVER,       /* chip is never involved in collisions, so no detach */
+    IO_DETACH_NO_RESOURCE, /* does not use a resource for detach */
+    0xdd00, 0xddff, 0x0f,  /* main CIA2 registers $dd00-$dd0f, mirrors: $dd10-$ddff */
+    1,                     /* read is always valid */
+    cia2_store,            /* store function */
+    NULL,                  /* NO poke function */
+    cia2_read,             /* read function */
+    cia2_peek,             /* peek function */
+    cia2_dump,             /* chip state information dump function */
+    IO_CART_ID_NONE,       /* not a cartridge */
+    IO_PRIO_HIGH,          /* high priority, mirrors never involved in collisions */
+    0,                     /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_MASK         /* contains mirrors, defined by mask */
 };
 
 static io_source_list_t *vicii_d000_list_item = NULL;
@@ -502,6 +533,7 @@ static io_source_list_t *vicii_d300_list_item = NULL;
 static io_source_list_t *sid_d400_list_item = NULL;
 static io_source_list_t *sid_d420_list_item = NULL;
 static io_source_list_t *vdc_d600_list_item = NULL;
+static io_source_list_t *cia2_dd00_list_item = NULL;
 
 void c64io_vicii_init(void)
 {
@@ -540,6 +572,7 @@ static void c128io_init(void)
     sid_d400_list_item = io_source_register(&sid_d400_device);
     sid_d420_list_item = io_source_register(&sid_d420_device);
     vdc_d600_list_item = io_source_register(&vdc_d600_device);
+    cia2_dd00_list_item = io_source_register(&cia2_dd00_device);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -551,6 +584,7 @@ static joyport_port_props_t control_port_1 =
     1,                  /* has lightpen support on this port */
     1,                  /* has joystick adapter on this port */
     1,                  /* has output support on this port */
+    1,                  /* has +5vdc line on this port */
     1                   /* port is always active */
 };
 
@@ -561,6 +595,7 @@ static joyport_port_props_t control_port_2 =
     0,                  /* has NO lightpen support on this port */
     1,                  /* has joystick adapter on this port */
     1,                  /* has output support on this port */
+    1,                  /* has +5vdc line on this port */
     1                   /* port is always active */
 };
 
@@ -571,6 +606,7 @@ static joyport_port_props_t joy_adapter_control_port_1 =
     0,                  /* has NO lightpen support on this port */
     0,                  /* has NO joystick adapter on this port */
     1,                  /* has output support on this port */
+    0,                  /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                   /* port can be switched on/off */
 };
 
@@ -581,6 +617,7 @@ static joyport_port_props_t joy_adapter_control_port_2 =
     0,                  /* has NO lightpen support on this port */
     0,                  /* has NO joystick adapter on this port */
     1,                  /* has output support on this port */
+    0,                  /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                   /* port can be switched on/off */
 };
 
@@ -591,6 +628,7 @@ static joyport_port_props_t joy_adapter_control_port_3 =
     0,                  /* has NO lightpen support on this port */
     0,                  /* has NO joystick adapter on this port */
     1,                  /* has output support on this port */
+    0,                  /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                   /* port can be switched on/off */
 };
 
@@ -601,6 +639,7 @@ static joyport_port_props_t joy_adapter_control_port_4 =
     0,                  /* has NO lightpen support on this port */
     0,                  /* has NO joystick adapter on this port */
     1,                  /* has output support on this port */
+    0,                  /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                   /* port can be switched on/off */
 };
 
@@ -611,6 +650,7 @@ static joyport_port_props_t joy_adapter_control_port_5 =
     0,                  /* has NO lightpen support on this port */
     0,                  /* has NO joystick adapter on this port */
     1,                  /* has output support on this port */
+    0,                  /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                   /* port can be switched on/off */
 };
 
@@ -621,6 +661,7 @@ static joyport_port_props_t joy_adapter_control_port_6 =
     0,                  /* has NO lightpen support on this port */
     0,                  /* has NO joystick adapter on this port */
     1,                  /* has output support on this port */
+    0,                  /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                   /* port can be switched on/off */
 };
 
@@ -631,6 +672,7 @@ static joyport_port_props_t joy_adapter_control_port_7 =
     0,                  /* has NO lightpen support on this port */
     0,                  /* has NO joystick adapter on this port */
     1,                  /* has output support on this port */
+    0,                  /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                   /* port can be switched on/off */
 };
 
@@ -641,6 +683,7 @@ static joyport_port_props_t joy_adapter_control_port_8 =
     0,                  /* has NO lightpen support on this port */
     0,                  /* has NO joystick adapter on this port */
     1,                  /* has output support on this port */
+    0,                  /* default for joystick adapter ports is NO +5vdc line on this port, can be changed by the joystick adapter when activated */
     0                   /* port can be switched on/off */
 };
 
@@ -746,58 +789,6 @@ int machine_resources_init(void)
         init_resource_fail("joyport devices");
         return -1;
     }
-    if (joyport_sampler2bit_resources_init() < 0) {
-        init_resource_fail("joyport 2bit sampler");
-        return -1;
-    }
-    if (joyport_sampler4bit_resources_init() < 0) {
-        init_resource_fail("joyport 4bit sampler");
-        return -1;
-    }
-    if (joyport_bbrtc_resources_init() < 0) {
-        init_resource_fail("joyport bbrtc");
-        return -1;
-    }
-    if (joyport_paperclip64_resources_init() < 0) {
-        init_resource_fail("joyport paperclip64 dongle");
-        return -1;
-    }
-    if (joyport_script64_dongle_resources_init() < 0) {
-        init_resource_fail("joyport script64 dongle");
-        return -1;
-    }
-    if (joyport_vizawrite64_dongle_resources_init() < 0) {
-        init_resource_fail("joyport vizawrite64 dongle");
-        return -1;
-    }
-    if (joyport_waasoft_dongle_resources_init() <0) {
-        init_resource_fail("joyport waasoft dongle");
-        return -1;
-    }
-    if (joyport_trapthem_snespad_resources_init() < 0) {
-        init_resource_fail("joyport trapthem snespad");
-        return -1;
-    }
-    if (joyport_ninja_snespad_resources_init() < 0) {
-        init_resource_fail("joyport ninja snespad");
-        return -1;
-    }
-    if (joyport_protopad_resources_init() < 0) {
-        init_resource_fail("joyport protopad");
-        return -1;
-    }
-    if (joyport_spaceballs_resources_init() < 0) {
-        init_resource_fail("joyport spaceballs");
-        return -1;
-    }
-    if (joyport_inception_resources_init() < 0) {
-        init_resource_fail("joyport inception");
-        return -1;
-    }
-    if (joyport_multijoy_resources_init() < 0) {
-        init_resource_fail("joyport multijoy");
-        return -1;
-    }
     if (joystick_resources_init() < 0) {
         init_resource_fail("joystick");
         return -1;
@@ -848,12 +839,6 @@ int machine_resources_init(void)
     }
 #endif
 #ifdef HAVE_MOUSE
-#ifdef HAVE_LIGHTPEN
-    if (lightpen_resources_init() < 0) {
-        init_resource_fail("lightpen");
-        return -1;
-    }
-#endif
     if (mouse_resources_init() < 0) {
         init_resource_fail("mouse");
         return -1;
@@ -907,6 +892,10 @@ int machine_resources_init(void)
         init_resource_fail("userport synergy joystick");
         return -1;
     }
+    if (userport_joystick_woj_resources_init() < 0) {
+        init_resource_fail("userport woj joystick");
+        return -1;
+    }
     if (userport_spt_joystick_resources_init() < 0) {
         init_resource_fail("userport stupid pet tricks joystick");
         return -1;
@@ -948,6 +937,8 @@ int machine_resources_init(void)
         init_resource_fail("userport diag 586220 harness");
         return -1;
     }
+#endif
+#ifdef HAVE_LIBCURL
     if (userport_wic64_resources_init() < 0) {
         init_resource_fail("userport wic64");
         return -1;
@@ -955,10 +946,6 @@ int machine_resources_init(void)
 #endif
     if (userport_io_sim_resources_init() < 0) {
         init_resource_fail("userport I/O simulation");
-        return -1;
-    }
-    if (joyport_io_sim_resources_init() < 0) {
-        init_resource_fail("joyport I/O simulation");
         return -1;
     }
     if (cartio_resources_init() < 0) {
@@ -993,13 +980,16 @@ void machine_resources_shutdown(void)
     rombanks_resources_shutdown();
     userport_rtc_58321a_resources_shutdown();
     userport_rtc_ds1307_resources_shutdown();
+#ifdef HAVE_LIBCURL
+    userport_wic64_resources_shutdown();
+#endif
     cartio_shutdown();
     fsdevice_resources_shutdown();
     disk_image_resources_shutdown();
     sampler_resources_shutdown();
-    joyport_bbrtc_resources_shutdown();
     tapeport_resources_shutdown();
     tapecart_exit();
+    joyport_resources_shutdown();
 }
 
 /* C128-specific command-line option initialization.  */
@@ -1047,10 +1037,6 @@ int machine_cmdline_options_init(void)
     }
     if (joyport_cmdline_options_init() < 0) {
         init_cmdline_options_fail("joyport");
-        return -1;
-    }
-    if (joyport_bbrtc_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("bbrtc");
         return -1;
     }
     if (joystick_cmdline_options_init() < 0) {
@@ -1143,6 +1129,12 @@ int machine_cmdline_options_init(void)
         init_cmdline_options_fail("userport rtc (ds1307)");
         return -1;
     }
+#ifdef HAVE_LIBCURL
+    if (userport_wic64_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("userport wic64");
+        return -1;
+    }
+#endif
     if (cartio_cmdline_options_init() < 0) {
         init_cmdline_options_fail("cartio");
         return -1;
@@ -1172,6 +1164,9 @@ static void c128_monitor_init(void)
 
     /* Initialize the monitor.  */
     monitor_init(maincpu_monitor_interface_get(), drive_interface_init, asmarray);
+
+    /* Set the monitor to be in Z80 mode initially */
+    monitor_cpu_type_set_value(CPU_Z80);
 }
 
 void machine_setup_context(void)
@@ -1461,7 +1456,7 @@ void machine_get_line_cycle(unsigned int *line, unsigned int *cycle, int *half_c
     *half_cycle = vicii_get_half_cycle();
 }
 
-void machine_change_timing(int timeval, int border_mode)
+void machine_change_timing(int timeval, int powerfreq, int border_mode)
 {
     switch (timeval) {
         case MACHINE_SYNC_PAL:
@@ -1470,7 +1465,7 @@ void machine_change_timing(int timeval, int border_mode)
             machine_timing.rfsh_per_sec = C128_PAL_RFSH_PER_SEC;
             machine_timing.cycles_per_line = C128_PAL_CYCLES_PER_LINE;
             machine_timing.screen_lines = C128_PAL_SCREEN_LINES;
-            machine_timing.power_freq = 50;
+            machine_timing.power_freq = powerfreq;
             break;
         case MACHINE_SYNC_NTSC:
             machine_timing.cycles_per_sec = C128_NTSC_CYCLES_PER_SEC;
@@ -1478,7 +1473,7 @@ void machine_change_timing(int timeval, int border_mode)
             machine_timing.rfsh_per_sec = C128_NTSC_RFSH_PER_SEC;
             machine_timing.cycles_per_line = C128_NTSC_CYCLES_PER_LINE;
             machine_timing.screen_lines = C128_NTSC_SCREEN_LINES;
-            machine_timing.power_freq = 60;
+            machine_timing.power_freq = powerfreq;
             break;
         default:
             log_error(c128_log, "Unknown machine timing.");
@@ -1507,7 +1502,7 @@ void machine_change_timing(int timeval, int border_mode)
 
     rsuser_change_timing(machine_timing.cycles_per_sec);
 
-    machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+    machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
 }
 
 /* ------------------------------------------------------------------------- */

@@ -129,7 +129,7 @@ static unsigned int vdrive_rel_blocks_max(vdrive_t *vdrive)
             /* CMD HD 1.92: 65216 free blocks: 64676 "logically allocatable"
                89 side sector groups + 5 side sectors + super side sector */
             /* drive only lets file get up to 64672 blocks of data; needs 4 blocks free */
-            /* drive algorithm has problems calculating the maximum on growth */            
+            /* drive algorithm has problems calculating the maximum on growth */
             /* maximum = 64676 + 89 * 6 + 5 + 1 */
             maximum = 64672 + 89 * 6 + 5 + 1;
             break;
@@ -1294,7 +1294,7 @@ int vdrive_rel_read(vdrive_t *vdrive, uint8_t *data, unsigned int secondary)
                 if (p->mode == BUFFER_COMMAND_CHANNEL) {
                     log_error(vdrive_rel_log,
                               "Disk read  %u [%02d %02d] data %02x (%c).",
-                              p->mode, 0, 0, *data, (isprint(*data)
+                              p->mode, 0, 0, *data, (isprint((unsigned char)*data)
                                                      ? *data : '.'));
                 }
     #endif
@@ -1462,7 +1462,7 @@ int vdrive_rel_write(vdrive_t *vdrive, uint8_t data, unsigned int secondary)
             if (p->mode == BUFFER_COMMAND_CHANNEL) {
                 log_error(vdrive_rel_log,
                           "Disk read  %u [%02d %02d] data %02x (%c).",
-                          p->mode, 0, 0, data, (isprint(data)
+                          p->mode, 0, 0, data, (isprint((unsigned char)data)
                                                 ? data : '.'));
             }
 #endif

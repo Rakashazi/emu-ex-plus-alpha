@@ -29,8 +29,8 @@
 
 #include "types.h"
 
-extern int joyport_bbrtc_resources_init(void);
-extern void joyport_bbrtc_resources_shutdown(void);
-extern int joyport_bbrtc_cmdline_options_init(void);
+int joyport_bbrtc_resources_init(void);
+void joyport_bbrtc_resources_shutdown(void);
+int joyport_bbrtc_cmdline_options_init(void);
 
 #endif

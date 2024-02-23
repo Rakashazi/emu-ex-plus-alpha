@@ -31,13 +31,13 @@
 
 struct diskunit_context_s;
 
-extern int stardos_exp_cmdline_options_init(void);
+int stardos_exp_cmdline_options_init(void);
 
-extern void stardos_exp_init(struct diskunit_context_s *drv);
-extern void stardos_exp_reset(struct diskunit_context_s *drv);
+void stardos_exp_init(struct diskunit_context_s *drv);
+void stardos_exp_reset(struct diskunit_context_s *drv);
 
-extern int stardos_exp_load(const char *name);
+int stardos_exp_load(const char *name);
 
-extern void stardos_exp_mem_init(struct diskunit_context_s *drv, unsigned int type);
+void stardos_exp_mem_init(struct diskunit_context_s *drv, unsigned int type);
 
 #endif

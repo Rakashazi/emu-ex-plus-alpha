@@ -67,9 +67,9 @@ struct opencbmlib_s {
 
 typedef struct opencbmlib_s opencbmlib_t;
 
-extern int opencbmlib_open(opencbmlib_t *opencbmlib);
-extern void opencbmlib_close(void);
-extern unsigned int opencbmlib_is_available(void);
+int opencbmlib_open(opencbmlib_t *opencbmlib);
+void opencbmlib_close(void);
+unsigned int opencbmlib_is_available(void);
 
 #endif
 

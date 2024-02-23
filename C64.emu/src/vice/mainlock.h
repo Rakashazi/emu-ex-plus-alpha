@@ -65,6 +65,8 @@ bool mainlock_is_vice_thread(void);
 #define mainlock_obtain()
 #define mainlock_release()
 
+#define mainlock_is_vice_thread() (true)
+
 #define mainlock_assert_is_not_vice_thread()
 #define mainlock_assert_is_vice_thread()
 

@@ -158,7 +158,7 @@ uint8_t charset_p_toascii(uint8_t c, int mode)
         return (uint8_t)((c - 0x41) + 'a');
     }
 
-    return ((isprint(c) ? c : ASCII_UNMAPPED));
+    return ((isprint((unsigned char)c) ? c : ASCII_UNMAPPED));
 }
 
 /*
@@ -385,7 +385,7 @@ char * charset_hexstring_to_byte(char *source, char *destination)
 
         if (c >= 'A' && c <= 'F') {
             value += c - 'A';
-        } else if (isdigit((int)c)) {
+        } else if (isdigit((unsigned char)c)) {
             value += c - '0';
         } else {
             break;

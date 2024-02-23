@@ -186,7 +186,8 @@ static io_source_t finalexpansion_device = {
     finalexpansion_mon_dump,              /* device state information dump function */
     CARTRIDGE_VIC20_FINAL_EXPANSION,      /* cartridge ID */
     IO_PRIO_NORMAL,                       /* normal priority, device read needs to be checked for collisions */
-    0                                     /* insertion order, gets filled in by the registration function */
+    0,                                    /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                        /* NO mirroring */
 };
 
 static io_source_list_t *finalexpansion_list_item = NULL;
@@ -1015,6 +1016,8 @@ static void finalexpansion_mon_dump_blk(int blk)
         case MODE_SUPER_ROM:
 #ifdef FE3_2_SUPER_ROM_BUG
             bank_w = 1 | (register_a & REGA_BANK_MASK);
+#else
+            bank_w = 1;
 #endif
             acc_mode_r = ACC_FLASH;
             acc_mode_w = ACC_RAM;

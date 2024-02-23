@@ -29,26 +29,26 @@
 
 #include "types.h"
 
-extern uint8_t supersnapshot_v5_roml_read(uint16_t addr);
-extern void supersnapshot_v5_roml_store(uint16_t addr, uint8_t value);
-extern void supersnapshot_v5_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
+uint8_t supersnapshot_v5_roml_read(uint16_t addr);
+void supersnapshot_v5_roml_store(uint16_t addr, uint8_t value);
+void supersnapshot_v5_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
 
-extern void supersnapshot_v5_freeze(void);
+void supersnapshot_v5_freeze(void);
 
-extern void supersnapshot_v5_config_init(void);
-extern void supersnapshot_v5_config_setup(uint8_t *rawcart);
-extern int supersnapshot_v5_bin_attach(const char *filename, uint8_t *rawcart);
-extern int supersnapshot_v5_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void supersnapshot_v5_detach(void);
-extern void supersnapshot_v5_powerup(void);
+void supersnapshot_v5_config_init(void);
+void supersnapshot_v5_config_setup(uint8_t *rawcart);
+int supersnapshot_v5_bin_attach(const char *filename, uint8_t *rawcart);
+int supersnapshot_v5_crt_attach(FILE *fd, uint8_t *rawcart);
+void supersnapshot_v5_detach(void);
+void supersnapshot_v5_powerup(void);
 
-extern int supersnapshot_v5_resources_init(void);
-extern void supersnapshot_v5_resources_shutdown(void);
-extern int supersnapshot_v5_cmdline_options_init(void);
+int supersnapshot_v5_resources_init(void);
+void supersnapshot_v5_resources_shutdown(void);
+int supersnapshot_v5_cmdline_options_init(void);
 
 struct snapshot_s;
 
-extern int supersnapshot_v5_snapshot_write_module(struct snapshot_s *s);
-extern int supersnapshot_v5_snapshot_read_module(struct snapshot_s *s);
+int supersnapshot_v5_snapshot_write_module(struct snapshot_s *s);
+int supersnapshot_v5_snapshot_read_module(struct snapshot_s *s);
 
 #endif

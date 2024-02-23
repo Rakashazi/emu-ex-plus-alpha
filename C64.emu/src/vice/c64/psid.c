@@ -195,16 +195,16 @@ static const cmdline_option_t cmdline_options[] =
     { "-tune", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cmdline_psid_tune, NULL, NULL, NULL,
       "<number>", "Specify PSID tune <number>" },
-    { "-kernal", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+    { "-kernal", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "KernalName", NULL,
       "<Name>", "Specify name of Kernal ROM image" },
-    { "-basic", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+    { "-basic", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "BasicName", NULL,
       "<Name>", "Specify name of BASIC ROM image" },
-    { "-chargen", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+    { "-chargen", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "ChargenName", NULL,
       "<Name>", "Specify name of character generator ROM image" },
-    { "-kernalrev", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
+    { "-kernalrev", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       set_kernal_revision, NULL, NULL, NULL,
       "<Revision>", "Patch the Kernal ROM to the specified <revision> "
       "(0/jap: japanese 1: rev. 1, 2: rev. 2, 3: rev. 3, 39/gs: C64 GS, 67/sx: sx64, 100/4064: 4064)" },
@@ -598,7 +598,7 @@ int psid_ui_set_tune(int tune, void *param)
 
     psid_set_tune(psid_tune);
     vsync_suspend_speed_eval();
-    machine_trigger_reset(MACHINE_RESET_MODE_SOFT);
+    machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
 
     return 0;
 }

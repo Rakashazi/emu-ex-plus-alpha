@@ -376,6 +376,50 @@ int fsimage_create_dxm(const char *name, const char *diskname, unsigned int type
     return rc;
 }
 
+/** \brief  Create a DHD (hard)disk image on the host file system
+ *
+ * This handles CMD HD (hard)disk images supported by VICE.
+ *
+ * FIXME: Right now this simply creates a zero-byte file, which then has to be
+ *        partitioned/formatted using the CMD tools.
+ *
+ * FIXME: Once creating formatted images was implemented, the type and number
+ *        of params passed to this function perhaps needs to be adjusted. In
+ *        that case make sure to fix them the entire call chain. Maybe even the
+ *        UIs will have to be updated so extra parameters can be provided.
+ *
+ * \param[in]   name      disk image name/path
+ * \param[in]   diskname  disk name and id
+ * \param[in]   type      disk image type
+ *
+ * \return  0 on success, < 0 on failure
+ */
+int fsimage_create_dhd(const char *name, const char *diskname, unsigned int type)
+{
+    FILE *fd = NULL;
+    int rc = 0;
+
+    fd = fopen(name, MODE_WRITE);
+
+    if (fd == NULL) {
+        log_error(createdisk_log, "Cannot create hard disk image `%s'.", name);
+        return -1;
+    }
+
+    switch (type) {
+        case DISK_IMAGE_TYPE_DHD:
+            break;
+        default:
+            log_error(createdisk_log,
+                      "Wrong image type.  Cannot create hard disk image.");
+            return -1;
+    }
+
+    fclose(fd);
+
+    return rc;
+}
+
 /** \brief  Create a G64 disk image on the host file system
  *
  * \param[in,out]   image   disk image

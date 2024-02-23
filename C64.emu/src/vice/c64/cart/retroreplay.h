@@ -30,6 +30,8 @@
 #endif
 #endif
 
+#ifdef CARTRIDGE_INCLUDE_PRIVATE_API
+
 #ifndef VICE_RETROREPLAY_H
 #define VICE_RETROREPLAY_H
 
@@ -39,40 +41,46 @@
 
 struct snapshot_s;
 
+uint8_t retroreplay_roml_read(uint16_t addr);
+void retroreplay_roml_store(uint16_t addr, uint8_t value);
+uint8_t retroreplay_a000_bfff_read(uint16_t addr);
+void retroreplay_a000_bfff_store(uint16_t addr, uint8_t value);
+int retroreplay_roml_no_ultimax_store(uint16_t addr, uint8_t value);
+uint8_t retroreplay_romh_read(uint16_t addr);
+void retroreplay_romh_store(uint16_t addr, uint8_t value);
+int retroreplay_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
+void retroreplay_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
+
+void retroreplay_freeze(void);
+int retroreplay_freeze_allowed(void);
+
+void retroreplay_config_init(void);
+void retroreplay_reset(void);
+void retroreplay_config_setup(uint8_t *rawcart);
+int retroreplay_bin_attach(const char *filename, uint8_t *rawcart);
+int retroreplay_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename, uint8_t revision);
+int retroreplay_bin_save(const char *filename);
+int retroreplay_crt_save(const char *filename);
+int retroreplay_flush_image(void);
+void retroreplay_detach(void);
+void retroreplay_powerup(void);
+
+int retroreplay_cart_enabled(void);
+
+int retroreplay_cmdline_options_init(void);
+int retroreplay_resources_init(void);
+void retroreplay_resources_shutdown(void);
+
+int retroreplay_snapshot_write_module(struct snapshot_s *s);
+int retroreplay_snapshot_read_module(struct snapshot_s *s);
+
+#endif  /* VICE_RETROREPLAY_H */
+#endif  /* CARTRIDGE_INCLUDE_PRIVATE_API */
+
+#ifndef VICE_RETROREPLAY_PUBLIC_H
+#define VICE_RETROREPLAY_PUBLIC_H
+
 #define RR_REV_RETRO_REPLAY  0
 #define RR_REV_NORDIC_REPLAY 1
 
-extern uint8_t retroreplay_roml_read(uint16_t addr);
-extern void retroreplay_roml_store(uint16_t addr, uint8_t value);
-extern uint8_t retroreplay_a000_bfff_read(uint16_t addr);
-extern void retroreplay_a000_bfff_store(uint16_t addr, uint8_t value);
-extern int retroreplay_roml_no_ultimax_store(uint16_t addr, uint8_t value);
-extern uint8_t retroreplay_romh_read(uint16_t addr);
-extern void retroreplay_romh_store(uint16_t addr, uint8_t value);
-extern int retroreplay_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
-extern void retroreplay_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
-
-extern void retroreplay_freeze(void);
-extern int retroreplay_freeze_allowed(void);
-
-extern void retroreplay_config_init(void);
-extern void retroreplay_reset(void);
-extern void retroreplay_config_setup(uint8_t *rawcart);
-extern int retroreplay_bin_attach(const char *filename, uint8_t *rawcart);
-extern int retroreplay_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename, uint8_t revision);
-extern int retroreplay_bin_save(const char *filename);
-extern int retroreplay_crt_save(const char *filename);
-extern int retroreplay_flush_image(void);
-extern void retroreplay_detach(void);
-extern void retroreplay_powerup(void);
-
-extern int retroreplay_cart_enabled(void);
-
-extern int retroreplay_cmdline_options_init(void);
-extern int retroreplay_resources_init(void);
-extern void retroreplay_resources_shutdown(void);
-
-extern int retroreplay_snapshot_write_module(struct snapshot_s *s);
-extern int retroreplay_snapshot_read_module(struct snapshot_s *s);
-
-#endif
+#endif  /* VICE_RETROREPLAY_PUBLIC_H */

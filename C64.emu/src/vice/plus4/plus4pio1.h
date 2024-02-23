@@ -30,9 +30,9 @@
 
 #include "types.h"
 
-extern uint8_t pio1_read(uint16_t addr);
-extern void pio1_store(uint16_t addr, uint8_t value);
+uint8_t pio1_read(uint16_t addr);
+void pio1_store(uint16_t addr, uint8_t value);
 
-extern void pio1_set_tape_sense(int sense);
+void pio1_set_tape_sense(int sense);
 
 #endif

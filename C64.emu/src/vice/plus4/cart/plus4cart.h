@@ -32,8 +32,10 @@
 
 /* Cartridge ROM limit = 4MB */
 #define PLUS4CART_ROM_LIMIT (1024 * 1024 * 4)
+
 /* Cartridge RAM limit = 32kB */
 #define PLUS4CART_RAM_LIMIT (32 * 1024)
+
 /* maximum size of a full "all inclusive" cartridge image */
 #define PLUS4CART_IMAGE_LIMIT (PLUS4CART_ROM_LIMIT + PLUS4CART_RAM_LIMIT)
 
@@ -41,8 +43,8 @@
 #define PLUS4_C1HI_ROM_SIZE (16 * 0x400)
 
 /* expansion port access functions */
-extern uint8_t plus4cart_c1lo_read(uint16_t addr);
-extern uint8_t plus4cart_c1hi_read(uint16_t addr);
+uint8_t plus4cart_c1lo_read(uint16_t addr);
+uint8_t plus4cart_c1hi_read(uint16_t addr);
 
 /* FIXME: these live in plus4-generic.c */
 /* FIXME: we need this because of a reference in plus4mem.c that should be

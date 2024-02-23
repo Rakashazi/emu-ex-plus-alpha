@@ -32,16 +32,16 @@
 
 #include "types.h"
 
-extern void final_v3_freeze(void);
-extern void final_v3_config_init(void);
-extern void final_v3_config_setup(uint8_t *rawcart);
-extern int final_v3_bin_attach(const char *filename, uint8_t *rawcart);
-extern int final_v3_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void final_v3_detach(void);
+void final_v3_freeze(void);
+void final_v3_config_init(void);
+void final_v3_config_setup(uint8_t *rawcart);
+int final_v3_bin_attach(const char *filename, uint8_t *rawcart);
+int final_v3_crt_attach(FILE *fd, uint8_t *rawcart);
+void final_v3_detach(void);
 
 struct snapshot_s;
 
-extern int final_v3_snapshot_write_module(struct snapshot_s *s);
-extern int final_v3_snapshot_read_module(struct snapshot_s *s);
+int final_v3_snapshot_write_module(struct snapshot_s *s);
+int final_v3_snapshot_read_module(struct snapshot_s *s);
 
 #endif

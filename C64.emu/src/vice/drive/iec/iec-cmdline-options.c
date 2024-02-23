@@ -42,7 +42,7 @@ static const cmdline_option_t cmdline_options[] =
       NULL, NULL, "DosName1541", NULL,
       "<Name>", "Specify name of 1541 DOS ROM image" },
     { "-dos1541II", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
-      NULL, NULL, "DosName1541II", NULL,
+      NULL, NULL, "DosName1541ii", NULL,
       "<Name>", "Specify name of 1541-II DOS ROM image" },
     { "-dos1570", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "DosName1570", NULL,
@@ -99,7 +99,7 @@ static cmdline_option_t cmd_drive[] =
       NULL, "Disable 8KiB RAM expansion at $A000-$BFFF" },
     { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, NULL, NULL,
-      NULL, "Fixed Disk Size" },
+      "<Size>", "Fixed Disk Size" },
     CMDLINE_LIST_END
 };
 

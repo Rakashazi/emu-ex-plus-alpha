@@ -51,6 +51,7 @@
 #include "util.h"
 #include "crt.h"
 #include "log.h"
+#include "vicii-phi1.h"
 
 /*
     Black BOX 9
@@ -59,19 +60,26 @@
       - starts from bank 1 in ultimax mode
     - cart ROM mirror is visible in IO1
 
-    a register is mapped to IO1, which is changed by accessing an address in
+    A register is mapped to IO1, which is changed by accessing an address in
     the IO space, the address bits are mapped like this:
 
     bit 7   -   bank    (inverted on write)
     bit 6   -   exrom
     bit 0   -   game
 
+    GUESS: The register will be disabled (until reset) when the following
+           conditions are met:
+
+    - read from io1
+    - addr bit 7 is 0
+    - addr bit 6 is 1
+    - addr bit 0 is 1
 */
 
 /* #define BB9DEBUG */
 
 #ifdef BB9DEBUG
-#define DBG(x) printf x
+#define DBG(x) log_debug x
 #else
 #define DBG(x)
 #endif
@@ -95,7 +103,8 @@ static io_source_t io1_device = {
     blackbox9_dump,           /* device state information dump function */
     CARTRIDGE_BLACKBOX9,      /* cartridge ID */
     IO_PRIO_NORMAL,           /* normal priority, device read needs to be checked for collisions */
-    0                         /* insertion order, gets filled in by the registration function */
+    0,                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE            /* NO mirroring */
 };
 
 static io_source_list_t *io1_list_item = NULL;
@@ -108,6 +117,7 @@ static const export_resource_t export_res = {
 
 static int currbank = 0;
 static int currmode = 0;
+static int cart_enabled = 0;
 
 static uint8_t blackbox9_io1_peek(uint16_t addr)
 {
@@ -116,24 +126,44 @@ static uint8_t blackbox9_io1_peek(uint16_t addr)
 
 static uint8_t blackbox9_io1_read(uint16_t addr)
 {
-    currbank = (addr >> 7) & 1;
-    currmode = ((addr >> 5) & 2) | ((addr & 1) ^ 1);
-
-    cart_config_changed_slotmain(CMODE_RAM, (currbank << CMODE_BANK_SHIFT) | currmode, CMODE_READ);
-    return roml_banks[0x1e00 + (roml_bank << 13) + (addr & 0xff)];
+    if (cart_enabled) {
+        currbank = (addr >> 7) & 1;
+        currmode = ((addr >> 5) & 2) | ((addr & 1) ^ 1);
+        /* weird hack to prevent ultimax mode in the powerup screen */
+        if ((currmode == CMODE_ULTIMAX) && ((addr & 0x40) == 0x40) && ((addr & 0x01) == 0x00)) {
+            DBG(("ultimax mode ignored"));
+        } else {
+            cart_config_changed_slotmain(CMODE_RAM, (currbank << CMODE_BANK_SHIFT) | currmode, CMODE_READ);
+        }
+        if (addr == 0x41) {
+            cart_enabled = 0;
+            DBG(("disabling cart"));
+        }
+#if 0
+        if ((addr != 0x41) && ((currbank == 0) && (currmode == 3))) {
+            DBG(("IO1 read  %04x value:%02x  bank:%d mode:%d",
+                 addr, roml_banks[0x1e00 + (roml_bank << 13) + (addr & 0xff)], currbank, currmode));
+        }
+#endif
+        return roml_banks[0x1e00 + (roml_bank << 13) + (addr & 0xff)];
+    }
+    return vicii_read_phi1();
 }
 
 void blackbox9_io1_store(uint16_t addr, uint8_t val)
 {
-    currbank = ((addr >> 7) & 1) ^ 1;
-    currmode = ((addr >> 5) & 2) | ((addr & 1) ^ 1);
-
-    cart_config_changed_slotmain(CMODE_RAM, (currbank << CMODE_BANK_SHIFT) | currmode, CMODE_WRITE);
+    if (cart_enabled) {
+        currbank = ((addr >> 7) & 1) ^ 1;
+        currmode = ((addr >> 5) & 2) | ((addr & 1) ^ 1);
+        DBG(("IO1 store %04x val:%02x bank:%d mode:%d", addr, val, currbank, currmode));
+        cart_config_changed_slotmain(CMODE_RAM, (currbank << CMODE_BANK_SHIFT) | currmode, CMODE_WRITE);
+    }
 }
 
 static int blackbox9_dump(void)
 {
     mon_out("current mode: %s\n", cart_config_string(currmode));
+    mon_out("IO  at $DE00-$DEFF: %s\n", cart_enabled ? "enabled" : "disabled");
     mon_out("ROM at $8000-$BFFF: %s\n", (currmode != CMODE_RAM) ? "enabled" : "disabled");
     mon_out("ROM bank: %d\n", currbank);
     return 0;
@@ -142,14 +172,17 @@ static int blackbox9_dump(void)
 /* ---------------------------------------------------------------------*/
 void blackbox9_config_init(void)
 {
+    DBG(("blackbox9_config_init"));
     currmode = CMODE_ULTIMAX;
     currbank = 1;
+    cart_enabled = 1;
     cart_config_changed_slotmain(CMODE_RAM, currmode | 1 << CMODE_BANK_SHIFT, CMODE_READ);
 }
 
 void blackbox9_config_setup(uint8_t *rawcart)
 {
     int i;
+    DBG(("blackbox9_config_setup"));
     for (i = 0; i <= 2; i++) {
         memcpy(&roml_banks[0x2000 * i], &rawcart[0x0000 + (0x4000 * i)], 0x2000);
         memcpy(&romh_banks[0x2000 * i], &rawcart[0x2000 + (0x4000 * i)], 0x2000);
@@ -157,6 +190,7 @@ void blackbox9_config_setup(uint8_t *rawcart)
 
     currmode = CMODE_ULTIMAX;
     currbank = 1;
+    cart_enabled = 1;
     cart_config_changed_slotmain(CMODE_RAM, currmode | 1 << CMODE_BANK_SHIFT, CMODE_READ);
 }
 

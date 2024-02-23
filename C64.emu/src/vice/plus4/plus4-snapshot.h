@@ -27,8 +27,7 @@
 #ifndef VICE_PLUS4_SNAPSHOT_H
 #define VICE_PLUS4_SNAPSHOT_H
 
-extern int plus4_snapshot_write(const char *name, int save_roms, int save_disks,
-                                int event_mode);
-extern int plus4_snapshot_read(const char *name, int event_mode);
+int plus4_snapshot_write(const char *name, int save_roms, int save_disks, int event_mode);
+int plus4_snapshot_read(const char *name, int event_mode);
 
 #endif

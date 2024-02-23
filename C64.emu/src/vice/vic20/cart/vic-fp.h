@@ -31,32 +31,34 @@
 
 #include "types.h"
 
-extern uint8_t vic_fp_ram123_read(uint16_t addr);
-extern void vic_fp_ram123_store(uint16_t addr, uint8_t value);
-extern uint8_t vic_fp_blk1_read(uint16_t addr);
-extern void vic_fp_blk1_store(uint16_t addr, uint8_t value);
-extern uint8_t vic_fp_blk23_read(uint16_t addr);
-extern void vic_fp_blk23_store(uint16_t addr, uint8_t value);
-extern uint8_t vic_fp_blk5_read(uint16_t addr);
-extern void vic_fp_blk5_store(uint16_t addr, uint8_t value);
+uint8_t vic_fp_ram123_read(uint16_t addr);
+void vic_fp_ram123_store(uint16_t addr, uint8_t value);
+uint8_t vic_fp_blk1_read(uint16_t addr);
+void vic_fp_blk1_store(uint16_t addr, uint8_t value);
+uint8_t vic_fp_blk23_read(uint16_t addr);
+void vic_fp_blk23_store(uint16_t addr, uint8_t value);
+uint8_t vic_fp_blk5_read(uint16_t addr);
+void vic_fp_blk5_store(uint16_t addr, uint8_t value);
 
-extern void vic_fp_init(void);
-extern void vic_fp_reset(void);
-extern void vic_fp_powerup(void);
+void vic_fp_init(void);
+void vic_fp_reset(void);
+void vic_fp_powerup(void);
 
-extern void vic_fp_config_setup(uint8_t *rawcart);
-extern int vic_fp_bin_attach(const char *filename);
-/* extern int vic_fp_bin_attach(const char *filename, uint8_t *rawcart); */
-extern int vic_fp_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void vic_fp_detach(void);
+void vic_fp_config_setup(uint8_t *rawcart);
+int vic_fp_bin_attach(const char *filename);
 
-extern int vic_fp_resources_init(void);
-extern void vic_fp_resources_shutdown(void);
-extern int vic_fp_cmdline_options_init(void);
+/* int vic_fp_bin_attach(const char *filename, uint8_t *rawcart); */
+
+int vic_fp_crt_attach(FILE *fd, uint8_t *rawcart);
+void vic_fp_detach(void);
+
+int vic_fp_resources_init(void);
+void vic_fp_resources_shutdown(void);
+int vic_fp_cmdline_options_init(void);
 
 struct snapshot_s;
 
-extern int vic_fp_snapshot_write_module(struct snapshot_s *s);
-extern int vic_fp_snapshot_read_module(struct snapshot_s *s);
+int vic_fp_snapshot_write_module(struct snapshot_s *s);
+int vic_fp_snapshot_read_module(struct snapshot_s *s);
 
 #endif

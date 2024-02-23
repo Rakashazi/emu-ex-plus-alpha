@@ -34,21 +34,21 @@
 
 struct snapshot_s;
 
-extern void final_plus_freeze(void);
-extern void final_plus_config_init(void);
-extern void final_plus_config_setup(uint8_t *rawcart);
-extern int final_plus_bin_attach(const char *filename, uint8_t *rawcart);
-extern int final_plus_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void final_plus_detach(void);
+void final_plus_freeze(void);
+void final_plus_config_init(void);
+void final_plus_config_setup(uint8_t *rawcart);
+int final_plus_bin_attach(const char *filename, uint8_t *rawcart);
+int final_plus_crt_attach(FILE *fd, uint8_t *rawcart);
+void final_plus_detach(void);
 
-extern uint8_t final_plus_roml_read(uint16_t addr);
-extern uint8_t final_plus_romh_read(uint16_t addr);
-extern uint8_t final_plus_a000_bfff_read(uint16_t addr);
-extern int final_plus_romh_phi1_read(uint16_t addr, uint8_t *value);
-extern int final_plus_romh_phi2_read(uint16_t addr, uint8_t *value);
-extern int final_plus_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
+uint8_t final_plus_roml_read(uint16_t addr);
+uint8_t final_plus_romh_read(uint16_t addr);
+uint8_t final_plus_a000_bfff_read(uint16_t addr);
+int final_plus_romh_phi1_read(uint16_t addr, uint8_t *value);
+int final_plus_romh_phi2_read(uint16_t addr, uint8_t *value);
+int final_plus_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
 
-extern int final_plus_snapshot_write_module(struct snapshot_s *s);
-extern int final_plus_snapshot_read_module(struct snapshot_s *s);
+int final_plus_snapshot_write_module(struct snapshot_s *s);
+int final_plus_snapshot_read_module(struct snapshot_s *s);
 
 #endif

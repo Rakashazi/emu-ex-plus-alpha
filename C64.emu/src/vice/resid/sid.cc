@@ -509,7 +509,7 @@ void SID::debugoutput(void)
         myFile.put(n & 0xff);
         myFile.put((n >> 8) & 0xff);
     }
-#endif
+  #endif
 }
 
 // ----------------------------------------------------------------------------

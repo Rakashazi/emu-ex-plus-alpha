@@ -29,15 +29,18 @@
 
 #include "types.h"
 
-#define CLOCKPORT_DEVICE_NONE            0
-#define CLOCKPORT_DEVICE_ETH64_II        1
-#define CLOCKPORT_DEVICE_RRNET           2
-#define CLOCKPORT_DEVICE_RRNETMK3        3
-#define CLOCKPORT_DEVICE_SILVER_SURFER   4
-#define CLOCKPORT_DEVICE_MP3_64          5
-#define CLOCKPORT_DEVICE_CW3_SID         6
+enum {
+    CLOCKPORT_DEVICE_NONE = 0,
+    CLOCKPORT_DEVICE_ETH64_II,
+    CLOCKPORT_DEVICE_RRNET,
+    CLOCKPORT_DEVICE_RRNETMK3,
+    CLOCKPORT_DEVICE_SILVER_SURFER,
+    CLOCKPORT_DEVICE_MP3_64,
+    CLOCKPORT_DEVICE_CW3_SID,
 
-#define CLOCKPORT_MAX_ENTRIES            7
+    /* This entry needs to always be at the end */
+    CLOCKPORT_MAX_ENTRIES
+};
 
 typedef struct clockport_device_s {
     const char *owner;
@@ -61,14 +64,14 @@ typedef struct clockport_supported_devices_s {
     char *name;
 } clockport_supported_devices_t;
 
-extern int clockport_resources_init(void);
-extern void clockport_resources_shutdown(void);
+int clockport_resources_init(void);
+void clockport_resources_shutdown(void);
 
-extern clockport_device_t *clockport_open_device(int deviceid, const char *owner);
-extern void clockport_close_device(clockport_device_t *device);
+clockport_device_t *clockport_open_device(int deviceid, const char *owner);
+void clockport_close_device(clockport_device_t *device);
 
 extern clockport_supported_devices_t clockport_supported_devices[];
 
-extern char *clockport_device_id_to_name(int id);
+char *clockport_device_id_to_name(int id);
 
 #endif

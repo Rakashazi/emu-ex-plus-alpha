@@ -41,6 +41,15 @@
 #include "resources.h"
 #include "serial.h"
 #include "types.h"
+#include "vdrive.h"
+
+/* #define DEBUG_PRINTER */
+
+#ifdef DEBUG_PRINTER
+#define DBG(x)  log_debug x
+#else
+#define DBG(x)
+#endif
 
 #ifdef HAVE_REALDEVICE
 static int interface_opencbm_attach(unsigned int prnr);
@@ -79,7 +88,7 @@ static int set_printer_enabled(int flag, void *param)
     }
 
     prnr = vice_ptr_to_uint(param);
-
+    DBG(("set_printer_enabled device:%u flag:%d", prnr, flag));
     if (prnr >= NUM_PRINTER_DEVICE_NUMBERS) {
         return -1;
     }
@@ -236,6 +245,8 @@ static int write_pr(unsigned int prnr, uint8_t byte, unsigned int secondary)
     int err;
     int mask = 1 << secondary;
 
+    DBG(("write_pr prnr:%u secondary:%u byte:%u", prnr, secondary, byte));
+
     if (!(inuse_secadr[prnr] & mask)) {
         /* oh, well, we just assume an implicit open - "OPEN 1,4"
            just does not leave any trace on the serial bus */
@@ -297,16 +308,25 @@ static int open_pr4(struct vdrive_s *var, const uint8_t *name, unsigned int leng
                     unsigned int secondary,
                     struct cbmdos_cmd_parse_s *cmd_parse_ext)
 {
+    DBG(("open_pr4 unit:%u", var->unit));
     return open_pr(0, name, length, secondary);
 }
 
 static int read_pr4(struct vdrive_s *var, uint8_t *byte, unsigned int secondary)
 {
+    DBG(("read_pr4 unit:%u", var->unit));
     return read_pr(0, byte, secondary);
 }
 
 static int write_pr4(struct vdrive_s *var, uint8_t byte, unsigned int secondary)
 {
+#ifdef DEBUG_PRINTER
+    if (var) {
+        DBG(("write_pr4 unit:%u sec:%u byte:%u", var->unit, secondary, byte));
+    } else {
+        DBG(("write_pr4 unit:n/a sec:%u byte:%u", secondary, byte));
+    }
+#endif
     return write_pr(0, byte, secondary);
 }
 
@@ -453,6 +473,8 @@ static int interface_serial_attach(unsigned int prnr)
 {
     int err;
 
+    DBG(("interface_serial_attach device:%u", 4 + prnr));
+
     inuse_secadr[prnr] = 0;
 
     switch (prnr) {
@@ -488,6 +510,8 @@ static int interface_serial_attach(unsigned int prnr)
 
 static int interface_serial_detach(unsigned int prnr)
 {
+    DBG(("interface_serial_detach device:%u", 4 + prnr));
+
     if (prnr < NUM_PRINTERS && inuse_secadr[prnr]) {
         int i;
         for (i = 0; i < 8; i++) {

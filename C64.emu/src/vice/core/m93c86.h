@@ -29,16 +29,20 @@
 
 #include "types.h"
 
-extern uint8_t m93c86_read_data(void);
-extern void m93c86_write_data(uint8_t value);
-extern void m93c86_write_select(uint8_t value);
-extern void m93c86_write_clock(uint8_t value);
+uint8_t m93c86_read_data(void);
+void m93c86_write_data(uint8_t value);
+void m93c86_write_select(uint8_t value);
+void m93c86_write_clock(uint8_t value);
 
-extern int  m93c86_open_image(char *name, int rw);
-extern void m93c86_close_image(int rw);
+int  m93c86_open_image(char *name, int rw);
+int  m93c86_save_image(const char *name);
+int  m93c86_flush_image(void);
+void m93c86_close_image(int rw);
+void m93c86_set_image_rw(int rw);
 
 struct snapshot_s;
-extern int m93c86_snapshot_read_module(struct snapshot_s *s);
-extern int m93c86_snapshot_write_module(struct snapshot_s *s);
+
+int m93c86_snapshot_read_module(struct snapshot_s *s);
+int m93c86_snapshot_write_module(struct snapshot_s *s);
 
 #endif

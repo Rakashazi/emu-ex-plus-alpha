@@ -31,21 +31,21 @@
 
 #include "types.h"
 
-extern void actionreplay3_freeze(void);
+void actionreplay3_freeze(void);
 
-extern void actionreplay3_config_init(void);
-extern void actionreplay3_reset(void);
-extern void actionreplay3_config_setup(uint8_t *rawcart);
-extern int actionreplay3_bin_attach(const char *filename, uint8_t *rawcart);
-extern int actionreplay3_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void actionreplay3_detach(void);
+void actionreplay3_config_init(void);
+void actionreplay3_reset(void);
+void actionreplay3_config_setup(uint8_t *rawcart);
+int actionreplay3_bin_attach(const char *filename, uint8_t *rawcart);
+int actionreplay3_crt_attach(FILE *fd, uint8_t *rawcart);
+void actionreplay3_detach(void);
 
-extern uint8_t actionreplay3_roml_read(uint16_t addr);
-extern uint8_t actionreplay3_romh_read(uint16_t addr);
+uint8_t actionreplay3_roml_read(uint16_t addr);
+uint8_t actionreplay3_romh_read(uint16_t addr);
 
 struct snapshot_s;
 
-extern int actionreplay3_snapshot_write_module(struct snapshot_s *s);
-extern int actionreplay3_snapshot_read_module(struct snapshot_s *s);
+int actionreplay3_snapshot_write_module(struct snapshot_s *s);
+int actionreplay3_snapshot_read_module(struct snapshot_s *s);
 
 #endif

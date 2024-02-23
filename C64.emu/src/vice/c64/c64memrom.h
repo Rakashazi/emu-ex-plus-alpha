@@ -33,12 +33,12 @@ extern uint8_t c64memrom_basic64_rom[];
 extern uint8_t c64memrom_kernal64_rom[];
 extern uint8_t c64memrom_kernal64_trap_rom[];
 
-extern uint8_t c64memrom_kernal64_read(uint16_t addr);
-extern uint8_t c64memrom_basic64_read(uint16_t addr);
-extern uint8_t c64memrom_trap_read(uint16_t addr);
-extern void c64memrom_trap_store(uint16_t addr, uint8_t value);
+uint8_t c64memrom_kernal64_read(uint16_t addr);
+uint8_t c64memrom_basic64_read(uint16_t addr);
+uint8_t c64memrom_trap_read(uint16_t addr);
+void c64memrom_trap_store(uint16_t addr, uint8_t value);
 
-extern uint8_t c64memrom_rom64_read(uint16_t addr);
-extern void c64memrom_rom64_store(uint16_t addr, uint8_t value);
+uint8_t c64memrom_rom64_read(uint16_t addr);
+void c64memrom_rom64_store(uint16_t addr, uint8_t value);
 
 #endif

@@ -27,6 +27,7 @@
 #include "vice.h"
 
 #include "sound.h"
+#include "datasette.h"
 #include "datasette-sound.h"
 #include "maincpu.h"
 
@@ -37,16 +38,13 @@ static const int gap_circular_buffer_size =
     sizeof(gap_circular_buffer) / sizeof(gap_circular_buffer[0]);
 static int gap_circular_buffer_start = 0;
 static int gap_circular_buffer_end = 0;
-static char last_was_split_in_two = 0;
 static CLOCK sound_start_maincpu_clk;
-static char datasette_square_sign = 1;
 static char datasette_halfwaves;
 
+static char datasette_square_sign = 1;
+static char last_was_split_in_two = 0;
 
 /* resources */
-extern int datasette_sound_emulation;
-extern int datasette_sound_emulation_volume;
-
 static void datasette_sound_flush_circular_buffer(void)
 {
     datasette_sound.chip_enabled = 0;
@@ -124,8 +122,58 @@ static CLOCK datasette_sound_remove_from_circular_buffer(
     return gap;
 }
 
-static int datasette_sound_machine_calculate_samples(sound_t **psid,
-    int16_t *pbuf, int nr, int soc, int scc, CLOCK *delta_t)
+#ifdef SOUND_SYSTEM_FLOAT
+/* FIXME */
+static int datasette_sound_machine_calculate_samples(sound_t **psid, float *pbuf, int nr, int scc, CLOCK *delta_t)
+{
+    int i = 0, j, num_samples;
+    CLOCK cycles_to_be_consumed = *delta_t;
+    double factor = (double)cycles_to_be_consumed / nr;
+    char must_flip;
+
+    if (sound_start_maincpu_clk) {
+        int initial_zero_samples =
+            (cycles_to_be_consumed + sound_start_maincpu_clk - maincpu_clk) / factor;
+        while (i < initial_zero_samples) {
+            pbuf[i++] = 0.0;
+        }
+        cycles_to_be_consumed = maincpu_clk - sound_start_maincpu_clk;
+        sound_start_maincpu_clk = 0;
+    }
+    while (cycles_to_be_consumed) {
+        CLOCK max_amount_to_consume = cycles_to_be_consumed;
+        CLOCK cycles_to_consume_now =
+            datasette_sound_remove_from_circular_buffer(max_amount_to_consume,
+                (datasette_square_sign == 1) && !datasette_halfwaves, &must_flip);
+        if (!cycles_to_consume_now) {
+            break;
+        }
+        cycles_to_be_consumed -= cycles_to_consume_now;
+        if (i < nr) {
+            if (cycles_to_be_consumed == 0) {
+                num_samples = nr - i;
+            } else {
+                num_samples = cycles_to_consume_now / factor;
+                if (((i + num_samples) < (nr - 1))
+                    && ((cycles_to_be_consumed * 1.0) / ((nr - i) - num_samples)) < factor) {
+                    num_samples++;
+                }
+            }
+            for (j = 0; j < num_samples; j++) {
+                pbuf[i++] = (datasette_sound_emulation_volume * datasette_square_sign) / 32767.0;
+            }
+        }
+        if (must_flip) {
+            datasette_square_sign = -datasette_square_sign;
+        }
+    }
+    while (i < nr) {
+        pbuf[i++] = 0.0;
+    }
+    return nr;
+}
+#else
+static int datasette_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int soc, int scc, CLOCK *delta_t)
 {
     int i = 0, j, num_samples;
     CLOCK cycles_to_be_consumed = *delta_t;
@@ -174,6 +222,7 @@ static int datasette_sound_machine_calculate_samples(sound_t **psid,
     }
     return nr;
 }
+#endif
 
 static int datasette_sound_machine_cycle_based(void)
 {
@@ -185,9 +234,19 @@ static int datasette_sound_machine_channels(void)
     return 1;
 }
 
-/* Drive sound 'chip', emulates the sound of a 1541 disk drive */
+#ifdef SOUND_SYSTEM_FLOAT
+/* stereo mixing placement of the Datasette sound */
+static sound_chip_mixing_spec_t datasette_sound_mixing_spec[SOUND_CHIP_CHANNELS_MAX] = {
+    {
+        100, /* left channel volume % in case of stereo output, default output to both */
+        100  /* right channel volume % in case of stereo output, default output to both */
+    }
+};
+#endif
+
+/* Datasette sound 'chip', emulates the sound of a tape in the datasette */
 static sound_chip_t datasette_sound = {
-    NULL,                                      /* NO sound chip open function */ 
+    NULL,                                      /* NO sound chip open function */
     NULL,                                      /* NO sound chip init function */
     NULL,                                      /* NO sound chip close function */
     datasette_sound_machine_calculate_samples, /* sound chip calculate samples function */
@@ -196,6 +255,9 @@ static sound_chip_t datasette_sound = {
     NULL,                                      /* NO sound chip reset function */
     datasette_sound_machine_cycle_based,       /* sound chip 'is_cycle_based()' function, chip is NOT cycle based */
     datasette_sound_machine_channels,          /* sound chip 'get_amount_of_channels()' function, sound chip has 1 channel */
+#ifdef SOUND_SYSTEM_FLOAT
+    datasette_sound_mixing_spec,               /* stereo mixing placement specs */
+#endif
     0                                          /* sound chip enabled flag, toggled upon device (de-)activation */
 };
 

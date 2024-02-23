@@ -30,11 +30,11 @@
 #include "types.h"
 #include "sound.h"
 
-extern int userport_digimax_resources_init(void);
+int userport_digimax_resources_init(void);
 
-extern void userport_digimax_sound_chip_init(void);
+void userport_digimax_sound_chip_init(void);
 
-extern void userport_digimax_sound_store(uint16_t address, uint8_t value);
-extern uint8_t userport_digimax_sound_read(uint16_t address);
+void userport_digimax_sound_store(uint16_t address, uint8_t value);
+uint8_t userport_digimax_sound_read(uint16_t address);
 
 #endif

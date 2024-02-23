@@ -50,19 +50,19 @@ typedef enum {
       | NETWORK_CONTROL_JOY1)   \
         << NETWORK_CONTROL_CLIENTOFFSET)
 
-extern int network_resources_init(void);
-extern int network_cmdline_options_init(void);
-extern int network_start_server(void);
-extern int network_connect_client(void);
-extern void network_disconnect(void);
-extern void network_suspend(void);
-extern void network_hook(void);
-extern int network_connected(void);
-extern int network_get_mode(void);
-extern void network_hook(void);
-extern void network_event_record(unsigned int type, void *data, unsigned int size);
-extern void network_attach_image(unsigned int unit, const char *filename);
+int network_resources_init(void);
+int network_cmdline_options_init(void);
+int network_start_server(void);
+int network_connect_client(void);
+void network_disconnect(void);
+void network_suspend(void);
+void network_hook(void);
+int network_connected(void);
+int network_get_mode(void);
+void network_hook(void);
+void network_event_record(unsigned int type, void *data, unsigned int size);
+void network_attach_image(unsigned int unit, const char *filename);
 
-extern void network_shutdown(void);
+void network_shutdown(void);
 
 #endif

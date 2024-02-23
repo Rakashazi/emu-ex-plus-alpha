@@ -71,10 +71,10 @@ static void set_ca2(via_context_t *via_context, int state)
 }
 
 /* switching userport strobe with CB2 */
-static void set_cb2(via_context_t *via_context, int state)
+static void set_cb2(via_context_t *via_context, int state, int offset)
 {
     store_userport_pa2((uint8_t)state);
-    petsound_store_manual(state, *via_context->clk_ptr);
+    petsound_store_manual(state, *via_context->clk_ptr - offset);
 }
 
 static void set_int(via_context_t *via_context, unsigned int int_num,
@@ -167,11 +167,12 @@ static inline bool IS_SR_SHIFT_OUT_BY_T2(uint8_t acr)
 /*
  * Cut out extremely high frequencies that are not properly
  * suppressed by the low-pass filter, by requiring a minimum
- * value for T2L.
+ * value for T2L of 0.
+ * TODO: make the low-pass filter more effective.
  */
 static inline bool SOUND_ACTIVE(uint8_t acr, uint8_t t2ll)
 {
-    return !IS_SR_SHIFT_OUT_BY_T2(acr) || (t2ll > 1);
+    return !IS_SR_SHIFT_OUT_BY_T2(acr) || t2ll;
 }
 
 /*

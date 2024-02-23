@@ -257,8 +257,12 @@ static signed char ampMod1x8[256];
 /* manage temporary buffers. if the requested size is smaller or equal to the
  * size of the already allocated buffer, reuse it.  */
 static int16_t *buf = NULL;
-static int blen = 0;
 
+#ifndef SOUND_SYSTEM_FLOAT
+static int blen = 0;
+#endif
+
+#ifndef SOUND_SYSTEM_FLOAT
 static int16_t *getbuf(int len)
 {
     if ((buf == NULL) || (blen < len)) {
@@ -270,6 +274,7 @@ static int16_t *getbuf(int len)
     }
     return buf;
 }
+#endif
 
 inline static void dofilter(voice_t *pVoice)
 {
@@ -675,6 +680,101 @@ inline static void setup_voice(voice_t *pv)
     pv->gateflip = 0;
 }
 
+#ifdef SOUND_SYSTEM_FLOAT
+/* FIXME */
+static float fastsid_calculate_single_sample(sound_t *psid, int i)
+{
+    uint32_t o0, o1, o2;
+    int dosync1, dosync2;
+    voice_t *v0, *v1, *v2;
+    uint16_t tmp_out;
+
+    setup_sid(psid);
+    v0 = &psid->v[0];
+    setup_voice(v0);
+    v1 = &psid->v[1];
+    setup_voice(v1);
+    v2 = &psid->v[2];
+    setup_voice(v2);
+
+    /* addfptrs, noise & hard sync test */
+    dosync1 = 0;
+    if ((v0->f += v0->fs) < v0->fs) {
+        v0->rv = NSHIFT(v0->rv, 16);
+        if (v1->sync) {
+            dosync1 = 1;
+        }
+    }
+    dosync2 = 0;
+    if ((v1->f += v1->fs) < v1->fs) {
+        v1->rv = NSHIFT(v1->rv, 16);
+        if (v2->sync) {
+            dosync2 = 1;
+        }
+    }
+    if ((v2->f += v2->fs) < v2->fs) {
+        v2->rv = NSHIFT(v2->rv, 16);
+        if (v0->sync) {
+            /* hard sync */
+            v0->rv = NSHIFT(v0->rv, v0->f >> 28);
+            v0->f = 0;
+        }
+    }
+
+    /* hard sync */
+    if (dosync2) {
+        v2->rv = NSHIFT(v2->rv, v2->f >> 28);
+        v2->f = 0;
+    }
+    if (dosync1) {
+        v1->rv = NSHIFT(v1->rv, v1->f >> 28);
+        v1->f = 0;
+    }
+
+    /* do adsr */
+    if ((v0->adsr += v0->adsrs) + 0x80000000 < v0->adsrz + 0x80000000) {
+        trigger_adsr(v0);
+    }
+    if ((v1->adsr += v1->adsrs) + 0x80000000 < v1->adsrz + 0x80000000) {
+        trigger_adsr(v1);
+    }
+    if ((v2->adsr += v2->adsrs) + 0x80000000 < v2->adsrz + 0x80000000) {
+        trigger_adsr(v2);
+    }
+
+    /* oscillators */
+    o0 = v0->adsr >> 16;
+    o1 = v1->adsr >> 16;
+    o2 = v2->adsr >> 16;
+    if (o0) {
+        o0 *= doosc(v0);
+    }
+    if (o1) {
+        o1 *= doosc(v1);
+    }
+    if (psid->has3 && o2) {
+        o2 *= doosc(v2);
+    } else {
+        o2 = 0;
+    }
+    /* sample */
+    if (psid->emulatefilter) {
+        v0->filtIO = ampMod1x8[(o0 >> 22)];
+        dofilter(v0);
+        o0 = ((uint32_t)(v0->filtIO) + 0x80) << (7 + 15);
+        v1->filtIO = ampMod1x8[(o1 >> 22)];
+        dofilter(v1);
+        o1 = ((uint32_t)(v1->filtIO) + 0x80) << (7 + 15);
+        v2->filtIO = ampMod1x8[(o2 >> 22)];
+        dofilter(v2);
+        o2 = ((uint32_t)(v2->filtIO) + 0x80) << (7 + 15);
+    }
+
+    tmp_out = (int16_t)(((int32_t)((o0 + o1 + o2) >> 20) - 0x600) * psid->vol);
+
+    return tmp_out / 32767.0;
+}
+#else
 static int16_t fastsid_calculate_single_sample(sound_t *psid, int i)
 {
     uint32_t o0, o1, o2;
@@ -764,9 +864,28 @@ static int16_t fastsid_calculate_single_sample(sound_t *psid, int i)
 
     return (int16_t)(((int32_t)((o0 + o1 + o2) >> 20) - 0x600) * psid->vol);
 }
+#endif
 
-static int fastsid_calculate_samples(sound_t *psid, int16_t *pbuf, int nr,
-                                     int interleave, CLOCK *delta_t)
+#ifdef SOUND_SYSTEM_FLOAT
+/* FIXME */
+static int fastsid_calculate_samples(sound_t *psid, float *pbuf, int nr, CLOCK *delta_t)
+{
+    int i;
+
+    if (psid->factor == 1000) {
+        for (i = 0; i < nr; i++) {
+            pbuf[i] = fastsid_calculate_single_sample(psid, i);
+        }
+        return nr;
+    }
+    for (i = 0; i < (nr * psid->factor / 1000); i++) {
+        pbuf[i] = fastsid_calculate_single_sample(psid, i);
+    }
+
+    return nr;
+}
+#else
+static int fastsid_calculate_samples(sound_t *psid, int16_t *pbuf, int nr, int interleave, CLOCK *delta_t)
 {
     int i;
     int16_t *tmp_buf;
@@ -784,6 +903,7 @@ static int fastsid_calculate_samples(sound_t *psid, int16_t *pbuf, int nr,
     memcpy(pbuf, tmp_buf, 2 * nr);
     return nr;
 }
+#endif
 
 static void init_filter(sound_t *psid, int freq)
 {

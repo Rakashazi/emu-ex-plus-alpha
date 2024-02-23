@@ -29,6 +29,6 @@
 #ifndef VICE_VICII_CMDLINE_OPTIONS_H
 #define VICE_VICII_CMDLINE_OPTIONS_H
 
-extern int vicii_cmdline_options_init(void);
+int vicii_cmdline_options_init(void);
 
 #endif

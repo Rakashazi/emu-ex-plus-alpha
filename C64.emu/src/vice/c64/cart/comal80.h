@@ -31,15 +31,15 @@
 
 #include "types.h"
 
-extern void comal80_config_init(void);
-extern void comal80_config_setup(uint8_t *rawcart);
-extern int comal80_bin_attach(const char *filename, uint8_t *rawcart);
-extern int comal80_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void comal80_detach(void);
+void comal80_config_init(void);
+void comal80_config_setup(uint8_t *rawcart);
+int comal80_bin_attach(const char *filename, uint8_t *rawcart);
+int comal80_crt_attach(FILE *fd, uint8_t *rawcart);
+void comal80_detach(void);
 
 struct snapshot_s;
 
-extern int comal80_snapshot_write_module(struct snapshot_s *s);
-extern int comal80_snapshot_read_module(struct snapshot_s *s);
+int comal80_snapshot_write_module(struct snapshot_s *s);
+int comal80_snapshot_read_module(struct snapshot_s *s);
 
 #endif

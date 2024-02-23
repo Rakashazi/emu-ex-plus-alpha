@@ -31,34 +31,36 @@
 
 #include "types.h"
 
-extern uint8_t finalexpansion_ram123_read(uint16_t addr);
-extern void finalexpansion_ram123_store(uint16_t addr, uint8_t value);
-extern uint8_t finalexpansion_blk1_read(uint16_t addr);
-extern void finalexpansion_blk1_store(uint16_t addr, uint8_t value);
-extern uint8_t finalexpansion_blk2_read(uint16_t addr);
-extern void finalexpansion_blk2_store(uint16_t addr, uint8_t value);
-extern uint8_t finalexpansion_blk3_read(uint16_t addr);
-extern void finalexpansion_blk3_store(uint16_t addr, uint8_t value);
-extern uint8_t finalexpansion_blk5_read(uint16_t addr);
-extern void finalexpansion_blk5_store(uint16_t addr, uint8_t value);
+uint8_t finalexpansion_ram123_read(uint16_t addr);
+void finalexpansion_ram123_store(uint16_t addr, uint8_t value);
+uint8_t finalexpansion_blk1_read(uint16_t addr);
+void finalexpansion_blk1_store(uint16_t addr, uint8_t value);
+uint8_t finalexpansion_blk2_read(uint16_t addr);
+void finalexpansion_blk2_store(uint16_t addr, uint8_t value);
+uint8_t finalexpansion_blk3_read(uint16_t addr);
+void finalexpansion_blk3_store(uint16_t addr, uint8_t value);
+uint8_t finalexpansion_blk5_read(uint16_t addr);
+void finalexpansion_blk5_store(uint16_t addr, uint8_t value);
 
-extern void finalexpansion_init(void);
-extern void finalexpansion_reset(void);
-extern void finalexpansion_powerup(void);
+void finalexpansion_init(void);
+void finalexpansion_reset(void);
+void finalexpansion_powerup(void);
 
-extern void finalexpansion_config_setup(uint8_t *rawcart);
-extern int finalexpansion_bin_attach(const char *filename);
-/* extern int finalexpansion_bin_attach(const char *filename, uint8_t *rawcart); */
-extern int finalexpansion_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void finalexpansion_detach(void);
+void finalexpansion_config_setup(uint8_t *rawcart);
+int finalexpansion_bin_attach(const char *filename);
 
-extern int finalexpansion_resources_init(void);
-extern void finalexpansion_resources_shutdown(void);
-extern int finalexpansion_cmdline_options_init(void);
+/* int finalexpansion_bin_attach(const char *filename, uint8_t *rawcart); */
+
+int finalexpansion_crt_attach(FILE *fd, uint8_t *rawcart);
+void finalexpansion_detach(void);
+
+int finalexpansion_resources_init(void);
+void finalexpansion_resources_shutdown(void);
+int finalexpansion_cmdline_options_init(void);
 
 struct snapshot_s;
 
-extern int finalexpansion_snapshot_write_module(struct snapshot_s *s);
-extern int finalexpansion_snapshot_read_module(struct snapshot_s *s);
+int finalexpansion_snapshot_write_module(struct snapshot_s *s);
+int finalexpansion_snapshot_read_module(struct snapshot_s *s);
 
 #endif

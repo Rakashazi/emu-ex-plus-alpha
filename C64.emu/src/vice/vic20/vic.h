@@ -47,31 +47,31 @@ struct palette_s;
 struct canvas_refresh_s;
 struct video_chip_cap_s;
 
-extern struct raster_s *vic_init(void);
-extern struct video_canvas_s *vic_get_canvas(void);
-extern void vic_reset(void);
-extern void vic_raster_draw_handler(void);
+struct raster_s *vic_init(void);
+struct video_canvas_s *vic_get_canvas(void);
+void vic_reset(void);
+void vic_raster_draw_handler(void);
 
-extern int vic_resources_init(void);
-extern int vic_cmdline_options_init(void);
+int vic_resources_init(void);
+int vic_cmdline_options_init(void);
 
-extern int vic_snapshot_write_module(struct snapshot_s *s);
-extern int vic_snapshot_read_module(struct snapshot_s *s);
+int vic_snapshot_write_module(struct snapshot_s *s);
+int vic_snapshot_read_module(struct snapshot_s *s);
 
-extern void vic_screenshot(struct screenshot_s *screenshot);
-extern void vic_async_refresh(struct canvas_refresh_s *refresh);
-extern void vic_shutdown(void);
+void vic_screenshot(struct screenshot_s *screenshot);
+void vic_async_refresh(struct canvas_refresh_s *refresh);
+void vic_shutdown(void);
 
-extern void vic_set_light_pen(CLOCK mclk, int state);
-extern void vic_trigger_light_pen(CLOCK mclk);
-extern CLOCK vic_lightpen_timing(int x, int y);
-extern void vic_trigger_light_pen_internal(int retrigger);
+void vic_set_light_pen(CLOCK mclk, int state);
+void vic_trigger_light_pen(CLOCK mclk);
+CLOCK vic_lightpen_timing(int x, int y);
+void vic_trigger_light_pen_internal(int retrigger);
 
 struct machine_timing_s;
 
-extern void vic_change_timing(struct machine_timing_s *machine_timing, int border_mode);
+void vic_change_timing(struct machine_timing_s *machine_timing, int border_mode);
 
-extern int vic_dump(void);
+int vic_dump(void);
 
 /* Debugging options.  */
 /* #define VIC_RASTER_DEBUG */

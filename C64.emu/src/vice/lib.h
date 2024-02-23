@@ -41,25 +41,25 @@
 #define LIB_DEBUG_PINPOINT
 #endif
 
-extern void lib_init(void);
+void lib_init(void);
 
-extern unsigned int lib_unsigned_rand(unsigned int min, unsigned int max);
-extern float lib_float_rand(float min, float max);
-extern double lib_double_rand_unit(void);
+unsigned int lib_unsigned_rand(unsigned int min, unsigned int max);
+float lib_float_rand(float min, float max);
+double lib_double_rand_unit(void);
 
-extern void lib_rand_seed(uint64_t seed);
-extern void lib_rand_printseed(void);
+void lib_rand_seed(uint64_t seed);
+void lib_rand_printseed(void);
 
-extern char *lib_msprintf(const char *fmt, ...) VICE_ATTR_PRINTF;
-extern char *lib_mvsprintf(const char *fmt, va_list args);
+char *lib_msprintf(const char *fmt, ...) VICE_ATTR_PRINTF;
+char *lib_mvsprintf(const char *fmt, va_list args);
 
 #ifdef LIB_DEBUG_PINPOINT
-extern void *lib_malloc_pinpoint(size_t size, const char *name, unsigned int line);
-extern void *lib_calloc_pinpoint(size_t nmemb, size_t size, const char *name, unsigned int line);
-extern void *lib_realloc_pinpoint(void *p, size_t size, const char *name, unsigned int line);
-extern void lib_free_pinpoint(void *p, const char *name, unsigned int line);
+void *lib_malloc_pinpoint(size_t size, const char *name, unsigned int line);
+void *lib_calloc_pinpoint(size_t nmemb, size_t size, const char *name, unsigned int line);
+void *lib_realloc_pinpoint(void *p, size_t size, const char *name, unsigned int line);
+void lib_free_pinpoint(void *p, const char *name, unsigned int line);
 
-extern char *lib_strdup_pinpoint(const char *str, const char *name, unsigned int line);
+char *lib_strdup_pinpoint(const char *str, const char *name, unsigned int line);
 
 #ifndef COMPILING_LIB_DOT_C
 
@@ -74,17 +74,17 @@ extern char *lib_strdup_pinpoint(const char *str, const char *name, unsigned int
 #else
 /* !defined LIB_DEBUG_PINPOINT */
 
-extern void *lib_malloc(size_t size);
-extern void *lib_calloc(size_t nmemb, size_t size);
-extern void *lib_realloc(void *p, size_t size);
-extern void lib_free(void *ptr);
+void *lib_malloc(size_t size);
+void *lib_calloc(size_t nmemb, size_t size);
+void *lib_realloc(void *p, size_t size);
+void lib_free(void *ptr);
 
-extern char *lib_strdup(const char *str);
+char *lib_strdup(const char *str);
 
 #endif /* LIB_DEBUG_PINPOINT */
 
-extern char *lib_strdup_trimmed(char *str);
+char *lib_strdup_trimmed(char *str);
 
-extern void lib_debug_set_output(int state);
+void lib_debug_set_output(int state);
 
 #endif

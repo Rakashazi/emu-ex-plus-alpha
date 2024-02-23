@@ -27,8 +27,9 @@
 #ifndef VICE_ARCHDEP_XDG_H
 #define VICE_ARCHDEP_XDG_H
 
-char *archdep_xdg_data_home(void);
+char *archdep_xdg_cache_home (void);
 char *archdep_xdg_config_home(void);
-char *archdep_xdg_cache_home(void);
+char *archdep_xdg_data_home  (void);
+char *archdep_xdg_state_home (void);
 
 #endif

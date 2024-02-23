@@ -46,12 +46,21 @@ static int tape_sense = 0;
 
 uint8_t pio1_read(uint16_t addr)
 {
-    uint8_t pio1_value = 0xff;
+    int has_pio1 = userport_get_active_state();
+    uint8_t pio1_value;
+
+    if (has_pio1) {
+        pio1_value = 0xff;
+    } else {
+        pio1_value = 0;
+    }
 
     /*  Correct clock */
     ted_handle_pending_alarms(0);
 
-    pio1_value = read_userport_pbx(pio1_data);
+    if (has_pio1) {
+         pio1_value = read_userport_pbx(pio1_data);
+    }
 
     if (tape_sense) {
         pio1_value &= ~4;

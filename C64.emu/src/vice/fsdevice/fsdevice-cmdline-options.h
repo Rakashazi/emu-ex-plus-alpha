@@ -27,6 +27,6 @@
 #ifndef VICE_FSDEVICE_CMDLINE_OPTIONS_H
 #define VICE_FSDEVICE_CMDLINE_OPTIONS_H
 
-extern int fsdevice_cmdline_options_init(void);
+int fsdevice_cmdline_options_init(void);
 
 #endif

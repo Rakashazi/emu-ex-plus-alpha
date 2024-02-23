@@ -208,20 +208,17 @@ MSG C/D I/O   Phase Name          Direction Of Transfer         Comment
 #define SCSI_COMMAND_SEND_VOLUME_TAG       0xb6
 #define SCSI_COMMAND_WRITE_LONG_2          0xea
 
-extern int scsi_image_detach(struct scsi_context_s *context, int disk);
-extern void scsi_image_detach_all(struct scsi_context_s *context);
-extern int scsi_image_attach(struct scsi_context_s *context, int disk,
-    char *filename);
-extern int32_t scsi_image_read(struct scsi_context_s *context);
-extern int32_t scsi_image_write(struct scsi_context_s *context);
-extern uint8_t scsi_get_bus(struct scsi_context_s *context);
-extern int scsi_set_bus(struct scsi_context_s *context, uint8_t value);
-extern void scsi_process_noack(struct scsi_context_s *context);
-extern void scsi_process_ack(struct scsi_context_s *context);
-extern void scsi_reset(struct scsi_context_s *context);
-extern int scsi_snapshot_write_module(struct scsi_context_s *context,
-    snapshot_t *s);
-extern int scsi_snapshot_read_module(struct scsi_context_s *context,
-    snapshot_t *s);
+int scsi_image_detach(struct scsi_context_s *context, int disk);
+void scsi_image_detach_all(struct scsi_context_s *context);
+int scsi_image_attach(struct scsi_context_s *context, int disk, char *filename);
+int32_t scsi_image_read(struct scsi_context_s *context);
+int32_t scsi_image_write(struct scsi_context_s *context);
+uint8_t scsi_get_bus(struct scsi_context_s *context);
+int scsi_set_bus(struct scsi_context_s *context, uint8_t value);
+void scsi_process_noack(struct scsi_context_s *context);
+void scsi_process_ack(struct scsi_context_s *context);
+void scsi_reset(struct scsi_context_s *context);
+int scsi_snapshot_write_module(struct scsi_context_s *context, snapshot_t *s);
+int scsi_snapshot_read_module(struct scsi_context_s *context, snapshot_t *s);
 
 #endif

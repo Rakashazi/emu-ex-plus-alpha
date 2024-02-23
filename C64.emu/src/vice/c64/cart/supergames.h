@@ -31,15 +31,15 @@
 
 #include "types.h"
 
-extern void supergames_config_init(void);
-extern void supergames_config_setup(uint8_t *rawcart);
-extern int supergames_bin_attach(const char *filename, uint8_t *rawcart);
-extern int supergames_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void supergames_detach(void);
+void supergames_config_init(void);
+void supergames_config_setup(uint8_t *rawcart);
+int supergames_bin_attach(const char *filename, uint8_t *rawcart);
+int supergames_crt_attach(FILE *fd, uint8_t *rawcart);
+void supergames_detach(void);
 
 struct snapshot_s;
 
-extern int supergames_snapshot_write_module(struct snapshot_s *s);
-extern int supergames_snapshot_read_module(struct snapshot_s *s);
+int supergames_snapshot_write_module(struct snapshot_s *s);
+int supergames_snapshot_read_module(struct snapshot_s *s);
 
 #endif

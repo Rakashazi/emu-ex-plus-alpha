@@ -40,6 +40,7 @@
 
 #define DRIVE_ROM1541_CHECKSUM      1991711
 
+/* NOTE: 1571CR is handled in iec128dcr/iec128dcrrom.c */
 
 /* Logging goes here.  */
 static log_t iecrom_log;

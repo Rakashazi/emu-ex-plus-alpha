@@ -88,17 +88,17 @@ typedef struct tpi_context_s {
     void (*restore_int)(unsigned int, int);
 } tpi_context_t;
 
-extern void tpicore_setup_context(struct tpi_context_s *tpi_context);
-extern void tpicore_shutdown(struct tpi_context_s *tpi_context);
-extern void tpicore_reset(tpi_context_t *tpi_context);
-extern void tpicore_store(struct tpi_context_s *tpi_context, uint16_t addr, uint8_t byte);
-extern uint8_t tpicore_read(struct tpi_context_s *tpi_context, uint16_t addr);
-extern uint8_t tpicore_peek(struct tpi_context_s *tpi_context, uint16_t addr);
-extern void tpicore_set_int(tpi_context_t *tpi_context, int bit, int state);
-extern void tpicore_restore_int(tpi_context_t *tpi_context, int bit, int state);
+void tpicore_setup_context(struct tpi_context_s *tpi_context);
+void tpicore_shutdown(struct tpi_context_s *tpi_context);
+void tpicore_reset(tpi_context_t *tpi_context);
+void tpicore_store(struct tpi_context_s *tpi_context, uint16_t addr, uint8_t byte);
+uint8_t tpicore_read(struct tpi_context_s *tpi_context, uint16_t addr);
+uint8_t tpicore_peek(struct tpi_context_s *tpi_context, uint16_t addr);
+void tpicore_set_int(tpi_context_t *tpi_context, int bit, int state);
+void tpicore_restore_int(tpi_context_t *tpi_context, int bit, int state);
 
-extern int tpicore_snapshot_write_module(tpi_context_t *tpi_context, struct snapshot_s *p);
-extern int tpicore_snapshot_read_module(tpi_context_t *tpi_context, struct snapshot_s *p);
-extern int tpicore_dump(struct tpi_context_s *tpi_context);
+int tpicore_snapshot_write_module(tpi_context_t *tpi_context, struct snapshot_s *p);
+int tpicore_snapshot_read_module(tpi_context_t *tpi_context, struct snapshot_s *p);
+int tpicore_dump(struct tpi_context_s *tpi_context);
 
 #endif

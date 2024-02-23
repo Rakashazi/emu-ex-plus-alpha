@@ -28,8 +28,8 @@
 #ifndef VICE_VIC20UI_H
 #define VICE_VIC20UI_H
 
-extern int vic20ui_init_early(void);
-extern int vic20ui_init(void);
-extern void vic20ui_shutdown(void);
+int vic20ui_init_early(void);
+int vic20ui_init(void);
+void vic20ui_shutdown(void);
 
 #endif

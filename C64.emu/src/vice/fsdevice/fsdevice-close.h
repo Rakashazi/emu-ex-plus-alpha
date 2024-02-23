@@ -31,6 +31,6 @@
 
 struct vdrive_s;
 
-extern int fsdevice_close(struct vdrive_s *vdrive, unsigned int secondary);
+int fsdevice_close(struct vdrive_s *vdrive, unsigned int secondary);
 
 #endif

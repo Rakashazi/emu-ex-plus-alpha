@@ -37,19 +37,19 @@
 
 #include "snapshot.h"
 
-extern int shortbus_etfe_resources_init(void);
-extern void shortbus_etfe_resources_shutdown(void);
+int shortbus_etfe_resources_init(void);
+void shortbus_etfe_resources_shutdown(void);
 
-extern int shortbus_etfe_cmdline_options_init(void);
+int shortbus_etfe_cmdline_options_init(void);
 
-extern void shortbus_etfe_unregister(void);
-extern void shortbus_etfe_register(void);
+void shortbus_etfe_unregister(void);
+void shortbus_etfe_register(void);
 
-extern void shortbus_etfe_reset(void);
+void shortbus_etfe_reset(void);
 
-extern int shortbus_etfe_enabled(void);
+int shortbus_etfe_enabled(void);
 
-extern int shortbus_etfe_write_snapshot_module(snapshot_t *s);
-extern int shortbus_etfe_read_snapshot_module(snapshot_t *s);
+int shortbus_etfe_write_snapshot_module(snapshot_t *s);
+int shortbus_etfe_read_snapshot_module(snapshot_t *s);
 
 #endif

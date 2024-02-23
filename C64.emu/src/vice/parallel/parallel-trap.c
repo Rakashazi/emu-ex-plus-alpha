@@ -25,6 +25,8 @@
  *
  */
 
+/* #define DEBUG_PARALLEL_TRAP */
+
 #include "vice.h"
 
 #include <stdio.h>
@@ -38,6 +40,11 @@
 #include "serial.h"
 #include "types.h"
 
+#ifdef DEBUG_PARALLEL_TRAP
+#define DBG(x)  log_debug x
+#else
+#define DBG(x)
+#endif
 
 #define SERIAL_NAMELENGTH 255
 
@@ -180,6 +187,7 @@ int parallel_trap_attention(int b)
         log_message(parallel_log, "ParallelAttention(%02x).", (unsigned int)b);
     }
 #endif
+    DBG(("parallel_trap_attention(%d)", b));
 
     if (b == 0x3f                                       /* unlisten */
         && (((TrapSecondary & 0xf0) == 0xf0)            /* open filename */
@@ -267,6 +275,8 @@ int parallel_trap_sendbyte(uint8_t data)
     void *vdrive;
     unsigned int dnr;
 
+    DBG(("parallel_trap_sendbyte(%02x)", data));
+
     dnr = TrapDevice & 0x0f;
     if (dnr >= DRIVE_UNIT_MIN &&
         dnr < DRIVE_UNIT_MIN+NUM_DISK_UNITS &&
@@ -311,6 +321,8 @@ int parallel_trap_receivebyte(uint8_t *data, int fake)
     serial_t *p;
     void *vdrive;
     unsigned int dnr;
+
+    DBG(("parallel_trap_receivebyte"));
 
     dnr = TrapDevice & 0x0f;
     if (dnr >= DRIVE_UNIT_MIN &&

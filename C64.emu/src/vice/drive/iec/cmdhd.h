@@ -65,22 +65,22 @@ typedef struct cmdhd_context_s {
 
 typedef struct cmdhd_context_s cmdhd_context_t;
 
-extern void cmdhd_shutdown(struct cmdhd_context_s *ctxptr);
-extern void cmdhd_setup_context(struct diskunit_context_s *ctxptr);
-extern void cmdhd_init(struct diskunit_context_s *ctxptr);
-extern void cmdhd_reset(struct cmdhd_context_s *ctxptr);
-extern void cmdhd_reset_soft(diskunit_context_t *drv);
+void cmdhd_shutdown(struct cmdhd_context_s *ctxptr);
+void cmdhd_setup_context(struct diskunit_context_s *ctxptr);
+void cmdhd_init(struct diskunit_context_s *ctxptr);
+void cmdhd_reset(struct cmdhd_context_s *ctxptr);
+void cmdhd_reset_soft(diskunit_context_t *drv);
 
-extern void cmdhd_store(struct diskunit_context_s *ctxptr, uint16_t addr, uint8_t byte);
-extern uint8_t cmdhd_read(struct diskunit_context_s *ctxptr, uint16_t addr);
-extern uint8_t cmdhd_peek(struct diskunit_context_s *ctxptr, uint16_t addr);
-extern int cmdhd_dump(diskunit_context_t *ctxptr, uint16_t addr);
-extern int cmdhd_attach_image(disk_image_t *image, unsigned int unit);
-extern int cmdhd_detach_image(disk_image_t *image, unsigned int unit);
-extern int cmdhd_update_maxsize(unsigned int size, unsigned int unit);
+void cmdhd_store(struct diskunit_context_s *ctxptr, uint16_t addr, uint8_t byte);
+uint8_t cmdhd_read(struct diskunit_context_s *ctxptr, uint16_t addr);
+uint8_t cmdhd_peek(struct diskunit_context_s *ctxptr, uint16_t addr);
+int cmdhd_dump(diskunit_context_t *ctxptr, uint16_t addr);
+int cmdhd_attach_image(disk_image_t *image, unsigned int unit);
+int cmdhd_detach_image(disk_image_t *image, unsigned int unit);
+int cmdhd_update_maxsize(unsigned int size, unsigned int unit);
 
-extern int cmdhd_snapshot_write_module(cmdhd_context_t *drv, struct snapshot_s *s);
-extern int cmdhd_snapshot_read_module(cmdhd_context_t *drv, struct snapshot_s *s);
+int cmdhd_snapshot_write_module(cmdhd_context_t *drv, struct snapshot_s *s);
+int cmdhd_snapshot_read_module(cmdhd_context_t *drv, struct snapshot_s *s);
 
 typedef struct cmdbus_s {
 /* device 8 references 0 */
@@ -103,8 +103,8 @@ typedef struct cmdbus_s {
 
 extern cmdbus_t cmdbus;
 
-extern void cmdbus_init(void);
-extern void cmdbus_update(void);
-extern void cmdbus_patn_changed(int new, int old);
+void cmdbus_init(void);
+void cmdbus_update(void);
+void cmdbus_patn_changed(int new, int old);
 
 #endif

@@ -31,6 +31,9 @@
      1   | Reset          |  O
      2   | Clock          |  O
      5   | Data           |  I
+
+   Works on:
+   - native joystick port(s) (x64/x64sc/xscpu64/x128)
  */
 
 #include "vice.h"
@@ -117,6 +120,7 @@ static joyport_t joyport_waasoft_dongle_device = {
     JOYPORT_RES_ID_NONE,                /* device can be used in multiple ports at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,            /* device is NOT a lightpen */
     JOYPORT_POT_REQUIRED,               /* device uses the potentiometer lines */
+    JOYPORT_5VDC_REQUIRED,              /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,           /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_C64_DONGLE,          /* device is a C64 Dongle */
     0x03,                               /* bits 1 and 0 are output bits */

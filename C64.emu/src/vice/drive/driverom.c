@@ -35,6 +35,7 @@
 #include "drivetypes.h"
 #include "driverom.h"
 #include "log.h"
+#include "machine-bus.h"
 #include "machine-drive.h"
 #include "resources.h"
 #include "sysfile.h"
@@ -100,6 +101,18 @@ int driverom_load(const char *resource_name, uint8_t *drive_rom, unsigned
 
         if (size != NULL) {
             *size = 0;
+        }
+        if (loaded != NULL) {
+            *loaded = 0;
+        }
+        /* disable the drives that used the ROM which could not be loaded */
+        for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
+            diskunit_context_t *unit = diskunit_context[dnr];
+            if (unit->type == type) {
+                unit->type = DRIVE_TYPE_NONE;
+                drive_disable(diskunit_context[dnr]);
+                machine_bus_status_drivetype_set(dnr + 8, 0);
+            }
         }
         return -1;
     }
@@ -232,7 +245,7 @@ int driverom_snapshot_write(snapshot_t *s, const drive_t *drive)
     const uint8_t *base;
     int len;
 
-    sprintf(snap_module_name, "DRIVEROM%u", drive->unit);
+    sprintf(snap_module_name, "DRIVEROM%u", drive->diskunit->mynumber);
 
     m = snapshot_module_create(s, snap_module_name, ROM_SNAP_MAJOR, ROM_SNAP_MINOR);
 
@@ -334,7 +347,7 @@ int driverom_snapshot_read(snapshot_t *s, drive_t *drive)
     uint8_t *base;
     int len;
 
-    sprintf(snap_module_name, "DRIVEROM%u", drive->unit);
+    sprintf(snap_module_name, "DRIVEROM%u", drive->diskunit->mynumber);
 
     m = snapshot_module_open(s, snap_module_name, &major_version, &minor_version);
     if (m == NULL) {
@@ -434,7 +447,7 @@ int driverom_snapshot_read(snapshot_t *s, drive_t *drive)
         return -1;
     }
 
-    machine_drive_rom_do_checksum(drive->unit);
+    machine_drive_rom_do_checksum(drive->diskunit->mynumber);
 
     return snapshot_module_close(m);
 }

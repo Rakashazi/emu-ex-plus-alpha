@@ -46,7 +46,7 @@
 #include "crt.h"
 #include "partner128.h"
 
-#define DBGPARTNER
+/* #define DBGPARTNER */
 
 #ifdef DBGPARTNER
 #define DBG(x) printf x
@@ -119,7 +119,8 @@ static io_source_t partner128_io1_device = {
     partner128_dump,                /* device state information dump function */
     CARTRIDGE_C128_PARTNER128,      /* cartridge ID */
     IO_PRIO_NORMAL,                 /* normal priority, device read needs to be checked for collisions */
-    0                               /* insertion order, gets filled in by the registration function */
+    0,                              /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                  /* NO mirroring */
 };
 static io_source_list_t *partner128_io1_list_item = NULL;
 
@@ -136,7 +137,8 @@ static io_source_t partner128_iod6_device = {
     partner128_dump,                /* device state information dump function */
     CARTRIDGE_C128_PARTNER128,      /* cartridge ID */
     IO_PRIO_NORMAL,                 /* normal priority, device read needs to be checked for collisions */
-    0                               /* insertion order, gets filled in by the registration function */
+    0,                              /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                  /* NO mirroring */
 };
 static io_source_list_t *partner128_iod6_list_item = NULL;
 

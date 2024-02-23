@@ -25,8 +25,10 @@
  */
 
 #include "vice.h"
+#include <stdbool.h>
 
 #include "c64mem.h"
+#include "pet/petpia.h"
 #include "snapshot.h"
 #include "tap.h"
 #include "tape.h"
@@ -77,6 +79,10 @@ void tape_image_event_playback(unsigned int unit, const char *filename)
 int tape_image_detach(unsigned int unit)
 {
     return 0;
+}
+
+void tape_image_detach_all(void)
+{
 }
 
 int tap_seek_start(tap_t *tap)
@@ -188,4 +194,14 @@ int tapeport_valid_port(int port)
 int tapecart_flush_tcrt(void)
 {
     return -1;
+}
+
+bool pia1_get_diagnostic_pin(void)
+{
+    return false;
+}
+
+int tapeport_get_active_state(void)
+{
+    return 0;
 }

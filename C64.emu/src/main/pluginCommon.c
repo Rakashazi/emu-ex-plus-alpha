@@ -27,7 +27,6 @@
 #include "drive.h"
 #include "lib.h"
 #include "util.h"
-#include "ioutil.h"
 #include "uiapi.h"
 #include "console.h"
 #include "monitor.h"
@@ -56,12 +55,14 @@
 #include "zfile.h"
 #include "mousedrv.h"
 #include "rs232.h"
-#include "tick.h"
+#include "coproc.h"
 
 VICE_API int vice_init();
 
-int console_mode = 0;
-int video_disabled_mode = 0;
+bool console_mode = false;
+bool video_disabled_mode = false;
+bool help_requested = false;
+bool default_settings_requested = false;
 extern void (*vsync_hook)(void);
 int rs232_useip232[RS232_NUM_DEVICES];
 
@@ -133,29 +134,9 @@ char *archdep_tmpnam(void)
 	return NULL;
 }
 
-int archdep_file_is_gzip(const char *name)
-{
-	size_t l = strlen(name);
-
-	if ((l < 4 || strcasecmp(name + l - 3, ".gz")) && (l < 3 || strcasecmp(name + l - 2, ".z")) && (l < 4 || toupper(name[l - 1]) != 'Z' || name[l - 4] != '.')) {
-		return 0;
-	}
-	return 1;
-}
-
 char *archdep_make_backup_filename(const char *fname)
 {
 	return util_concat(fname, "~", NULL);
-}
-
-int archdep_file_set_gzip(const char *name)
-{
-    return 0;
-}
-
-char *archdep_default_save_resource_file_name(void)
-{
-	return NULL;
 }
 
 //FILE *archdep_open_default_log_file(void) { return stderr; }
@@ -164,7 +145,7 @@ int archdep_default_logger(const char *level_string, const char *txt) { return 0
 
 char *archdep_default_portable_resource_file_name(void) { return NULL; }
 
-int archdep_is_haiku(void) { return 1; }
+int archdep_is_haiku(void) { return -1; }
 
 void archdep_sound_enable_default_device_tracking(void) {}
 
@@ -192,7 +173,6 @@ int ui_extend_image_dialog(void)
 }
 
 void ui_display_reset(int device, int mode) {}
-bool ui_pause_loop_iteration(void) { return false; }
 
 void ui_display_drive_led(unsigned int drive_number,
 	unsigned int drive_base,
@@ -305,17 +285,8 @@ int archdep_path_is_relative(const char *path)
 /* return malloc'd version of full pathname of orig_name */
 int archdep_expand_path(char **return_path, const char *orig_name)
 {
-	/* Unix version.  */
-	if(*orig_name == '/')
-	{
-		*return_path = lib_strdup(orig_name);
-	}
-	else
-	{
-		char *cwd = ioutil_current_dir();
-		*return_path = util_concat(cwd, "/", orig_name, NULL);
-		lib_free(cwd);
-	}
+	// all path strings should be treated opaque and never expanded
+	*return_path = lib_strdup(orig_name);
 	return 0;
 }
 
@@ -392,6 +363,7 @@ int archdep_close(int fd) { return close(fd); }
 int archdep_fseeko(FILE *stream, off_t offset, int whence) { return fseeko(stream, offset, whence); }
 off_t archdep_ftello(FILE *stream) { return ftello(stream); }
 int archdep_access(const char *pathname, int mode) { return -1; }
+bool archdep_file_exists(const char *path) { return false; }
 
 archdep_dir_t *archdep_opendir(const char *path, int mode) { return NULL; }
 const char *archdep_readdir(archdep_dir_t *dir) { return NULL; }
@@ -423,17 +395,8 @@ void ui_set_tape_status(int port, int tape_status) {}
 char* ui_get_file(const char *format,...) { return NULL; }
 void ui_shutdown(void) {}
 void ui_resources_shutdown(void) {}
-int ui_pause_active() { return 0; }
-void ui_pause_enable() {}
-void ui_pause_disable() {}
 ui_jam_action_t ui_jam_dialog(const char *format, ...) { return UI_JAM_NONE; }
-int c64_kbd_init(void) { return 0; }
-void kbd_arch_init(void) {}
-void kbd_initialize_numpad_joykeys(int* joykeys) {}
-int joystick_arch_init_resources(void) { return 0; }
-void joy_arch_init_default_mapping(int joynum) {}
-int joystick_init_resources(void) { return 0; }
-//void joystick_close() {}
+void ui_message(const char *format, ...) {}
 int console_close_all(void) { return 0; }
 void video_shutdown(void) {}
 gfxoutputdrv_t *gfxoutput_get_driver(const char *drvname) { return NULL; }
@@ -463,12 +426,15 @@ int cmdline_register_options(const cmdline_option_t *c) { return 0; }
 int cmdline_init() { return 0; }
 int initcmdline_init() { return 0; }
 void initcmdline_shutdown() {}
+void initcmdline_check_attach(void) {}
 void cmdline_shutdown() {}
 int video_arch_get_active_chip() { return VIDEO_CHIP_VICII; }
 void video_render_1x2_init() {}
 void video_render_2x2_init() {}
 int cmdline_get_autostart_mode(void) { return AUTOSTART_MODE_NONE; }
 void ui_actions_shutdown() {}
+int ui_action_get_id(const char *name) { return 0; }
+char *archdep_default_joymap_file_name(void) { return ""; }
 
 #define DUMMY_VIDEO_RENDER(func) void func(const video_render_color_tables_t *color_tab, \
 const uint8_t *src, uint8_t *trg, \
@@ -526,10 +492,6 @@ DUMMY_VIDEO_RENDER_CRT(render_32_2x2_pal)
 DUMMY_VIDEO_RENDER_CRT(render_32_2x2_rgbi)
 DUMMY_VIDEO_RENDER_CRT(render_32_2x4_rgbi)
 DUMMY_VIDEO_RENDER_CRT(render_32_2x2_pal_u)
-
-int mousedrv_resources_init(mouse_func_t *funcs) { return 0; }
-int mousedrv_cmdline_options_init(void) { return 0; }
-void mousedrv_init(void) {}
 
 void mousedrv_mouse_changed(void) {}
 
@@ -597,9 +559,17 @@ int zfile_close_action(const char *filename, zfile_action_t action,
 	return 0;
 }
 
+int memmap_screenshot_save(const char *drvname, const char *filename, int x_size, int y_size, uint8_t *gfx, uint8_t *palette)
+{
+	return 0;
+}
+
+tick_t tick_per_second(void) { return TICK_PER_SECOND; }
+tick_t tick_now_delta(tick_t previous_tick) { return 1; }
 void tick_sleep(tick_t ticks) { assert(!"emulation thread should not explicitly call sleep for timing"); }
 
-int fork_coproc(int *fd_wr, int *fd_rd, char *cmd) { return -1; }
+int fork_coproc(int *fd_wr, int *fd_rd, char *cmd, vice_pid_t *childpid) { return -1; }
+void kill_coproc(vice_pid_t pid) {}
 
 #ifdef NDEBUG
 int log_message(log_t log, const char *format, ...) { return 0; }
@@ -614,6 +584,8 @@ int uimon_out(const char *buffer) { return 0; }
 
 int vice_init()
 {
+	lib_init();
+
 	maincpu_early_init();
 	machine_setup_context();
 	drive_setup_context();

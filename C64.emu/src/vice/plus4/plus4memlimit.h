@@ -30,6 +30,6 @@
 #define NUM_SEGMENTS 6
 #define NUM_CONFIGS 32
 
-extern void mem_limit_init(int mem_read_limit_tab[NUM_CONFIGS][0x101]);
+void mem_limit_init(int mem_read_limit_tab[NUM_CONFIGS][0x101]);
 
 #endif

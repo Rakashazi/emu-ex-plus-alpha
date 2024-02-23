@@ -30,31 +30,31 @@
 #include "types.h"
 
 /* Initializes all RS232 stuff */
-extern void rs232net_init(void);
+void rs232net_init(void);
 
 /* Reset for RS232 interfaces */
-extern void rs232net_reset(void);
+void rs232net_reset(void);
 
 /* Opens a rs232 window, returns handle to give to functions below. */
-extern int rs232net_open(int device);
+int rs232net_open(int device);
 
 /* Closes the rs232 window again */
-extern void rs232net_close(int fd);
+void rs232net_close(int fd);
 
 /* Sends a byte to the RS232 line */
-extern int rs232net_putc(int fd, uint8_t b);
+int rs232net_putc(int fd, uint8_t b);
 
 /* Gets a byte to the RS232 line, returns !=1 if byte received, byte in *b. */
-extern int rs232net_getc(int fd, uint8_t *b);
+int rs232net_getc(int fd, uint8_t *b);
 
 /* write the output handshake lines */
-extern int rs232net_set_status(int fd, enum rs232handshake_out status);
+int rs232net_set_status(int fd, enum rs232handshake_out status);
 
 /* write the output handshake lines */
-extern enum rs232handshake_in rs232net_get_status(int fd);
+enum rs232handshake_in rs232net_get_status(int fd);
 
-extern int rs232net_resources_init(void);
-extern void rs232net_resources_shutdown(void);
-extern int rs232net_cmdline_options_init(void);
+int rs232net_resources_init(void);
+void rs232net_resources_shutdown(void);
+int rs232net_cmdline_options_init(void);
 
 #endif

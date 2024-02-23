@@ -36,6 +36,6 @@ typedef struct vdc_resources_s vdc_resources_t;
 
 extern vdc_resources_t vdc_resources;
 
-extern int vdc_resources_init(void);
+int vdc_resources_init(void);
 
 #endif

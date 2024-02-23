@@ -31,15 +31,15 @@
 
 struct drive_s;
 
-extern void ieeerom_init(void);
-extern void ieeerom_setup_image(struct diskunit_context_s *drive);
-extern int ieeerom_check_loaded(unsigned int type);
+void ieeerom_init(void);
+void ieeerom_setup_image(struct diskunit_context_s *drive);
+int ieeerom_check_loaded(unsigned int type);
 
-extern int ieeerom_load_2031(void);
-extern int ieeerom_load_1001(void);
-extern int ieeerom_load_2040(void);
-extern int ieeerom_load_3040(void);
-extern int ieeerom_load_4040(void);
-extern int ieeerom_load_9000(void);
+int ieeerom_load_2031(void);
+int ieeerom_load_1001(void);
+int ieeerom_load_2040(void);
+int ieeerom_load_3040(void);
+int ieeerom_load_4040(void);
+int ieeerom_load_9000(void);
 
 #endif

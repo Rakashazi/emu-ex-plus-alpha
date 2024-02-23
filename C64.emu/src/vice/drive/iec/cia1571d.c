@@ -47,12 +47,13 @@ typedef struct drivecia1571_context_s {
 
 void cia1571_store(diskunit_context_t *ctxptr, uint16_t addr, uint8_t data)
 {
+    ctxptr->cpu->cpu_last_data = data;
     ciacore_store(ctxptr->cia1571, addr, data);
 }
 
 uint8_t cia1571_read(diskunit_context_t *ctxptr, uint16_t addr)
 {
-    return ciacore_read(ctxptr->cia1571, addr);
+    return ctxptr->cpu->cpu_last_data = ciacore_read(ctxptr->cia1571, addr);
 }
 
 uint8_t cia1571_peek(diskunit_context_t *ctxptr, uint16_t addr)
@@ -63,6 +64,97 @@ uint8_t cia1571_peek(diskunit_context_t *ctxptr, uint16_t addr)
 int cia1571_dump(diskunit_context_t *ctxptr, uint16_t addr)
 {
     ciacore_dump(ctxptr->cia1571);
+    return 0;
+}
+
+/*
+    FIXME: the actual memory map is quite wild with the mos5710:
+
+       A 15 14 13 12   10    4    3
+    CIA   0  1  0  0    x    0    x     4x0x 4x2x 4x4x 4x6x 4x8x 4xax 4xcx 4xex
+    FDC2  0  1  0  0    0    1    x     401x 403x 405x 407x 409x 40bx 40dx 40fx
+                                        411x 413x 415x 417x 419x 41bx 41dx 41fx
+                                        421x 423x 425x 427x 429x 42bx 42dx 42fx
+                                        431x 433x 435x 437x 439x 43bx 43dx 43fx
+                                        481x 483x 485x 487x 489x 48bx 48dx 48fx
+                                        491x 493x 495x 497x 499x 49bx 49dx 49fx
+                                        4a1x 4a3x 4a5x 4a7x 4a9x 4abx 4adx 4afx
+                                        4b1x 4b3x 4b5x 4b7x 4b9x 4bbx 4bdx 4bfx
+*/
+/* FIXME: need to confirm how it actually mirrors on the real drive */
+void mos5710_store(diskunit_context_t *ctxptr, uint16_t addr, uint8_t data)
+{
+    if ((addr & 0x1f) > 0x0f) {
+        /* TODO: extra MFM registers */
+    } else {
+        /* HACK HACK: (partially) implemented are registers 0x0c, 0x0d, 0x0e */
+        ctxptr->cpu->cpu_last_data = data;
+        /* the following lets us use the regular CIA emulation */
+        switch (addr & 0x0f) {
+            case 0x0c:
+                break;
+            case 0x0d:
+                if (data & 0x80) {
+                    data &= 0x88;   /* only allow SR IRQ */
+                }
+                break;
+            case 0x0e:
+                data &= 0x40;   /* only SR Input/Output is implemented (?) */
+                data |= 0x01;   /* force timer running */
+                break;
+            default:
+                return; /* all other registers are not implemented */
+        }
+        ciacore_store(ctxptr->cia1571, addr & 0x0f, data);
+    }
+}
+
+/* FIXME: need to confirm how it actually mirrors on the real drive */
+uint8_t mos5710_read(diskunit_context_t *ctxptr, uint16_t addr)
+{
+    if ((addr & 0x1f) > 0x0f) {
+        /* TODO: extra MFM registers */
+        return ctxptr->cpu->cpu_last_data = 0;
+    }
+
+    /* the following lets us use the regular CIA emulation */
+    switch (addr & 0x0f) {
+        case 0x0c:
+        case 0x0d:
+        case 0x0e:
+            break;
+        default:
+            return 0xff; /* FIXME: all other registers are not implemented */
+    }
+
+    return ctxptr->cpu->cpu_last_data = ciacore_read(ctxptr->cia1571, addr & 0x0f);
+}
+
+/* FIXME: need to confirm how it actually mirrors on the real drive */
+uint8_t mos5710_peek(diskunit_context_t *ctxptr, uint16_t addr)
+{
+    if ((addr & 0x1f) > 0x0f) {
+        /* TODO: extra MFM registers */
+        return 0;
+    }
+
+    /* the following lets us use the regular CIA emulation */
+    switch (addr & 0x0f) {
+        case 0x0c:
+        case 0x0d:
+        case 0x0e:
+            break;
+        default:
+            return 0xff; /* FIXME: all other registers are not implemented */
+    }
+
+    return ciacore_peek(ctxptr->cia1571, addr & 0x0f);
+}
+
+int mos5710_dump(diskunit_context_t *ctxptr, uint16_t addr)
+{
+    ciacore_dump(ctxptr->cia1571);
+    /* TODO: extra MFM registers */
     return 0;
 }
 
@@ -189,7 +281,7 @@ void cia1571_setup_context(diskunit_context_t *ctxptr)
 
     cia->prv = lib_malloc(sizeof(drivecia1571_context_t));
     cia1571p = (drivecia1571_context_t *)(cia->prv);
-    cia1571p->number = (unsigned int)(ctxptr->mynumber);
+    cia1571p->number = ctxptr->mynumber;
 
     cia->context = (void *)ctxptr;
 
@@ -202,7 +294,7 @@ void cia1571_setup_context(diskunit_context_t *ctxptr)
 
     cia->debugFlag = 0;
     cia->irq_line = IK_IRQ;
-    cia->myname = lib_msprintf("CIA1571D%d", ctxptr->mynumber);
+    cia->myname = lib_msprintf("CIA1571D%u", ctxptr->mynumber);
 
     cia1571p->diskunit = ctxptr;
 

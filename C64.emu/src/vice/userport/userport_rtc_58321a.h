@@ -31,8 +31,8 @@
 
 extern int userport_rtc_58321a_enable;
 
-extern int userport_rtc_58321a_resources_init(void);
-extern int userport_rtc_58321a_cmdline_options_init(void);
-extern void userport_rtc_58321a_resources_shutdown(void);
+int userport_rtc_58321a_resources_init(void);
+int userport_rtc_58321a_cmdline_options_init(void);
+void userport_rtc_58321a_resources_shutdown(void);
 
 #endif

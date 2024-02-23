@@ -29,6 +29,26 @@
 
 #include "types.h"
 
-extern int userport_wic64_resources_init(void);
+#define WIC64_MAXTRACELEVEL 3   /* adjust if needed more */
+/* timezone mapping
+   C64 sends just a number 0-31, bcd little endian in commandbuffer.
+   offsets can then be calculated.
+   TBD, Fixme for day-wraparounds incl. dates
+*/
+typedef struct tzones
+{
+    int idx;
+    char *tz_name;
+    int hour_offs;
+    int min_offs;
+    int dst;                    /* add DST or not, still not perfekt */
+} tzones_t;
+
+int  userport_wic64_resources_init(void);
+void userport_wic64_resources_shutdown(void);
+int  userport_wic64_cmdline_options_init(void);
+void userport_wic64_factory_reset(void);
+
+const tzones_t *userport_wic64_get_timezones(size_t *num_zones);
 
 #endif

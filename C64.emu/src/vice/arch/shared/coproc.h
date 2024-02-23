@@ -28,6 +28,15 @@
 #ifndef VICE_COPROC_H
 #define VICE_COPROC_H
 
-int fork_coproc(int *fd_wr, int *fd_rd, char *cmd);
+#if defined(WINDOWS_COMPILE)
+#include <windows.h>
+typedef HANDLE vice_pid_t;
+#else
+#include <sys/types.h>
+typedef pid_t vice_pid_t;
+#endif
+
+int fork_coproc(int *fd_wr, int *fd_rd, char *cmd, vice_pid_t *childpid);
+void kill_coproc(vice_pid_t pid);
 
 #endif

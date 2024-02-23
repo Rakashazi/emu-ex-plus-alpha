@@ -78,7 +78,7 @@ static void set_traps_status(int enabled)
 {
     int new_value = enabled ? 1 : 0;
 
-    DBG(("set_traps_status: %d", new_value));
+    DBG(("set_traps_status(%d)", enabled));
 
     if ((!traps_enabled && new_value) || (traps_enabled && !new_value)) {
         if (!new_value) {
@@ -179,7 +179,7 @@ static resource_int_t resources_int_ieee[] = {
 int traps_resources_init(void)
 {
 #if 0
-    /* the IEEE488 based machines do not use "device traps" (ROM patches), 
+    /* the IEEE488 based machines do not use "device traps" (ROM patches),
        instead the virtual devices are actually interfaced to the IEEE bus.
        this makes them much more reliably, which is why we can enable them
        by default here. */
@@ -318,6 +318,7 @@ int traps_add(const trap_t *trap)
     traplist = p;
 
     if (traps_enabled) {
+        log_verbose("Trap '%s' added.", trap->name);
         install_trap(trap);
     } else {
         log_verbose("Traps are disabled, trap '%s' not installed.", trap->name);
@@ -329,7 +330,8 @@ int traps_add(const trap_t *trap)
 static int remove_trap(const trap_t *trap)
 {
     if ((trap->readfunc)(trap->address) != TRAP_OPCODE) {
-        log_error(traps_log, "No trap `%s' installed?", trap->name);
+        log_error(traps_log, "remove_trap($%04x): No trap `%s' installed?",
+                  trap->address, trap->name);
         return -1;
     }
     log_verbose("Trap '%s' disabled.", trap->name);

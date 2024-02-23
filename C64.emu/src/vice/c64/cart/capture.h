@@ -35,25 +35,25 @@
 
 struct snapshot_s;
 
-extern uint8_t capture_romh_read(uint16_t addr);
-extern void capture_romh_store(uint16_t addr, uint8_t value);
-extern uint8_t capture_1000_7fff_read(uint16_t addr);
-extern void capture_1000_7fff_store(uint16_t addr, uint8_t value);
-extern int capture_romh_phi1_read(uint16_t addr, uint8_t *value);
-extern int capture_romh_phi2_read(uint16_t addr, uint8_t *value);
-extern int capture_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
+uint8_t capture_romh_read(uint16_t addr);
+void capture_romh_store(uint16_t addr, uint8_t value);
+uint8_t capture_1000_7fff_read(uint16_t addr);
+void capture_1000_7fff_store(uint16_t addr, uint8_t value);
+int capture_romh_phi1_read(uint16_t addr, uint8_t *value);
+int capture_romh_phi2_read(uint16_t addr, uint8_t *value);
+int capture_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
 
-extern void capture_freeze(void);
+void capture_freeze(void);
 
-extern void capture_config_init(void);
-extern void capture_reset(void);
-extern void capture_config_setup(uint8_t *rawcart);
-extern int capture_bin_attach(const char *filename, uint8_t *rawcart);
-extern int capture_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void capture_detach(void);
-extern void capture_powerup(void);
+void capture_config_init(void);
+void capture_reset(void);
+void capture_config_setup(uint8_t *rawcart);
+int capture_bin_attach(const char *filename, uint8_t *rawcart);
+int capture_crt_attach(FILE *fd, uint8_t *rawcart);
+void capture_detach(void);
+void capture_powerup(void);
 
-extern int capture_snapshot_write_module(struct snapshot_s *s);
-extern int capture_snapshot_read_module(struct snapshot_s *s);
+int capture_snapshot_write_module(struct snapshot_s *s);
+int capture_snapshot_read_module(struct snapshot_s *s);
 
 #endif

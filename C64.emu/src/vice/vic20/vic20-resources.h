@@ -27,8 +27,8 @@
 #ifndef VICE_VIC20_RESOURCES_H
 #define VICE_VIC20_RESOURCES_H
 
-extern int vic20_resources_init(void);
-extern void vic20_resources_shutdown(void);
+int vic20_resources_init(void);
+void vic20_resources_shutdown(void);
 
 extern int ieee488_enabled;
 extern int ram_block_0_enabled;

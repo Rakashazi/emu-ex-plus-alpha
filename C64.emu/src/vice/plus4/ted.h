@@ -44,22 +44,24 @@ struct screenshot_s;
 extern CLOCK last_write_cycle;
 extern CLOCK first_write_cycle;
 
-extern int ted_resources_init(void);
-extern int ted_cmdline_options_init(void);
-extern struct raster_s *ted_init(void);
-extern struct video_canvas_s *ted_get_canvas(void);
+int ted_resources_init(void);
+int ted_cmdline_options_init(void);
+struct raster_s *ted_init(void);
+struct video_canvas_s *ted_get_canvas(void);
 
-extern void ted_reset(void);
-extern void ted_powerup(void);
-extern void ted_reset_registers(void);
-extern void ted_handle_pending_alarms(CLOCK num_write_cycles);
-extern void ted_screenshot(struct screenshot_s *screenshot);
-extern void ted_async_refresh(struct canvas_refresh_s *r);
-extern void ted_shutdown(void);
-extern void ted_change_timing(struct machine_timing_s *machine_timing, int bordermode);
+void ted_reset(void);
+void ted_powerup(void);
+void ted_reset_registers(void);
+void ted_handle_pending_alarms(CLOCK num_write_cycles);
+void ted_screenshot(struct screenshot_s *screenshot);
+void ted_async_refresh(struct canvas_refresh_s *r);
+void ted_shutdown(void);
+void ted_change_timing(struct machine_timing_s *machine_timing, int bordermode);
 
-extern void ted_snapshot_prepare(void);
-extern int ted_snapshot_write_module(struct snapshot_s *s);
-extern int ted_snapshot_read_module(struct snapshot_s *s);
+void ted_snapshot_prepare(void);
+int ted_snapshot_write_module(struct snapshot_s *s);
+int ted_snapshot_read_module(struct snapshot_s *s);
+
+int ted_dump(void);
 
 #endif

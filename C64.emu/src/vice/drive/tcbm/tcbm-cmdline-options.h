@@ -27,6 +27,6 @@
 #ifndef VICE_TCBM_CMDLINE_OPTIONS_H
 #define VICE_TCBM_CMDLINE_OPTIONS_H
 
-extern int tcbm_cmdline_options_init(void);
+int tcbm_cmdline_options_init(void);
 
 #endif

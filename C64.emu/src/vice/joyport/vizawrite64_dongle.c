@@ -102,6 +102,7 @@ static joyport_t joyport_vizawrite64_dongle_device = {
     JOYPORT_RES_ID_NONE,                   /* device can be used in multiple ports at the same time */
     JOYPORT_IS_NOT_LIGHTPEN,               /* device is NOT a lightpen */
     JOYPORT_POT_REQUIRED,                  /* device uses the potentiometer lines */
+    JOYPORT_5VDC_REQUIRED,                 /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,              /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_C64_DONGLE,             /* device is a C64 Dongle */
     0,                                     /* NO output bits */

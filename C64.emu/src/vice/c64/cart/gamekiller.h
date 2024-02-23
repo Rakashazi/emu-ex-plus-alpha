@@ -34,16 +34,16 @@
 
 struct snapshot_s;
 
-extern int gamekiller_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
+int gamekiller_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
 
-extern void gamekiller_config_init(void);
-extern void gamekiller_config_setup(uint8_t *rawcart);
-extern int gamekiller_bin_attach(const char *filename, uint8_t *rawcart);
-extern int gamekiller_crt_attach(FILE *fd, uint8_t *rawcart);
-extern void gamekiller_detach(void);
-extern void gamekiller_freeze(void);
+void gamekiller_config_init(void);
+void gamekiller_config_setup(uint8_t *rawcart);
+int gamekiller_bin_attach(const char *filename, uint8_t *rawcart);
+int gamekiller_crt_attach(FILE *fd, uint8_t *rawcart);
+void gamekiller_detach(void);
+void gamekiller_freeze(void);
 
-extern int gamekiller_snapshot_write_module(struct snapshot_s *s);
-extern int gamekiller_snapshot_read_module(struct snapshot_s *s);
+int gamekiller_snapshot_write_module(struct snapshot_s *s);
+int gamekiller_snapshot_read_module(struct snapshot_s *s);
 
 #endif

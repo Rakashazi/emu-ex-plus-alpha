@@ -79,23 +79,23 @@
 #define SUPERPET_6809_E_NAME "waterloo-e000.901897-01.bin"
 #define SUPERPET_6809_F_NAME "waterloo-f000.901898-05.bin"
 
-extern int petrom_load_chargen(void);
-extern int petrom_load_kernal(void);
-extern int petrom_load_basic(void);
-extern int petrom_load_editor(void);
-extern int petrom_load_rom9(void);
-extern int petrom_load_romA(void);
-extern int petrom_load_romB(void);
-extern int petrom_load_6809rom(int num);
+int petrom_load_chargen(void);
+int petrom_load_kernal(void);
+int petrom_load_basic(void);
+int petrom_load_editor(void);
+int petrom_load_rom9(void);
+int petrom_load_romA(void);
+int petrom_load_romB(void);
+int petrom_load_6809rom(int num);
 
-extern void petrom_convert_chargen_2k(void);
-extern void petrom_convert_chargen(uint8_t *charrom);
-extern void petrom_get_kernal_checksum(void);
-extern void petrom_get_editor_checksum(void);
-extern void petrom_checksum(void);
+void petrom_convert_chargen_2k(void);
+void petrom_convert_chargen(uint8_t *charrom);
+void petrom_get_kernal_checksum(void);
+void petrom_get_editor_checksum(void);
+void petrom_checksum(void);
 
-extern void petrom_patch_2001(void);
-extern void petrom_unpatch_2001(void);
+void petrom_patch_2001(void);
+void petrom_unpatch_2001(void);
 
 extern int petrom_9_loaded;
 extern int petrom_A_loaded;

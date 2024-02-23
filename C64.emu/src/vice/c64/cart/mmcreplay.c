@@ -66,51 +66,57 @@
 #define MMCREPLAY_RAM_SIZE (1024 * 512)
 
 /* #define MMCRDEBUG */
-/* #define DEBUG_LOGBANKS */    /* log access to banked rom/ram */
-/* #define DEBUG_IOBANKS */     /* log access to banked rom/ram in io */
-/* #define LOG_MAPPER */        /* log memory map changes */
-/* #define LOG_CLOCKPORT */     /* log clockport i/o */
 
-/* #define LOG_READ_DE00 */
-/* #define LOG_WRITE_DE00 */
-/* #define LOG_WRITE_DE01 */
+#ifdef MMCRDEBUG
+#define DEBUG_LOGBANKS    /* log access to banked rom/ram */
+#define DEBUG_IOBANKS     /* log access to banked rom/ram in io */
+#define LOG_MAPPER        /* log memory map changes */
+#define LOG_CLOCKPORT     /* log clockport i/o */
 
-/* #define LOG_READ_IO1_RAM */
-/* #define LOG_READ_IO1_ROM */
-/* #define LOG_READ_IO1_DISABLED */
-/* #define LOG_WRITE_IO1_RAM */
-/* #define LOG_WRITE_IO1_ROM */
-/* #define LOG_WRITE_IO1_DISABLED */
+#define LOG_READ_DE00
+#define LOG_WRITE_DE00
+#define LOG_WRITE_DE01
 
-/* #define LOG_READ_DF10 */
-/* #define LOG_READ_DF11 */
-/* #define LOG_READ_DF12 */
-/* #define LOG_READ_DF13 */
+#define LOG_READ_IO1_RAM
+#define LOG_READ_IO1_ROM
+#define LOG_READ_IO1_DISABLED
+#define LOG_WRITE_IO1_RAM
+#define LOG_WRITE_IO1_ROM
+#define LOG_WRITE_IO1_DISABLED
 
-/* #define LOG_WRITE_DF10 */
-/* #define LOG_WRITE_DF11 */
-/* #define LOG_WRITE_DF12 */
-/* #define LOG_WRITE_DF13 */
+#define LOG_READ_DF10
+#define LOG_READ_DF11
+#define LOG_READ_DF12
+#define LOG_READ_DF13
 
-/* #define LOG_READ_IO2_RAM */
-/* #define LOG_READ_IO2_ROM */
-/* #define LOG_READ_IO2_DISABLED */
-/* #define LOG_WRITE_IO2_RAM */
-/* #define LOG_WRITE_IO2_ROM */
-/* #define LOG_WRITE_IO2_DISABLED */
+#define LOG_WRITE_DF10
+#define LOG_WRITE_DF11
+#define LOG_WRITE_DF12
+#define LOG_WRITE_DF13
 
+#define LOG_READ_IO2_RAM
+#define LOG_READ_IO2_ROM
+#define LOG_READ_IO2_DISABLED
+#define LOG_WRITE_IO2_RAM
+/*#define LOG_WRITE_IO2_ROM*/
+#define LOG_WRITE_IO2_DISABLED
+
+/* define any of the following to force starting up in a specific configuration */
 /* #define TEST_AR_MAPPER */
 /* #define TEST_RR_MAPPER */
 /* #define TEST_NORDIC_MAPPER */
 /* #define TEST_SUPER_8KCRT */
 /* #define TEST_SUPER_16KCRT */
 /* #define TEST_RESCUE_MODE */
+#endif
 
 #ifdef MMCRDEBUG
 #define LOG(_x_) log_debug _x_
 #else
 #define LOG(_x_)
 #endif
+
+static int machine_mode = 1; /* 1: c64, 0: c128 */
 
 static int mmcr_enabled = 0;
 static int enable_rescue_mode = 0;
@@ -302,7 +308,8 @@ static io_source_t mmcreplay_io1_device = {
     mmcreplay_dump,            /* device state information dump function */
     CARTRIDGE_MMC_REPLAY,      /* cartridge ID */
     IO_PRIO_NORMAL,            /* normal priority, device read needs to be checked for collisions */
-    0                          /* insertion order, gets filled in by the registration function */
+    0,                         /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE             /* NO mirroring */
 };
 
 static io_source_t mmcreplay_io2_device = {
@@ -318,7 +325,8 @@ static io_source_t mmcreplay_io2_device = {
     mmcreplay_dump,            /* device state information dump function */
     CARTRIDGE_MMC_REPLAY,      /* cartridge ID */
     IO_PRIO_NORMAL,            /* normal priority, device read needs to be checked for collisions */
-    0                          /* insertion order, gets filled in by the registration function */
+    0,                         /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE             /* NO mirroring */
 };
 
 static io_source_t mmcreplay_clockport_device = {
@@ -334,7 +342,8 @@ static io_source_t mmcreplay_clockport_device = {
     mmcreplay_dump,                         /* device state information dump function */
     CARTRIDGE_MMC_REPLAY,                   /* cartridge ID */
     IO_PRIO_NORMAL,                         /* normal priority, device read needs to be checked for collisions */
-    0                                       /* insertion order, gets filled in by the registration function */
+    0,                                      /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                          /* NO mirroring */
 };
 
 static io_source_list_t *mmcreplay_io1_list_item = NULL;
@@ -347,7 +356,11 @@ static const export_resource_t export_res = {
 
 /********************************************************************************************************************/
 
+static void mmcreplay_set_stdcfg(void);
+
 #ifdef LOG_MAPPER
+void mmcreplay_dump_cfg(void);
+
 void mmcreplay_dump_cfg(void)
 {
     static char dumpstr1[0x100];
@@ -358,7 +371,7 @@ void mmcreplay_dump_cfg(void)
     int mapper, config;
 
     sprintf(ndumpstr,
-            "MMCREPLAY: cart active: %d disable rr rom/opt.mapping:%d rr regs active:%d  extended mode:%d  16k mapping:%d RAM IO1 Mapping:%d RAM Banking:%d",
+            "MMCREPLAY: cart active: %u disable rr rom/opt.mapping:%u rr regs active:%u  extended mode:%u  16k mapping:%u RAM IO1 Mapping:%u RAM Banking:%u",
             rr_active, disable_rr_rom, enable_rr_regs, enable_extended_mode,
             enable_16k_mapping, enable_ram_io1, allow_bank);
     if (strcmp(dumpstr1, ndumpstr) != 0) {
@@ -405,16 +418,16 @@ void mmcreplay_dump_cfg(void)
 
         sprintf(romlbank, "(%d:%d)", roml_bank >> 3, roml_bank & 7);
         sprintf(romhbank, "(%d:%d)", romh_bank >> 3, romh_bank & 7);
-        sprintf(ramlbank, "(%d:%d)", raml_bank >> 3, raml_bank & 7);
-        sprintf(ramhbank, "(%d:%d)", ramh_bank >> 3, ramh_bank & 7);
+        sprintf(ramlbank, "(%u:%u)", raml_bank >> 3, raml_bank & 7);
+        sprintf(ramhbank, "(%u:%u)", ramh_bank >> 3, ramh_bank & 7);
         /* a000- bfff */
         sprintf(ramA000bank, "(%d:%d)", ramA000_bank >> 3, ramA000_bank & 7);
         sprintf(romA000bank, "(%d:%d)", romA000_bank >> 3, romA000_bank & 7);  /* FIXME: always = raml bank? */
 
-        sprintf(io1bank, "(%d:%d)", io1_bank >> 3, io1_bank & 7);
-        sprintf(io2bank, "(%d:%d)", io2_bank >> 3, io2_bank & 7);
-        sprintf(io1rambank, "(%d:%d)", io1_ram_bank >> 3, io1_ram_bank & 7);
-        sprintf(io2rambank, "(%d:%d)", io2_ram_bank >> 3, io2_ram_bank & 7);
+        sprintf(io1bank, "(%u:%u)", io1_bank >> 3, io1_bank & 7);
+        sprintf(io2bank, "(%u:%u)", io2_bank >> 3, io2_bank & 7);
+        sprintf(io1rambank, "(%u:%u)", io1_ram_bank >> 3, io1_ram_bank & 7);
+        sprintf(io2rambank, "(%u:%u)", io2_ram_bank >> 3, io2_ram_bank & 7);
         str[0] = 0;
 
         switch (config) {
@@ -1064,7 +1077,7 @@ static void mmcreplay_update_mapper_nolog(unsigned int wflag, int release_freeze
                 enable_ramh = 0;
             }
         }
-        LOG(("raml:%d ramh:%d", enable_raml, enable_ramh));
+        LOG(("raml:%u ramh:%u", enable_raml, enable_ramh));
     } else if (disable_rr_rom) {
         /**************************************************************************************************
          * normal mapper
@@ -1183,7 +1196,7 @@ static void mmcreplay_update_mapper_nolog(unsigned int wflag, int release_freeze
 #endif
         } else {
             LOG(("rr mode 222 (not extended)"));
-            LOG(("enable_ram_io:%d", enable_ram_io));
+            LOG(("enable_ram_io:%u", enable_ram_io));
             /* action replay hack */
             if (enable_ram_io) {
                 uint8_t value = (enable_game) |    /* bit 0 */
@@ -1200,9 +1213,9 @@ static void mmcreplay_update_mapper_nolog(unsigned int wflag, int release_freeze
                 enable_raml = 0;
                 enable_ramh = 0;
             }
-            LOG(("enable_raml:%d", enable_raml));
+            LOG(("enable_raml:%u", enable_raml));
 
-            LOG(("enable_ram_io1:%d", enable_ram_io1));
+            LOG(("enable_ram_io1:%u", enable_ram_io1));
             if (enable_ram_io1) {
                 enable_io1 = 1;
                 enable_io2 = 0;
@@ -1234,7 +1247,10 @@ static void mmcreplay_update_mapper_nolog(unsigned int wflag, int release_freeze
         wflag |= CMODE_RELEASE_FREEZE;
     }
 
-    cart_config_changed_slotmain(active_mode_phi1, active_mode_phi2, wflag);
+    if (machine_mode) {
+        /* c64 */
+        cart_config_changed_slotmain(active_mode_phi1, active_mode_phi2, wflag);
+    }
     cart_romlbank_set_slotmain(cartbankl);
     cart_romhbank_set_slotmain(cartbankh);
 
@@ -1320,7 +1336,7 @@ uint8_t mmcreplay_io1_read(uint16_t addr)
 #ifdef LOG_READ_IO1_RAM
                 LOG(("MMCREPLAY: RAM IO1 RD %04x %02x (%02x:%04x)", addr,
                      mmcr_ram[(addr & 0x1fff) + (io1_ram_bank << 13)],
-                     io1_ram_bank, (addr & 0x1fff)));
+                     io1_ram_bank, (unsigned)(addr & 0x1fff)));
 #endif
                 return mmcr_ram[(io1_ram_bank << 13) + 0x1e00 +
                                 (addr & 0xff)];
@@ -1328,14 +1344,14 @@ uint8_t mmcreplay_io1_read(uint16_t addr)
 #ifdef LOG_READ_IO1_ROM
             LOG(("MMCREPLAY: ROM IO1 RD %04x %02x (%02x:%04x)", addr,
                  roml_banks[(addr & 0x1fff) + (io1_bank << 13)], io1_bank,
-                 (addr & 0x1fff)));
+                 (unsigned)(addr & 0x1fff)));
 #endif
             return flash040core_read(flashrom_state, (io1_ram_bank << 13) + 0x1e00 + (addr & 0xff));
         } else {
 #ifdef LOG_READ_IO1_DISABLED
             LOG(("MMCREPLAY: DISABLED IO1 RD %04x %02x (%02x:%04x)", addr,
                  roml_banks[(addr & 0x1fff) + (io1_bank << 13)], io1_bank,
-                 (addr & 0x1fff)));
+                 (unsigned)(addr & 0x1fff)));
 #endif
         }
     } else {
@@ -1347,7 +1363,7 @@ uint8_t mmcreplay_io1_read(uint16_t addr)
 #ifdef LOG_READ_IO1_RAM
                 LOG(("MMCREPLAY: RAM IO1 RD %04x %02x (%02x:%04x)", addr,
                      mmcr_ram[(addr & 0x1fff) + (io1_ram_bank << 13)],
-                     io1_ram_bank, (addr & 0x1fff)));
+                     io1_ram_bank, (unsigned)(addr & 0x1fff)));
 #endif
                 return mmcr_ram[(io1_ram_bank << 13) + 0x1e00 +
                                 (addr & 0xff)];
@@ -1355,14 +1371,14 @@ uint8_t mmcreplay_io1_read(uint16_t addr)
 #ifdef LOG_READ_IO1_ROM
             LOG(("MMCREPLAY: ROM IO1 RD %04x %02x (%02x:%04x)", addr,
                  roml_banks[(addr & 0x1fff) + (io1_bank << 13)], io1_bank,
-                 (addr & 0x1fff)));
+                 (unsigned)(addr & 0x1fff)));
 #endif
             return flash040core_read(flashrom_state, (io1_ram_bank << 13) + 0x1e00 + (addr & 0xff));
         } else {
 #ifdef LOG_READ_IO1_DISABLED
             LOG(("MMCREPLAY: DISABLED IO1 RD %04x %02x (%02x:%04x)", addr,
                  roml_banks[(addr & 0x1fff) + (io1_bank << 13)], io1_bank,
-                 (addr & 0x1fff)));
+                 (unsigned)(addr & 0x1fff)));
 #endif
         }
     }
@@ -1397,7 +1413,8 @@ void mmcreplay_io1_store(uint16_t addr, uint8_t value)
                 enable_ram_io = (value >> 5) & 1;       /* bit 5 */
                 enable_freeze_exit = (value >> 6) & 1;  /* bit 6 */
 #ifdef LOG_WRITE_DE00
-                LOG(("MMCREPLAY: IO1 ST %04x %02x enable_game %x enable_exrom %x disable freezer regs %x bank_address_13_15 %x enable_ram_io %x enable_freeze_exit %x", addr, value, enable_game, enable_exrom, value & 4, bank_address_13_15, enable_ram_io, enable_freeze_exit));
+                LOG(("MMCREPLAY: IO1 ST %04x %02x enable_game %x enable_exrom %x disable freezer regs %d bank_address_13_15 %x enable_ram_io %x enable_freeze_exit %x",
+                     addr, value, enable_game, enable_exrom, (value >> 2) & 1, bank_address_13_15, enable_ram_io, enable_freeze_exit));
 #endif
                 mmcreplay_update_mapper(CMODE_WRITE, enable_freeze_exit);
                 return;
@@ -1445,7 +1462,8 @@ void mmcreplay_io1_store(uint16_t addr, uint8_t value)
                     }
                 }
 #ifdef LOG_WRITE_DE01
-                LOG(("MMCREPLAY: IO1 ST %04x %02x mmcr_clockport_enabled %x allow_bank %x no_freeze %x bank_address_13_15 %x enable_mmc_regs_pending %x enable_ram_io1 %x", addr, value, mmcr_clockport_enabled, allow_bank, no_freeze, bank_address_13_15, enable_mmc_regs_pending, enable_ram_io1));
+                LOG(("MMCREPLAY: IO1 ST %04x %02x mmcr_clockport_enabled %d allow_bank %x no_freeze %x bank_address_13_15 %x enable_mmc_regs_pending %x enable_ram_io1 %x",
+                     addr, value, mmcr_clockport_enabled, allow_bank, no_freeze, bank_address_13_15, enable_mmc_regs_pending, enable_ram_io1));
 #endif
                 mmcreplay_update_mapper(CMODE_WRITE, 0);
                 return;
@@ -1469,21 +1487,21 @@ void mmcreplay_io1_store(uint16_t addr, uint8_t value)
             if (enable_ram_io) {
 #ifdef LOG_WRITE_IO1_RAM
                 LOG(("store RAM IO1 %04x %02x (%02x:%04x)", addr, value,
-                     io1_ram_bank, (addr & 0x1fff)));
+                     io1_ram_bank, (unsigned)(addr & 0x1fff)));
 #endif
                 mmcr_ram[(io1_ram_bank << 13) + 0x1e00 + (addr & 0xff)] =
                     value;
             } else {
 #ifdef LOG_WRITE_IO1_ROM
                 LOG(("store DISABLED RAM IO1 %04x %02x (%02x:%04x)", addr,
-                     value, io1_ram_bank, (addr & 0x1fff)));
+                     value, io1_ram_bank, (unsigned)(addr & 0x1fff)));
 #endif
                 flash040core_store(flashrom_state, (io1_ram_bank << 13) + 0x1e00 + (addr & 0xff), value);
             }
         } else {
 #ifdef LOG_WRITE_IO1_DISABLED
             LOG(("store DISABLED IO1 %04x %02x (%02x:%04x)", addr, value,
-                 io1_bank, (addr & 0x1fff)));
+                 io1_bank, (unsigned)(addr & 0x1fff)));
 #endif
         }
     } else {                   /* rr active */
@@ -1492,20 +1510,20 @@ void mmcreplay_io1_store(uint16_t addr, uint8_t value)
             if (enable_ram_io) {
 #ifdef LOG_WRITE_IO1_RAM
                 LOG(("store RAM IO1 %04x %02x (%02x:%04x)", addr, value,
-                     io1_ram_bank, (addr & 0x1fff)));
+                     io1_ram_bank, (unsigned)(addr & 0x1fff)));
 #endif
                 mmcr_ram[(io1_ram_bank << 13) + 0x1e00 + (addr & 0xff)] = value;
             } else {
 #ifdef LOG_WRITE_IO1_ROM
                 LOG(("store DISABLED RAM IO1 %04x %02x (%02x:%04x)", addr,
-                     value, io1_ram_bank, (addr & 0x1fff)));
+                     value, io1_ram_bank, (unsigned)(addr & 0x1fff)));
 #endif
                 flash040core_store(flashrom_state, (io1_ram_bank << 13) + 0x1e00 + (addr & 0xff), value);
             }
         } else {
 #ifdef LOG_WRITE_IO1_DISABLED
             LOG(("store DISABLED IO1 %04x %02x (%02x:%04x)", addr, value,
-                 io1_bank, (addr & 0x1fff)));
+                 io1_bank, (unsigned)(addr & 0x1fff)));
 #endif
         }
     }
@@ -1654,21 +1672,21 @@ uint8_t mmcreplay_io2_read(uint16_t addr)
 #ifdef LOG_READ_IO2_RAM
             LOG(("MMCREPLAY: RAM IO2 RD %04x %02x (%02x:%04x)", addr,
                  mmcr_ram[(addr & 0x1fff) + (io2_ram_bank << 13)],
-                 io2_ram_bank, (addr & 0x1fff)));
+                 io2_ram_bank, (unsigned)(addr & 0x1fff)));
 #endif
             return mmcr_ram[(io2_ram_bank << 13) + 0x1f00 + (addr & 0xff)];
         }
 #ifdef LOG_READ_IO2_ROM
         LOG(("MMCREPLAY: ROM IO2 RD %04x %02x (%02x:%04x)", addr,
              roml_banks[(addr & 0x1fff) + (io2_bank << 13)], io2_bank,
-             (addr & 0x1fff)));
+             (unsigned)(addr & 0x1fff)));
 #endif
         return flash040core_read(flashrom_state, (io2_ram_bank << 13) + 0x1f00 + (addr & 0xff));
     } else {
 #ifdef LOG_READ_IO2_DISABLED
         LOG(("MMCREPLAY: DISABLED IO2 RD %04x %02x (%02x:%04x)", addr,
              roml_banks[(io2_ram_bank << 13) + 0x1f00 + (addr & 0xff)],
-             io2_bank, (addr & 0x1fff)));
+             io2_bank, (unsigned)(addr & 0x1fff)));
 #endif
     }
 
@@ -1677,6 +1695,7 @@ uint8_t mmcreplay_io2_read(uint16_t addr)
 
 void mmcreplay_io2_store(uint16_t addr, uint8_t value)
 {
+/*    LOG(("MMCREPLAY: IO2 ST %04x %02x", addr, value)); */
     switch (addr & 0xff) {
         case 0x10:
             /*
@@ -1814,7 +1833,8 @@ void mmcreplay_io2_store(uint16_t addr, uint8_t value)
                         rr_active = 1;
                     }
 #ifdef LOG_WRITE_DF13
-                    LOG(("MMCREPLAY: IO2 ST %04x %02x bank_address_16_18 %x enable_16k_mapping %x enable rr regs %x", addr, value, bank_address_16_18, enable_16k_mapping, ((value >> 6) & 1)));
+                    LOG(("MMCREPLAY: IO2 ST %04x %02x bank_address_16_18 %x enable_16k_mapping %x enable rr regs %d",
+                         addr, value, bank_address_16_18, enable_16k_mapping, ((value >> 6) & 1)));
 #endif
                     mmcreplay_update_mapper(CMODE_WRITE, 0);
                     return;
@@ -1828,20 +1848,20 @@ void mmcreplay_io2_store(uint16_t addr, uint8_t value)
         if (enable_ram_io) {
 #ifdef LOG_WRITE_IO2_RAM
             LOG(("MMCREPLAY: RAM IO2 ST %04x %02x (%02x:%04x)", addr, value,
-                 io2_ram_bank, (addr & 0x1fff)));
+                 io2_ram_bank, (unsigned)(addr & 0x1fff)));
 #endif
             mmcr_ram[(io2_ram_bank << 13) + 0x1f00 + (addr & 0xff)] = value;
         } else {
 #ifdef LOG_WRITE_IO2_ROM
             LOG(("MMCREPLAY: ROM IO2 ST %04x %02x (%02x:%04x)",
-                 addr, value, io2_ram_bank, (addr & 0x1fff)));
+                 addr, value, io2_ram_bank, (unsigned)(addr & 0x1fff)));
 #endif
             flash040core_store(flashrom_state, (io2_ram_bank << 13) + 0x1f00 + (addr & 0xff), value);
         }
     } else {
 #ifdef LOG_WRITE_IO2_DISABLED
         LOG(("MMCREPLAY: DISABLED IO2 ST %04x %02x (%02x:%04x)", addr, value,
-             io2_bank, (addr & 0x1fff)));
+             io2_bank, (unsigned)(addr & 0x1fff)));
 #endif
     }
 }
@@ -1949,7 +1969,7 @@ uint8_t mmcreplay_roml_read(uint16_t addr)
         if (enable_raml) {
             LOG(("MMCREPLAY: RAML RD %04x %02x (%02x:%04x)", addr,
                  mmcr_ram[(addr & 0x1fff) + (raml_bank << 13)], raml_bank,
-                 (addr & 0x1fff)));
+                 (unsigned)(addr & 0x1fff)));
             logbank_read = (addr & 0xe000);
         } else {
 /*
@@ -1987,10 +2007,10 @@ void mmcreplay_roml_store(uint16_t addr, uint8_t value)
     if (logbank_write != (addr & 0xe000)) {
         if (enable_raml) {
             LOG(("MMCREPLAY: RAML ST %04x %02x (%02x:%04x)", addr, value,
-                 raml_bank, (addr & 0x1fff)));
+                 raml_bank, (unsigned)(addr & 0x1fff)));
         } else {
             LOG(("MMCREPLAY: DISABLED! RAML ST  %04x %02x (%02x:%04x)", addr,
-                 value, raml_bank, (addr & 0x1fff)));
+                 value, raml_bank, (unsigned)(addr & 0x1fff)));
         }
         logbank_write = (addr & 0xe000);
     }
@@ -2123,13 +2143,13 @@ uint8_t mmcreplay_romh_read(uint16_t addr)
             if (addr < 0xfff0) {
                 LOG(("MMCREPLAY: RAMH RD %04x %02x (%02x:%04x)", addr,
                      mmcr_ram[(addr & 0x1fff) + (ramh_bank << 13)],
-                     ramh_bank, (addr & 0x1fff)));
+                     ramh_bank, (unsigned)(addr & 0x1fff)));
                 logbank_read = (addr & 0xe000);
             }
         } else {
             LOG (("MMCREPLAY: ROMH RD %04x %02x (%02x:%04x)", addr,
-                  roml_banks[(addr & 0x1fff) + (romh_bank << 13)], romh_bank,
-                  (addr & 0x1fff)));
+                  roml_banks[(addr & 0x1fff) + (romh_bank << 13)], (unsigned)romh_bank,
+                  (unsigned)(addr & 0x1fff)));
             logbank_read = (addr & 0xe000);
         }
     }
@@ -2160,10 +2180,10 @@ void mmcreplay_romh_store(uint16_t addr, uint8_t value)
     if (logbank_write != (addr & 0xe000)) {
         if (enable_ramh) {
             LOG(("MMCREPLAY: RAMH ST %04x %02x (%02x:%04x)", addr, value,
-                 ramh_bank, (addr & 0x1fff)));
+                 ramh_bank, (unsigned)(addr & 0x1fff)));
         } else {
             LOG (("MMCREPLAY: DISABLED! RAMH ST %04x %02x (%02x:%04x)", addr,
-                  value, ramh_bank, (addr & 0x1fff)));
+                  value, ramh_bank, (unsigned)(addr & 0x1fff)));
         }
         logbank_write = (addr & 0xe000);
     }
@@ -2191,6 +2211,78 @@ int mmcreplay_romh_phi1_read(uint16_t addr, uint8_t *value)
 int mmcreplay_romh_phi2_read(uint16_t addr, uint8_t *value)
 {
     return mmcreplay_romh_phi1_read(addr, value);
+}
+
+/******************************************************************************
+C128 support
+
+FIXME: this is all just a draft and does not work. Generally what should happen
+       is:
+
+- the cartridge starts in C128 mode (working)
+- it starts executing code from bank 7 (appears to be working)
+- it should now show a menu in c128 mode (but it hangs before this)
+
+It is unknown how the I/O registers work in C128 mode. Perhaps at least some of
+the banking is working. It's also possible that basically everything is working,
+and a few things explicitly disabled. In any case, the C128 mode should be able
+to start and run the C128-mode menu, and then also allow to switch to C64 mode.
+
+******************************************************************************/
+
+/* FIXME: function ROM access in C128 mode
+
+   The CBM Signature for C128 mode is at offset 0x2000 in the ROM. Also the
+   cartridge apparently starts in the last of 8 64k banks.
+
+    lda #$01
+    sta c128mode
+
+    ; ?
+    lda #$04
+    sta $d506
+    lda #$0b
+    sta $ff00
+
+    <copy $20 pages from $d800 to $1800 (font)>
+
+    ; ?
+    lda #$3a
+    sta $ff00
+*/
+uint8_t mmcreplay_c128_read(uint16_t addr, uint8_t *value)
+{
+    uint32_t romaddr;
+
+#if 0
+/* also called by $c000-$dfff memory so limit it */
+    if (addr > 0x9fff || addr < 0x8000) {
+        return 0;   /* read was invalid */
+    }
+#endif
+
+#if 1
+    romaddr = addr & 0x7fff;
+    romaddr ^= 0x2000;
+    romaddr += 7 * 0x10000;
+#endif
+    *value = roml_banks[romaddr];
+    /*LOG(("mmcreplay_c128_read %04x %04x got %02x", addr, romaddr, *value));*/
+    return 1;   /* read was valid */
+}
+
+void mmcreplay_c128_switch_mode(int mode)
+{
+    LOG(("MMCREPLAY switch mode: %s", mode ? "c64" : "c128"));
+    machine_mode = mode;
+    if ( mode ) {
+        /* reconfigure for c64 mode */
+        mmcreplay_set_stdcfg();
+        mmcreplay_update_mapper(CMODE_READ, 0);
+    } else {
+        /* reconfigure for c128 mode; boot via ext function rom */
+        cart_config_changed_slotmain(CMODE_RAM, CMODE_RAM, CMODE_READ);
+    }
 }
 
 /*********************************************************************************************************************
@@ -2523,6 +2615,7 @@ void mmcreplay_config_init(void)
 
 void mmcreplay_config_setup(uint8_t *rawcart)
 {
+    LOG(("mmcreplay_config_setup"));
     memcpy(roml_banks, rawcart, MMCREPLAY_FLASHROM_SIZE);
 
     flashrom_state = lib_malloc(sizeof(flash040_context_t));
@@ -2790,6 +2883,23 @@ int mmcreplay_flush_image(void)
         return mmcreplay_crt_save(mmcr_filename);
     }
     return -1;
+}
+
+int mmcreplay_save_eeprom(const char *filename)
+{
+    log_error(LOG_DEFAULT, "FIXME: mmcreplay_save_eeprom not implemented");
+    return -1;
+}
+
+int mmcreplay_flush_eeprom(void)
+{
+    log_error(LOG_DEFAULT, "FIXME: mmcreplay_flush_eeprom not implemented");
+    return -1;
+}
+
+int mmcreplay_can_flush_eeprom(void)
+{
+    return 0;
 }
 
 void mmcreplay_detach(void)

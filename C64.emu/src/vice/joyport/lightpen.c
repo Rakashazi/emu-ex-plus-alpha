@@ -46,6 +46,8 @@
    ---------------------------------
      1   | button         (up) |  I
      6   | light sensor        |  I
+     7   | +5VDC               |  Power
+     8   | GND                 |  Ground
 
    Works on:
    - native joystick port 1 (x64/x64sc/xscpu64/x128/xvic)
@@ -54,6 +56,8 @@
    ---------------------------------
      3   | button       (left) |  I
      6   | light sensor        |  I
+     7   | +5VDC               |  Power
+     8   | GND                 |  Ground
 
    Works on:
    - native joystick port 1 (x64/x64sc/xscpu64/x128/xvic)
@@ -62,6 +66,8 @@
    ---------------------------------
      3   | button       (left) |  I
      6   | light sensor        |  I
+     7   | +5VDC               |  Power
+     8   | GND                 |  Ground
 
    Works on:
    - native joystick port 1 (x64/x64sc/xscpu64/x128/xvic)
@@ -69,6 +75,8 @@
    cport | magnum light phaser | I/O
    ---------------------------------
      6   | light sensor        |  I
+     7   | +5VDC               |  Power
+     8   | GND                 |  Ground
      9   | button       (potx) |  I
 
    Works on:
@@ -78,6 +86,8 @@
    ---------------------------------
      3   | button       (left) |  I
      6   | light sensor        |  I
+     7   | +5VDC               |  Power
+     8   | GND                 |  Ground
 
    Works on:
    - native joystick port 1 (x64/x64sc/xscpu64/x128/xvic)
@@ -86,6 +96,8 @@
    ---------------------------------
      3   | button 1     (left) |  I
      6   | light sensor        |  I
+     7   | +5VDC               |  Power
+     8   | GND                 |  Ground
      9   | button 2     (potx) |  I
 
      not fully implemented:
@@ -97,6 +109,8 @@
    ---------------------------------
      2   | light sensor (down) |  I
      6   | button       (lp)   |  I
+     7   | +5VDC               |  Power
+     8   | GND                 |  Ground
 
      This gun is somewhat weird, in that it uses pin 2 (down) for the light
      sensor, and pin 6 (lp-trigger) for the trigger button. also the signal
@@ -313,6 +327,7 @@ static joyport_t lightpen_u_joyport_device = {
     JOYPORT_RES_ID_MOUSE,         /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_LIGHTPEN,          /* device is a lightpen */
     JOYPORT_POT_OPTIONAL,         /* device does NOT use the potentiometer lines */
+    JOYPORT_5VDC_REQUIRED,        /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,     /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_LIGHTPEN,      /* device is a Light Pen */
     0,                            /* NO output bits */
@@ -333,6 +348,7 @@ static joyport_t lightpen_l_joyport_device = {
     JOYPORT_RES_ID_MOUSE,         /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_LIGHTPEN,          /* device is a lightpen */
     JOYPORT_POT_OPTIONAL,         /* device does NOT use the potentiometer lines */
+    JOYPORT_5VDC_REQUIRED,        /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,     /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_LIGHTPEN,      /* device is a Light Pen */
     0,                            /* NO output bits */
@@ -353,6 +369,7 @@ static joyport_t lightpen_datel_joyport_device = {
     JOYPORT_RES_ID_MOUSE,         /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_LIGHTPEN,          /* device is a lightpen */
     JOYPORT_POT_OPTIONAL,         /* device does NOT use the potentiometer lines */
+    JOYPORT_5VDC_REQUIRED,        /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,     /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_LIGHTPEN,      /* device is a Light Pen */
     0,                            /* NO output bits */
@@ -373,6 +390,7 @@ static joyport_t magnum_light_phaser_joyport_device = {
     JOYPORT_RES_ID_MOUSE,              /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_LIGHTPEN,               /* device is a lightpen */
     JOYPORT_POT_REQUIRED,              /* device uses the potentiometer lines */
+    JOYPORT_5VDC_REQUIRED,             /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,          /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_LIGHTGUN,           /* device is a Light Gun */
     0,                                 /* NO output bits */
@@ -393,6 +411,7 @@ static joyport_t stack_light_rifle_joyport_device = {
     JOYPORT_RES_ID_MOUSE,            /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_LIGHTPEN,             /* device is a lightpen */
     JOYPORT_POT_OPTIONAL,            /* device does NOT use the potentiometer lines */
+    JOYPORT_5VDC_REQUIRED,           /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,        /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_LIGHTGUN,         /* device is a Light Gun */
     0,                               /* NO output bits */
@@ -413,6 +432,7 @@ static joyport_t inkwell_lightpen_joyport_device = {
     JOYPORT_RES_ID_MOUSE,         /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_LIGHTPEN,          /* device is a lightpen */
     JOYPORT_POT_REQUIRED,         /* device uses the potentiometer lines */
+    JOYPORT_5VDC_REQUIRED,        /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,     /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_LIGHTPEN,      /* device is a Light Pen */
     0,                            /* NO output bits */
@@ -434,6 +454,7 @@ static joyport_t gun_stick_joyport_device = {
     JOYPORT_RES_ID_MOUSE,         /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
     JOYPORT_IS_LIGHTPEN,          /* device is a lightpen */
     JOYPORT_POT_OPTIONAL,         /* device does NOT use the potentiometer lines */
+    JOYPORT_5VDC_REQUIRED,        /* device NEEDS +5VDC to work */
     JOYSTICK_ADAPTER_ID_NONE,     /* device is NOT a joystick adapter */
     JOYPORT_DEVICE_LIGHTGUN,      /* device is a Light Gun */
     0,                            /* NO output bits */
@@ -450,40 +471,42 @@ static joyport_t gun_stick_joyport_device = {
 };
 #endif
 
-static int lightpen_joyport_register(void)
+int lightpen_u_joyport_register(void)
 {
-    if (joyport_device_register(JOYPORT_ID_LIGHTPEN_U, &lightpen_u_joyport_device) < 0) {
-        return -1;
-    }
-    if (joyport_device_register(JOYPORT_ID_LIGHTPEN_L, &lightpen_l_joyport_device) < 0) {
-        return -1;
-    }
-    if (joyport_device_register(JOYPORT_ID_LIGHTPEN_DATEL, &lightpen_datel_joyport_device) < 0) {
-        return -1;
-    }
-    if (joyport_device_register(JOYPORT_ID_LIGHTGUN_Y, &magnum_light_phaser_joyport_device) < 0) {
-        return -1;
-    }
-    if (joyport_device_register(JOYPORT_ID_LIGHTGUN_L, &stack_light_rifle_joyport_device) < 0) {
-        return -1;
-    }
-#ifdef JOYPORT_EXPERIMENTAL_DEVICES
-    if (joyport_device_register(JOYPORT_ID_LIGHTGUN_GUNSTICK, &gun_stick_joyport_device) < 0) {
-        return -1;
-    }
-#endif
+    return joyport_device_register(JOYPORT_ID_LIGHTPEN_U, &lightpen_u_joyport_device);
+}
+
+int lightpen_l_joyport_register(void)
+{
+    return joyport_device_register(JOYPORT_ID_LIGHTPEN_L, &lightpen_l_joyport_device);
+}
+
+int lightpen_datel_joyport_register(void)
+{
+    return joyport_device_register(JOYPORT_ID_LIGHTPEN_DATEL, &lightpen_datel_joyport_device);
+}
+
+int lightgun_y_joyport_register(void)
+{
+    return joyport_device_register(JOYPORT_ID_LIGHTGUN_Y, &magnum_light_phaser_joyport_device);
+}
+
+int lightgun_l_joyport_register(void)
+{
+    return joyport_device_register(JOYPORT_ID_LIGHTGUN_L, &stack_light_rifle_joyport_device);
+}
+
+int lightpen_inkwell_joyport_register(void)
+{
     return joyport_device_register(JOYPORT_ID_LIGHTPEN_INKWELL, &inkwell_lightpen_joyport_device);
 }
 
-/* --------------------------------------------------------- */
-
-int lightpen_resources_init(void)
+#ifdef JOYPORT_EXPERIMENTAL_DEVICES
+int lightgun_gunstick_joyport_register(void)
 {
-    if (lightpen_joyport_register() < 0) {
-        return -1;
-    }
-    return 0;
+    return joyport_device_register(JOYPORT_ID_LIGHTGUN_GUNSTICK, &gun_stick_joyport_device);
 }
+#endif
 
 /* --------------------------------------------------------- */
 /* Main API */

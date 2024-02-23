@@ -31,12 +31,12 @@
 
 struct diskunit_context_s;
 
-extern uint8_t glue1551_port0_read(struct diskunit_context_s *drv);
-extern uint8_t glue1551_port1_read(struct diskunit_context_s *drv);
-extern void glue1551_port0_store(struct diskunit_context_s *drv, uint8_t value);
-extern void glue1551_port1_store(struct diskunit_context_s *drv, uint8_t value);
+uint8_t glue1551_port0_read(struct diskunit_context_s *drv);
+uint8_t glue1551_port1_read(struct diskunit_context_s *drv);
+void glue1551_port0_store(struct diskunit_context_s *drv, uint8_t value);
+void glue1551_port1_store(struct diskunit_context_s *drv, uint8_t value);
 
-extern void glue1551_init(struct diskunit_context_s *drv);
-extern void glue1551_reset(struct diskunit_context_s *drv);
+void glue1551_init(struct diskunit_context_s *drv);
+void glue1551_reset(struct diskunit_context_s *drv);
 
 #endif

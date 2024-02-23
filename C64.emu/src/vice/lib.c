@@ -970,7 +970,6 @@ void lib_rand_printseed(void)
 void lib_rand_seed(uint64_t seed)
 {
     initalseed = seed;
-    srand((unsigned int)seed);
     rand_seed((uint64_t)seed);
 }
 

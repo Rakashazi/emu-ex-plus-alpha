@@ -50,6 +50,13 @@
 #define DBG(x)
 #endif
 
+/*
+     Note: the actual cartridge contains both a C64 and a C128 ROM, which can
+    be selected with a switch. We implement them as if these two ROMs were
+    different cartridges - this way they can be selected by using the other
+    .crt file, instead of having to flip the switch in the user interface.
+*/
+
 #define WARPSPEED_ROM_SIZE  0x4000
 
 /* ---------------------------------------------------------------------*/
@@ -76,7 +83,8 @@ static io_source_t warpspeed128_io1_device = {
     warpspeed128_dump,            /* device state information dump function */
     CARTRIDGE_C128_WARPSPEED128,  /* cartridge ID */
     IO_PRIO_NORMAL,               /* normal priority, device read needs to be checked for collisions */
-    0                             /* insertion order, gets filled in by the registration function */
+    0,                            /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                /* NO mirroring */
 };
 
 static io_source_t warpspeed128_io2_device = {
@@ -92,7 +100,8 @@ static io_source_t warpspeed128_io2_device = {
     warpspeed128_dump,            /* device state information dump function */
     CARTRIDGE_C128_WARPSPEED128,  /* cartridge ID */
     IO_PRIO_NORMAL,               /* normal priority, device read needs to be checked for collisions */
-    0                             /* insertion order, gets filled in by the registration function */
+    0,                            /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                /* NO mirroring */
 };
 
 static io_source_list_t *warpspeed128_io1_list_item = NULL;

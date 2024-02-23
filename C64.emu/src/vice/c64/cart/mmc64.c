@@ -191,7 +191,8 @@ static io_source_t mmc64_io1_clockport_enable_device = {
     mmc64_dump,                               /* device state information dump function */
     CARTRIDGE_MMC64,                          /* cartridge ID */
     IO_PRIO_HIGH,                             /* high priority, every other cartridge is assumed to be attached to the passthrough port */
-    0                                         /* insertion order, gets filled in by the registration function */
+    0,                                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                            /* NO mirroring */
 };
 
 /* from http://www.schoenfeld.de/inside/mmc64doc.txt:
@@ -213,7 +214,8 @@ static io_source_t mmc64_io2_clockport_enable_device = {
     mmc64_dump,                               /* device state information dump function */
     CARTRIDGE_MMC64,                          /* cartridge ID */
     IO_PRIO_HIGH,                             /* high priority, every other cartridge is assumed to be attached to the passthrough port */
-    0                                         /* insertion order, gets filled in by the registration function */
+    0,                                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                            /* NO mirroring */
 };
 
 static io_source_t mmc64_io1_clockport_device = {
@@ -229,7 +231,8 @@ static io_source_t mmc64_io1_clockport_device = {
     mmc64_clockport_dump,              /* device state information dump function */
     CARTRIDGE_MMC64,                   /* cartridge ID */
     IO_PRIO_HIGH,                      /* high priority, every other cartridge is assumed to be attached to the passthrough port */
-    0                                  /* insertion order, gets filled in by the registration function */
+    0,                                 /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                     /* NO mirroring */
 };
 
 static io_source_t mmc64_io2_clockport_device = {
@@ -245,7 +248,8 @@ static io_source_t mmc64_io2_clockport_device = {
     mmc64_clockport_dump,              /* device state information dump function */
     CARTRIDGE_MMC64,                   /* cartridge ID */
     IO_PRIO_HIGH,                      /* high priority, every other cartridge is assumed to be attached to the passthrough port */
-    0                                  /* insertion order, gets filled in by the registration function */
+    0,                                 /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                     /* NO mirroring */
 };
 
 static io_source_t *mmc64_current_clockport_enable_device = &mmc64_io1_clockport_enable_device;
@@ -273,7 +277,8 @@ static io_source_t mmc64_io2_device = {
     mmc64_dump,           /* device state information dump function */
     CARTRIDGE_MMC64,      /* cartridge ID */
     IO_PRIO_HIGH,         /* high priority, every other cartridge is assumed to be attached to the passthrough port */
-    0                     /* insertion order, gets filled in by the registration function */
+    0,                    /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE        /* NO mirroring */
 };
 
 static io_source_t mmc64_io1_device = {
@@ -289,7 +294,8 @@ static io_source_t mmc64_io1_device = {
     mmc64_dump,           /* device state information dump function */
     CARTRIDGE_MMC64,      /* cartridge ID */
     IO_PRIO_HIGH,         /* high priority, every other cartridge is assumed to be attached to the passthrough port */
-    0                     /* insertion order, gets filled in by the registration function */
+    0,                    /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE        /* NO mirroring */
 };
 
 static io_source_list_t *mmc64_clockport_list_item = NULL;

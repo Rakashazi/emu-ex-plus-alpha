@@ -27,7 +27,7 @@ namespace reSID
 
 // Number of cycles after which the shift register is reset
 // when the test bit is set.
-const cycle_count SHIFT_REGISTER_RESET_START_6581 =    9768; // 0x8000
+const cycle_count SHIFT_REGISTER_RESET_START_6581 =   35000; // 0x8000
 const cycle_count SHIFT_REGISTER_RESET_BIT_6581   =    1000;
 const cycle_count SHIFT_REGISTER_RESET_START_8580 = 2519864; // 0x950000
 const cycle_count SHIFT_REGISTER_RESET_BIT_8580   =  315000;
@@ -172,22 +172,28 @@ void WaveformGenerator::writePW_HI(reg8 pw_hi)
 bool do_pre_writeback(reg8 waveform_prev, reg8 waveform, bool is6581)
 {
     // no writeback without combined waveforms
-    if (likely(waveform_prev <= 0x8))
+    if (likely(waveform_prev <= 0x8)) {
         return false;
+    }
+#if 0
     // This need more investigation
-    if (waveform == 8)
+    if (waveform == 8) {
         return false;
+    }
+#endif
     if (waveform_prev == 0xc) {
-        if (is6581)
+        if (is6581) {
             return false;
-        else if ((waveform != 0x9) && (waveform != 0xe))
+        } else if ((waveform != 0x9) && (waveform != 0xe)) {
             return false;
+        }
     }
     // What's happening here?
     if (is6581 &&
             ((((waveform_prev & 0x3) == 0x1) && ((waveform & 0x3) == 0x2))
-            || (((waveform_prev & 0x3) == 0x2) && ((waveform & 0x3) == 0x1))))
+            || (((waveform_prev & 0x3) == 0x2) && ((waveform & 0x3) == 0x1)))) {
         return false;
+    }
     // ok do the writeback
     return true;
 }

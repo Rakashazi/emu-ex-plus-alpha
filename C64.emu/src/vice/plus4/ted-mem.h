@@ -30,17 +30,18 @@
 
 #include "types.h"
 
-extern void ted_store(uint16_t addr, uint8_t value);
-extern uint8_t ted_read(uint16_t addr);
-extern uint8_t ted_peek(uint16_t addr);
-extern uint8_t colorram_read(uint16_t addr);
-extern void colorram_store(uint16_t addr, uint8_t value);
-extern void ted_mem_vbank_store(uint16_t addr, uint8_t value);
-extern void ted_mem_vbank_store_32k(uint16_t addr, uint8_t value);
-extern void ted_mem_vbank_store_16k(uint16_t addr, uint8_t value);
+void ted_store(uint16_t addr, uint8_t value);
+uint8_t ted_read(uint16_t addr);
+uint8_t ted_peek(uint16_t addr);
+uint8_t colorram_read(uint16_t addr);
+void colorram_store(uint16_t addr, uint8_t value);
+void ted_mem_vbank_store(uint16_t addr, uint8_t value);
+void ted_mem_vbank_store_32k(uint16_t addr, uint8_t value);
+void ted_mem_vbank_store_16k(uint16_t addr, uint8_t value);
+
 #if 0
-extern void ted_mem_vbank_39xx_store(uint16_t addr, uint8_t value);
-extern void ted_mem_vbank_3fxx_store(uint16_t addr, uint8_t value);
+void ted_mem_vbank_39xx_store(uint16_t addr, uint8_t value);
+void ted_mem_vbank_3fxx_store(uint16_t addr, uint8_t value);
 #endif
 
 #endif

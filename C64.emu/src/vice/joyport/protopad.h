@@ -29,13 +29,17 @@
 
 #include "types.h"
 
-#define PROTOPAD_HANDSHAKE    0
-#define PROTOPAD_TRIPPLE_0    1
-#define PROTOPAD_TRIPPLE_1    2
-#define PROTOPAD_TRIPPLE_2    3
-#define PROTOPAD_TRIPPLE_3    4
-#define PROTOPAD_COUNT_MAX    5
+enum {
+    PROTOPAD_HANDSHAKE = 0,
+    PROTOPAD_TRIPPLE_0,
+    PROTOPAD_TRIPPLE_1,
+    PROTOPAD_TRIPPLE_2,
+    PROTOPAD_TRIPPLE_3,
 
-extern int joyport_protopad_resources_init(void);
+    /* This item always needs to be at the end */
+    PROTOPAD_COUNT_MAX
+};
+
+int joyport_protopad_resources_init(void);
 
 #endif

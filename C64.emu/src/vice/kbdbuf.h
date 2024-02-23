@@ -30,17 +30,17 @@
 
 #include "types.h"
 
-extern int kbdbuf_is_empty(void);
-extern int kbdbuf_queue_is_empty(void);
-extern void kbdbuf_init(int location, int plocation, int buffer_size, CLOCK mincycles);
-extern void kbdbuf_shutdown(void);
-extern void kbdbuf_reset(int location, int plocation, int buffer_size, CLOCK mincycles);
-extern int kbdbuf_feed(const char *s);
-extern int kbdbuf_feed_runcmd(const char *string);
-extern int kbdbuf_feed_string(const char *string);
-extern void kbdbuf_feed_cmdline(void);
-extern void kbdbuf_flush(void);
-extern int kbdbuf_cmdline_options_init(void);
-extern int kbdbuf_resources_init(void);
+int kbdbuf_is_empty(void);
+int kbdbuf_queue_is_empty(void);
+void kbdbuf_init(int location, int plocation, int buffer_size, CLOCK mincycles);
+void kbdbuf_shutdown(void);
+void kbdbuf_reset(int location, int plocation, int buffer_size, CLOCK mincycles);
+int kbdbuf_feed(const char *s);
+int kbdbuf_feed_runcmd(const char *string);
+int kbdbuf_feed_string(const char *string);
+void kbdbuf_feed_cmdline(void);
+void kbdbuf_flush(void);
+int kbdbuf_cmdline_options_init(void);
+int kbdbuf_resources_init(void);
 
 #endif

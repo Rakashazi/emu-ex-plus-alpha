@@ -33,21 +33,22 @@ struct bufferinfo_s;
 struct cbmdos_cmd_parse_s;
 struct vdrive_s;
 
-extern void vdrive_iec_init(void);
+void vdrive_iec_init(void);
 
 /* Generic IEC interface.  */
-extern int vdrive_iec_open(struct vdrive_s *vdrive, const uint8_t *name, unsigned int length, unsigned int secondary, struct cbmdos_cmd_parse_s *cmd_parse_ext);
-extern int vdrive_iec_close(struct vdrive_s *vdrive, unsigned int secondary);
-extern int vdrive_iec_read(struct vdrive_s *vdrive, uint8_t *data, unsigned int secondary);
-extern int vdrive_iec_write(struct vdrive_s *vdrive, uint8_t data, unsigned int secondary);
-extern void vdrive_iec_flush(struct vdrive_s *vdrive, unsigned int secondary);
+int vdrive_iec_open(struct vdrive_s *vdrive, const uint8_t *name, unsigned int length, unsigned int secondary, struct cbmdos_cmd_parse_s *cmd_parse_ext);
+int vdrive_iec_close(struct vdrive_s *vdrive, unsigned int secondary);
+int vdrive_iec_read(struct vdrive_s *vdrive, uint8_t *data, unsigned int secondary);
+int vdrive_iec_write(struct vdrive_s *vdrive, uint8_t data, unsigned int secondary);
+void vdrive_iec_flush(struct vdrive_s *vdrive, unsigned int secondary);
 
-extern int vdrive_iec_attach(unsigned int unit, const char *name);
+int vdrive_iec_attach(unsigned int unit, const char *name);
 
-extern void vdrive_iec_listen(struct vdrive_s *vdrive, unsigned int secondary);
+void vdrive_iec_listen(struct vdrive_s *vdrive, unsigned int secondary);
 
-extern int vdrive_iec_update_dirent(struct vdrive_s *vdrive, unsigned int channel);
+int vdrive_iec_update_dirent(struct vdrive_s *vdrive, unsigned int channel);
 
-extern void vdrive_iec_unswitch(struct vdrive_s *vdrive, struct bufferinfo_s *p);
-extern int vdrive_iec_switch(struct vdrive_s *vdrive, struct bufferinfo_s *p);
+void vdrive_iec_unswitch(struct vdrive_s *vdrive, struct bufferinfo_s *p);
+int vdrive_iec_switch(struct vdrive_s *vdrive, struct bufferinfo_s *p);
+
 #endif

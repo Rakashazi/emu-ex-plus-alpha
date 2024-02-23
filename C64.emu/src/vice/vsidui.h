@@ -29,26 +29,26 @@
 
 #include <stdint.h>
 
-extern int vsid_ui_init_early(void);
-extern int vsid_ui_init(void);
-extern void vsid_ui_close(void);
+int vsid_ui_init_early(void);
+int vsid_ui_init(void);
+void vsid_ui_close(void);
 
-extern void vsid_ui_display_name(const char *name);
-extern void vsid_ui_display_author(const char *author);
-extern void vsid_ui_display_copyright(const char *copyright);
-extern void vsid_ui_display_sync(int sync);
-extern void vsid_ui_display_sid_model(int model);
-extern void vsid_ui_display_tune_nr(int nr);
-extern void vsid_ui_display_nr_of_tunes(int count);
-extern void vsid_ui_set_default_tune(int nr);
-extern void vsid_ui_display_time(unsigned int sec);
-extern void vsid_ui_display_irqtype(const char *irq);
+void vsid_ui_display_name(const char *name);
+void vsid_ui_display_author(const char *author);
+void vsid_ui_display_copyright(const char *copyright);
+void vsid_ui_display_sync(int sync);
+void vsid_ui_display_sid_model(int model);
+void vsid_ui_display_tune_nr(int nr);
+void vsid_ui_display_nr_of_tunes(int count);
+void vsid_ui_set_default_tune(int nr);
+void vsid_ui_display_time(unsigned int sec);
+void vsid_ui_display_irqtype(const char *irq);
 
-extern void vsid_ui_setdrv(char* driver_info_text);
-extern void vsid_ui_set_driver_addr(uint16_t addr);
-extern void vsid_ui_set_load_addr(uint16_t addr);
-extern void vsid_ui_set_init_addr(uint16_t addr);
-extern void vsid_ui_set_play_addr(uint16_t addr);
-extern void vsid_ui_set_data_size(uint16_t size);
+void vsid_ui_setdrv(char* driver_info_text);
+void vsid_ui_set_driver_addr(uint16_t addr);
+void vsid_ui_set_load_addr(uint16_t addr);
+void vsid_ui_set_init_addr(uint16_t addr);
+void vsid_ui_set_play_addr(uint16_t addr);
+void vsid_ui_set_data_size(uint16_t size);
 
 #endif

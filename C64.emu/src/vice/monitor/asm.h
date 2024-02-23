@@ -130,6 +130,8 @@ enum asm_addr_mode {
     ASM_ADDR_MODE_IMM_DWORD,      /* 83 #$xxxxxxxx */
     ASM_ADDR_MODE_H6309_INDEXED,  /* 84 post-byte determines sub-mode (6309 indexed) */
     ASM_ADDR_MODE_H6309_REG_POST, /* 85 (6309 post) */
+    /* marker for how many addressing modes we have */
+    ASM_ADDR_MODE_LAST,
     /* flag to tag undocumented opcodes, so we can ignore them in the assembler and tag them in the disassembler */
     ASM_ADDR_MODE_UNDOC = 0x1000
 };

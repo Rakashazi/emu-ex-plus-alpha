@@ -521,7 +521,7 @@ void cartridge_attach(int type, uint8_t *rawcart)
 
     if (cartridge_reset != 0) {
         /* "Turn off machine before inserting cartridge" */
-        machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+        machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
     }
 }
 
@@ -591,7 +591,7 @@ void cartridge_detach(int type)
 
     if (cartridge_reset != 0) {
         /* "Turn off machine before removing cartridge" */
-        machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+        machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
     }
 }
 

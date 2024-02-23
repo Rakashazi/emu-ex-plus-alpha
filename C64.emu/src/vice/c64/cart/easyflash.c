@@ -273,7 +273,8 @@ static io_source_t easyflash_io1_device = {
     easyflash_io1_dump,       /* device state information dump function */
     CARTRIDGE_EASYFLASH,      /* cartridge ID */
     IO_PRIO_NORMAL,           /* normal priority, device read needs to be checked for collisions */
-    0                         /* insertion order, gets filled in by the registration function */
+    0,                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE            /* NO mirroring */
 };
 
 static io_source_t easyflash_io2_device = {
@@ -289,7 +290,8 @@ static io_source_t easyflash_io2_device = {
     NULL,                     /* device state information dump function */
     CARTRIDGE_EASYFLASH,      /* cartridge ID */
     IO_PRIO_NORMAL,           /* normal priority, device read needs to be checked for collisions */
-    0                         /* insertion order, gets filled in by the registration function */
+    0,                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE            /* NO mirroring */
 };
 
 static io_source_list_t *easyflash_io1_list_item = NULL;

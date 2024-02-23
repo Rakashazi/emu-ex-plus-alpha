@@ -29,10 +29,10 @@
 
 struct vdrive_s;
 
-extern void vdrive_internal_init(void);
+void vdrive_internal_init(void);
 
-extern struct vdrive_s *vdrive_internal_open_fsimage(const char *name, unsigned int read_only);
-extern int vdrive_internal_close_disk_image(struct vdrive_s *vdrive);
-extern int vdrive_internal_create_format_disk_image(const char *filename, const char *diskname, unsigned int type);
+struct vdrive_s *vdrive_internal_open_fsimage(const char *name, unsigned int read_only);
+int vdrive_internal_close_disk_image(struct vdrive_s *vdrive);
+int vdrive_internal_create_format_disk_image(const char *filename, const char *diskname, unsigned int type);
 
 #endif

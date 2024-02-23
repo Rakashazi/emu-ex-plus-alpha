@@ -27,12 +27,12 @@
 #ifndef VICE_INITCMDLINE_H
 #define VICE_INITCMDLINE_H
 
-extern int initcmdline_init(void);
-extern int initcmdline_check_psid(void);
-extern int initcmdline_check_args(int argc, char **argv);
-extern void initcmdline_check_attach(void);
-extern int cmdline_get_autostart_mode(void);
-extern void cmdline_set_autostart_mode(int mode);
-extern void initcmdline_shutdown(void);
+int initcmdline_init(void);
+int initcmdline_check_psid(void);
+int initcmdline_check_args(int argc, char **argv);
+void initcmdline_check_attach(void);
+int cmdline_get_autostart_mode(void);
+void cmdline_set_autostart_mode(int mode);
+void initcmdline_shutdown(void);
 
 #endif

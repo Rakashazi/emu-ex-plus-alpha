@@ -40,26 +40,28 @@
 
 static uint8_t drive_read_rom(diskunit_context_t *drv, uint16_t address)
 {
-    return drv->rom[address & 0x7fff];
+    return drv->cpu->cpu_last_data = drv->rom[address & 0x7fff];
 }
 
 static uint8_t drive_read_2031ram(diskunit_context_t *drv, uint16_t address)
 {
-    return drv->drive_ram[address & 0x7ff];
+    return drv->cpu->cpu_last_data = drv->drive_ram[address & 0x7ff];
 }
 
 static void drive_store_2031ram(diskunit_context_t *drv, uint16_t address, uint8_t value)
 {
+    drv->cpu->cpu_last_data = value;
     drv->drive_ram[address & 0x7ff] = value;
 }
 
 static uint8_t drive_read_zero(diskunit_context_t *drv, uint16_t address)
 {
-    return drv->drive_ram[address & 0xff];
+    return drv->cpu->cpu_last_data = drv->drive_ram[address & 0xff];
 }
 
 static void drive_store_zero(diskunit_context_t *drv, uint16_t address, uint8_t value)
 {
+    drv->cpu->cpu_last_data = value;
     drv->drive_ram[address & 0xff] = value;
 }
 
@@ -68,13 +70,14 @@ static void drive_store_zero(diskunit_context_t *drv, uint16_t address, uint8_t 
 static uint8_t drive_read_1001_io(diskunit_context_t *drv, uint16_t address)
 {
     if (address & 0x80) {
-        return riot2_read(drv, address);
+        return drv->cpu->cpu_last_data = riot2_read(drv, address);
     }
-    return riot1_read(drv, address);
+    return drv->cpu->cpu_last_data = riot1_read(drv, address);
 }
 
 static void drive_store_1001_io(diskunit_context_t *drv, uint16_t address, uint8_t byte)
 {
+    drv->cpu->cpu_last_data = byte;
     if (address & 0x80) {
         riot2_store(drv, address, byte);
     } else {
@@ -92,87 +95,96 @@ static uint8_t drive_peek_1001_io(diskunit_context_t *drv, uint16_t address)
 
 static uint8_t drive_read_1001zero_ram(diskunit_context_t *drv, uint16_t address)
 {
-    return drv->drive_ram[address & 0xff];
+    return drv->cpu->cpu_last_data = drv->drive_ram[address & 0xff];
 }
 
 static void drive_store_1001zero_ram(diskunit_context_t *drv, uint16_t address, uint8_t byte)
 {
+    drv->cpu->cpu_last_data = byte;
     drv->drive_ram[address & 0xff] = byte;
 }
 
 static uint8_t drive_read_1001buffer1_ram(diskunit_context_t *drv, uint16_t address)
 {
-    return drv->drive_ram[(address & 0x3ff) + 0x100];
+    return drv->cpu->cpu_last_data = drv->drive_ram[(address & 0x3ff) + 0x100];
 }
 static void drive_store_1001buffer1_ram(diskunit_context_t *drv, uint16_t address, uint8_t byte)
 {
+    drv->cpu->cpu_last_data = byte;
     drv->drive_ram[(address & 0x3ff) + 0x100] = byte;
 }
 
 static uint8_t drive_read_1001buffer2_ram(diskunit_context_t *drv, uint16_t address)
 {
-    return drv->drive_ram[(address & 0x3ff) + 0x500];
+    return drv->cpu->cpu_last_data = drv->drive_ram[(address & 0x3ff) + 0x500];
 }
 static void drive_store_1001buffer2_ram(diskunit_context_t *drv, uint16_t address, uint8_t byte)
 {
+    drv->cpu->cpu_last_data = byte;
     drv->drive_ram[(address & 0x3ff) + 0x500] = byte;
 }
 
 static uint8_t drive_read_1001buffer3_ram(diskunit_context_t *drv, uint16_t address)
 {
-    return drv->drive_ram[(address & 0x3ff) + 0x900];
+    return drv->cpu->cpu_last_data = drv->drive_ram[(address & 0x3ff) + 0x900];
 }
 static void drive_store_1001buffer3_ram(diskunit_context_t *drv, uint16_t address, uint8_t byte)
 {
+    drv->cpu->cpu_last_data = byte;
     drv->drive_ram[(address & 0x3ff) + 0x900] = byte;
 }
 
 static uint8_t drive_read_1001buffer4_ram(diskunit_context_t *drv, uint16_t address)
 {
-    return drv->drive_ram[(address & 0x3ff) + 0xd00];
+    return drv->cpu->cpu_last_data = drv->drive_ram[(address & 0x3ff) + 0xd00];
 }
 static void drive_store_1001buffer4_ram(diskunit_context_t *drv, uint16_t address, uint8_t byte)
 {
+    drv->cpu->cpu_last_data = byte;
     drv->drive_ram[(address & 0x3ff) + 0xd00] = byte;
 }
 
 static uint8_t drive_read_2040buffer1_ram(diskunit_context_t *drv, uint16_t address)
 {
-    return drv->drive_ram[(address & 0x3ff) + 0x100];
+    return drv->cpu->cpu_last_data = drv->drive_ram[(address & 0x3ff) + 0x100];
 }
 
 static void drive_store_2040buffer1_ram(diskunit_context_t *drv, uint16_t address, uint8_t byte)
 {
+    drv->cpu->cpu_last_data = byte;
     drv->drive_ram[(address & 0x3ff) + 0x100] = byte;
 }
 
 static uint8_t drive_read_2040buffer2_ram(diskunit_context_t *drv, uint16_t address)
 {
-    return drv->drive_ram[(address & 0x3ff) + 0x500];
+    return drv->cpu->cpu_last_data = drv->drive_ram[(address & 0x3ff) + 0x500];
 }
 
 static void drive_store_2040buffer2_ram(diskunit_context_t *drv, uint16_t address, uint8_t byte)
 {
+    drv->cpu->cpu_last_data = byte;
     drv->drive_ram[(address & 0x3ff) + 0x500] = byte;
 }
 
 static uint8_t drive_read_2040buffer3_ram(diskunit_context_t *drv, uint16_t address)
 {
-    return drv->drive_ram[(address & 0x3ff) + 0x900];
+    return drv->cpu->cpu_last_data = drv->drive_ram[(address & 0x3ff) + 0x900];
 }
 
 static void drive_store_2040buffer3_ram(diskunit_context_t *drv, uint16_t address, uint8_t byte)
 {
+    drv->cpu->cpu_last_data = byte;
     drv->drive_ram[(address & 0x3ff) + 0x900] = byte;
 }
 
 static uint8_t drive_read_2040buffer4_ram(diskunit_context_t *drv, uint16_t address)
 {
-    return drv->drive_ram[(address & 0x3ff) + 0xd00];
+    return drv->cpu->cpu_last_data = drv->drive_ram[(address & 0x3ff) + 0xd00];
 }
 
 static void drive_store_2040buffer4_ram(diskunit_context_t *drv, uint16_t address, uint8_t byte)
 {
+    drv->cpu->cpu_last_data = byte;
     drv->drive_ram[(address & 0x3ff) + 0xd00] = byte;
 }
 

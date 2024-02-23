@@ -29,6 +29,6 @@
 
 #include "types.h"
 
-extern int userport_superpad64_resources_init(void);
+int userport_superpad64_resources_init(void);
 
 #endif

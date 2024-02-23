@@ -31,10 +31,19 @@
 
 #include "cmdline.h"
 #include "lib.h"
+#include "log.h"
 #include "output-select.h"
 #include "resources.h"
 #include "types.h"
 #include "util.h"
+
+/* #define DEBUG_PRINTER */
+
+#ifdef DEBUG_PRINTER
+#define DBG(x)  log_debug x
+#else
+#define DBG(x)
+#endif
 
 struct output_select_list_s {
     output_select_t output_select;
@@ -74,11 +83,11 @@ static int set_output_device(const char *name, void *param)
 }
 
 static const resource_string_t resources_string[] = {
-    { "Printer4Output", "text", RES_EVENT_NO, NULL,
+    { "Printer4Output", "graphics", RES_EVENT_NO, NULL,
       (char **)&output_select[0].output_name, set_output_device, (void *)0 },
     { "Printer5Output", "text", RES_EVENT_NO, NULL,
       (char **)&output_select[1].output_name, set_output_device, (void *)1 },
-    { "Printer6Output", "text", RES_EVENT_NO, NULL,
+    { "Printer6Output", "graphics", RES_EVENT_NO, NULL,
       (char **)&output_select[2].output_name, set_output_device, (void *)2 },
     RESOURCE_STRING_LIST_END
 };
@@ -234,11 +243,13 @@ void output_select_register(output_select_t *outp_select)
 int output_select_open(unsigned int prnr,
                        struct output_parameter_s *output_parameter)
 {
+    DBG(("output_select_open:%u", prnr));
     return output_select[prnr].output_open(prnr, output_parameter);
 }
 
 void output_select_close(unsigned int prnr)
 {
+    DBG(("output_select_close:%u", prnr));
     output_select[prnr].output_close(prnr);
 }
 
@@ -254,10 +265,12 @@ int output_select_getc(unsigned int prnr, uint8_t *b)
 
 int output_select_flush(unsigned int prnr)
 {
+    DBG(("output_select_flush:%u", prnr));
     return output_select[prnr].output_flush(prnr);
 }
 
 int output_select_formfeed(unsigned int prnr)
 {
+    DBG(("output_select_formfeed:%ud", prnr));
     return output_select[prnr].output_formfeed(prnr);
 }

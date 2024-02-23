@@ -63,7 +63,8 @@ void acia1_store
 #define myacia_reset acia1_reset
 #define myacia_store acia1_store
 
-extern int acia1_set_mode(int mode);
+/* function prototype */
+int acia1_set_mode(int mode);
 
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
 #define myacia_set_mode(x) acia1_set_mode(x)
@@ -121,7 +122,8 @@ static io_source_t acia_device = {
     acia_dump,            /* device state information dump function */
     CARTRIDGE_ACIA,       /* cartridge ID */
     IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
-    0                     /* insertion order, gets filled in by the registration function */
+    0,                    /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE        /* NO mirroring */
 };
 
 static io_source_list_t *acia_list_item = NULL;

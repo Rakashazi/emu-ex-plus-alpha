@@ -94,7 +94,8 @@ static io_source_t ds12c887rtc_device = {
     ds12c887rtc_dump,           /* device state information dump function */
     CARTRIDGE_DS12C887RTC,      /* cartridge ID */
     IO_PRIO_NORMAL,             /* normal priority, device read needs to be checked for collisions */
-    0                           /* insertion order, gets filled in by the registration function */
+    0,                          /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE              /* NO mirroring */
 };
 
 static io_source_list_t *ds12c887rtc_list_item = NULL;

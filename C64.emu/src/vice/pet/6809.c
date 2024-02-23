@@ -168,10 +168,10 @@ h6809_regs_t h6809_regs;
         EXPORT_REGISTERS();                                      \
         tmp = machine_jam("   6809: " INSTR " at $%04X   ", PC); \
         switch (tmp) {                                           \
-            case JAM_RESET:                                      \
+            case JAM_RESET_CPU:                                  \
                 DO_INTERRUPT(IK_RESET);                          \
                 break;                                           \
-            case JAM_HARD_RESET:                                 \
+            case JAM_POWER_CYCLE:                                \
                 mem_powerup();                                   \
                 DO_INTERRUPT(IK_RESET);                          \
                 break;                                           \
@@ -236,9 +236,9 @@ static unsigned int cc_changed = 0;
 
 static uint16_t *index_regs[4] = { &X, &Y, &U, &S };
 
-extern void nmi(void);
-extern void irq(void);
-extern void firq(void);
+void nmi(void);
+void irq(void);
+void firq(void);
 
 static void request_nmi(unsigned int source)
 {

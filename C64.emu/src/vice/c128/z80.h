@@ -37,13 +37,13 @@ extern struct z80_regs_s z80_regs;
 struct interrupt_cpu_status_s;
 struct alarm_context_s;
 
-extern void z80_resync_limits(void);
-extern void z80_reset(void);
-extern void z80_mainloop(struct interrupt_cpu_status_s *cpu_int_status, struct alarm_context_s *cpu_alarm_context);
-extern void z80_trigger_dma(void);
+void z80_resync_limits(void);
+void z80_reset(void);
+void z80_mainloop(struct interrupt_cpu_status_s *cpu_int_status, struct alarm_context_s *cpu_alarm_context);
+void z80_trigger_dma(void);
 
 #ifdef Z80_4MHZ
-extern void z80_clock_stretch(void);
+void z80_clock_stretch(void);
 #endif
 
 #endif

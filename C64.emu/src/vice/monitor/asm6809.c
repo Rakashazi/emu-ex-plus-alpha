@@ -33,85 +33,36 @@
 #include "montypes.h"
 #include "types.h"
 
-static const int addr_mode_size[] = {
+/* NOTE: the value from this table is added to the total opcode size, so 0 may
+         be valid, is this intended? */
+static const int addr_mode_size[ASM_ADDR_MODE_LAST] = {
     /* 6502 */
-    1, /* ASM_ADDR_MODE_IMPLIED */
-    -1,/* ASM_ADDR_MODE_ACCUMULATOR */
-    -1,/* ASM_ADDR_MODE_IMMEDIATE */
-    -1,/* ASM_ADDR_MODE_ZERO_PAGE */
-    -1,/* ASM_ADDR_MODE_ZERO_PAGE_X */
-    -1,/* ASM_ADDR_MODE_ZERO_PAGE_Y */
-    -1,/* ASM_ADDR_MODE_ABSOLUTE */
-    -1,/* ASM_ADDR_MODE_ABSOLUTE_X */
-    -1,/* ASM_ADDR_MODE_ABSOLUTE_Y */
-    -1,/* ASM_ADDR_MODE_ABS_INDIRECT */
-    -1,/* ASM_ADDR_MODE_INDIRECT_X */
-    -1,/* ASM_ADDR_MODE_INDIRECT_Y */
-    -1,/* ASM_ADDR_MODE_RELATIVE */
-       /* more modes needed for z80 */
-    -1,/* ASM_ADDR_MODE_ABSOLUTE_A */
-    -1,/* ASM_ADDR_MODE_ABSOLUTE_HL */
-    -1,/* ASM_ADDR_MODE_ABSOLUTE_IX */
-    -1,/* ASM_ADDR_MODE_ABSOLUTE_IY */
-    -1,/* ASM_ADDR_MODE_Z80_ABSOLUTE_BC */
-    -1,/* ASM_ADDR_MODE_Z80_ABSOLUTE_DE */
-    -1,/* ASM_ADDR_MODE_Z80_ABSOLUTE_SP */
-    -1,/* ASM_ADDR_MODE_ABS_INDIRECT_ZP */
-    -1,/* ASM_ADDR_MODE_Z80_ABS_INDIRECT_EXT */
-    -1,/* ASM_ADDR_MODE_IMMEDIATE_16 */
-    -1,/* ASM_ADDR_MODE_REG_B */
-    -1,/* ASM_ADDR_MODE_REG_C */
-    -1,/* ASM_ADDR_MODE_REG_D */
-    -1,/* ASM_ADDR_MODE_REG_E */
-    -1,/* ASM_ADDR_MODE_REG_H */
-    -1,/* ASM_ADDR_MODE_REG_IXH */
-    -1,/* ASM_ADDR_MODE_REG_IYH */
-    -1,/* ASM_ADDR_MODE_REG_L */
-    -1,/* ASM_ADDR_MODE_REG_IXL */
-    -1,/* ASM_ADDR_MODE_REG_IYL */
-    -1,/* ASM_ADDR_MODE_REG_AF */
-    -1,/* ASM_ADDR_MODE_REG_BC */
-    -1,/* ASM_ADDR_MODE_REG_DE */
-    -1,/* ASM_ADDR_MODE_REG_HL */
-    -1,/* ASM_ADDR_MODE_REG_IX */
-    -1,/* ASM_ADDR_MODE_REG_IY */
-    -1,/* ASM_ADDR_MODE_REG_SP */
-    -1,/* ASM_ADDR_MODE_REG_IND_BC */
-    -1,/* ASM_ADDR_MODE_REG_IND_DE */
-    -1,/* ASM_ADDR_MODE_REG_IND_HL */
-    -1,/* ASM_ADDR_MODE_REG_IND_IY */
-    -1,/* ASM_ADDR_MODE_REG_IND_SP */
-    -1,/* ASM_ADDR_MODE_Z80_IND_IMMEDIATE */
-    -1,/* ASM_ADDR_MODE_Z80_IND_REG */
-    -1,/* ASM_ADDR_MODE_IND_IX_REG */
-    -1,/* ASM_ADDR_MODE_IND_IY_REG */
-       /* R65C02 */
-    -1,/* ASM_ADDR_MODE_INDIRECT */
-    -1,/* ASM_ADDR_MODE_ABS_INDIRECT_X */
-    -1,/* ASM_ADDR_MODE_DOUBLE */
-    -1,/* ASM_ADDR_MODE_ZERO_PAGE_RELATIVE */
-       /* 65816 */
-    -1,/* ASM_ADDR_MODE_RELATIVE_LONG */
-    -1,/* ASM_ADDR_MODE_STACK_RELATIVE_Y */
-    -1,/* ASM_ADDR_MODE_STACK_RELATIVE */
-    -1,/* ASM_ADDR_MODE_INDIRECT_LONG */
-    -1,/* ASM_ADDR_MODE_ABSOLUTE_LONG */
-    -1,/* ASM_ADDR_MODE_INDIRECT_LONG_Y */
-    -1,/* ASM_ADDR_MODE_ABSOLUTE_LONG_X */
-    -1,/* ASM_ADDR_MODE_MOVE */
-    -1,/* ASM_ADDR_MODE_ABS_IND_LONG */
-       /* more modes needed for 6809 */
-    1, /* ASM_ADDR_MODE_ILLEGAL */
-    2, /* ASM_ADDR_MODE_IMM_BYTE */
-    3, /* ASM_ADDR_MODE_IMM_WORD */
-    2, /* ASM_ADDR_MODE_DIRECT */
-    3, /* ASM_ADDR_MODE_EXTENDED */
-    2, /* ASM_ADDR_MODE_INDEXED,        post-byte determines sub-mode */
-    2, /* ASM_ADDR_MODE_REL_BYTE */
-    3, /* ASM_ADDR_MODE_REL_WORD */
-    2, /* ASM_ADDR_MODE_REG_POST */
-    2, /* ASM_ADDR_MODE_SYS_POST */
-    2, /* ASM_ADDR_MODE_USR_POST */
+    [ASM_ADDR_MODE_IMPLIED]  = 1,
+    /* more modes needed for 6809 */
+    [ASM_ADDR_MODE_ILLEGAL]  = 1,
+    [ASM_ADDR_MODE_IMM_BYTE] = 2,
+    [ASM_ADDR_MODE_IMM_WORD] = 3,
+    [ASM_ADDR_MODE_DIRECT]   = 2,
+    [ASM_ADDR_MODE_EXTENDED] = 3,
+    [ASM_ADDR_MODE_INDEXED]  = 2, /* post-byte determines sub-mode */
+    [ASM_ADDR_MODE_REL_BYTE] = 2,
+    [ASM_ADDR_MODE_REL_WORD] = 3,
+    [ASM_ADDR_MODE_REG_POST] = 2,
+    [ASM_ADDR_MODE_SYS_POST] = 2,
+    [ASM_ADDR_MODE_USR_POST] = 2,
+
+    /* more modes needed for 6309, unlisted in instruction list so far */
+    [ASM_ADDR_MODE_IM_DIRECT] = 3,       /* 75 #$xx,<$xx */
+    [ASM_ADDR_MODE_IM_EXTENDED] = 4,     /* 76 #$xx,$xxxx */
+    [ASM_ADDR_MODE_IM_INDEXED] = 3,      /* 77 #$xx,sub-mode */
+    [ASM_ADDR_MODE_BITWISE] = 3,         /* 78 R,x,x,<$xx */
+    [ASM_ADDR_MODE_TFM_PP] = 2,          /* 79 R+,R+ */
+    [ASM_ADDR_MODE_TFM_MM] = 2,          /* 80 R-,R- */
+    [ASM_ADDR_MODE_TFM_PC] = 2,          /* 81 R+,R */
+    [ASM_ADDR_MODE_TFM_CP] = 2,          /* 82 R,R+ */
+    [ASM_ADDR_MODE_IMM_DWORD] = 5,       /* 83 #$xxxxxxxx */
+    [ASM_ADDR_MODE_H6309_INDEXED] = 2,   /* 84 post-byte determines sub-mode (6309 indexed) */
+    [ASM_ADDR_MODE_H6309_REG_POST] = 2,  /* 85 (6309 post) */
 };
 
 static const int indexed_size[0x20] = {
@@ -127,8 +78,8 @@ static const int indexed_size[0x20] = {
     2, /* ASM_ADDR_MODE_INDEXED_OFF16 */
     0, /* ASM_ADDR_MODE_INDEXED_0A */
     0, /* ASM_ADDR_MODE_INDEXED_OFFD */
-    0, /* ASM_ADDR_MODE_INDEXED_OFFPC8 */
-    0, /* ASM_ADDR_MODE_INDEXED_OFFPC16 */
+    1, /* ASM_ADDR_MODE_INDEXED_OFFPC8 */
+    2, /* ASM_ADDR_MODE_INDEXED_OFFPC16 */
     0, /* ASM_ADDR_MODE_INDEXED_0E */
     0, /* ASM_ADDR_MODE_INDEXED_0F */
     0, /* ASM_ADDR_MODE_INDEXED_10 */
@@ -943,6 +894,7 @@ static const asm_opcode_info_t *asm_opcode_info_get(unsigned int p0, unsigned in
     return opcode_list + p0;
 }
 
+/* must return a positive number (opcode length in bytes) */
 static unsigned int asm_addr_mode_get_size(unsigned int mode, unsigned int p0,
                                            unsigned int p1, unsigned int p2, unsigned int p3)
 {
@@ -953,7 +905,7 @@ static unsigned int asm_addr_mode_get_size(unsigned int mode, unsigned int p0,
         p0 = p1;
         p1 = p2;
     }
-    if (mode == ASM_ADDR_MODE_INDEXED) {
+    if (mode == ASM_ADDR_MODE_INDEXED || mode == ASM_ADDR_MODE_H6309_INDEXED) {
         /* post-byte determines submode */
         if (p1 & 0x80) {
             size += indexed_size[p1 & 0x1F];

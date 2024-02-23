@@ -34,18 +34,18 @@ struct video_canvas_s;
 typedef void (*void_hook_t)(void);
 
 /* current performance metrics */
-extern void vsyncarch_get_metrics(double *cpu_percent, double *emulated_fps, int *warp_enabled);
+void vsyncarch_get_metrics(double *cpu_percent, double *emulated_fps, int *warp_enabled);
 
 /* this is called before vsync_do_vsync does the synchroniation */
-extern void vsyncarch_presync(void);
+void vsyncarch_presync(void);
 
 /* this is called after vsync_do_vsync did the synchroniation */
-extern void vsyncarch_postsync(void);
+void vsyncarch_postsync(void);
 
 /* called to advance the emulation by one frame */
-extern void vsyncarch_advance_frame(void);
+void vsyncarch_advance_frame(void);
 
-extern int vsyncarch_vbl_sync_enabled(void);
+int vsyncarch_vbl_sync_enabled(void);
 
 void VICE_API vsyncarch_refresh_frequency_changed(double rate);
 

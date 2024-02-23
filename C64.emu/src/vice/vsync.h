@@ -41,19 +41,19 @@ typedef struct vsync_callback {
 
 struct video_canvas_s;
 
-extern void vsync_suspend_speed_eval(void);
-extern void vsync_reset_hook(void);
-extern int vsync_resources_init(void);
-extern int vsync_cmdline_options_init(void);
-extern void vsync_init(void (*hook)(void));
-extern void vsync_shutdown(void);
-extern void vsync_set_machine_parameter(double refresh_rate, long cycles);
-extern double vsync_get_refresh_frequency(void);
-extern void vsync_do_end_of_line(void);
-extern bool vsync_should_skip_frame(struct video_canvas_s *canvas);
-extern void vsync_do_vsync(struct video_canvas_s *c);
-extern void vsync_on_vsync_do(vsync_callback_func_t callback_func, void *callback_param);
-extern void vsync_set_warp_mode(int val);
-extern int vsync_get_warp_mode(void);
+void vsync_suspend_speed_eval(void);
+void vsync_reset_hook(void);
+int vsync_resources_init(void);
+int vsync_cmdline_options_init(void);
+void vsync_init(void (*hook)(void));
+void vsync_shutdown(void);
+void vsync_set_machine_parameter(double refresh_rate, long cycles);
+double vsync_get_refresh_frequency(void);
+void vsync_do_end_of_line(void);
+bool vsync_should_skip_frame(struct video_canvas_s *canvas);
+void vsync_do_vsync(struct video_canvas_s *c);
+void vsync_on_vsync_do(vsync_callback_func_t callback_func, void *callback_param);
+void vsync_set_warp_mode(int val);
+int vsync_get_warp_mode(void);
 
 #endif

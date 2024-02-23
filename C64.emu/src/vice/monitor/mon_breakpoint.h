@@ -52,29 +52,29 @@ struct mon_checkpoint_s {
 };
 typedef struct mon_checkpoint_s mon_checkpoint_t;
 
-extern void mon_breakpoint_init(void);
+void mon_breakpoint_init(void);
 
-extern void mon_breakpoint_switch_checkpoint(int op, int breakpt_num);
-extern void mon_breakpoint_set_ignore_count(int breakpt_num, int count);
-extern void mon_breakpoint_print_checkpoints(void);
-extern void mon_breakpoint_delete_checkpoint(int brknum);
-extern void mon_breakpoint_set_checkpoint_condition(int brk_num, struct cond_node_s *cnode);
-extern void mon_breakpoint_set_checkpoint_command(int brk_num, char *cmd);
-extern bool mon_breakpoint_check_checkpoint(MEMSPACE mem, unsigned int addr,
-                                            unsigned int lastpc, MEMORY_OP op);
-extern int mon_breakpoint_add_checkpoint(MON_ADDR start_addr, MON_ADDR end_addr,
-                                         bool stop, MEMORY_OP op, bool is_temp, bool do_print);
+void mon_breakpoint_switch_checkpoint(int op, int breakpt_num);
+void mon_breakpoint_set_ignore_count(int breakpt_num, int count);
+void mon_breakpoint_print_checkpoints(void);
+void mon_breakpoint_delete_checkpoint(int brknum);
+void mon_breakpoint_set_checkpoint_condition(int brk_num, struct cond_node_s *cnode);
+void mon_breakpoint_set_checkpoint_command(int brk_num, char *cmd);
+bool mon_breakpoint_check_checkpoint(MEMSPACE mem, unsigned int addr,
+                                     unsigned int lastpc, MEMORY_OP op);
+int mon_breakpoint_add_checkpoint(MON_ADDR start_addr, MON_ADDR end_addr,
+                                  bool stop, MEMORY_OP op, bool is_temp, bool do_print);
 
-extern mon_breakpoint_type_t mon_breakpoint_is(MON_ADDR address);
-extern void mon_breakpoint_set(MON_ADDR address);
-extern void mon_breakpoint_unset(MON_ADDR address);
-extern void mon_breakpoint_enable(MON_ADDR address);
-extern void mon_breakpoint_disable(MON_ADDR address);
+mon_breakpoint_type_t mon_breakpoint_is(MON_ADDR address);
+void mon_breakpoint_set(MON_ADDR address);
+void mon_breakpoint_unset(MON_ADDR address);
+void mon_breakpoint_enable(MON_ADDR address);
+void mon_breakpoint_disable(MON_ADDR address);
 
-extern mon_checkpoint_t *mon_breakpoint_find_checkpoint(int brknum);
-extern mon_checkpoint_t **mon_breakpoint_checkpoint_list_get(unsigned int *len);
+mon_checkpoint_t *mon_breakpoint_find_checkpoint(int brknum);
+mon_checkpoint_t **mon_breakpoint_checkpoint_list_get(unsigned int *len);
 
 /* defined in mon_parse.y, and thus, in mon_parse.c */
-extern int parse_and_execute_line(char *input);
+int parse_and_execute_line(char *input);
 
 #endif

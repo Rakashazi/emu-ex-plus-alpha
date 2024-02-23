@@ -49,46 +49,42 @@ typedef struct console_s {
 
 /* first set of functions, which will work with whatever "console" the respective
    (g)ui/port comes up with. may or may not be equal to the native console */
-extern console_t *console_open(const char *id);
-extern int console_close(console_t *log);
+console_t *console_open(const char *id);
+int console_close(console_t *log);
 
 /* the following must be called before any other
   console_...() function is used */
-extern int console_init(void);
+int console_init(void);
 
 /* The following should be called when quitting VICE
  after calling console_close_all(), the console_...()
  functions cannot be accessed unless console_init()
  is called again.
 */
-extern int console_close_all(void);
+int console_close_all(void);
 
-extern int console_out(console_t *log, const char *format, ...) VICE_ATTR_PRINTF2;
-extern int console_flush(console_t *log);
-extern char *console_in(console_t *log, const char *prompt);
+int console_out(console_t *log, const char *format, ...) VICE_ATTR_PRINTF2;
+int console_flush(console_t *log);
+char *console_in(console_t *log, const char *prompt);
 
 /* the same set of functions, which will work with a "native" console of the host */
-extern console_t *native_console_open(const char *id);
-extern int native_console_close(console_t *log);
+console_t *native_console_open(const char *id);
+int native_console_close(console_t *log);
 
 /* the following must be called before any other
   native_console_...() function is used */
-extern int native_console_init(void);
+int native_console_init(void);
 
 /* The following should be called when quitting VICE
  after calling native_console_close_all(), the native_console_...()
  functions cannot be accessed unless native_console_init()
  is called again.
 */
-extern int native_console_close_all(void);
+int native_console_close_all(void);
 
-extern int native_console_out(console_t *log, const char *format, ...) VICE_ATTR_PRINTF2;
-extern int native_console_petscii_out(console_t *log, const char *format, ...) VICE_ATTR_PRINTF2;
-extern int native_console_flush(console_t *log);
-extern char *native_console_in(console_t *log, const char *prompt);
-
-# ifndef HAVE_READLINE
-char *readline(const char *prompt);
-# endif
+int native_console_out(console_t *log, const char *format, ...) VICE_ATTR_PRINTF2;
+int native_console_petscii_out(console_t *log, const char *format, ...) VICE_ATTR_PRINTF2;
+int native_console_flush(console_t *log);
+char *native_console_in(console_t *log, const char *prompt);
 
 #endif

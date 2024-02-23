@@ -60,21 +60,23 @@ typedef struct rtc_bq4830y_s {
 #define BQ4830Y_REG_MONTHS          0x7FFE
 #define BQ4830Y_REG_YEARS           0x7FFF
 
-#define LATCH_NONE               0
-#define READ_LATCH               1
-#define WRITE_LATCH              2
-#define READ_WRITE_LATCH         3
-#define CLOCK_LATCH              4
-#define CLOCK_READ_LATCH         5
-#define CLOCK_WRITE_LATCH        6
-#define CLOCK_READ_WRITE_LATCH   7
+enum {
+    LATCH_NONE = 0,
+    READ_LATCH,
+    WRITE_LATCH,
+    READ_WRITE_LATCH,
+    CLOCK_LATCH,
+    CLOCK_READ_LATCH,
+    CLOCK_WRITE_LATCH,
+    CLOCK_READ_WRITE_LATCH
+};
 
-extern rtc_bq4830y_t *bq4830y_init(char *device);
-extern void bq4830y_destroy(rtc_bq4830y_t *context, int save);
+rtc_bq4830y_t *bq4830y_init(char *device);
+void bq4830y_destroy(rtc_bq4830y_t *context, int save);
 
-extern void bq4830y_store(rtc_bq4830y_t *context, uint16_t address, uint8_t val);
-extern uint8_t bq4830y_read(rtc_bq4830y_t *context, uint16_t address);
-extern int bq4830y_write_snapshot(rtc_bq4830y_t *context, snapshot_t *s);
-extern int bq4830y_read_snapshot(rtc_bq4830y_t *context, snapshot_t *s);
+void bq4830y_store(rtc_bq4830y_t *context, uint16_t address, uint8_t val);
+uint8_t bq4830y_read(rtc_bq4830y_t *context, uint16_t address);
+int bq4830y_write_snapshot(rtc_bq4830y_t *context, snapshot_t *s);
+int bq4830y_read_snapshot(rtc_bq4830y_t *context, snapshot_t *s);
 
 #endif

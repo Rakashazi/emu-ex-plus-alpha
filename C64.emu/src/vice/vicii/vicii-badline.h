@@ -29,8 +29,8 @@
 
 #include "types.h"
 
-extern void vicii_badline_check_state(uint8_t value, const int cycle,
-                                      const unsigned int line,
-                                      const int old_allow_bad_lines);
+void vicii_badline_check_state(uint8_t value, const int cycle,
+                               const unsigned int line,
+                               const int old_allow_bad_lines);
 
 #endif

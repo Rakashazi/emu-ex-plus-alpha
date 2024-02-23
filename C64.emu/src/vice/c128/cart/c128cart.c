@@ -53,16 +53,16 @@
 #include "magicdesk128.h"
 #include "partner128.h"
 #include "warpspeed128.h"
+#include "ltkernal.h"
+#include "ramlink.h"
 
-#define DBGC128CART
+/* #define DBGC128CART */
 
 #ifdef DBGC128CART
 #define DBG(x) printf x
 #else
 #define DBG(x)
 #endif
-
-
 
 extern c128cartridge_interface_t *c128cartridge; /* lives in c64cart.c */
 
@@ -322,6 +322,23 @@ static int c128cartridge_bin_save(int type, const char *filename)
     return -1;
 }
 
+static int c128cartridge_save_secondary_image(int type, const char *filename)
+{
+    DBG(("c128cartridge_save_secondary_image name: %s\n", filename));
+    switch (type) {
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_GENERIC):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_COMAL80):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_MAGICDESK128):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_PARTNER128):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_WARPSPEED128):
+            break;
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_GMOD2C128):
+            return c128gmod2_eeprom_save(filename);
+    }
+    log_error(LOG_ERR, "Failed saving secondary image for cartridge ID %d.\n", type);
+    return -1;
+}
+
 static int c128cartridge_crt_save(int type, const char *filename)
 {
     DBG(("c128cartridge_crt_save name: %s\n", filename));
@@ -353,6 +370,82 @@ static int c128cartridge_flush_image(int type)
     }
     log_error(LOG_ERR, "Failed flushing cartridge image for cartridge ID %d.\n", type);
     return -1;
+}
+
+static int c128cartridge_flush_secondary_image(int type)
+{
+    switch (type) {
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_GENERIC):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_COMAL80):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_MAGICDESK128):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_PARTNER128):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_WARPSPEED128):
+            break;
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_GMOD2C128):
+            return c128gmod2_flush_eeprom();
+    }
+    log_error(LOG_ERR, "Failed flushing secondary for cartridge ID %d.\n", type);
+    return -1;
+}
+
+static int c128cartridge_can_save_image(int crtid)
+{
+    switch (crtid) {
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_GENERIC):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_COMAL80):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_MAGICDESK128):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_PARTNER128):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_WARPSPEED128):
+            break;
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_GMOD2C128):
+            return 1;
+    }
+    return 0;
+}
+
+static int c128cartridge_can_flush_image(int crtid)
+{
+    switch (crtid) {
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_GENERIC):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_COMAL80):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_MAGICDESK128):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_PARTNER128):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_WARPSPEED128):
+            break;
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_GMOD2C128):
+            return 1;
+    }
+    return 0;
+}
+
+static int c128cartridge_can_save_secondary_image(int crtid)
+{
+    switch (crtid) {
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_GENERIC):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_COMAL80):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_MAGICDESK128):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_PARTNER128):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_WARPSPEED128):
+            break;
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_GMOD2C128):
+            return c128gmod2_can_save_eeprom();
+    }
+    return 0;
+}
+
+static int c128cartridge_can_flush_secondary_image(int crtid)
+{
+    switch (crtid) {
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_GENERIC):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_COMAL80):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_MAGICDESK128):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_PARTNER128):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_WARPSPEED128):
+            break;
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_GMOD2C128):
+            return c128gmod2_can_flush_eeprom();
+    }
+    return 0;
 }
 
 /*
@@ -421,6 +514,7 @@ static int c128cartridge_freeze_allowed(void)
         /*case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_COMAL80):*/
         case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_PARTNER128):
         /*case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_WARPSPEED128):*/
+        case CARTRIDGE_LT_KERNAL:
             return 1;
     }
     return 0;
@@ -435,6 +529,9 @@ static void c128cartridge_freeze(void)
             partner128_freeze();
             break;
         /*case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_WARPSPEED128):*/
+        case CARTRIDGE_LT_KERNAL:
+            ltkernal_freeze();
+            break;
     }
 }
 
@@ -457,8 +554,10 @@ void c128cartridge_setup_interface(void)
     c128interface.attach_crt = c128cartridge_attach_crt;
     c128interface.bin_attach = c128cartridge_bin_attach;
     c128interface.bin_save = c128cartridge_bin_save;
+    c128interface.save_secondary_image = c128cartridge_save_secondary_image;
     c128interface.crt_save = c128cartridge_crt_save;
     c128interface.flush_image = c128cartridge_flush_image;
+    c128interface.flush_secondary_image = c128cartridge_flush_secondary_image;
     c128interface.detach_image = c128cartridge_detach_image;
     c128interface.config_init = c128cartridge_config_init;
     c128interface.config_setup = c128cartridge_config_setup;
@@ -467,6 +566,10 @@ void c128cartridge_setup_interface(void)
     c128interface.freeze_allowed = c128cartridge_freeze_allowed;
     c128interface.freeze = c128cartridge_freeze;
     c128interface.powerup = c128cartridge_powerup;
+    c128interface.can_flush_image = c128cartridge_can_flush_image;
+    c128interface.can_save_image = c128cartridge_can_save_image;
+    c128interface.can_flush_secondary_image = c128cartridge_can_flush_secondary_image;
+    c128interface.can_save_secondary_image = c128cartridge_can_save_secondary_image;
     c128cartridge = &c128interface;
 }
 
@@ -549,8 +652,18 @@ void external_function_rom_set_bank(int value)
 /* ROML and ROMH reads at the cartridge port */
 uint8_t external_function_rom_read(uint16_t addr)
 {
-    int type = cartridge_get_id(0);
-    uint8_t val;
+    int type = cart_getid_slot0();
+    uint8_t val = vicii_read_phi1();
+    /* do slot0 first */
+    switch(type) {
+        case CARTRIDGE_RAMLINK:
+            if (c128ramlink_roml_read(addr, &val)) {
+                vicii.last_cpu_val = val;
+                return vicii.last_cpu_val;
+            }
+    }
+    /* then do slotmain */
+    type = cartridge_get_id(0);
     switch(type) {
         case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_GMOD2C128):
             val = c128gmod2_roml_read(addr);
@@ -562,12 +675,58 @@ uint8_t external_function_rom_read(uint16_t addr)
         case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_WARPSPEED128):
             val = ext_function_rom[(addr & (EXTERNAL_FUNCTION_ROM_SIZE - 1)) + (ext_function_rom_bank * EXTERNAL_FUNCTION_ROM_SIZE)];
             break;
+        case CARTRIDGE_MMC_REPLAY:
+            if (mmcreplay_c128_read(addr, &val)) {
+                break;
+            }
+            break;
+        case CARTRIDGE_LT_KERNAL:
+            if (c128ltkernal_roml_read(addr, &val)) {
+                break;
+            }
+            break;
         default:
             val = vicii_read_phi1();
             break;
     }
     vicii.last_cpu_val = val;
     return vicii.last_cpu_val;
+}
+
+/* ROML and ROMH peeks at the cartridge port */
+uint8_t external_function_rom_peek(uint16_t addr)
+{
+    int type = cartridge_get_id(0);
+    /* FIXME: What should we return here? is vicii_read_phi1() safe for a peek? */
+    uint8_t val = 0;
+    switch(type) {
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_GMOD2C128):
+/* FIXME: gmod2 needs a peek */
+/*            val = c128gmod2_roml_peek(addr); */
+            val = 0;
+            break;
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_GENERIC):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_COMAL80):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_MAGICDESK128):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_PARTNER128):
+        case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_WARPSPEED128):
+            val = ext_function_rom[(addr & (EXTERNAL_FUNCTION_ROM_SIZE - 1)) + (ext_function_rom_bank * EXTERNAL_FUNCTION_ROM_SIZE)];
+            break;
+        case CARTRIDGE_MMC_REPLAY:
+            if (mmcreplay_c128_read(addr, &val)) {
+                break;
+            }
+            break;
+        case CARTRIDGE_LT_KERNAL:
+            if (c128ltkernal_roml_read(addr, &val)) {
+                break;
+            }
+            break;
+        default:
+            /* default value above */
+            break;
+    }
+    return val;
 }
 
 /* ROML and ROMH stores at the cartridge port */
@@ -577,6 +736,13 @@ void external_function_rom_store(uint16_t addr, uint8_t value)
     switch(type) {
         case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_GMOD2C128):
             c128gmod2_roml_store(addr, value);
+            break;
+        case CARTRIDGE_LT_KERNAL:
+            /* LTK doesn't write to internal RAM */
+            if (c128ltkernal_roml_store(addr, value)) {
+                vicii.last_cpu_val = value;
+                return;
+            }
             break;
         case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_GENERIC):
         case CARTRIDGE_C128_MAKEID(CARTRIDGE_C128_COMAL80):
@@ -594,4 +760,166 @@ void external_function_top_shared_store(uint16_t addr, uint8_t value)
 {
     vicii.last_cpu_val = value;
     top_shared_store(addr, value);
+}
+
+/* basic hi replacement reads at the cartridge port */
+uint8_t c128cartridge_basic_hi_read(uint16_t addr, uint8_t *value)
+{
+    int type = cartridge_get_id(0);
+    uint8_t ret = 0;
+    /* return 1 if the read was successful */
+    switch(type) {
+        case CARTRIDGE_LT_KERNAL:
+            ret = c128ltkernal_basic_hi_read(addr, value);
+            break;
+        default:
+            break;
+    }
+    return ret;
+}
+
+/* basic hi replacement store at the cartridge port */
+uint8_t c128cartridge_basic_hi_store(uint16_t addr, uint8_t value)
+{
+    int type = cartridge_get_id(0);
+    uint8_t ret = 0;
+    /* return 1 if the write was successful */
+    switch(type) {
+        case CARTRIDGE_LT_KERNAL:
+            ret = c128ltkernal_basic_hi_store(addr, value);
+            break;
+        default:
+            break;
+    }
+    return ret;
+}
+
+/* kernal replacement reads at the cartridge port */
+uint8_t c128cartridge_hi_read(uint16_t addr, uint8_t *value)
+{
+    int type = cart_getid_slot0();
+    uint8_t ret = 0;
+    /* return 1 if the read was successful */
+    switch(type) {
+        case CARTRIDGE_RAMLINK:
+            ret = c128ramlink_hi_read(addr, value);
+            break;
+        default:
+            break;
+    }
+    if (ret) {
+        return ret;
+    }
+    type = cartridge_get_id(0);
+    switch(type) {
+        case CARTRIDGE_LT_KERNAL:
+            ret = c128ltkernal_hi_read(addr, value);
+            break;
+        default:
+            break;
+    }
+    return ret;
+}
+
+/* kernal replacement store at the cartridge port */
+uint8_t c128cartridge_hi_store(uint16_t addr, uint8_t value)
+{
+    int type = cartridge_get_id(0);
+    uint8_t ret = 0;
+    /* return 1 if the write was successful */
+    switch(type) {
+        case CARTRIDGE_LT_KERNAL:
+            ret = c128ltkernal_hi_store(addr, value);
+            break;
+        default:
+            break;
+    }
+    return ret;
+}
+
+/* memory replacement reads at the cartridge port */
+uint8_t c128cartridge_ram_read(uint16_t addr, uint8_t *value)
+{
+    int type = cartridge_get_id(0);
+    uint8_t ret = 0;
+    /* return 1 if the read was successful */
+    switch(type) {
+        case CARTRIDGE_LT_KERNAL:
+            ret = c128ltkernal_ram_read(addr, value);
+            break;
+        default:
+            break;
+    }
+    return ret;
+}
+
+/* kernal replacement store at the cartridge port */
+uint8_t c128cartridge_ram_store(uint16_t addr, uint8_t value)
+{
+    int type = cartridge_get_id(0);
+    uint8_t ret = 0;
+    /* return 1 if the write was successful */
+    switch(type) {
+        case CARTRIDGE_LT_KERNAL:
+            ret = c128ltkernal_ram_store(addr, value);
+            break;
+        default:
+            break;
+    }
+    return ret;
+}
+
+/* mmu translation: return 0 if no translation applied, leave it for the tables */
+int c128cartridge_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit, int mem_config)
+{
+    int type = cart_getid_slot0();
+#if 0
+    /* disable all the mmu translation stuff for testing */
+    return 0;
+#endif
+    switch(type) {
+        case CARTRIDGE_RAMLINK:
+            if (c128ramlink_mmu_translate(addr, base, start, limit, mem_config)) {
+                return 1;
+            }
+            break;
+        default:
+            break;
+    }
+    type = cartridge_get_id(0);
+    switch(type) {
+        case CARTRIDGE_LT_KERNAL:
+            return c128ltkernal_mmu_translate(addr, base, start, limit, mem_config);
+            break;
+        default:
+            break;
+    }
+    return 0;
+}
+
+/* notify cartridge of mode change */
+void c128cartridge_switch_mode(int mode)
+{
+    int type = cart_getid_slot0();
+    switch(type) {
+        case CARTRIDGE_RAMLINK:
+            c128ramlink_switch_mode(mode);
+            break;
+        default:
+            break;
+    }
+
+    type = cartridge_get_id(0);
+    switch(type) {
+        case CARTRIDGE_LT_KERNAL:
+            c128ltkernal_switch_mode(mode);
+            break;
+        case CARTRIDGE_MMC_REPLAY:
+            mmcreplay_c128_switch_mode(mode);
+            break;
+        default:
+            break;
+    }
+
+    return;
 }

@@ -61,13 +61,13 @@ typedef struct _i8255a_state {
 
 struct snapshot_module_s;
 
-extern void i8255a_reset(i8255a_state *ctx);
-extern uint8_t i8255a_read(i8255a_state *ctx, int8_t reg);
-extern uint8_t i8255a_peek(i8255a_state *ctx, int8_t reg);
-extern void i8255a_store(i8255a_state *ctx, int8_t reg, uint8_t data);
-extern int i8255a_dump(i8255a_state *ctx);
+void i8255a_reset(i8255a_state *ctx);
+uint8_t i8255a_read(i8255a_state *ctx, int8_t reg);
+uint8_t i8255a_peek(i8255a_state *ctx, int8_t reg);
+void i8255a_store(i8255a_state *ctx, int8_t reg, uint8_t data);
+int i8255a_dump(i8255a_state *ctx);
 
-extern int i8255a_snapshot_write_data(i8255a_state *ctx, struct snapshot_module_s *m);
-extern int i8255a_snapshot_read_data(i8255a_state *ctx, struct snapshot_module_s *m);
+int i8255a_snapshot_write_data(i8255a_state *ctx, struct snapshot_module_s *m);
+int i8255a_snapshot_read_data(i8255a_state *ctx, struct snapshot_module_s *m);
 
 #endif

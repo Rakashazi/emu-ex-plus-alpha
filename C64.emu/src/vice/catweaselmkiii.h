@@ -32,26 +32,26 @@
 
 #include "sid-snapshot.h"
 
-extern int catweaselmkiii_open(void);
-extern int catweaselmkiii_close(void);
-extern int catweaselmkiii_read(uint16_t addr, int chipno);
-extern void catweaselmkiii_store(uint16_t addr, uint8_t val, int chipno);
-extern void catweaselmkiii_set_machine_parameter(long cycles_per_sec);
+int catweaselmkiii_open(void);
+int catweaselmkiii_close(void);
+int catweaselmkiii_read(uint16_t addr, int chipno);
+void catweaselmkiii_store(uint16_t addr, uint8_t val, int chipno);
+void catweaselmkiii_set_machine_parameter(long cycles_per_sec);
 
-extern int catweaselmkiii_available(void);
+int catweaselmkiii_available(void);
 
-extern int catweaselmkiii_drv_open(void);
-extern int catweaselmkiii_drv_close(void);
-extern int catweaselmkiii_drv_read(uint16_t addr, int chipno);
-extern void catweaselmkiii_drv_store(uint16_t addr, uint8_t val, int chipno);
-extern void catweaselmkiii_drv_set_machine_parameter(long cycles_per_sec);
+int catweaselmkiii_drv_open(void);
+int catweaselmkiii_drv_close(void);
+int catweaselmkiii_drv_read(uint16_t addr, int chipno);
+void catweaselmkiii_drv_store(uint16_t addr, uint8_t val, int chipno);
+void catweaselmkiii_drv_set_machine_parameter(long cycles_per_sec);
 
-extern int catweaselmkiii_drv_available(void);
+int catweaselmkiii_drv_available(void);
 
-extern int catweaselmkiii_get_ntsc(void);
+int catweaselmkiii_get_ntsc(void);
 
-extern void catweaselmkiii_state_read(int chipno, struct sid_cw3_snapshot_state_s *sid_state);
-extern void catweaselmkiii_state_write(int chipno, struct sid_cw3_snapshot_state_s *sid_state);
+void catweaselmkiii_state_read(int chipno, struct sid_cw3_snapshot_state_s *sid_state);
+void catweaselmkiii_state_write(int chipno, struct sid_cw3_snapshot_state_s *sid_state);
 
 #define CW_VENDOR           0xe159
 #define CW_DEVICE           0x0001

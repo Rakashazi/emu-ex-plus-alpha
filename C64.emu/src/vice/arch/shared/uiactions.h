@@ -1,5 +1,5 @@
 /** \file   uiactions.h
- * \brief   UI action names and descriptions - header
+ * \brief   UI actions interface - header
  *
  * \author  Bas Wassink <b.wassink@ziggo.nl>
  */
@@ -29,6 +29,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 /* this header is required if the macro IS_ACTION_NAME_CHAR() is used: */
 #include <ctype.h>
 
@@ -39,7 +40,7 @@
 /** \brief  Mapping of action IDs to names and descriptions
  */
 typedef struct ui_action_info_s {
-    int id;             /**< action ID */
+    int         id;     /**< action ID */
     const char *name;   /**< action name */
     const char *desc;   /**< action description */
 } ui_action_info_t;
@@ -48,21 +49,40 @@ typedef struct ui_action_info_s {
 /** \brief  Mapping of an action ID to a handler
  */
 typedef struct ui_action_map_s {
-    int action;             /**< action ID */
-    void (*handler)(void);  /**< function handling the action */
+    int    action;          /**< action ID */
+
+    /*
+     * Action handler data
+     */
+
+    void (*handler)(struct ui_action_map_s*); /**< function handling the action */
+    void  *data;            /**< optional user data */
+
 
     /* modes */
-    bool blocks;            /**< action blocks (the same action cannot be
+    bool   blocks;          /**< action blocks (the same action cannot be
                                  triggered again until it finishes) */
-    bool dialog;            /**< action pops up a dialog (only one dialog action
+    bool   dialog;          /**< action pops up a dialog (only one dialog action
                                  is allowed at a time), this implies using the
                                  UI thread */
-    bool uithread;          /**< must run on the UI thread */
+    bool   uithread;        /**< must run on the UI thread */
 
     /* state */
-    bool is_busy;           /**< action is busy */
+    bool   is_busy;         /**< action is busy */
+
+    /*
+     * Hotkey data
+     */
+    uint32_t  vice_keysym;  /**< VICE keysym, see hotkeys.vhkkeysyms.h */
+    uint32_t  vice_modmask; /**< VICE modmask, see hotkeys.vhkkeysyms.h */
+    uint32_t  arch_keysym;  /**< arch keysym */
+    uint32_t  arch_modmask; /**< arch modmask */
+    void     *menu_item[2]; /**< menu item references */
+    void     *user_data;    /**< additional data (optional) */
 } ui_action_map_t;
 
+/** \brief  Terminator of action maps
+ */
 #define UI_ACTION_MAP_TERMINATOR { .action = ACTION_NONE, .handler = NULL }
 
 
@@ -77,7 +97,8 @@ typedef struct ui_action_map_s {
  * * '_', '-' and ':'
  */
 #define IS_ACTION_NAME_CHAR(ch) \
-    (isalpha(ch) || isdigit(ch) || ch == '_' || ch == '-' || ch == ':')
+    (isalpha((unsigned char)(ch)) || isdigit((unsigned char)(ch)) || \
+     ch == '_' || ch == '-' || ch == ':')
 
 
 /** \brief  IDs for the UI actions
@@ -88,8 +109,33 @@ enum {
     ACTION_INVALID = -1,
     ACTION_NONE = 0,
     ACTION_ADVANCE_FRAME,
-    ACTION_CART_ATTACH,
+    ACTION_CART_ATTACH,         /* Gtk3 has one dialog for CRT and RAW */
+    ACTION_CART_ATTACH_RAW,     /* SDL has separate dialogs for CRT and RAW */
+    ACTION_CART_ATTACH_RAW_1000,        /* CBM-II */
+    ACTION_CART_ATTACH_RAW_2000,        /* CBM-II, VIC-20 */
+    ACTION_CART_ATTACH_RAW_4000,        /* CBM-II, VIC_20 */
+    ACTION_CART_ATTACH_RAW_6000,        /* CBM-II, VIC-20 */
+    ACTION_CART_ATTACH_RAW_A000,        /* VIC-20 */
+    ACTION_CART_ATTACH_RAW_B000,        /* VIC-20 */
+    ACTION_CART_ATTACH_RAW_BEHRBONZ,    /* VIC-20 */
+    ACTION_CART_ATTACH_RAW_FINAL,       /* VIC-20 */
+    ACTION_CART_ATTACH_RAW_MEGACART,    /* VIC-20 */
+    ACTION_CART_ATTACH_RAW_ULTIMEM,     /* VIC-20 */
+    ACTION_CART_ATTACH_RAW_VICFP,       /* VIC-20 */
+    ACTION_CART_ATTACH_RAW_JACINT1MB,   /* Plus/4 */
+    ACTION_CART_ATTACH_RAW_MAGIC,       /* Plus/4 */
+    ACTION_CART_ATTACH_RAW_MULTI,       /* Plus/4 */
+    ACTION_CART_ATTACH_RAW_C1_FULL,     /* Plus/4 */
+    ACTION_CART_ATTACH_RAW_C1_LOW,      /* Plus/4 */
+    ACTION_CART_ATTACH_RAW_C1_HIGH,     /* Plus/4 */
+    ACTION_CART_ATTACH_RAW_C2_FULL,     /* Plus/4 */
+    ACTION_CART_ATTACH_RAW_C2_LOW,      /* Plus/4 */
+    ACTION_CART_ATTACH_RAW_C2_HIGH,     /* Plus/4 */
     ACTION_CART_DETACH,
+    ACTION_CART_DETACH_1000,            /* CBM-II */
+    ACTION_CART_DETACH_2000,            /* CBM-II */
+    ACTION_CART_DETACH_4000,            /* CBM-II */
+    ACTION_CART_DETACH_6000,            /* CBM-II */
     ACTION_CART_FREEZE,
     ACTION_DEBUG_AUTOPLAYBACK_FRAMES,
     ACTION_DEBUG_BLITTER_LOG_TOGGLE,
@@ -202,17 +248,29 @@ enum {
     ACTION_HOTKEYS_SAVE_TO,
     ACTION_KEYSET_JOYSTICK_TOGGLE,
     ACTION_MEDIA_RECORD,
+    ACTION_MEDIA_RECORD_AUDIO,
+    ACTION_MEDIA_RECORD_SCREENSHOT,
+    ACTION_MEDIA_RECORD_VIDEO,
     ACTION_MEDIA_STOP,
     ACTION_MONITOR_OPEN,
     ACTION_MOUSE_GRAB_TOGGLE,
     ACTION_PAUSE_TOGGLE,
     ACTION_QUIT,
-    ACTION_RESET_DRIVE_10,
-    ACTION_RESET_DRIVE_11,
+    ACTION_MACHINE_RESET_CPU,
+    ACTION_MACHINE_POWER_CYCLE,
+    /* TODO: rework into DRIVE_[9-11]RESET_BUTTON/POWER_CYCLE_ etc. */
     ACTION_RESET_DRIVE_8,
+    ACTION_RESET_DRIVE_8_CONFIG,
+    ACTION_RESET_DRIVE_8_INSTALL,
     ACTION_RESET_DRIVE_9,
-    ACTION_RESET_HARD,
-    ACTION_RESET_SOFT,
+    ACTION_RESET_DRIVE_9_CONFIG,
+    ACTION_RESET_DRIVE_9_INSTALL,
+    ACTION_RESET_DRIVE_10,
+    ACTION_RESET_DRIVE_10_CONFIG,
+    ACTION_RESET_DRIVE_10_INSTALL,
+    ACTION_RESET_DRIVE_11,
+    ACTION_RESET_DRIVE_11_CONFIG,
+    ACTION_RESET_DRIVE_11_INSTALL,
     ACTION_RESTORE_DISPLAY,
     ACTION_SCREENSHOT_QUICKSAVE,
     ACTION_SETTINGS_DEFAULT,
@@ -222,18 +280,18 @@ enum {
     ACTION_SETTINGS_LOAD,
     ACTION_SETTINGS_SAVE,
     ACTION_SETTINGS_SAVE_TO,
-    /* TODO: Add ACTION_SHOW_STATUSBAR_VDC_TOGGLE or something for x128 */
     ACTION_SHOW_STATUSBAR_TOGGLE,
+    ACTION_SHOW_STATUSBAR_SECONDARY_TOGGLE,
     ACTION_SMART_ATTACH,
     ACTION_SNAPSHOT_LOAD,
     ACTION_SNAPSHOT_QUICKLOAD,
     ACTION_SNAPSHOT_QUICKSAVE,
     ACTION_SNAPSHOT_SAVE,
-    ACTION_SPEED_CPU_100,
     ACTION_SPEED_CPU_10,
-    ACTION_SPEED_CPU_200,
-    ACTION_SPEED_CPU_20,
+    ACTION_SPEED_CPU_25,
     ACTION_SPEED_CPU_50,
+    ACTION_SPEED_CPU_100,
+    ACTION_SPEED_CPU_200,
     ACTION_SPEED_CPU_CUSTOM,
     ACTION_SPEED_FPS_50,
     ACTION_SPEED_FPS_60,
@@ -296,6 +354,7 @@ enum {
     ACTION_PSID_SUBTUNE_29,
     ACTION_PSID_SUBTUNE_30,
 
+    ACTION_PSID_SUBTUNE_DEFAULT,
     ACTION_PSID_SUBTUNE_NEXT,
     ACTION_PSID_SUBTUNE_PREVIOUS,
 
@@ -317,39 +376,89 @@ enum {
 
     /* TODO: VSID playlist controls? */
 
+    /* PET */
+    ACTION_DIAGNOSTIC_PIN_TOGGLE,
+
+    /* Printers and plotters */
+    ACTION_PRINTER_FORMFEED_4,
+    ACTION_PRINTER_FORMFEED_5,
+    ACTION_PRINTER_FORMFEED_6,
+    ACTION_PRINTER_FORMFEED_USERPORT,
+
+    /* SDL UI only: show virtual keyboard on the emulated display */
+    ACTION_VIRTUAL_KEYBOARD,
+
+    /* Border modes */
+    ACTION_BORDER_MODE_NORMAL,
+    ACTION_BORDER_MODE_FULL,
+    ACTION_BORDER_MODE_DEBUG,
+    ACTION_BORDER_MODE_NONE,
+
+    /* SCPU64 switches */
+    ACTION_SCPU_JIFFY_SWITCH_TOGGLE,
+    ACTION_SCPU_SPEED_SWITCH_TOGGLE,
+
     ACTION_ID_COUNT     /**< number of action IDs */
 };
 
+/* Action info getters */
+int                     ui_action_get_id       (const char *name);
+const char *            ui_action_get_name     (int action);
+const char *            ui_action_get_desc     (int action);
+ui_action_info_t *      ui_action_get_info_list(void);
+bool                    ui_action_is_valid     (int action);
 
-int                 ui_action_get_id(const char *name);
-const char *        ui_action_get_name(int action);
-const char *        ui_action_get_desc(int action);
-ui_action_info_t *  ui_action_get_info_list(void);
-bool                ui_action_is_valid(int action);
-
-/* Get action IDs for fliplist actions */
-int ui_action_id_fliplist_add(int unit, int drive);
-int ui_action_id_fliplist_remove(int unit, int drive);
-int ui_action_id_fliplist_next(int unit, int drive);
-int ui_action_id_fliplist_previous(int unit, int drive);
-int ui_action_id_fliplist_clear(int unit, int drive);
-int ui_action_id_fliplist_load(int unit, int drive);
-int ui_action_id_fliplist_save(int unit, int drive);
-
-int ui_action_id_drive_attach(int unit, int drive);
-int ui_action_id_drive_detach(int unit, int drive);
+/* Get action IDs for drive actions */
+int                     ui_action_id_fliplist_add       (int unit, int drive);
+int                     ui_action_id_fliplist_remove    (int unit, int drive);
+int                     ui_action_id_fliplist_next      (int unit, int drive);
+int                     ui_action_id_fliplist_previous  (int unit, int drive);
+int                     ui_action_id_fliplist_clear     (int unit, int drive);
+int                     ui_action_id_fliplist_load      (int unit, int drive);
+int                     ui_action_id_fliplist_save      (int unit, int drive);
+int                     ui_action_id_drive_attach       (int unit, int drive);
+int                     ui_action_id_drive_detach       (int unit, int drive);
+int                     ui_action_id_drive_reset        (int unit);
+int                     ui_action_id_drive_reset_config (int unit);
+int                     ui_action_id_drive_reset_install(int unit);
 
 /* Main API */
-void ui_actions_init(void);
-void ui_actions_set_dispatch(void (*dispatch)(const ui_action_map_t *));
-void ui_actions_shutdown(void);
-const ui_action_map_t *ui_actions_get_registered(void);
-void ui_actions_register(const ui_action_map_t *mappings);
-void ui_action_trigger(int action);
-void ui_action_finish(int action);
+void                    ui_actions_init          (void);
+void                    ui_actions_set_dispatch  (void (*dispatch)(ui_action_map_t *));
+void                    ui_actions_shutdown      (void);
+void                    ui_actions_register      (const ui_action_map_t *mappings);
+
+void                    ui_action_trigger        (int action);
+void                    ui_action_finish         (int action);
 /* TODO: implement the following: */
-bool                ui_action_def(int action, const char *hotkey);
-bool                ui_action_undef(int action);
-bool                ui_action_redef(int action, const char *hotkey);
+bool                    ui_action_def            (int action, const char *hotkey);
+bool                    ui_action_redef          (int action, const char *hotkey);
+bool                    ui_action_undef          (int action);
+
+/*
+ * For the added hotkeys data:
+ */
+
+ui_action_map_t *ui_action_map_get                   (int action);
+ui_action_map_t *ui_action_map_get_by_hotkey         (uint32_t vice_keysym, uint32_t vice_modmask);
+ui_action_map_t *ui_action_map_get_by_arch_hotkey    (uint32_t arch_keysym, uint32_t arch_modmask);
+
+void             ui_action_map_clear_hotkey          (ui_action_map_t *map);
+void             ui_action_map_clear_hotkey_by_action(int action);
+void             ui_action_map_clear_hotkey_by_hotkey(uint32_t vice_keysym, uint32_t vice_modmask);
+
+ui_action_map_t *ui_action_map_set_hotkey            (int       action,
+                                                      uint32_t  vice_keysym,
+                                                      uint32_t  vice_modmask,
+                                                      uint32_t  arch_keysym,
+                                                      uint32_t  arch_modmask);
+void             ui_action_map_set_hotkey_by_map     (ui_action_map_t *map,
+                                                      uint32_t         vice_keysym,
+                                                      uint32_t         vice_modmask,
+                                                      uint32_t         arch_keysym,
+                                                      uint32_t         arch_modmask);
+
+char            *ui_action_map_get_hotkey_label      (ui_action_map_t *map);
+char            *ui_action_get_hotkey_label          (int action);
 
 #endif

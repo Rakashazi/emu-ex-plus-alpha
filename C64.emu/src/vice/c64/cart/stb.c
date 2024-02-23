@@ -70,7 +70,8 @@ static io_source_t stb_device = {
     stb_dump,                        /* device state information dump function */
     CARTRIDGE_STRUCTURED_BASIC,      /* cartridge ID */
     IO_PRIO_NORMAL,                  /* normal priority, device read needs to be checked for collisions */
-    0                                /* insertion order, gets filled in by the registration function */
+    0,                               /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE                   /* NO mirroring */
 };
 
 static io_source_list_t *stb_list_item = NULL;

@@ -170,9 +170,9 @@ static int mon_file_close(unsigned int secondary, int device)
 
 
 void mon_file_load(const char *filename, int device, MON_ADDR start_addr,
-                   bool is_bload)
+                   bool is_binary, bool set_pointers)
 {
-    uint16_t adr, load_addr = 0, basic_addr;
+    uint16_t adr, load_addr = 0;
     uint8_t b1 = 0, b2 = 0;
     int ch = 0;
     MEMSPACE mem;
@@ -184,32 +184,26 @@ void mon_file_load(const char *filename, int device, MON_ADDR start_addr,
     }
 
     /* if loading a .prg file, read/skip the start address */
-    if (is_bload == FALSE) {
+    if (is_binary == FALSE) {
         mon_file_read(&b1, 0, device);
         mon_file_read(&b2, 0, device);
         load_addr = (uint8_t)b1 | ((uint8_t)b2 << 8);
     }
 
-    mem_get_basic_text(&basic_addr, NULL); /* get BASIC start */
     mon_evaluate_default_addr(&start_addr); /* get target addr given in monitor */
 
     if (!mon_is_valid_addr(start_addr)) {   /* No Load address given */
-        if (is_bload == TRUE) {
+        if (is_binary == TRUE) {
             /* when loading plain binary, load addr is required */
             mon_out("Invalid LOAD address given.\n");
             mon_file_close(0, device);
             return;
         }
-
-        if (load_addr == basic_addr) {   /* Load to BASIC start */
-            adr = basic_addr;
-            mem = e_comp_space;
-        } else {
-            start_addr = new_addr(e_default_space, load_addr);
-            mon_evaluate_default_addr(&start_addr);
-            adr = addr_location(start_addr);
-            mem = addr_memspace(start_addr);
-        }
+        /* use load addr from .prg file */
+        start_addr = new_addr(e_default_space, load_addr);
+        mon_evaluate_default_addr(&start_addr);
+        adr = addr_location(start_addr);
+        mem = addr_memspace(start_addr);
     } else {
         adr = addr_location(start_addr);
         mem = addr_memspace(start_addr);
@@ -251,12 +245,12 @@ void mon_file_load(const char *filename, int device, MON_ADDR start_addr,
 
     mon_out("to %04X (%04X bytes)\n", ADDR_LIMIT((adr + ch) - 1), (unsigned int)ch);
 
-    /* set end of load addresses like kernal load if
+    /* set BASIC pointers like kernal load if
      * 1. loading .prg file
-     * 2. loading to BASIC start
+     * 2. using BASIC load (ldb)
      * 3. loading to computer bank/memory
      */
-    if ((is_bload == FALSE) && (load_addr == basic_addr) && (mem == e_comp_space)) {
+    if ((is_binary == FALSE) && (set_pointers == TRUE) && (mem == e_comp_space)) {
         mem_set_basic_text(adr, (uint16_t)(adr + ch));
     }
 

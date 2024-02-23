@@ -28,9 +28,9 @@
 #ifndef VICE_SID_CMDLINE_OPTIONS_H
 #define VICE_SID_CMDLINE_OPTIONS_H
 
-extern int sid_cmdline_options_init(int sid_type);
-extern int sid_common_set_engine_model(const char *param, void *extra_param);
+int sid_cmdline_options_init(int sid_type);
+int sid_common_set_engine_model(const char *param, void *extra_param);
 
-extern void sid_cmdline_options_shutdown(void);
+void sid_cmdline_options_shutdown(void);
 
 #endif

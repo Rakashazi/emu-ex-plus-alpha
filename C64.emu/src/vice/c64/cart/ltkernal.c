@@ -42,6 +42,7 @@
 #include "cartridge.h"
 #include "export.h"
 #include "ltkernal.h"
+#include "maincpu.h"
 #include "monitor.h"
 #include "snapshot.h"
 #include "types.h"
@@ -56,6 +57,8 @@
 #include "log.h"
 #include "mc6821core.h"
 #include "scsi.h"
+#include "c64memrom.h"
+#include "alarm.h"
 
 /* #define LTKLOG1 */
 /* #define LTKLOG2 */
@@ -95,34 +98,26 @@
 #error C64CART_ROM_LIMIT is too small; it should be at least 16384.
 #endif
 
-extern unsigned int reg_pc;
-
-/* C128 work still in progress */
-/* #define C128 */
-#ifdef C128
-extern int machine_inc64mode;
-extern void (*c128_switch_mode)(int mode);
-extern int (*c128_alt_basic_hi_read)(uint16_t addr, uint8_t *ret);
-extern int (*c128_alt_basic_hi_store)(uint16_t addr, uint8_t value);
-extern int (*c128_alt_hi_read)(uint16_t addr, uint8_t *ret);
-extern int (*c128_alt_hi_store)(uint16_t addr, uint8_t value);
-extern int (*c128_alt_external_function_rom_read)(uint16_t addr, uint8_t *ret);
-extern int (*c128_alt_external_function_rom_store)(uint16_t addr, uint8_t value);
-#endif
-
 /*
 
-Lt. Kernal (64)
+Lt. Kernal
+
+*** Brief IO explanation ***
 
 Write $3C to $Dx03 Enables stock kernal (sets CB2 high)
 Write $34 to $Dx03 Enables upper RAM as kernal (sets CB2 low)
 
 Write $40 (bit 6) to $Dx02 enables writes to kernal and lower RAM to $8000-$9fff
+ only when the upper ram kernal is enabled
 Clear $40 (bit 6) of $Dx02 disable writes to kernal and disables lower RAM
 
-If bit 6 of $Dx02 is 0 when bit 3 of $Dx03 is set, the system reset is asserted
+If bit 6 of $Dx02 is 0 when bit 3 of $Dx03 is set, the system reset timer
+ is started and will assert in 57 cycles
+ Setting bit 6 of $Dx02 or clearing vit 2 of $Dx03 will cancel it
 
-******
+Setting bit 6 of $Dx02 to 1 when $Dx03 bit 3 is low turns off ROM
+
+*** Detailed explanation ***
 
     The Lt. Kernal Host Adaptor (SCSI ID 7) looks on sector 0 of drive 0 (ID
 0) to find the partition (LU or logical unit) information and DOS. The DOS
@@ -180,8 +175,13 @@ out permanently until a reset. CB2 controls which KERNAL is in place. A high
 KERNAL. The other RAM at $8000-$9FFF memory is ONLY mapped in when PB2.6 is
 high (1). The HIRAM line from the PLA goes to the adaptor so it can determine
 the proper write action to the main RAM or adaptor RAM. Writing a high (1) to
-CB2 while PB2.6 is low (0) causes a system reset. The stock KERNAL is copied
-and then patched by the LTK DOS on startup.
+CB2 while PB2.6 is low (0) queues up a system reset. If CB2 is not set back
+to a low (0) or PB2.6 to a high (1), a reset will be asserted in 57 cycles.
+On startup, the existing kernal is copied and patched by the LTK DOS. On the
+C64, all known kernal versions work, however in C128 mode, only the original
+kernal is compatible with the latest LTK DOS (7.2). Make sure to use the
+318020-03 kernal (also known as the first version). The LTK DOS overwrites
+the new patches to the second and third kernal versions.
 The LTK DOS (located at the beginning of the hard drive) is constantly loading
 in different modules depending on the actions taken. For example, a call to
 the kernal open function will result in the "open" code to be loaded off the
@@ -212,14 +212,43 @@ that area.
 $DF04 - $DF07:
 
 The LTK Port can be between 0 and 15. Only adaptors set to port 0 are allowed
-to change the host configuration. Any writes to this register while PB2.6 and
-CA2 are high (1), will result in the Lt. Kernal Host Adaptor being removed
-from the bus until a reset, essentially reconfiguring to a stock system.
+to change the host configuration.
 
     bit  meaning
     ---  -------
     3-0  LTK port number (input)
     4    Freeze state (0: active, 1: inactive)
+
+*** C128 MMU ***
+
+The LTK cannot work on a real C128 without a MMU daughterboard. This board
+is quite a simple in design, but requires a 10 pin ribbon cable back to the
+LTK adapter (unlike the CMD SuperCPU daugthercard which has on board registers
+to control the MMU behavior). On a C64, there is no ribbon cable, but 2 sets
+of pins are shorted, and the HIRAM and CAEC lines are brought to the adapter.
+Essentially, this daughterboard intercepts the pin 47 (C128/C64 mode) which
+eventually goes to the PLA. The daughtercard processes the HIRAM line from the
+CPU as well as the C128/C64, and MS1 lines from the MMU.
+When in C64 mode, the HIRAM line is brought to the adapter where a 1 indicates
+ROM access, and a 0 RAM access. However in C128 mode, MS1 (0=ROM or EXT
+function) from the MMU is inverted and brought back to the adapter.
+Once the address and psuedo HIRAM line is processed, the adapter will map
+in either the $8000-$9fff or $e000-$ffff using a C64 cartridge mode (eg.
+Ultimax) by placing the PLA in 64 mode. Since the output of the MMU to the PLA
+is redirected, this can be switched for any memory access. In situations where
+the daughtercard is not connected to the adapter, a pullup ensures the MMU
+output always reaches the PLA undisturbed.
+Other connections back to the adapter will relay that the system is actively
+connected to the daughtercard (hence in a C128), so the adapter always boots
+up using the second half of the boot ROM, which operates as an external
+function ROM in C128 mode. The EXROM and GAME lines are set accordingly so the
+system boots into C128 mode.
+Given the above behavior, the LTK DOS must boot into C128 mode. To go to C64
+mode, the "go64" command can be used, but it does not perform the typical
+stock routine. Here, it is redirected to create a C64 stlye boot ROM in RAM,
+then the MMU is switched to C64 mode and the PC jumps to the $FFFC vector.
+Since the adapter has the ability to reset the system. C128 mode can be
+entered via C64 mode (via "go128") as a hard reset is asserted.
 
 */
 
@@ -237,6 +266,8 @@ static uint8_t ltk_ramwrite;
 static uint8_t ltk_freeze;
 static uint8_t ltk_on;
 static uint8_t ltk_in2;
+struct alarm_s *ltk_alarm;
+static CLOCK ltk_alarm_time;
 
 /* resources */
 static int ltk_io = 1; /* (0=$dexx, 1=$dfxx) */
@@ -265,7 +296,8 @@ static io_source_t ltkernal_io_device = {
     ltkernal_io_dump,         /* device state information dump function */
     CARTRIDGE_LT_KERNAL,      /* cartridge ID */
     IO_PRIO_NORMAL,           /* normal priority, device read needs to be checked for collisions */
-    0                         /* insertion order, gets filled in by the registration function */
+    0,                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE            /* NO mirroring */
 };
 
 static io_source_list_t *ltkernal_io_list_item = NULL;
@@ -278,6 +310,37 @@ static const char ltk_scsi_name[] = {"LTKSCSI"};
 static scsi_context_t ltk_scsi;
 
 /* ---------------------------------------------------------------------*/
+static int ltkernal_check_scpu64(void)
+{
+    /* disable LTK completely under scpu64 */
+    if ( machine_class == VICE_MACHINE_SCPU64 ) {
+        ltk_rom = 0;
+        ltk_raml = 0;
+        ltk_ramh = 0;
+        ltk_freeze = 0;
+        ltk_on = 0;
+        return 1;
+    }
+
+    return 0;
+}
+
+static void ltkernal_cancel_alarm(void)
+{
+    if (ltk_alarm_time != CLOCK_MAX) {
+        LOG2((LOG, "LTK RESET CANCELLED"));
+        alarm_unset(ltk_alarm);
+        ltk_alarm_time = CLOCK_MAX;
+    }
+}
+
+static void ltkernal_alarm_handler(CLOCK offset, void *data)
+{
+    ltkernal_cancel_alarm();
+    LOG2((LOG, "LTK RESET at 0x%04x", reg_pc));
+    machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
+}
+
 static int ltkernal_registerio(void)
 {
     LOG2((LOG, "LTK registerio"));
@@ -290,17 +353,20 @@ static int ltkernal_registerio(void)
         return -1;
     }
 
-    if (ltk_io < 0 || ltk_io > 1) {
-        ltk_io = 1;
+    if (ltk_io < LTKIO_DE00 || ltk_io > LTKIO_DF00) {
+        ltk_io = LTKIO_DF00;
     }
 
     ltkernal_io_device.start_address = 0xde00 + ltk_io * 256;
     ltkernal_io_device.end_address = ltkernal_io_device.start_address + 255;
 
     LOG1((LOG, "LTK IO is at $%02xxx",
-        (unsigned int)(ltk_io == 0 ? 0xde : 0xdf)));
+        (unsigned int)(ltk_io == LTKIO_DE00 ? 0xde : 0xdf)));
 
     ltkernal_io_list_item = io_source_register(&ltkernal_io_device);
+
+    ltk_alarm = alarm_new(maincpu_alarm_context, "LTKResetAlarm", ltkernal_alarm_handler, NULL);
+    ltk_alarm_time = CLOCK_MAX;
 
     return 0;
 }
@@ -316,6 +382,7 @@ static void ltkernal_unregisterio(void)
     export_remove(&export_res_plus);
     io_source_unregister(ltkernal_io_list_item);
     ltkernal_io_list_item = NULL;
+    alarm_destroy(ltk_alarm);
 }
 
 static int set_port(int port, void *param)
@@ -332,7 +399,7 @@ static int set_port(int port, void *param)
 
 static int set_io(int io, void *param)
 {
-    if (io < 0 || io > 1) {
+    if (io < LTKIO_DE00 || io > LTKIO_DF00) {
         return -1;
     }
 
@@ -346,14 +413,14 @@ static int set_io(int io, void *param)
     }
 
     LOG1((LOG, "LTK IO = %d ($%02xxx)", io,
-        (unsigned int)(io == 0 ? 0xde : 0xdf)));
+        (unsigned int)(io == LTKIO_DE00 ? 0xde : 0xdf)));
 
     return 0;
 }
 
 static const resource_int_t resources_int[] = {
     { "LTKport", 0, RES_EVENT_NO, NULL, &ltk_port, set_port, 0 },
-    { "LTKio", 1, RES_EVENT_NO, NULL, &ltk_io, set_io, 0 },
+    { "LTKio", LTKIO_DF00, RES_EVENT_NO, NULL, &ltk_io, set_io, 0 },
     RESOURCE_INT_LIST_END
 };
 
@@ -482,6 +549,10 @@ int ltkernal_resources_init(void)
     int i;
 
     LOG2((LOG, "LTK resource init"));
+
+    if (ltkernal_check_scpu64()) {
+        return 0;
+    }
 
     ltk_serial = lib_strdup("00000000");
 
@@ -626,8 +697,11 @@ static void ltk_update_memflags(mc6821_state *ctx)
         ltk_rom = 0;
     }
 
-    ltk_raml = (!ctx->CB2) && (!ltk_rom) && ltk_ramwrite;
     ltk_ramh = (!ctx->CB2) && (!ltk_rom);
+    /* low ram is only on when replacement kernal is on */
+    ltk_raml = ltk_ramh && ltk_ramwrite;
+
+    cart_port_config_changed_slotmain();
 }
 
 static void ltk_set_pa(mc6821_state *ctx)
@@ -654,6 +728,7 @@ static void ltk_set_pb(mc6821_state *ctx)
     scsi_process_noack(scsi);
 
     if (ctx->dataB & 0x40) {
+        ltkernal_cancel_alarm();
         IDBG((LOG, "LTK RAM ON at 0x%04x", reg_pc));
     } else {
         IDBG((LOG, "LTK RAM OFF at 0x%04x", reg_pc));
@@ -667,14 +742,19 @@ static void ltk_set_cb2(mc6821_state *ctx)
     if (ctx->CB2) {
         IDBG((LOG, "LTK STOCK KERNAL ON at 0x%04x", reg_pc));
     } else {
+        ltkernal_cancel_alarm();
         IDBG((LOG, "LTK STOCK KERNAL OFF at 0x%04x", reg_pc));
     }
 
     ltk_update_memflags(ctx);
 
     if ( !ltk_ramwrite && ctx->CB2) {
-        LOG2((LOG, "LTK RESET at 0x%04x", reg_pc));
-        machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+        if (ltk_alarm_time == CLOCK_MAX) {
+            /* reset is scheduled in the next 57 cycles */
+            LOG2((LOG, "LTK RESET SCHEDULED at 0x%04x", reg_pc));
+            ltk_alarm_time = maincpu_clk + 57;
+            alarm_set(ltk_alarm, ltk_alarm_time);
+        }
     }
 }
 
@@ -686,6 +766,8 @@ static void ltkernal_io_store(uint16_t addr, uint8_t value)
         IDBG((LOG, "--------------------"));
         if (addr & 0x4) {
             /* any writes to 4, 5, 6 or 7 turn off LTK I/O until reset */
+/* it turns out nothing happens when you write here. */
+/*
             if (ltk_ramwrite) {
                 ltk_on = 0;
                 ltk_ramwrite = 0;
@@ -694,6 +776,7 @@ static void ltkernal_io_store(uint16_t addr, uint8_t value)
                 ltk_ramh = 0;
                 LOG1((LOG, "LTK OFF at %04x", reg_pc));
             }
+*/
         } else {
             port = (addr >> 1) & 1; /* rs1 */
             reg = (addr >> 0) & 1;  /* rs0 */
@@ -722,103 +805,206 @@ static int ltkernal_io_dump(void)
 }
 
 /* ---------------------------------------------------------------------*/
-#ifdef C128
-static int ltk_alt_external_function_rom_read(uint16_t addr, uint8_t *ret)
+int c128ltkernal_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit, int mem_config)
+{
+    /* unlike the c64 mmu_translate, here we only apply what we can and move
+       on. return a 1 if we did, or 0 if we didn't apply anything. */
+    if (addr >= 0x8000 && addr <= 0x9fff) {
+        /* only map in ROM if external ROM access */
+        if (ltk_rom && ((mem_config & 0x30) == 0x20)) {
+            *base = roml_banks + 0x1000 - 0x8000;
+            *start = 0x8000;
+            *limit = 0x9ffd;
+            return 1;
+        } else if (ltk_raml) {
+            /* RAM maps in whenever ltk_raml is active */
+            *base = export_ram0 - 0x8000;
+            *start = 0x8000;
+            *limit = 0x9ffd;
+            return 1;
+        }
+    } else if (addr >= 0xe000) {
+        /* map in if either ROM or EXT FUNCTION; this is what the MMU
+           daughtercard checks for. */
+        if ((ltk_ramh && ((mem_config & 0x20) == 0x00)) || (ltk_ramh && ltk_freeze )) {
+            *base = export_ram0 + 0x2000 - 0xe000;
+            *start = 0xe000;
+            *limit = 0xfffd;
+            return 1;
+        }
+    }
+
+    /* nothing to apply here */
+    return 0;
+}
+
+uint8_t c128ltkernal_ram_read(uint16_t addr, uint8_t *value)
+{
+/* called by all memory reads so limit it */
+    if (addr >= 0x8000 && addr <= 0x9fff) {
+        if (ltk_raml) {
+            *value = export_ram0[(addr & 0x1fff)];
+            MDBG((LOG, "LTK c128ltkernal_ram_read(RAM)  %04x = %02x",
+                (int)addr, (int)*value));
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+uint8_t c128ltkernal_ram_store(uint16_t addr, uint8_t value)
+{
+/* called by all memory writes so limit it */
+    if (addr >= 0x8000 && addr <= 0x9fff) {
+        if (ltk_raml && ltk_ramwrite) {
+            export_ram0[(addr & 0x1fff)] = value;
+            MDBG((LOG, "LTK c128ltkernal_ram_store(RAM) %04x = %02x",
+                (int)addr, (int)value));
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+uint8_t c128ltkernal_roml_read(uint16_t addr, uint8_t *value)
 {
 /* also called by $c000-$dfff memory so limit it */
     if (addr > 0x9fff || addr < 0x8000) {
-        return 1;
+        return 0;
     }
     if (ltk_rom) {
 /* for 128, the LTK upper 8K of ROM is used; only map that */
-        *ret = roml_banks[(addr & 0x0fff)|0x1000];
-        MDBG((LOG, "LTK alt_external_function_rom_read(ROM) %04x = %02x",
-            (int)addr, (int)*ret));
-        return 0;
+        *value = roml_banks[(addr & 0x0fff)|0x1000];
+        MDBG((LOG, "LTK c128ltkernal_roml_read(ROM) %04x = %02x",
+            (int)addr, (int)*value));
+        return 1;
     } else if (ltk_raml) {
-        *ret = export_ram0[(addr & 0x1fff)];
-        MDBG((LOG, "LTK alt_external_function_rom_read(RAM) %04x = %02x",
-            (int)addr, (int)*ret));
-        return 0;
+        *value = export_ram0[(addr & 0x1fff)];
+        MDBG((LOG, "LTK c128ltkernal_roml_read(RAM) %04x = %02x",
+            (int)addr, (int)*value));
+        return 1;
     }
-    return 1;
+    return 0;
 }
 
-static int ltk_alt_external_function_rom_store(uint16_t addr, uint8_t value)
+uint8_t c128ltkernal_roml_store(uint16_t addr, uint8_t value)
 {
     if (addr > 0x9fff || addr < 0x8000) {
-        return 1;
+        return 0;
     }
     if (ltk_raml && ltk_ramwrite) {
         export_ram0[(addr & 0x1fff)] = value;
-        MDBG((LOG, "LTK alt_external_function_rom_store %04x = %02x",
+        MDBG((LOG, "LTK c128ltkernal_roml_store %04x = %02x",
             (int)addr, (int)value));
-        return 0;
+        return 1;
     }
-    return 1;
+    return 0;
 }
 
-static int ltk_alt_basic_hi_read(uint16_t addr, uint8_t *ret)
+uint8_t c128ltkernal_basic_hi_read(uint16_t addr, uint8_t *value)
 {
     if (addr > 0x9fff || addr < 0x8000) {
-        return 1;
+        return 0;
     }
     if (ltk_raml) {
-        *ret = export_ram0[(addr & 0x1fff)];
-        MDBG((LOG, "LTK alt_basic_hi_read %04x = %02x", (int)addr,
-            (int)*ret));
-        return 0;
+        *value = export_ram0[(addr & 0x1fff)];
+        MDBG((LOG, "LTK c128ltkernal_basic_hi_read %04x = %02x", (int)addr,
+            (int)*value));
+        return 1;
     }
-    return 1;
+    return 0;
 }
 
-static int ltk_alt_basic_hi_store(uint16_t addr, uint8_t value)
+uint8_t c128ltkernal_basic_hi_store(uint16_t addr, uint8_t value)
 {
     if (addr > 0x9fff || addr < 0x8000) {
-        return 1;
+        return 0;
     }
     if (ltk_raml && ltk_ramwrite) {
         export_ram0[(addr & 0x1fff)] = value;
-        MDBG((LOG, "LTK alt_basic_hi_store %04x = %02x", (int)addr,
+        MDBG((LOG, "LTK c128ltkernal_basic_hi_store %04x = %02x", (int)addr,
             (int)value));
-        return 0;
+        return 1;
     }
-    return 1;
+    return 0;
 }
 
-static int ltk_alt_hi_read(uint16_t addr, uint8_t *ret)
+uint8_t c128ltkernal_hi_read(uint16_t addr, uint8_t *value)
 {
     if (ltk_ramh) {
-        *ret = export_ram0[0x2000|(addr & 0x1fff)];
-        MDBG((LOG, "LTK alt_hi_read %04x = %02x", (int)addr, (int)*ret));
-        return 0;
+        *value = export_ram0[0x2000|(addr & 0x1fff)];
+        MDBG((LOG, "LTK c128ltkernal_hi_read %04x = %02x", (int)addr, (int)*value));
+        return 1;
     }
-    return 1;
+    return 0;
 }
 
-static int ltk_alt_hi_store(uint16_t addr, uint8_t value)
+uint8_t c128ltkernal_hi_store(uint16_t addr, uint8_t value)
 {
     if (ltk_ramh && ltk_ramwrite) {
         export_ram0[0x2000|(addr & 0x1fff)] = value;
-        MDBG((LOG, "LTK alt_hi_store %04x = %02x", (int)addr, (int)value));
-        return 0;
+        MDBG((LOG, "LTK c128ltkernal_hi_store %04x = %02x", (int)addr, (int)value));
+        return 1;
     }
-    return 1;
+    return 0;
 }
 
-static void ltk_switch_mode(int mode)
+void c128ltkernal_switch_mode(int mode)
 {
     LOG2((LOG, "LTK switch mode %d", mode));
 
     if ( mode ) {
+        /* reconfigure for c64 mode */
         cart_config_changed_slotmain(CMODE_8KGAME, CMODE_ULTIMAX, CMODE_READ |
             CMODE_PHI2_RAM);
     } else {
-        cart_config_changed_slotmain(CMODE_8KGAME, CMODE_RAM, CMODE_READ |
-            CMODE_PHI2_RAM);
+        /* reconfigure for c128 mode; boot via ext function rom */
+        cart_config_changed_slotmain(CMODE_RAM, CMODE_RAM, CMODE_READ);
     }
 }
-#endif
+
+int ltkernal_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit)
+{
+    /* the callers take care of most stuff here, but since this is both a
+       standard cart and ultimax, we have to handle those situations.
+       NOTE that the caller doesn't process the return value, so we have to
+       have some values set for base, start, and limit, which we do if all
+       else fails. */
+    if (addr >= 0x8000 && addr <= 0x9fff) {
+        if (ltk_rom) {
+            *base = roml_banks - 0x8000;
+        } else if (ltk_raml) {
+            *base = export_ram0 - 0x8000;
+        } else {
+            /* include RAM to speed things up */
+            *base = mem_ram;
+        }
+        *start = 0x8000;
+        *limit = 0x9ffd;
+        return CART_READ_VALID;
+    } else if (addr >= 0xe000) {
+        int p = (pport.dir & pport.data) | (~pport.dir & 7);
+        if ((ltk_ramh && (p & 2)) || (ltk_ramh && ltk_freeze )) {
+            *base = export_ram0 + 0x2000 - 0xe000;
+        } else if (p & 2) {
+            *base = c64memrom_kernal64_trap_rom - 0xe000;
+        } else {
+            /* include RAM to speed things up */
+            *base = mem_ram;
+        }
+        *start = 0xe000;
+        *limit = 0xfffd;
+        return CART_READ_VALID;
+    }
+
+    /* nothing to apply here, so use the slow mode */
+    *base = NULL;
+    *start = 0;
+    *limit = 0;
+    return CART_READ_THROUGH;
+}
 
 uint8_t ltkernal_roml_read(uint16_t addr)
 {
@@ -837,7 +1023,8 @@ uint8_t ltkernal_roml_read(uint16_t addr)
 uint8_t ltkernal_romh_read(uint16_t addr)
 {
     uint8_t val;
-    if ((ltk_ramh && (pport.data & 2)) || (ltk_ramh && ltk_freeze )) {
+    int p = (pport.dir & pport.data) | (~pport.dir & 7);
+    if ((ltk_ramh && (p & 2)) || (ltk_ramh && ltk_freeze )) {
         val = export_ram0[0x2000|(addr & 0x1fff)];
     } else {
         val = mem_read_without_ultimax(addr);
@@ -873,6 +1060,7 @@ void ltkernal_romh_store(uint16_t addr, uint8_t value)
 
 int ltkernal_peek_mem(export_t *ex, uint16_t addr, uint8_t *value)
 {
+    int p;
     if (ltk_rom) {
         if (addr >= 0x8000 && addr <= 0x9fff) {
             *value = roml_banks[addr & 0x1fff];
@@ -891,6 +1079,17 @@ int ltkernal_peek_mem(export_t *ex, uint16_t addr, uint8_t *value)
             return CART_READ_VALID;
         }
     }
+/* Workaround needed when using monitor */
+    p = (pport.dir & pport.data) | (~pport.dir & 7);
+    if (((p & 3) == 3) && (addr >= 0xa000 && addr <= 0xbfff)) {
+        *value = c64memrom_basic64_rom[addr & 0x1fff];
+        return CART_READ_VALID;
+    }
+    if (((p & 2) == 2) && (addr >= 0xe000)) {
+        *value = c64memrom_kernal64_rom[addr & 0x1fff];
+        return CART_READ_VALID;
+    }
+
     return CART_READ_THROUGH;
 }
 
@@ -930,34 +1129,25 @@ void ltkernal_freeze(void)
     } else {
         LOG1((LOG, "LTK freeze but no LTK kernal in place; ignoring"));
     }
-    cart_config_changed_slotmain(CMODE_RAM, CMODE_ULTIMAX, CMODE_READ |
-        CMODE_RELEASE_FREEZE | CMODE_PHI2_RAM);
+    cartridge_release_freeze();
 }
 
 void ltkernal_config_init(void)
 {
     int32_t i;
-#ifdef C128
-    LOG2((LOG, "LTK config init %d", machine_inc64mode));
-    c128_switch_mode = ltk_switch_mode;
-    c128_alt_basic_hi_read = ltk_alt_basic_hi_read;
-    c128_alt_basic_hi_store = ltk_alt_basic_hi_store;
-    c128_alt_hi_read = ltk_alt_hi_read;
-    c128_alt_hi_store = ltk_alt_hi_store;
-    c128_alt_external_function_rom_read = ltk_alt_external_function_rom_read;
-    c128_alt_external_function_rom_store = ltk_alt_external_function_rom_store;
-#else
     LOG2((LOG, "LTK config init"));
-#endif
+
+    if (ltkernal_check_scpu64()) {
+        return;
+    }
+
+    /* set default cart mode depending on machine type */
     if ( machine_class == VICE_MACHINE_C64SC ||
         machine_class == VICE_MACHINE_C64 ) {
-        cart_config_changed_slotmain(CMODE_RAM, CMODE_ULTIMAX, CMODE_READ |
-            CMODE_PHI2_RAM);
-#ifdef C128
-    } else if (machine_inc64mode == 0) {
-        cart_config_changed_slotmain(CMODE_8KGAME, CMODE_RAM, CMODE_READ |
-            CMODE_PHI2_RAM);
-#endif
+        c128ltkernal_switch_mode(1);
+    } else {
+        /* must be a c128 at this point */
+        c128ltkernal_switch_mode(0);
     }
 
     for (i = 0; i < 0x2000; i++) {
@@ -1009,30 +1199,23 @@ void ltkernal_config_init(void)
 
 void ltkernal_config_setup(uint8_t *rawcart)
 {
-    int32_t i;
-
     LOG2((LOG, "LTK config setup"));
 
     /* copy supplied ROM image to memory */
     memcpy(roml_banks, rawcart, 0x2000);
 
-    /* copy out the LTK serial number */
-    for (i = 0; i < 8; i++) {
-        ltk_serial[i] = rawcart[10 + i];
+    /* copy in the LTK serial number */
+    memcpy(&(roml_banks[10]), ltk_serial, 8);
+    memcpy(&(roml_banks[4096 + 10]), ltk_serial, 8);
+
+    /* set default cart mode depending on machine type */
+    if ( machine_class == VICE_MACHINE_C64SC ||
+        machine_class == VICE_MACHINE_C64 ) {
+        c128ltkernal_switch_mode(1);
+    } else {
+        /* must be a c128 at this point */
+        c128ltkernal_switch_mode(0);
     }
-
-    /* show it */
-    LOG1((LOG, "LTK serial = '%s'", ltk_serial));
-
-    /* warn user in case the 64 and 128 numbers don't match */
-    for (i = 0; i < 8; i++) {
-        if (rawcart[10 + i] != rawcart[4096 + 10 + i]) {
-            CRIT((ERR, "LTK C64 and C128 serial numbers don't match in supplied ROM/CRT."));
-            break;
-        }
-    }
-
-    cart_config_changed_slotmain(CMODE_RAM, CMODE_ULTIMAX, CMODE_READ | CMODE_PHI2_RAM);
 }
 
 /* ---------------------------------------------------------------------*/
@@ -1040,6 +1223,10 @@ void ltkernal_config_setup(uint8_t *rawcart)
 static int ltkernal_common_attach(void)
 {
     LOG2((LOG, "LTK common attach"));
+
+    if (ltkernal_check_scpu64()) {
+        return -1;
+    }
 
     scsi_reset(&ltk_scsi);
     ltk_scsi.max_imagesize = ltk_imagesize;
@@ -1057,6 +1244,10 @@ int ltkernal_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
     int i;
+
+    if (ltkernal_check_scpu64()) {
+        return -1;
+    }
 
     for (i = 0; i <= 0; i++) {
         if (crt_read_chip_header(&chip, fd)) {
@@ -1078,6 +1269,10 @@ int ltkernal_crt_attach(FILE *fd, uint8_t *rawcart)
 int ltkernal_bin_attach(const char *filename, uint8_t *rawcart)
 {
     LOG2((LOG, "LTK bin attach"));
+
+    if (ltkernal_check_scpu64()) {
+        return -1;
+    }
 
     if (util_file_load(filename, rawcart, 0x2000,
         UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
@@ -1112,6 +1307,7 @@ void ltkernal_detach(void)
    BYTE   | in2           | ltk_in2
    BYTE   | io            | ltk_io
    BYTE   | port          | ltk_port
+   DWORD  | alarm_time    | ltk_alarm_time
    ARRAY  | ROML          | 8192 BYTES of ROML data (boot rom, $8000-$9FFF)
    ARRAY  | export_ram0   | 16384 BYTES of export RAM data (RAML & RAMH)
    MC6821 | SNAPSHOT6821  | ltk_6821
@@ -1143,6 +1339,7 @@ int ltkernal_snapshot_write_module(snapshot_t *s)
         || (SMW_B(m, ltk_in2) < 0)
         || (SMW_DW(m, ltk_io) < 0)
         || (SMW_DW(m, ltk_port) < 0)
+        || (SMW_CLOCK(m, ltk_alarm_time) < 0)
         || (SMW_BA(m, roml_banks, 0x2000) < 0)
         || (SMW_BA(m, export_ram0, 0x4000) < 0)) {
         goto fail;
@@ -1190,6 +1387,7 @@ int ltkernal_snapshot_read_module(snapshot_t *s)
         || (SMR_B(m, &ltk_in2) < 0)
         || (SMR_DW_INT(m, &ltk_io) < 0)
         || (SMR_DW_INT(m, &ltk_port) < 0)
+        || (SMR_CLOCK(m, &ltk_alarm_time) < 0)
         || (SMR_BA(m, roml_banks, 0x2000) < 0)
         || (SMR_BA(m, export_ram0, 0x4000) < 0)) {
         goto fail;
@@ -1206,6 +1404,12 @@ int ltkernal_snapshot_read_module(snapshot_t *s)
     }
 
     ltk_imageopenall();
+
+    if (ltk_alarm_time < CLOCK_MAX) {
+        alarm_set(ltk_alarm, ltk_alarm_time);
+    } else {
+        alarm_unset(ltk_alarm);
+    }
 
     return ltkernal_common_attach();
 

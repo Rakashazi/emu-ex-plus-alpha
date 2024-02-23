@@ -121,6 +121,9 @@ static int rl_rtcsave = 0;
 static char *rl_filename = NULL;
 static char *rl_bios_filename = NULL;
 
+#define rl_kernbase64  (2*0x4000)
+#define rl_kernbase128 (3*0x4000)
+
 /* internal stuff */
 static uint8_t rl_on = 0;
 static uint8_t rl_dos = 0;
@@ -177,7 +180,8 @@ static io_source_t ramlink_io1_device = {
     ramlink_io1_dump,         /* device state information dump function */
     CARTRIDGE_RAMLINK,        /* cartridge ID */
     IO_PRIO_HIGH,             /* normal priority, device read needs to be checked for collisions */
-    0                         /* insertion order, gets filled in by the registration function */
+    0,                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE            /* NO mirroring */
 };
 
 static io_source_t ramlink_io2_20_22_device = {
@@ -193,7 +197,8 @@ static io_source_t ramlink_io2_20_22_device = {
     ramlink_io2_dump,         /* device state information dump function */
     CARTRIDGE_RAMLINK,        /* cartridge ID */
     IO_PRIO_HIGH,             /* high priority, device reads first */
-    0                         /* insertion order, gets filled in by the registration function */
+    0,                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE            /* NO mirroring */
 };
 
 static io_source_t ramlink_io2_40_43_device = {
@@ -209,7 +214,8 @@ static io_source_t ramlink_io2_40_43_device = {
     ramlink_io2_dump,         /* device state information dump function */
     CARTRIDGE_RAMLINK,        /* cartridge ID */
     IO_PRIO_HIGH,             /* high priority, device reads first */
-    0                         /* insertion order, gets filled in by the registration function */
+    0,                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE            /* NO mirroring */
 };
 
 static io_source_t ramlink_io2_60_60_device = {
@@ -225,7 +231,8 @@ static io_source_t ramlink_io2_60_60_device = {
     ramlink_io2_dump,         /* device state information dump function */
     CARTRIDGE_RAMLINK,        /* cartridge ID */
     IO_PRIO_HIGH,             /* high priority, device reads first */
-    0                         /* insertion order, gets filled in by the registration function */
+    0,                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE            /* NO mirroring */
 };
 
 static io_source_t ramlink_io2_70_70_device = {
@@ -241,7 +248,8 @@ static io_source_t ramlink_io2_70_70_device = {
     ramlink_io2_dump,         /* device state information dump function */
     CARTRIDGE_RAMLINK,        /* cartridge ID */
     IO_PRIO_HIGH,             /* high priority, device reads first */
-    0                         /* insertion order, gets filled in by the registration function */
+    0,                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE            /* NO mirroring */
 };
 
 static io_source_t ramlink_io2_7e_7f_device = {
@@ -257,7 +265,8 @@ static io_source_t ramlink_io2_7e_7f_device = {
     ramlink_io2_dump,         /* device state information dump function */
     CARTRIDGE_RAMLINK,        /* cartridge ID */
     IO_PRIO_HIGH,             /* high priority, device reads first */
-    0                         /* insertion order, gets filled in by the registration function */
+    0,                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE            /* NO mirroring */
 };
 
 static io_source_t ramlink_io2_80_9f_device = {
@@ -273,7 +282,8 @@ static io_source_t ramlink_io2_80_9f_device = {
     ramlink_io2_dump,         /* device state information dump function */
     CARTRIDGE_RAMLINK,        /* cartridge ID */
     IO_PRIO_HIGH,             /* high priority, device reads first */
-    0                         /* insertion order, gets filled in by the registration function */
+    0,                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE            /* NO mirroring */
 };
 
 static io_source_t ramlink_io2_a0_a3_device = {
@@ -289,7 +299,8 @@ static io_source_t ramlink_io2_a0_a3_device = {
     ramlink_io2_dump,         /* device state information dump function */
     CARTRIDGE_RAMLINK,        /* cartridge ID */
     IO_PRIO_HIGH,             /* high priority, device reads first */
-    0                         /* insertion order, gets filled in by the registration function */
+    0,                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE            /* NO mirroring */
 };
 
 static io_source_t ramlink_io2_b0_bf_device = {
@@ -305,7 +316,8 @@ static io_source_t ramlink_io2_b0_bf_device = {
     ramlink_io2_dump,         /* device state information dump function */
     CARTRIDGE_RAMLINK,        /* cartridge ID */
     IO_PRIO_HIGH,             /* high priority, device reads first */
-    0                         /* insertion order, gets filled in by the registration function */
+    0,                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE            /* NO mirroring */
 };
 
 static io_source_t ramlink_io2_c0_c3_device = {
@@ -321,7 +333,8 @@ static io_source_t ramlink_io2_c0_c3_device = {
     ramlink_io2_dump,         /* device state information dump function */
     CARTRIDGE_RAMLINK,        /* cartridge ID */
     IO_PRIO_HIGH,             /* high priority, device reads first */
-    0                         /* insertion order, gets filled in by the registration function */
+    0,                        /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE            /* NO mirroring */
 };
 
 #define RAMLINKIOS 10
@@ -692,10 +705,7 @@ static void ramlink_unregisterio(void)
     }
 }
 
-/* FIXME: the xxx_bin_save API call is supposed to save the "primary" ROM
- * image of a cartridge. we need to create another API for the RAM image */
-/* save a RAMCard image file */
-int ramlink_bin_save(const char *filename)
+int ramlink_ram_save(const char *filename)
 {
     if (rl_card == NULL) {
         return -1;
@@ -717,22 +727,35 @@ int ramlink_bin_save(const char *filename)
     return 0;
 }
 
-/* FIXME: the xxx_flush_image API call is supposed to flush the "primary" ROM
- * image of a cartridge. we need to create another API for the RAM image */
-/* save RAMCard to set image file */
-int ramlink_flush_image(void)
+int ramlink_can_save_ram_image(void)
 {
-    if (ramlink_bin_save(rl_filename) < 0) {
+    if (rl_filename == NULL) {
+        return 0;
+    }
+    return 1;
+}
+
+int ramlink_flush_ram_image(void)
+{
+    if (ramlink_ram_save(rl_filename) < 0) {
         return -1;
     }
     return 0;
+}
+
+int ramlink_can_flush_ram_image(void)
+{
+    if (rl_filename == NULL) {
+        return 0;
+    }
+    return 1;
 }
 
 /* save RAMCard image file if set to by resource */
 static int ramlink_save_image(void)
 {
     if (rl_write_image) {
-        return ramlink_flush_image();
+        return ramlink_flush_ram_image();
     }
 
     return 0;
@@ -840,7 +863,7 @@ static int set_enabled(int value, void *param)
 {
     int val = value ? 1 : 0;
 
-    LOG2((LOG, "RAMLINK: set_enabled"));
+    LOG2((LOG, "RAMLINK: set_enabled %d", val));
 
     if ((!val) && (rl_enabled)) {
         cart_power_off();
@@ -855,13 +878,13 @@ static int set_enabled(int value, void *param)
         /* activate ramlink */
         if (param) {
             /* if the param is != NULL, then we should load the default image file */
-            LOG1(("RAMLINK: set_enabled(1) '%s'", rl_bios_filename));
+            LOG1((LOG, "RAMLINK: set_enabled(1) '%s'", rl_bios_filename));
             if (rl_bios_filename) {
                 if (*rl_bios_filename) {
                     /* try .crt image first */
                     if ((cartridge_attach_image(CARTRIDGE_CRT, rl_bios_filename) < 0) &&
                         (cartridge_attach_image(CARTRIDGE_RAMLINK, rl_bios_filename) < 0)) {
-                        LOG1(("RAMLINK: set_enabled(1) did not register"));
+                        LOG1((LOG, "RAMLINK: set_enabled(1) did not register"));
                         return -1;
                     }
                     /* rl_enabled = 1; */ /* cartridge_attach_image will end up calling set_enabled again */
@@ -908,9 +931,9 @@ static int set_size(int size, void *param)
 static int set_mode(int value, void *param)
 {
     if (value) {
-        rl_normal = 1;
+        rl_normal = RL_MODE_NORMAL;
     } else {
-        rl_normal = 0; /* direct mode */
+        rl_normal = RL_MODE_DIRECT; /* direct mode */
     }
 
     LOG1((LOG, "RAMLINK: mode = %s", rl_normal ? "Normal" : "Direct" ));
@@ -941,18 +964,18 @@ static int set_bios_filename(const char *name, void *param)
             return -1;
         }
     }
-    LOG1(("RAMLINK: set_bios_filename: %d '%s'", rl_enabled, rl_bios_filename));
+    LOG1((LOG, "RAMLINK: set_bios_filename: %d '%s'", rl_enabled, rl_bios_filename));
 
     util_string_set(&rl_bios_filename, name);
-    resources_get_int("MMC64", &enabled);
+    resources_get_int("RAMLINK", &enabled);
 
     if (set_enabled(enabled, (void*)1) < 0) {
         lib_free(rl_bios_filename);
         rl_bios_filename = NULL;
-        LOG1(("RAMLINK: set_bios_filename done: %d '%s'", rl_enabled, rl_bios_filename));
+        LOG1((LOG, "RAMLINK: set_bios_filename done: %d 'NULL'", rl_enabled));
         return -1;
     }
-    LOG1(("RAMLINK: set_bios_filename done: %d '%s'", rl_enabled, rl_bios_filename));
+    LOG1((LOG, "RAMLINK: set_bios_filename done: %d '%s'", rl_enabled, rl_bios_filename));
 
     return 0;
 }
@@ -996,7 +1019,7 @@ static const resource_int_t resources_int[] = {
       &rl_write_image, set_image_write, NULL },
     { "RAMLINKsize", 16, RES_EVENT_NO, NULL,
       &rl_cardsizemb, set_size, 0 },
-    { "RAMLINKmode", 1, RES_EVENT_NO, NULL,
+    { "RAMLINKmode", RL_MODE_NORMAL, RES_EVENT_NO, NULL,
       &rl_normal, set_mode, 0 },
     { "RAMLINKRTCSave", 0, RES_EVENT_NO, NULL,
       &rl_rtcsave, set_rtcsave, 0 },
@@ -1019,7 +1042,7 @@ static const cmdline_option_t cmdline_options[] =
       "<Name>", "Specify name of " CARTRIDGE_NAME_RAMLINK " BIOS image" },
     { "-ramlinkmode", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "RAMLINKmode", NULL,
-      NULL, "RAMPort Mode (1=Normal, 0=Direct)" },
+      "<Mode>", "RAMPort Mode (1=Normal, 0=Direct)" },
     { "-ramlinkrtcsave", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "RAMLINKrtcsave", (resource_value_t)1,
       NULL, "Enable saving of the RTC data when changed." },
@@ -1105,9 +1128,7 @@ int ramlink_resources_shutdown(void)
     return 0;
 }
 
-/* FIXME: this should really return the name of the ROM image, we need to create
- * an API for returning the name of the RAM image */
-const char *ramlink_get_file_name(void)
+const char *ramlink_get_ram_file_name(void)
 {
     return rl_filename;
 }
@@ -1157,7 +1178,7 @@ static uint8_t get_pa(struct _i8255a_state *ctx, int8_t reg)
     }
 #endif
     ramlink_sync_cpus();
-    if (reg==0) {
+    if (reg == 0) {
         /* if reg is 0, it is an actual read from the register */
         data = cmdbus.data;
     } else {
@@ -1176,7 +1197,7 @@ static uint8_t get_pa(struct _i8255a_state *ctx, int8_t reg)
    PB3 is ERROR LED (1=on)
    PB2 is SWAP9 button control
    PB1 is SWAP8 button control
-   PB0 is ???
+   PB0 is system mode (1=128, 0=64)
 */
 static void set_pb(struct _i8255a_state *ctx, uint8_t byte, int8_t reg)
 {
@@ -1184,6 +1205,13 @@ static void set_pb(struct _i8255a_state *ctx, uint8_t byte, int8_t reg)
 
     ramlink_sync_cpus();
 
+    /* see if bit 0 toggles */
+    if ((rl_i8255a_o[1] ^ byte) & 0x01) {
+        /* use older value to avoid inversion */
+        c128ramlink_switch_mode(rl_i8255a_o[1] & 0x01);
+    }
+
+    /* check for patn change */
     old = rl_i8255a_o[1] & 0x20 ? 0 : 1;
     new = byte & 0x20 ? 0 : 1;
 
@@ -1221,6 +1249,7 @@ static void set_pc(struct _i8255a_state *ctx, uint8_t byte, int8_t reg)
     cart_port_config_changed_slot0();
 }
 
+/* FIXME: SWAP8 and SWAP9 are ignored for now */
 static uint8_t get_pc(struct _i8255a_state *ctx, int8_t reg)
 {
     uint8_t data = 0xff;
@@ -1460,6 +1489,187 @@ static int ramlink_io2_dump(void)
 }
 
 /* ---------------------------------------------------------------------*/
+int c128ramlink_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit, int mem_config)
+{
+#if 0
+/* for no-mmu testing */
+    *base = 0;
+    *start = 0;
+    *limit = 0;
+    return 1;
+#endif
+
+    /* unlike the c64 mmu_translate, here we only apply what we can and move
+       on. return a 1 if we did, or 0 if we didn't apply anything. */
+    if (!rl_mapped || !rl_enabled) {
+        return 0;
+    }
+
+    if (addr >= 0x8000 && addr <= 0x9fff && ((mem_config & 0x0c) == 0x08)) {
+        if (rl_dos) {
+            *base = rl_rom + rl_rombase - 0x8000;
+            *start = 0x8000;
+            *limit = 0x9ffd;
+            return 1;
+        }
+    } else if (addr >= 0xa000 && addr <= 0xbfff && ((mem_config & 0x0c) == 0x08)) {
+        if (rl_dos) {
+            *base = rl_rom + rl_rombase + 0x2000 - 0xa000;
+            *start = 0xa000;
+            *limit = 0xbffd;
+            return 1;
+        }
+    } else if (addr >= 0xe000 && ((mem_config & 0x30) == 0x00)) {
+        if (rl_on) {
+            *base = rl_rom + rl_kernbase128 - 0xe000;
+            *start = 0xe000;
+            *limit = 0xfffd;
+        /* on the 128, RL doesn't map $fd00-$ff0f to avoid dealing with
+           international keyboard differences in all the ROMs */
+        } else if (addr < 0xfd00) {
+            *base = rl_rom + rl_kernbase128 + 0x2000 - 0xe000;
+            *start = 0xe000;
+            *limit = 0xfcfd;
+        } else if (addr >= 0xff10) {
+            *base = rl_rom + rl_kernbase128 + 0x2000 - 0xe000;
+            *start = 0xff10;
+            *limit = 0xfffd;
+        } else {
+            return 0;
+        }
+        return 1;
+    } else if (addr >= 0xe000 && ((mem_config & 0x30) == 0x20)) {
+        if (rl_on) {
+    /* switched kernal */
+    /* for $e000-$ffff, ramlink exposes the switched kernal, but there are a couple holes:
+       $ff05-$ff0f, $fff0-$ffff */
+            *base = rl_rom + rl_kernbase128 - 0xe000;
+            if (addr < 0xff00) {
+                *start = 0xe000;
+                *limit = 0xff00 - 3;
+            } else if (addr >= 0xff10 && addr < 0xfff0 ) {
+                *start = 0xff10;
+                *limit = 0xfff0 - 3;
+            } else {
+                return 0;
+            }
+        } else {
+    /* main kernal */
+    /* for $e000-$ffff, ramlink exposes the main kernal, but there are a few holes:
+       $eb00-$ecff, $f7a0-$f7af, $fd00-$feff, $ff05-$ff0f, $ff50-$ff5f, $fff0-$ffff */
+            *base = rl_rom + rl_kernbase128 + 0x2000 - 0xe000;
+            if        (addr >= 0xe000 && addr < 0xeb00) {
+                *start = 0xe000;
+                *limit = 0xeb00 - 3;
+            } else if (addr >= 0xed00 && addr < 0xf7a0) {
+                *start = 0xed00;
+                *limit = 0xf7a0 - 3;
+            } else if (addr >= 0xf7b0 && addr < 0xfd00) {
+                *start = 0xf7b0;
+                *limit = 0xfd00 - 3;
+            } else if (addr >= 0xff10 && addr < 0xff50) {
+                *start = 0xff10;
+                *limit = 0xff50 - 3;
+            } else if (addr >= 0xff60 && addr < 0xfff0) {
+                *start = 0xff60;
+                *limit = 0xfff0 - 3;
+            } else {
+                return 0;
+            }
+        }
+        return 1;
+    }
+
+    return 0;
+}
+
+uint8_t c128ramlink_hi_read(uint16_t addr, uint8_t *value)
+{
+    /* check IO if not done already */
+    if (!rl_scanned) {
+        ramlink_scan_io();
+        ramlink_off();
+    }
+
+    if (rl_mapped) {
+        /* other wise pull from one of the ROMS */
+        if (!rl_enabled) {
+            return 0;
+        } else if (rl_on) {
+            *value = rl_rom[rl_kernbase128 | (addr & 0x1fff)];
+        /* on the 128, RL doesn't map $fd00-$ff0f to avoid dealing with
+           international keyboard differences in all the ROMs */
+        } else if (addr < 0xfd00 || addr >= 0xff10) {
+            *value = rl_rom[rl_kernbase128 | 0x2000 | (addr & 0x1fff)];
+        } else {
+            return 0;
+        }
+        MDBG((LOG, "RAMLINK: c128ramlink_hi_read %04x = %02x", (int)addr, (int)*value));
+        return 1;
+    }
+
+    return 0;
+}
+
+uint8_t c128ramlink_roml_read(uint16_t addr, uint8_t *value)
+{
+    /* check IO if not done already */
+    if (!rl_scanned) {
+        ramlink_scan_io();
+        ramlink_off();
+    }
+
+    /* only expose ramlink banks if function rom is enabled */
+    if (addr >= 0x8000 && addr <= 0xbfff && rl_mapped && rl_dos && rl_enabled) {
+        *value = rl_rom[rl_rombase | (addr & 0x3fff)];
+        MDBG((LOG, "RAMLINK: c128ramlink_roml_read %04x = %02x", addr, *value));
+        return 1;
+    }
+
+    if (rl_mapped && rl_enabled && addr >= 0xe000) {
+        if (rl_on) {
+    /* switched kernal */
+    /* for $e000-$ffff, ramlink exposes the switched kernal, but there are a couple holes:
+       $ff05-$ff0f, $fff0-$ffff */
+            if ((addr >= 0xff00 && addr <= 0xff0f ) ||
+                (addr >= 0xfff0 )) {
+                return 0;
+            }
+            *value = rl_rom[rl_kernbase128 | (addr & 0x1fff)];
+            return 1;
+        } else {
+    /* main kernal */
+    /* for $e000-$ffff, ramlink exposes the main kernal, but there are a few holes:
+       $eb00-$ecff, $f7a0-$f7af, $fd00-$feff, $ff05-$ff0f, $ff50-$ff5f, $fff0-$ffff */
+            if ((addr >= 0xeb00 && addr <= 0xecff ) ||
+                (addr >= 0xf7a0 && addr <= 0xf7af ) ||
+                (addr >= 0xfd00 && addr <= 0xfeff ) ||
+                (addr >= 0xff00 && addr <= 0xff0f ) ||
+                (addr >= 0xff50 && addr <= 0xff5f ) ||
+                (addr >= 0xfff0 )) {
+                return 0;
+            }
+            *value = rl_rom[rl_kernbase128 | 0x2000 | (addr & 0x1fff)];
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+void c128ramlink_switch_mode(int mode)
+{
+    LOG2((LOG, "RAMLINK: switch mode %d", mode));
+
+    if ( mode ) {
+        /* reconfigure for c64 mode */
+        cart_config_changed_slot0(CMODE_RAM, CMODE_ULTIMAX, CMODE_READ);
+    } else {
+        /* reconfigure for c128 mode */
+        cart_config_changed_slot0(CMODE_RAM, CMODE_RAM, CMODE_READ);
+    }
+}
+
 /* read 8000-9fff */
 int ramlink_roml_read(uint16_t addr, uint8_t *value)
 {
@@ -1492,20 +1702,22 @@ int ramlink_romh_read(uint16_t addr, uint8_t *value)
         ramlink_off();
     }
 
-    /* It seems that rl_on has higher priority over $1 */
+    /* It seems that rl_on has higher priority over $1, but NOT on addresses
+       0xff00 - 0xff10 and 0xfff0 - 0xffff. */
     if (rl_mapped) {
+        int p = (pport.dir & pport.data) | (~pport.dir & 7);
         /* other wise pull from one of the ROMS */
         if (!rl_enabled) {
             return CART_READ_THROUGH;
-        } else if (rl_on) {
-            *value = rl_rom[rl_kernbase | (addr & 0x1fff)];
-        } else if ((~pport.dir | pport.data) & 2) {
-            *value = rl_rom[rl_kernbase | 0x2000 | (addr & 0x1fff)];
+        } else if (rl_on && (addr < 0xff00 || (addr >= 0xff10 && addr < 0xfff0))) {
+            *value = rl_rom[rl_kernbase64 | (addr & 0x1fff)];
+        } else if (p & 2) {
+            *value = rl_rom[rl_kernbase64 | 0x2000 | (addr & 0x1fff)];
         } else {
             return CART_READ_THROUGH;
         }
         MDBG((LOG, "RAMLINK: romh_read %04x = %02x pport=%02x",
-            (int)addr, (int)*value, (int)(~pport.dir | pport.data)));
+            (unsigned int)addr, (unsigned int)*value, (unsigned int)(~pport.dir | pport.data)));
         return CART_READ_VALID;
     }
 
@@ -1559,9 +1771,9 @@ int ramlink_peek_mem(uint16_t addr, uint8_t *value)
     /* It seems that rl_on has higher priority over $1 */
     } else if (addr >= 0xe000) {
         if (rl_on) {
-            *value = rl_rom[rl_kernbase | (addr & 0x1fff)];
+            *value = rl_rom[rl_kernbase64 | (addr & 0x1fff)];
         } else if ((~pport.dir | pport.data) & 2) {
-            *value = rl_rom[rl_kernbase | 0x2000 | (addr & 0x1fff)];
+            *value = rl_rom[rl_kernbase64 | 0x2000 | (addr & 0x1fff)];
         } else {
             return CART_READ_THROUGH;
         }
@@ -1599,27 +1811,36 @@ int ramlink_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *li
         if (rl_dos) {
             *base = rl_rom + rl_rombase - 0x8000;
             *start = 0x8000;
-            *limit = 0x9ffd;
+            *limit = 0xa000 - 3;
             return CART_READ_VALID;
         }
     } else if (addr >= 0xa000 && addr <= 0xbfff) {
         if (rl_dos) {
             *base = rl_rom + rl_rombase + 0x2000 - 0xa000;
             *start = 0xa000;
-            *limit = 0xbffd;
+            *limit = 0xc000 - 3;
             return CART_READ_VALID;
         }
-    /* It seems that rl_on has higher priority over $1 */
+    /* It seems that rl_on has higher priority over $1, but NOT on addresses
+       0xff00 - 0xff10 and 0xfff0 - 0xffff. */
     } else if (addr >= 0xe000) {
-        if (rl_on) {
-            *base = rl_rom + rl_kernbase - 0xe000;
-        } else if ((~pport.dir | pport.data) & 2) {
-            *base = rl_rom + rl_kernbase + 0x2000 - 0xe000;
+        int p = (pport.dir & pport.data) | (~pport.dir & 7);
+        if (rl_on && (addr < 0xff00 || (addr >= 0xff10 && addr < 0xfff0))) {
+            *base = rl_rom + rl_kernbase64 - 0xe000;
+            if (addr < 0xff00) {
+                *start = 0xe000;
+                *limit = 0xff00 - 3;
+            } else {
+                *start = 0xff10;
+                *limit = 0xfff0 - 3;
+            }
+        } else if (p & 2) {
+            *base = rl_rom + rl_kernbase64 + 0x2000 - 0xe000;
+            *start = 0xe000;
+            *limit = 0x10000 - 3;
         } else {
             return CART_READ_THROUGH;
         }
-        *start = 0xe000;
-        *limit = 0xfffd;
         return CART_READ_VALID;
     }
 
@@ -1658,10 +1879,12 @@ void ramlink_config_init(export_t *ex)
     rl_extexrom = ex->exrom;
     rl_extgame = ex->game;
 
-    /* future code will have 128 stuff in here too once we have a cart API */
-    if ( machine_class == VICE_MACHINE_C64SC ||
-        machine_class == VICE_MACHINE_C64 ) {
-        cart_config_changed_slot0(CMODE_RAM, CMODE_ULTIMAX, CMODE_READ);
+    /* set default cart mode depending on machine type */
+    if ( machine_class == VICE_MACHINE_C128 ) {
+        c128ramlink_switch_mode(0);
+    } else {
+        /* everything else */
+        c128ramlink_switch_mode(1);
     }
 
     for (i = 0; i < 0x2000; i++) {
@@ -1672,6 +1895,11 @@ void ramlink_config_init(export_t *ex)
     rl_i8255a_i[0] = 0xff;
     rl_i8255a_i[1] = 0xff;
     rl_i8255a_i[2] = 0xff;
+
+    /* reset "previous" values */
+    rl_i8255a_o[0] = 0xff;
+    rl_i8255a_o[1] = 0xff;
+    rl_i8255a_o[2] = 0xff;
 
     /* setup I8255A */
     rl_i8255a.set_pa = set_pa;
@@ -1694,16 +1922,13 @@ void ramlink_config_setup(uint8_t *rawcart)
     /* copy supplied ROM image to memory */
     memcpy(rl_rom, rawcart, 0x10000);
 
-    /* set the base address for kernal access */
+    /* set default cart mode depending on machine type */
     if ( machine_class == VICE_MACHINE_C128 ) {
-        rl_kernbase = 3*0x4000;
+        c128ramlink_switch_mode(0);
     } else {
-        /* anything else 64 */
-        rl_kernbase = 2*0x4000;
+        /* everything else */
+        c128ramlink_switch_mode(1);
     }
-
-    /* setup the cart */
-    cart_config_changed_slot0(CMODE_RAM, CMODE_ULTIMAX, CMODE_READ);
 }
 
 /* ---------------------------------------------------------------------*/

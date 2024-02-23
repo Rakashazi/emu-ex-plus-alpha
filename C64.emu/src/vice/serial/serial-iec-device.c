@@ -556,7 +556,7 @@ static void serial_iec_device_exec_main(unsigned int devnr, CLOCK clk_value)
                     log_message(serial_iec_device_log,
                                 "device %i received : 0x%02x (%c)",
                                 devnr, iec->byte,
-                                isprint(iec->byte) ? iec->byte : '.');
+                                isprint((unsigned char)iec->byte) ? iec->byte : '.');
 #endif
                     if (iec->flags & P_ATN) {
                         /* We are currently receiving under ATN.  Store first
@@ -592,7 +592,7 @@ static void serial_iec_device_exec_main(unsigned int devnr, CLOCK clk_value)
                         log_message(serial_iec_device_log,
                                     "device %i received 0x%02x (%c) on channel %i",
                                     devnr, iec->byte,
-                                    isprint(iec->byte) ? iec->byte : '.',
+                                    isprint((unsigned char)iec->byte) ? iec->byte : '.',
                                     iec->secondary & 0x0f);
 #endif
                         set_st(iec->st[iec->secondary & 0x0f]);
@@ -763,7 +763,7 @@ static void serial_iec_device_exec_main(unsigned int devnr, CLOCK clk_value)
                     log_message(serial_iec_device_log,
                                 "device %i sent 0x%02x (%c) on channel %i",
                                 devnr, iec->byte,
-                                isprint(iec->byte) ? iec->byte : '.',
+                                isprint((unsigned char)iec->byte) ? iec->byte : '.',
                                 iec->secondary & 0x0f);
 #endif
                     if (iec->st[iec->secondary & 0x0f] == 0x40) {

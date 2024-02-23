@@ -27,6 +27,6 @@
 #ifndef VICE_VIC_CYCLE_H
 #define VICE_VIC_CYCLE_H
 
-extern void vic_cycle(void);
+void vic_cycle(void);
 
 #endif

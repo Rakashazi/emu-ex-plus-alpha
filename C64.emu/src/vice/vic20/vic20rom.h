@@ -30,12 +30,12 @@
 #ifndef VICE_VIC20ROM_H
 #define VICE_VIC20ROM_H
 
-extern int vic20rom_load_kernal(const char *rom_name);
-extern int vic20rom_load_basic(const char *rom_name);
-extern int vic20rom_load_chargen(const char *rom_name);
+int vic20rom_load_kernal(const char *rom_name);
+int vic20rom_load_basic(const char *rom_name);
+int vic20rom_load_chargen(const char *rom_name);
 
-extern int vic20rom_kernal_checksum(void);
-extern int vic20rom_basic_checksum(void);
+int vic20rom_kernal_checksum(void);
+int vic20rom_basic_checksum(void);
 
 #define VIC20_BASIC_ROM_SIZE    0x2000
 #define VIC20_BASIC_CHECKSUM    33073

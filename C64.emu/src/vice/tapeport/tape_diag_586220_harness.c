@@ -47,6 +47,7 @@ F-6 |   4   | loops to 6 (SENSE <-> READ)
 #include "c64_diag_586220_harness.h"
 #include "cmdline.h"
 #include "log.h"
+#include "machine.h"
 #include "maincpu.h"
 #include "resources.h"
 #include "snapshot.h"

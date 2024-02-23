@@ -184,7 +184,7 @@
 
 #define LOAD_ZERO_ADDR_DUMMY(addr) \
     (LOAD_ZERO_DUMMY(addr) | (LOAD_ZERO_DUMMY((addr) + 1) << 8))
-    
+
 /* Those may be overridden by the machine stuff.  Probably we want them in
    the .def files, but if most of the machines do not use, we might keep it
    here and only override it where needed.  */
@@ -324,6 +324,7 @@ monitor_interface_t *maincpu_monitor_interface_get(void)
 
     maincpu_monitor_interface->mem_bank_read = mem_bank_read;
     maincpu_monitor_interface->mem_bank_peek = mem_bank_peek;
+    maincpu_monitor_interface->mem_peek_with_config = mem_peek_with_config;
     maincpu_monitor_interface->mem_bank_write = mem_bank_write;
     maincpu_monitor_interface->mem_bank_poke = mem_bank_poke;
 
@@ -514,7 +515,7 @@ void maincpu_mainloop(void)
      */
     bank_base_ready = true;
 
-    machine_trigger_reset(MACHINE_RESET_MODE_SOFT);
+    machine_trigger_reset(MACHINE_RESET_MODE_RESET_CPU);
 
     while (1) {
 #define CLK maincpu_clk
@@ -542,10 +543,10 @@ void maincpu_mainloop(void)
         EXPORT_REGISTERS();                                           \
         tmp = machine_jam("   " CPU_STR ": JAM at $%04X   ", reg_pc); \
         switch (tmp) {                                                \
-            case JAM_RESET:                                           \
+            case JAM_RESET_CPU:                                       \
                 DO_INTERRUPT(IK_RESET);                               \
                 break;                                                \
-            case JAM_HARD_RESET:                                      \
+            case JAM_POWER_CYCLE:                                     \
                 mem_powerup();                                        \
                 DO_INTERRUPT(IK_RESET);                               \
                 break;                                                \

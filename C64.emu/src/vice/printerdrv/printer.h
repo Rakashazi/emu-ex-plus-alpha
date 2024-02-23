@@ -30,15 +30,15 @@
 #include "types.h"
 
 /* Generic interface.  */
-extern int printer_resources_init(void);
-extern int printer_userport_resources_init(void);
-extern void printer_resources_shutdown(void);
-extern int printer_cmdline_options_init(void);
-extern int printer_userport_cmdline_options_init(void);
-extern void printer_init(void);
-extern void printer_reset(void);
-extern void printer_formfeed(unsigned int unit);
-extern void printer_shutdown(void);
+int printer_resources_init(void);
+int printer_userport_resources_init(void);
+void printer_resources_shutdown(void);
+int printer_cmdline_options_init(void);
+int printer_userport_cmdline_options_init(void);
+void printer_init(void);
+void printer_reset(void);
+void printer_formfeed(unsigned int unit);
+void printer_shutdown(void);
 
 /* Serial interface.  */
 #define PRINTER_IEC_NUM 2
@@ -47,21 +47,44 @@ extern void printer_shutdown(void);
 #define PRINTER_DEVICE_FS   1
 #define PRINTER_DEVICE_REAL 2
 
-extern int printer_serial_init_resources(void);
-extern int printer_serial_init_cmdline_options(void);
-extern void printer_serial_init(void);
-extern int printer_serial_close(unsigned int unit);
-extern int printer_serial_late_init(void);
-extern void printer_serial_shutdown(void);
+#define PRINTER_TEXT_DEVICE_1   0
+#define PRINTER_TEXT_DEVICE_2   1
+#define PRINTER_TEXT_DEVICE_3   2
+
+#define PRINTER_IEC_4    0
+#define PRINTER_IEC_5    1
+#define PRINTER_IEC_6    2
+#define PRINTER_USERPORT 3
+
+int printer_serial_init_resources(void);
+int printer_serial_init_cmdline_options(void);
+void printer_serial_init(void);
+int printer_serial_close(unsigned int unit);
+int printer_serial_late_init(void);
+void printer_serial_shutdown(void);
 
 /* Userport interface.  */
-extern int printer_userport_init_resources(void);
+int printer_userport_init_resources(void);
 
-#define MPS803_ROM_SIZE (7 * 512)
+#define MPS801_ROM_SIZE     (4 * 1024)
+#define CBM1526_ROM_SIZE    (8 * 1024)
+#define MPS802_ROM_SIZE     CBM1526_ROM_SIZE
+#define MPS803_ROM_SIZE     (4 * 1024)
 
-#define MPS801_ROM_NAME     "mps801.bin"
-#define CBM1526_ROM_NAME    "cbm1526-325341-08.bin"     /* same as mps802 ? */
-#define MPS803_ROM_NAME     "mps803.bin"
+#define C2022_ROM_SIZE      (4 * 1024)
+#define C2023_ROM_SIZE      (4 * 1024)
+#define C4023_ROM_SIZE      (8 * 1024)
+#define C8023_ROM_SIZE      (8 * 1024)
+
+#define MPS801_ROM_NAME     "mps801.bin"                    /* c1fbd1f3 */
+#define CBM1526_ROM_NAME    "cbm1526-325341-08.bin"         /* same as mps802 ? */
+#define MPS802_ROM_NAME     CBM1526_ROM_NAME
+#define MPS803_ROM_NAME     "mps803-D7811G-111-U32053A.bin"
+
+#define C2022_ROM_NAME      "2022-901472-04.bin"             /* 2022/2023 */
+#define C4023_ROM_NAME      "4023-325360-02.bin"             /* 4023 */
+#define C8023_ROM_NAME      "8023-325320-02.bin"             /* 8023 */
+
 #define NL10_ROM_NAME       "nl10.bin"
 
 #endif

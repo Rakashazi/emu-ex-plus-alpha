@@ -29,6 +29,6 @@
 
 struct vdrive_s;
 
-extern void fsdevice_flush(struct vdrive_s *vdrive, unsigned int secondary);
+void fsdevice_flush(struct vdrive_s *vdrive, unsigned int secondary);
 
 #endif

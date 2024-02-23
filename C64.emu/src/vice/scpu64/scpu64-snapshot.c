@@ -142,7 +142,7 @@ fail:
         snapshot_close(s);
     }
 
-    machine_trigger_reset(MACHINE_RESET_MODE_SOFT);
+    machine_trigger_reset(MACHINE_RESET_MODE_RESET_CPU);
 
     return -1;
 }

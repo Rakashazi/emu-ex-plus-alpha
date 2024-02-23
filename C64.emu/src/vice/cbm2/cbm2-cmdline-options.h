@@ -27,6 +27,6 @@
 #ifndef VICE_CBM2_CMDLINE_OPTIONS_H
 #define VICE_CBM2_CMDLINE_OPTIONS_H
 
-extern int cbm2_cmdline_options_init(void);
+int cbm2_cmdline_options_init(void);
 
 #endif

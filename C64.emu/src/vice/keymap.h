@@ -64,7 +64,8 @@
 #define KBD_MAPPING_TR    13    /* "tr" */
 #define KBD_MAPPING_LAST  13
 #define KBD_MAPPING_NUM   14
-extern int keyboard_get_num_mappings(void);
+
+int keyboard_get_num_mappings(void);
 
 /* mapping info for GUIs */
 typedef struct {
@@ -73,9 +74,9 @@ typedef struct {
     char *mapping_name;
 } mapping_info_t;
 
-extern mapping_info_t *keyboard_get_info_list(void);
-extern int keyboard_is_keymap_valid(int sympos, int hosttype, int kbdtype);
-extern int keyboard_is_hosttype_valid(int hosttype);
+mapping_info_t *keyboard_get_info_list(void);
+int keyboard_is_keymap_valid(int sympos, int hosttype, int kbdtype);
+int keyboard_is_hosttype_valid(int hosttype);
 
 /* FIXME: rename the members of the enum, use some common prefix */
 enum shift_type {
@@ -169,18 +170,18 @@ extern signed long key_joy_keypad[KBD_JOY_KEYPAD_ROWS][KBD_JOY_KEYPAD_COLS]; /*F
 
 /*****************************************************************************/
 
-extern void keymap_init(void);
-extern void keymap_shutdown(void);
+void keymap_init(void);
+void keymap_shutdown(void);
 
-extern int keymap_cmdline_options_init(void);
-extern int keymap_resources_init(void);
+int keymap_cmdline_options_init(void);
+int keymap_resources_init(void);
 
 extern int keyboard_set_keymap_index(int vak, void *param);
-extern int keyboard_set_keymap_file(const char *val, void *param);
-extern int keyboard_keymap_dump(const char *filename);
+int keyboard_set_keymap_file(const char *val, void *param);
+int keyboard_keymap_dump(const char *filename);
 
-extern void keyboard_set_map_any(signed long sym, int row, int col, int shift);
-extern void keyboard_set_unmap_any(signed long sym);
+void keyboard_set_map_any(signed long sym, int row, int col, int shift);
+void keyboard_set_unmap_any(signed long sym);
 
 /*****************************************************************************/
 

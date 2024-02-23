@@ -42,21 +42,21 @@ struct interrupt_cpu_status_s;
 struct monitor_interface_s;
 struct snapshot_s;
 
-extern void drivecpu_setup_context(struct diskunit_context_s *drv, int i);
+void drivecpu_setup_context(struct diskunit_context_s *drv, int i);
 
-extern void drivecpu_init(struct diskunit_context_s *drv, int type);
-extern void drivecpu_reset(struct diskunit_context_s *drv);
-extern void drivecpu_sleep(struct diskunit_context_s *drv);
-extern void drivecpu_wake_up(struct diskunit_context_s *drv);
-extern void drivecpu_shutdown(struct diskunit_context_s *drv);
-extern void drivecpu_reset_clk(struct diskunit_context_s *drv);
-extern void drivecpu_trigger_reset(unsigned int dnr);
-extern void drivecpu_set_overflow(struct diskunit_context_s *drv);
+void drivecpu_init(struct diskunit_context_s *drv, int type);
+void drivecpu_reset(struct diskunit_context_s *drv);
+void drivecpu_sleep(struct diskunit_context_s *drv);
+void drivecpu_wake_up(struct diskunit_context_s *drv);
+void drivecpu_shutdown(struct diskunit_context_s *drv);
+void drivecpu_reset_clk(struct diskunit_context_s *drv);
+void drivecpu_trigger_reset(unsigned int dnr);
+void drivecpu_set_overflow(struct diskunit_context_s *drv);
 
-extern void drivecpu_execute(struct diskunit_context_s *drv, CLOCK clk_value);
-extern int drivecpu_snapshot_write_module(struct diskunit_context_s *drv,
-                                          struct snapshot_s *s);
-extern int drivecpu_snapshot_read_module(struct diskunit_context_s *drv,
-                                         struct snapshot_s *s);
+void drivecpu_execute(struct diskunit_context_s *drv, CLOCK clk_value);
+int drivecpu_snapshot_write_module(struct diskunit_context_s *drv,
+                                   struct snapshot_s *s);
+int drivecpu_snapshot_read_module(struct diskunit_context_s *drv,
+                                  struct snapshot_s *s);
 
 #endif
