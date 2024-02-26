@@ -78,6 +78,7 @@ bool SaturnSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t r
 			case CFGKEY_DEFAULT_NTSC_VIDEO_LINES: return readOptionValue(io, readSize, defaultNtscLines, linesAreValid<240>);
 			case CFGKEY_DEFAULT_PAL_VIDEO_LINES: return readOptionValue(io, readSize, defaultPalLines, linesAreValid<288>);
 			case CFGKEY_DEFAULT_SHOW_H_OVERSCAN: return readOptionValue(io, readSize, defaultShowHOverscan);
+			case CFGKEY_NO_MD5_FILENAMES: return readOptionValue(io, readSize, noMD5InFilenames);
 		}
 	}
 	else if(type == ConfigType::SESSION)
@@ -110,6 +111,7 @@ void SaturnSystem::writeConfig(ConfigType type, FileIO &io)
 		writeOptionValueIfNotDefault(io, CFGKEY_DEFAULT_NTSC_VIDEO_LINES, defaultNtscLines, safeNtscLines);
 		writeOptionValueIfNotDefault(io, CFGKEY_DEFAULT_PAL_VIDEO_LINES, defaultPalLines, safePalLines);
 		writeOptionValueIfNotDefault(io, CFGKEY_DEFAULT_SHOW_H_OVERSCAN, defaultShowHOverscan, false);
+		writeOptionValueIfNotDefault(io, CFGKEY_NO_MD5_FILENAMES, noMD5InFilenames, false);
 	}
 	else if(type == ConfigType::SESSION)
 	{

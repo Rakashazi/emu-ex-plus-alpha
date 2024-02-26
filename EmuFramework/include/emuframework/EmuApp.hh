@@ -219,7 +219,7 @@ public:
 	bool shouldOverwriteExistingState() const;
 	const auto &contentSearchPath() const { return contentSearchPath_; }
 	FS::PathString contentSearchPath(std::string_view name) const;
-	void setContentSearchPath(std::string_view path);
+	void setContentSearchPath(auto &&path) { contentSearchPath_ = IG_forward(path); }
 	FS::PathString validSearchPath(const FS::PathString &) const;
 	static void updateLegacySavePath(IG::ApplicationContext, CStringView path);
 	auto screenshotDirectory() const { return system().userPath(userScreenshotPath); }
@@ -306,8 +306,7 @@ public:
 	uint8_t videoZoom() const { return optionImageZoom; }
 	bool setViewportZoom(uint8_t val);
 	uint8_t viewportZoom() { return optionViewportZoom; }
-	auto &showOnSecondScreenOption() { return optionShowOnSecondScreen; }
-	auto &textureBufferModeOption() { return optionTextureBufferMode; }
+	bool supportsShowOnSecondScreen(ApplicationContext ctx) { return ctx.androidSDK() >= 17; }
 	void setContentRotation(IG::Rotation);
 	Rotation contentRotation() const { return contentRotation_; }
 	void updateVideoContentRotation();
@@ -343,7 +342,6 @@ public:
 	void applyFontSize(Window &win);
 	IG::FontSettings fontSettings(Window &win) const;
 	void setShowsTitleBar(bool on);
-	bool showsTitleBar() const { return optionTitleBar; };
 	void setLowProfileOSNavMode(Tristate mode);
 	void setHideOSNavMode(Tristate mode);
 	void setHideStatusBarMode(Tristate mode);
@@ -549,7 +547,9 @@ protected:
 	int16_t optionFontSize{defaultFontSize};
 	int8_t optionFrameInterval{1};
 	Byte1Option optionNotificationIcon;
-	Byte1Option optionTitleBar;
+public:
+	IG_UseMemberIf(CAN_HIDE_TITLE_BAR, bool, optionTitleBar){true};
+protected:
 	IG_UseMemberIf(Config::NAVIGATION_BAR, Byte1Option, optionLowProfileOSNav);
 	IG_UseMemberIf(Config::NAVIGATION_BAR, Byte1Option, optionHideOSNav);
 	IG_UseMemberIf(Config::STATUS_BAR, Tristate, optionHideStatusBar){Tristate::IN_EMU};
@@ -560,8 +560,10 @@ protected:
 	Byte1Option optionImageEffectPixelFormat;
 	Byte1Option optionImageZoom;
 	Byte1Option optionViewportZoom;
-	Byte1Option optionShowOnSecondScreen;
-	Byte1Option optionTextureBufferMode;
+public:
+	IG_UseMemberIf(Config::BASE_MULTI_WINDOW && Config::BASE_MULTI_SCREEN, bool, optionShowOnSecondScreen){};
+	Gfx::TextureBufferMode optionTextureBufferMode{};
+protected:
 	Gfx::DrawableConfig windowDrawableConf;
 	IG::PixelFormat renderPixelFmt;
 	IG::Rotation contentRotation_{IG::Rotation::ANY};

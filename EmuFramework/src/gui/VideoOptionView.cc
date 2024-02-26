@@ -208,7 +208,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			decltype(textureBufferModeItem) items;
 			items.emplace_back("Auto (Set optimal mode)", attach, [this](View &view)
 			{
-				app().textureBufferModeOption() = 0;
+				app().optionTextureBufferMode = Gfx::TextureBufferMode::DEFAULT;
 				auto defaultMode = renderer().makeValidTextureBufferMode();
 				emuVideo().setTextureBufferMode(system(), defaultMode);
 				textureBufferMode.setSelected(MenuId{defaultMode});
@@ -219,7 +219,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			{
 				items.emplace_back(desc.name, attach, [this](MenuItem &item)
 				{
-					app().textureBufferModeOption() = item.id;
+					app().optionTextureBufferMode = Gfx::TextureBufferMode(item.id.val);
 					emuVideo().setTextureBufferMode(system(), Gfx::TextureBufferMode(item.id.val));
 				}, MenuItem::Config{.id = desc.mode});
 			}
@@ -229,7 +229,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	textureBufferMode
 	{
 		"GPU Copy Mode", attach,
-		MenuId{renderer().makeValidTextureBufferMode(Gfx::TextureBufferMode(app().textureBufferModeOption().val))},
+		MenuId{renderer().makeValidTextureBufferMode(app().optionTextureBufferMode)},
 		textureBufferModeItem
 	},
 	frameIntervalItem
@@ -702,13 +702,13 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	showOnSecondScreen
 	{
 		"External Screen", attach,
-		(bool)app().showOnSecondScreenOption(),
+		app().optionShowOnSecondScreen,
 		"OS Managed", "Emu Content",
 		[this](BoolMenuItem &item)
 		{
-			app().showOnSecondScreenOption() = item.flipBoolValue(*this);
+			app().optionShowOnSecondScreen = item.flipBoolValue(*this);
 			if(appContext().screens().size() > 1)
-				app().setEmuViewOnExtraWindow(app().showOnSecondScreenOption(), *appContext().screens()[1]);
+				app().setEmuViewOnExtraWindow(app().optionShowOnSecondScreen, *appContext().screens()[1]);
 		}
 	},
 	frameClockItems
@@ -973,7 +973,7 @@ void VideoOptionView::loadStockItems()
 		item.emplace_back(&screenFrameRate);
 	if(used(secondDisplay))
 		item.emplace_back(&secondDisplay);
-	if(used(showOnSecondScreen) && !app().showOnSecondScreenOption().isConst)
+	if(used(showOnSecondScreen) && app().supportsShowOnSecondScreen(appContext()))
 		item.emplace_back(&showOnSecondScreen);
 }
 

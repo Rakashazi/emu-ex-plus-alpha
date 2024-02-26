@@ -60,10 +60,6 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 		if(androidSdk >= 17)
 			optionNotificationIcon.isConst = true;
 	}
-	if(androidSdk < 17)
-	{
-		optionShowOnSecondScreen.isConst = true;
-	}
 	else
 	{
 		optionShowBluetoothScan.initDefault(0);

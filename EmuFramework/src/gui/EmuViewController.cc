@@ -73,7 +73,7 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 		app().onCustomizeNavView(*viewNav);
 		viewStack.setNavView(std::move(viewNav));
 	}
-	viewStack.showNavView(app().showsTitleBar());
+	viewStack.showNavView(app().optionTitleBar);
 	emuView.setLayoutInputView(&inputView);
 }
 

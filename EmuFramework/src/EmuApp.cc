@@ -123,15 +123,12 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	vibrationManager_{ctx},
 	perfHintManager{ctx.performanceHintManager()},
 	optionNotificationIcon{CFGKEY_NOTIFICATION_ICON, 1, !Config::envIsAndroid},
-	optionTitleBar{CFGKEY_TITLE_BAR, 1, !CAN_HIDE_TITLE_BAR},
 	optionLowProfileOSNav{CFGKEY_LOW_PROFILE_OS_NAV, 1, !Config::envIsAndroid},
 	optionHideOSNav{CFGKEY_HIDE_OS_NAV, 0, !Config::envIsAndroid},
 	optionShowBluetoothScan{CFGKEY_SHOW_BLUETOOTH_SCAN, 1},
 	optionImageEffectPixelFormat{CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT, IG::PIXEL_NONE, 0, imageEffectPixelFormatIsValid},
 	optionImageZoom(CFGKEY_IMAGE_ZOOM, 100, 0, optionImageZoomIsValid),
 	optionViewportZoom(CFGKEY_VIEWPORT_ZOOM, 100, 0, optionIsValidWithMinMax<50, 100>),
-	optionShowOnSecondScreen{CFGKEY_SHOW_ON_2ND_SCREEN, 0},
-	optionTextureBufferMode{CFGKEY_TEXTURE_BUFFER_MODE, 0},
 	layoutBehindSystemUI{ctx.hasTranslucentSysUI()}
 {
 	if(ctx.registerInstance(initParams))
@@ -485,13 +482,13 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 		[this, appConfig](IG::ApplicationContext ctx, IG::Window &win)
 		{
 			renderer.initMainTask(&win, windowDrawableConfig());
-			if(optionTextureBufferMode.val)
+			if(optionTextureBufferMode != Gfx::TextureBufferMode::DEFAULT)
 			{
-				auto mode = (Gfx::TextureBufferMode)optionTextureBufferMode.val;
+				auto mode = optionTextureBufferMode;
 				if(renderer.makeValidTextureBufferMode(mode) != mode)
 				{
 					// reset to default if saved non-default mode isn't supported
-					optionTextureBufferMode.reset();
+					optionTextureBufferMode = {};
 				}
 			}
 			viewManager.defaultFace = {renderer, fontManager.makeSystem(), fontSettings(win)};
@@ -519,7 +516,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					viewController.placeEmuViews();
 				});
 			emuVideo.setRendererTask(renderer.task());
-			emuVideo.setTextureBufferMode(system(), (Gfx::TextureBufferMode)optionTextureBufferMode.val);
+			emuVideo.setTextureBufferMode(system(), optionTextureBufferMode);
 			emuVideoLayer.setRendererTask(renderer.task());
 			applyRenderPixelFormat();
 			emuVideoLayer.updateEffect(system(), videoEffectPixelFormat());
@@ -582,7 +579,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 						if(e.change == ScreenChange::added)
 						{
 							log.info("screen added");
-							if(showOnSecondScreenOption() && ctx.screens().size() > 1)
+							if(optionShowOnSecondScreen && ctx.screens().size() > 1)
 								setEmuViewOnExtraWindow(true, e.screen);
 						}
 						else if(e.change == ScreenChange::removed)
@@ -642,7 +639,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					if(backgrounded)
 					{
 						showUI();
-						if(showOnSecondScreenOption() && ctx.screens().size() > 1)
+						if(optionShowOnSecondScreen && ctx.screens().size() > 1)
 						{
 							setEmuViewOnExtraWindow(false, *ctx.screens()[1]);
 						}
@@ -1190,11 +1187,6 @@ bool EmuApp::loadStateWithSlot(int slot)
 FS::PathString EmuApp::contentSearchPath(std::string_view name) const
 {
 	return FS::uriString(contentSearchPath_, name);
-}
-
-void EmuApp::setContentSearchPath(std::string_view path)
-{
-	contentSearchPath_ = path;
 }
 
 FS::PathString EmuApp::validSearchPath(const FS::PathString &path) const
@@ -1834,7 +1826,7 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 
 void EmuApp::configureSecondaryScreens()
 {
-	if(showOnSecondScreenOption() && appContext().screens().size() > 1)
+	if(optionShowOnSecondScreen && appContext().screens().size() > 1)
 	{
 		setEmuViewOnExtraWindow(true, *appContext().screens()[1]);
 	}

@@ -59,9 +59,6 @@ void EmuApp::saveConfigFile(FileIO &io)
 
 	const auto cfgFileOptions = std::tie
 	(
-		#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
-		optionShowOnSecondScreen,
-		#endif
 		#if defined __ANDROID__
 		optionLowProfileOSNav,
 		optionHideOSNav,
@@ -72,9 +69,7 @@ void EmuApp::saveConfigFile(FileIO &io)
 		optionImageZoom,
 		optionViewportZoom,
 		optionImageEffectPixelFormat,
-		optionNotificationIcon,
-		optionTitleBar,
-		optionTextureBufferMode
+		optionNotificationIcon
 	);
 
 	std::apply([&](auto &...opt){ (writeOptionValue(io, opt), ...); }, cfgFileOptions);
@@ -99,7 +94,12 @@ void EmuApp::saveConfigFile(FileIO &io)
 	writeOptionValue(io, CFGKEY_WINDOW_PIXEL_FORMAT, windowDrawablePixelFormatOption());
 	writeOptionValue(io, CFGKEY_VIDEO_COLOR_SPACE, windowDrawableColorSpaceOption());
 	writeOptionValue(io, CFGKEY_RENDER_PIXEL_FORMAT, renderPixelFormatOption());
+	writeOptionValueIfNotDefault(io, CFGKEY_TEXTURE_BUFFER_MODE, optionTextureBufferMode, Gfx::TextureBufferMode{});
+	if(used(optionShowOnSecondScreen))
+		writeOptionValueIfNotDefault(io, CFGKEY_SHOW_ON_2ND_SCREEN, optionShowOnSecondScreen, false);
 	writeOptionValueIfNotDefault(io, CFGKEY_SHOW_HIDDEN_FILES, showHiddenFilesInPicker, false);
+	if(used(optionTitleBar))
+		writeOptionValueIfNotDefault(io, CFGKEY_TITLE_BAR, optionTitleBar, true);
 	if constexpr(MOGA_INPUT)
 	{
 		if(mogaManagerPtr)
@@ -221,9 +221,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_MENU_ORIENTATION: return readOptionValue(io, size, optionMenuOrientation);
 				case CFGKEY_IMAGE_ZOOM: return optionImageZoom.readFromIO(io, size);
 				case CFGKEY_VIEWPORT_ZOOM: return optionViewportZoom.readFromIO(io, size);
-				#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
-				case CFGKEY_SHOW_ON_2ND_SCREEN: return optionShowOnSecondScreen.readFromIO(io, size);
-				#endif
+				case CFGKEY_SHOW_ON_2ND_SCREEN: return used(optionShowOnSecondScreen) ? readOptionValue(io, size, optionShowOnSecondScreen) : false;
 				case CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT: return optionImageEffectPixelFormat.readFromIO(io, size);
 				case CFGKEY_RENDER_PIXEL_FORMAT:
 					setRenderPixelFormat(readOptionValue<IG::PixelFormat>(io, size, renderPixelFormatIsValid));
@@ -234,7 +232,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 					return true;
 				case CFGKEY_PAUSE_UNFOCUSED: return used(pauseUnfocused) ? readOptionValue(io, size, pauseUnfocused) : false;
 				case CFGKEY_NOTIFICATION_ICON: return optionNotificationIcon.readFromIO(io, size);
-				case CFGKEY_TITLE_BAR: return optionTitleBar.readFromIO(io, size);
+				case CFGKEY_TITLE_BAR: return used(optionTitleBar) ? readOptionValue(io, size, optionTitleBar) : false;
 				case CFGKEY_BACK_NAVIGATION:
 					return readOptionValue(io, size, viewManager.needsBackControl);
 				case CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU: return readOptionValue(io, size, systemActionsIsDefaultMenu);
@@ -250,7 +248,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				#endif
 				case CFGKEY_MOGA_INPUT_SYSTEM:
 					return MOGA_INPUT ? readOptionValue<bool>(io, size, [&](auto on){setMogaManagerActive(on, false);}) : false;
-				case CFGKEY_TEXTURE_BUFFER_MODE: return optionTextureBufferMode.readFromIO(io, size);
+				case CFGKEY_TEXTURE_BUFFER_MODE: return readOptionValue(io, size, optionTextureBufferMode);
 				#if defined __ANDROID__
 				case CFGKEY_LOW_PROFILE_OS_NAV: return optionLowProfileOSNav.readFromIO(io, size);
 				case CFGKEY_HIDE_OS_NAV: return optionHideOSNav.readFromIO(io, size);

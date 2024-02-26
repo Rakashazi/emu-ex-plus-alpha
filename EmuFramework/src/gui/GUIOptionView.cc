@@ -158,7 +158,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	navView
 	{
 		"Title Bar", attach,
-		app().showsTitleBar(),
+		app().optionTitleBar,
 		[this](BoolMenuItem &item)
 		{
 			app().setShowsTitleBar(item.flipBoolValue(*this));

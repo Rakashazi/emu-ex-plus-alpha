@@ -567,12 +567,15 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 		}
 	};
 
+	BoolMenuItem saveFilenameType = saveFilenameTypeMenuItem(*this, system());
+
 public:
 	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&biosLanguage);
 		item.emplace_back(&autoSetRTC);
+		item.emplace_back(&saveFilenameType);
 	}
 };
 

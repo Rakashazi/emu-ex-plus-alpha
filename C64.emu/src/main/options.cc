@@ -164,16 +164,16 @@ bool C64System::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 		{
 			case CFGKEY_DEFAULT_MODEL: return readOptionValue(io, readSize, defaultModel, modelIdIsValid);
 			case CFGKEY_CROP_NORMAL_BORDERS: return readOptionValue(io, readSize, optionCropNormalBorders);
-			case CFGKEY_DEFAULT_DRIVE_TRUE_EMULATION: readOptionValue(io, readSize, defaultDriveTrueEmulation);
+			case CFGKEY_DEFAULT_DRIVE_TRUE_EMULATION: return readOptionValue(io, readSize, defaultDriveTrueEmulation);
 			case CFGKEY_SID_ENGINE: return readOptionValue<uint8_t>(io, readSize, [&](auto v){ setSidEngine(v); });
 			case CFGKEY_BORDER_MODE: return readOptionValue<uint8_t>(io, readSize, [&](auto v){ setBorderMode(v); });
 			case CFGKEY_RESID_SAMPLING: return readOptionValue<uint8_t>(io, readSize, [&](auto v){ setReSidSampling(v); });
 			case CFGKEY_DEFAULT_PALETTE_NAME: return readStringOptionValue(io, readSize, defaultPaletteName);
-			case CFGKEY_COLOR_SATURATION: readOptionValue<int16_t>(io, readSize, [&](auto v){ setColorSetting(ColorSetting::Saturation, v); });
-			case CFGKEY_COLOR_CONTRAST: readOptionValue<int16_t>(io, readSize, [&](auto v){ setColorSetting(ColorSetting::Contrast, v); });
-			case CFGKEY_COLOR_BRIGHTNESS: readOptionValue<int16_t>(io, readSize, [&](auto v){ setColorSetting(ColorSetting::Brightness, v); });
-			case CFGKEY_COLOR_GAMMA: readOptionValue<int16_t>(io, readSize, [&](auto v){ setColorSetting(ColorSetting::Gamma, v); });
-			case CFGKEY_COLOR_TINT: readOptionValue<int16_t>(io, readSize, [&](auto v){ setColorSetting(ColorSetting::Tint, v); });
+			case CFGKEY_COLOR_SATURATION: return readOptionValue<int16_t>(io, readSize, [&](auto v){ setColorSetting(ColorSetting::Saturation, v); });
+			case CFGKEY_COLOR_CONTRAST: return readOptionValue<int16_t>(io, readSize, [&](auto v){ setColorSetting(ColorSetting::Contrast, v); });
+			case CFGKEY_COLOR_BRIGHTNESS: return readOptionValue<int16_t>(io, readSize, [&](auto v){ setColorSetting(ColorSetting::Brightness, v); });
+			case CFGKEY_COLOR_GAMMA: return readOptionValue<int16_t>(io, readSize, [&](auto v){ setColorSetting(ColorSetting::Gamma, v); });
+			case CFGKEY_COLOR_TINT: return readOptionValue<int16_t>(io, readSize, [&](auto v){ setColorSetting(ColorSetting::Tint, v); });
 		}
 	}
 	else if(type == ConfigType::SESSION)
