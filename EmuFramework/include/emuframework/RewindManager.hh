@@ -42,7 +42,7 @@ public:
 	void startTimer();
 	void pauseTimer();
 	void resetTimer();
-	bool readConfig(MapIO &, unsigned key, size_t size);
+	bool readConfig(MapIO &, unsigned key);
 	void writeConfig(FileIO &) const;
 
 	void updateMaxStates(size_t max)

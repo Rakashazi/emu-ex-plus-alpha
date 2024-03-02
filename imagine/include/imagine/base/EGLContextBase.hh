@@ -21,13 +21,17 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/WindowConfig.hh>
-#include <imagine/base/glDefs.hh>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <optional>
 #include <memory>
 #include <type_traits>
 #include <span>
+
+namespace IG::GL
+{
+enum class API;
+}
 
 namespace IG
 {
@@ -36,7 +40,6 @@ class GLDisplay;
 class GLDrawable;
 class GLContextAttributes;
 class GLBufferConfigAttributes;
-class ErrorCode;
 
 using NativeGLDrawable = EGLSurface;
 using NativeGLContext = EGLContext;
@@ -150,10 +153,10 @@ protected:
 	bool supportsNoConfig{};
 	bool supportsNoError{};
 	bool supportsSrgbColorSpace{};
-	IG_UseMemberIf(Config::envIsLinux, bool, supportsTripleBufferSurfaces){};
-	IG_UseMemberIf(Config::envIsAndroid, PresentationTimeFunc, presentationTime){};
+	ConditionalMember<Config::envIsLinux, bool> supportsTripleBufferSurfaces{};
+	ConditionalMember<Config::envIsAndroid, PresentationTimeFunc> presentationTime{};
 
-	ErrorCode initDisplay(EGLDisplay);
+	bool initDisplay(EGLDisplay);
 	static std::optional<EGLConfig> chooseConfig(GLDisplay, int renderableType, GLBufferConfigAttributes, bool allowFallback = true);
 	static int chooseConfigs(GLDisplay, int renderableType, GLBufferConfigAttributes, std::span<EGLConfig>);
 	void logFeatures() const;

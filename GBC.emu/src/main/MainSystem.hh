@@ -1,7 +1,22 @@
 #pragma once
 
+/*  This file is part of GBC.emu.
+
+	GBC.emu is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	GBC.emu is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with GBC.emu.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <emuframework/EmuSystem.hh>
-#include <emuframework/Option.hh>
+#include <emuframework/EmuOptions.hh>
 #include <main/Palette.hh>
 #include <gambatte.h>
 #include <libgambatte/src/video/lcddef.h>
@@ -48,11 +63,15 @@ public:
 	uint8_t activeResampler = 1;
 	bool useBgrOrder{};
 	alignas(8) uint_least32_t frameBuffer[gambatte::lcd_hres * gambatte::lcd_vres];
-	Byte1Option optionGBPal{CFGKEY_GB_PAL_IDX, 0, 0, optionIsValidWithMax<gbNumPalettes-1>};
-	Byte1Option optionUseBuiltinGBPalette{CFGKEY_USE_BUILTIN_GB_PAL, 1};
-	Byte1Option optionReportAsGba{CFGKEY_REPORT_AS_GBA, 0};
-	Byte1Option optionAudioResampler{CFGKEY_AUDIO_RESAMPLER, 1};
-	Byte1Option optionFullGbcSaturation{CFGKEY_FULL_GBC_SATURATION, 0};
+
+	Property<uint8_t, CFGKEY_GB_PAL_IDX,
+		PropertyDesc<uint8_t>{.isValid = isValidWithMax<gbNumPalettes-1>}> optionGBPal;
+	Property<bool, CFGKEY_USE_BUILTIN_GB_PAL,
+		PropertyDesc<bool>{.defaultValue = true}> optionUseBuiltinGBPalette;
+	Property<bool, CFGKEY_REPORT_AS_GBA> optionReportAsGba;
+	Property<uint8_t, CFGKEY_AUDIO_RESAMPLER,
+		PropertyDesc<uint8_t>{.defaultValue = 1}> optionAudioResampler;
+	Property<bool, CFGKEY_FULL_GBC_SATURATION> optionFullGbcSaturation;
 	static constexpr FloatSeconds gbFrameTimeSecs{70224. / 4194304.}; // ~59.7275Hz
 	static constexpr auto gbFrameTime{round<FrameTime>(gbFrameTimeSecs)};
 
@@ -73,7 +92,7 @@ public:
 	size_t stateSize() { return saveStateSize; }
 	void readState(EmuApp &, std::span<uint8_t> buff);
 	size_t writeState(std::span<uint8_t> buff, SaveStateFlags = {});
-	bool readConfig(ConfigType, MapIO &, unsigned key, size_t readSize);
+	bool readConfig(ConfigType, MapIO &, unsigned key);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);

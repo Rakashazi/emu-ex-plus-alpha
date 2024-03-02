@@ -54,7 +54,7 @@ public:
 	auto end() const { return recentContentList.end(); }
 	void clear() { recentContentList.clear(); }
 	void writeConfig(FileIO &) const;
-	bool readConfig(MapIO &, unsigned key, size_t size, const EmuSystem &);
+	bool readConfig(MapIO &, unsigned key, const EmuSystem &);
 	bool readLegacyConfig(MapIO &, const EmuSystem &);
 
 private:

@@ -21,7 +21,6 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
-#include <imagine/base/Error.hh>
 #include <imagine/logger/logger.h>
 
 namespace IG
@@ -84,8 +83,7 @@ IOSGLContext::IOSGLContext(GLContextAttributes attr, NativeGLContext shareContex
 	EAGLContext *newContext = [[EAGLContext alloc] initWithAPI:api sharegroup:sharegroup];
 	if(!newContext)
 	{
-		logErr("error creating context");
-		throw Error{EINVAL};
+		throw std::runtime_error("Error creating GL context");
 	}
 	context_.reset((NativeGLContext)CFBridgingRetain(newContext));
 }

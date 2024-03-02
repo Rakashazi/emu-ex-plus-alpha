@@ -616,7 +616,7 @@ public:
 	static bool visibilityIsValid(VControllerVisibility);
 	void setPhysicalControlsPresent(bool);
 	bool updateAutoOnScreenControlVisible();
-	bool readConfig(EmuApp &, MapIO &, unsigned key, size_t size);
+	bool readConfig(EmuApp &, MapIO &, unsigned key);
 	void writeConfig(FileIO &) const;
 	void configure(Window &, Gfx::Renderer &, const Gfx::GlyphTextureSet &face);
 	void resetEmulatedDevicePositions();
@@ -667,8 +667,8 @@ private:
 	VControllerGamepadFlags gamepadDisabledFlags{};
 	bool kbMode{};
 	uint8_t alpha{};
-	IG_UseMemberIf(Config::DISPLAY_CUTOUT, bool, allowButtonsPastContentBounds_){};
-	IG_UseMemberIf(Config::BASE_SUPPORTS_VIBRATOR, bool, vibrateOnTouchInput_){};
+	ConditionalMember<Config::DISPLAY_CUTOUT, bool> allowButtonsPastContentBounds_{};
+	ConditionalMember<Config::BASE_SUPPORTS_VIBRATOR, bool> vibrateOnTouchInput_{};
 public:
 	bool highlightPushedButtons{true};
 

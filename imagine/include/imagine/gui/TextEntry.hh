@@ -74,10 +74,10 @@ protected:
 		Gfx::TextureSpan texture{};
 	};
 	// TODO: cancel button doesn't work yet due to popup window not forwarding touch events to main window
-	IG_UseMemberIf(!Config::envIsAndroid, CancelButton, cancelButton);
+	ConditionalMember<!Config::envIsAndroid, CancelButton> cancelButton;
 	Gfx::Text message;
 	[[no_unique_address]] Input::TextField textField;
-	IG_UseMemberIf(!Config::Input::SYSTEM_COLLECTS_TEXT, TextEntry, textEntry);
+	ConditionalMember<!Config::Input::SYSTEM_COLLECTS_TEXT, TextEntry> textEntry;
 	OnTextDelegate onTextD;
 };
 

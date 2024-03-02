@@ -14,7 +14,8 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
-#include "EmuOptions.hh"
+#include <emuframework/Option.hh>
+#include <emuframework/EmuOptions.hh>
 #include "configFile.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/io/FileIO.hh>
@@ -56,96 +57,72 @@ void EmuApp::saveConfigFile(FileIO &io)
 		return;
 	}
 	writeConfigHeader(io);
-
-	const auto cfgFileOptions = std::tie
-	(
-		#if defined __ANDROID__
-		optionLowProfileOSNav,
-		optionHideOSNav,
-		#endif
-		#ifdef CONFIG_INPUT_BLUETOOTH
-		optionShowBluetoothScan,
-		#endif
-		optionImageZoom,
-		optionViewportZoom,
-		optionImageEffectPixelFormat,
-		optionNotificationIcon
-	);
-
-	std::apply([&](auto &...opt){ (writeOptionValue(io, opt), ...); }, cfgFileOptions);
-
 	recentContent.writeConfig(io);
-	writeOptionValueIfNotDefault(io, CFGKEY_FONT_Y_SIZE, optionFontSize, defaultFontSize);
-	if(used(optionHideStatusBar))
-		writeOptionValueIfNotDefault(io, CFGKEY_HIDE_STATUS_BAR, optionHideStatusBar, Tristate::IN_EMU);
-	writeOptionValueIfNotDefault(io, CFGKEY_SHOW_BUNDLED_GAMES, optionShowBundledGames, true);
-	writeOptionValueIfNotDefault(io, CFGKEY_FRAME_INTERVAL, optionFrameInterval, 1);
-	writeOptionValueIfNotDefault(io, CFGKEY_FRAME_CLOCK, frameTimeSource, FrameTimeSource::Unset);
-	writeOptionValueIfNotDefault(io, CFGKEY_IDLE_DISPLAY_POWER_SAVE, idleDisplayPowerSave_, false);
-	writeOptionValueIfNotDefault(io, CFGKEY_CONFIRM_OVERWRITE_STATE, confirmOverwriteState, true);
-	writeOptionValueIfNotDefault(io, CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU, systemActionsIsDefaultMenu, true);
-	if(used(pauseUnfocused))
-		writeOptionValueIfNotDefault(io, CFGKEY_PAUSE_UNFOCUSED, pauseUnfocused, true);
-	writeOptionValueIfNotDefault(io, CFGKEY_GAME_ORIENTATION, optionEmuOrientation, Orientations{});
-	writeOptionValueIfNotDefault(io, CFGKEY_MENU_ORIENTATION, optionMenuOrientation, Orientations{});
+	writeOptionValueIfNotDefault(io, imageEffectPixelFormat);
+	writeOptionValueIfNotDefault(io, viewportZoom);
+	writeOptionValueIfNotDefault(io, imageZoom);
+	writeOptionValueIfNotDefault(io, fontSize);
+	writeOptionValueIfNotDefault(io, showsBluetoothScan);
+	writeOptionValueIfNotDefault(io, showsNotificationIcon);
+	writeOptionValueIfNotDefault(io, lowProfileOSNav);
+	writeOptionValueIfNotDefault(io, hidesOSNav);
+	writeOptionValueIfNotDefault(io, hidesStatusBar);
+	writeOptionValueIfNotDefault(io, showsBundledGames);
+	writeOptionValueIfNotDefault(io, frameInterval);
+	writeOptionValueIfNotDefault(io, frameTimeSource);
+	writeOptionValueIfNotDefault(io, idleDisplayPowerSave);
+	writeOptionValueIfNotDefault(io, confirmOverwriteState);
+	writeOptionValueIfNotDefault(io, systemActionsIsDefaultMenu);
+	writeOptionValueIfNotDefault(io, pauseUnfocused);
+	writeOptionValueIfNotDefault(io, emuOrientation);
+	writeOptionValueIfNotDefault(io, menuOrientation);
 	writeOptionValue(io, CFGKEY_BACK_NAVIGATION, viewManager.needsBackControlOption());
 	writeOptionValue(io, CFGKEY_SWAPPED_GAMEPAD_CONFIM, swappedConfirmKeysOption());
-	writeOptionValue(io, CFGKEY_AUDIO_SOLO_MIX, audioManager().soloMixOption());
+	writeOptionValue(io, CFGKEY_AUDIO_SOLO_MIX, audioManager.soloMixOption());
 	writeOptionValue(io, CFGKEY_WINDOW_PIXEL_FORMAT, windowDrawablePixelFormatOption());
 	writeOptionValue(io, CFGKEY_VIDEO_COLOR_SPACE, windowDrawableColorSpaceOption());
 	writeOptionValue(io, CFGKEY_RENDER_PIXEL_FORMAT, renderPixelFormatOption());
-	writeOptionValueIfNotDefault(io, CFGKEY_TEXTURE_BUFFER_MODE, optionTextureBufferMode, Gfx::TextureBufferMode{});
-	if(used(optionShowOnSecondScreen))
-		writeOptionValueIfNotDefault(io, CFGKEY_SHOW_ON_2ND_SCREEN, optionShowOnSecondScreen, false);
-	writeOptionValueIfNotDefault(io, CFGKEY_SHOW_HIDDEN_FILES, showHiddenFilesInPicker, false);
-	if(used(optionTitleBar))
-		writeOptionValueIfNotDefault(io, CFGKEY_TITLE_BAR, optionTitleBar, true);
+	writeOptionValueIfNotDefault(io, textureBufferMode);
+	writeOptionValueIfNotDefault(io, showOnSecondScreen);
+	writeOptionValueIfNotDefault(io, showHiddenFilesInPicker);
+	writeOptionValueIfNotDefault(io, showsTitleBar);
 	if constexpr(MOGA_INPUT)
 	{
 		if(mogaManagerPtr)
 			writeOptionValue(io, CFGKEY_MOGA_INPUT_SYSTEM, true);
 	}
-	if(used(useSustainedPerformanceMode) && appContext().hasSustainedPerformanceMode())
-		writeOptionValueIfNotDefault(io, CFGKEY_SUSTAINED_PERFORMANCE_MODE, useSustainedPerformanceMode, false);
-	if(used(keepBluetoothActive))
-		writeOptionValueIfNotDefault(io, CFGKEY_KEEP_BLUETOOTH_ACTIVE, keepBluetoothActive, false);
-	if(used(notifyOnInputDeviceChange))
-		writeOptionValueIfNotDefault(io, CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE, notifyOnInputDeviceChange, true);
+	writeOptionValueIfNotDefault(io, useSustainedPerformanceMode);
+	writeOptionValueIfNotDefault(io, keepBluetoothActive);
+	writeOptionValueIfNotDefault(io, notifyOnInputDeviceChange);
 	if(appContext().hasTranslucentSysUI() && !doesLayoutBehindSystemUI())
 		writeOptionValue(io, CFGKEY_LAYOUT_BEHIND_SYSTEM_UI, false);
-	if(contentRotation_ != Rotation::ANY)
-		writeOptionValue(io, CFGKEY_CONTENT_ROTATION, contentRotation_);
-	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_LANDSCAPE_ASPECT_RATIO, videoLayer().landscapeAspectRatio, defaultVideoAspectRatio());
-	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_PORTRAIT_ASPECT_RATIO, videoLayer().portraitAspectRatio, defaultVideoAspectRatio());
-	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_LANDSCAPE_OFFSET, videoLayer().landscapeOffset, 0);
-	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_PORTRAIT_OFFSET, videoLayer().portraitOffset, 0);
-	writeOptionValueIfNotDefault(io, CFGKEY_FAST_MODE_SPEED, fastModeSpeed, defaultFastModeSpeed);
-	writeOptionValueIfNotDefault(io, CFGKEY_SLOW_MODE_SPEED, slowModeSpeed, defaultSlowModeSpeed);
+	writeOptionValueIfNotDefault(io, contentRotation);
+	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_LANDSCAPE_ASPECT_RATIO, videoLayer.landscapeAspectRatio, defaultVideoAspectRatio());
+	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_PORTRAIT_ASPECT_RATIO, videoLayer.portraitAspectRatio, defaultVideoAspectRatio());
+	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_LANDSCAPE_OFFSET, videoLayer.landscapeOffset, 0);
+	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_PORTRAIT_OFFSET, videoLayer.portraitOffset, 0);
+	writeOptionValueIfNotDefault(io, fastModeSpeed);
+	writeOptionValueIfNotDefault(io, slowModeSpeed);
 	writeOptionValueIfNotDefault(io, CFGKEY_FRAME_RATE, outputTimingManager.frameTimeOption(VideoSystem::NATIVE_NTSC), OutputTimingManager::autoOption);
 	writeOptionValueIfNotDefault(io, CFGKEY_FRAME_RATE_PAL, outputTimingManager.frameTimeOption(VideoSystem::PAL), OutputTimingManager::autoOption);
 	inputManager.vController.writeConfig(io);
-	autosaveManager_.writeConfig(io);
+	autosaveManager.writeConfig(io);
 	rewindManager.writeConfig(io);
-	emuAudio.writeConfig(io);
-	emuVideoLayer.writeConfig(io);
-	doIfUsed(overrideScreenFrameRate, [&](auto &rate)
-	{
-		writeOptionValueIfNotDefault(io, CFGKEY_OVERRIDE_SCREEN_FRAME_RATE, rate, FrameRate{0});
-	});
-	writeOptionValueIfNotDefault(io, CFGKEY_BLANK_FRAME_INSERTION, allowBlankFrameInsertion, false);
+	audio.writeConfig(io);
+	videoLayer.writeConfig(io);
+	if(overrideScreenFrameRate)
+		writeOptionValue(io, CFGKEY_OVERRIDE_SCREEN_FRAME_RATE, overrideScreenFrameRate);
+	writeOptionValueIfNotDefault(io, allowBlankFrameInsertion);
 	if(videoBrightnessRGB != Gfx::Vec3{1.f, 1.f, 1.f})
 		writeOptionValue(io, CFGKEY_VIDEO_BRIGHTNESS, videoBrightnessRGB);
 	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 	if(!BluetoothAdapter::scanCacheUsage())
 		writeOptionValue(io, CFGKEY_BLUETOOTH_SCAN_CACHE, false);
 	#endif
-	if(used(cpuAffinityMask) && cpuAffinityMask)
-		writeOptionValue(io, CFGKEY_CPU_AFFINITY_MASK, cpuAffinityMask);
-	if(used(cpuAffinityMode))
-		writeOptionValueIfNotDefault(io, CFGKEY_CPU_AFFINITY_MODE, cpuAffinityMode, CPUAffinityMode::Auto);
-	if(used(presentMode))
-		writeOptionValueIfNotDefault(io, CFGKEY_RENDERER_PRESENT_MODE, presentMode, Gfx::PresentMode::Auto);
-	if(used(presentationTimeMode) && renderer.supportsPresentationTime())
+	writeOptionValueIfNotDefault(io, cpuAffinityMask);
+	writeOptionValueIfNotDefault(io, cpuAffinityMode);
+	writeOptionValueIfNotDefault(io, presentMode);
+	if(renderer.supportsPresentationTime())
 		writeOptionValueIfNotDefault(io, CFGKEY_RENDERER_PRESENTATION_TIME, presentationTimeMode, PresentationTimeMode::basic);
 	writeStringOptionValue(io, CFGKEY_LAST_DIR, contentSearchPath());
 	writeStringOptionValue(io, CFGKEY_SAVE_PATH, system().userSaveDirectory());
@@ -188,108 +165,99 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 	ConfigParams appConfig{};
 	Gfx::DrawableConfig pendingWindowDrawableConf{};
 	readConfigKeys(FileUtils::bufferFromPath(configFilePath, {.test = true}),
-		[&](auto key, auto size, auto &io) -> bool
+		[&](auto key, auto &io) -> bool
 		{
 			switch(key)
 			{
 				default:
 				{
-					if(system().readConfig(ConfigType::MAIN, io, key, size))
+					if(system().readConfig(ConfigType::MAIN, io, key))
 						return true;
-					if(inputManager.vController.readConfig(*this, io, key, size))
+					if(inputManager.vController.readConfig(*this, io, key))
 						return true;
-					if(autosaveManager_.readConfig(io, key, size))
+					if(autosaveManager.readConfig(io, key))
 						return true;
-					if(rewindManager.readConfig(io, key, size))
+					if(rewindManager.readConfig(io, key))
 						return true;
-					if(emuAudio.readConfig(io, key, size))
+					if(audio.readConfig(io, key))
 						return true;
-					if(recentContent.readConfig(io, key, size, system()))
+					if(recentContent.readConfig(io, key, system()))
 						return true;
-					if(emuVideoLayer.readConfig(io, key, size))
+					if(videoLayer.readConfig(io, key))
 						return true;
 					log.info("skipping key:{}", key);
 					return false;
 				}
-				case CFGKEY_FRAME_INTERVAL: return readOptionValue(io, size, optionFrameInterval, optionIsValidWithMinMax<0, 4, uint8_t>);
-				case CFGKEY_FRAME_RATE: return readOptionValue<FrameTime>(io, size, [&](auto &&val){outputTimingManager.setFrameTimeOption(VideoSystem::NATIVE_NTSC, val);});
-				case CFGKEY_FRAME_RATE_PAL: return readOptionValue<FrameTime>(io, size, [&](auto &&val){outputTimingManager.setFrameTimeOption(VideoSystem::PAL, val);});
+				case CFGKEY_FRAME_INTERVAL: return readOptionValue(io, frameInterval);
+				case CFGKEY_FRAME_RATE: return readOptionValue<FrameTime>(io, [&](auto &&val){outputTimingManager.setFrameTimeOption(VideoSystem::NATIVE_NTSC, val);});
+				case CFGKEY_FRAME_RATE_PAL: return readOptionValue<FrameTime>(io, [&](auto &&val){outputTimingManager.setFrameTimeOption(VideoSystem::PAL, val);});
 				case CFGKEY_LAST_DIR:
-					return readStringOptionValue<FS::PathString>(io, size, [&](auto &&path){setContentSearchPath(path);});
-				case CFGKEY_FONT_Y_SIZE: return readOptionValue(io, size, optionFontSize, isValidFontSize);
-				case CFGKEY_GAME_ORIENTATION: return readOptionValue(io, size, optionEmuOrientation);
-				case CFGKEY_MENU_ORIENTATION: return readOptionValue(io, size, optionMenuOrientation);
-				case CFGKEY_IMAGE_ZOOM: return optionImageZoom.readFromIO(io, size);
-				case CFGKEY_VIEWPORT_ZOOM: return optionViewportZoom.readFromIO(io, size);
-				case CFGKEY_SHOW_ON_2ND_SCREEN: return used(optionShowOnSecondScreen) ? readOptionValue(io, size, optionShowOnSecondScreen) : false;
-				case CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT: return optionImageEffectPixelFormat.readFromIO(io, size);
+					return readStringOptionValue<FS::PathString>(io, [&](auto &&path){setContentSearchPath(path);});
+				case CFGKEY_FONT_Y_SIZE: return readOptionValue(io, fontSize);
+				case CFGKEY_GAME_ORIENTATION: return readOptionValue(io, emuOrientation);
+				case CFGKEY_MENU_ORIENTATION: return readOptionValue(io, menuOrientation);
+				case CFGKEY_IMAGE_ZOOM: return readOptionValue(io, imageZoom);
+				case CFGKEY_VIEWPORT_ZOOM: return readOptionValue(io, viewportZoom);
+				case CFGKEY_SHOW_ON_2ND_SCREEN: return readOptionValue(io, showOnSecondScreen);
+				case CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT: return readOptionValue(io, imageEffectPixelFormat);
 				case CFGKEY_RENDER_PIXEL_FORMAT:
-					setRenderPixelFormat(readOptionValue<IG::PixelFormat>(io, size, renderPixelFormatIsValid));
+					setRenderPixelFormat(readOptionValue<IG::PixelFormat>(io, renderPixelFormatIsValid));
 					return true;
 				case CFGKEY_RECENT_CONTENT: return recentContent.readLegacyConfig(io, system());
 				case CFGKEY_SWAPPED_GAMEPAD_CONFIM:
-					setSwappedConfirmKeys(readOptionValue<bool>(io, size));
+					setSwappedConfirmKeys(readOptionValue<bool>(io));
 					return true;
-				case CFGKEY_PAUSE_UNFOCUSED: return used(pauseUnfocused) ? readOptionValue(io, size, pauseUnfocused) : false;
-				case CFGKEY_NOTIFICATION_ICON: return optionNotificationIcon.readFromIO(io, size);
-				case CFGKEY_TITLE_BAR: return used(optionTitleBar) ? readOptionValue(io, size, optionTitleBar) : false;
-				case CFGKEY_BACK_NAVIGATION:
-					return readOptionValue(io, size, viewManager.needsBackControl);
-				case CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU: return readOptionValue(io, size, systemActionsIsDefaultMenu);
-				case CFGKEY_IDLE_DISPLAY_POWER_SAVE: return readOptionValue(io, size, idleDisplayPowerSave_);
-				case CFGKEY_HIDE_STATUS_BAR: return used(optionHideStatusBar) ? readOptionValue(io, size, optionHideStatusBar) : false;
+				case CFGKEY_PAUSE_UNFOCUSED: return readOptionValue(io, pauseUnfocused);
+				case CFGKEY_NOTIFICATION_ICON: return canShowNotificationIcon(ctx) ? readOptionValue(io, showsNotificationIcon) : false;
+				case CFGKEY_TITLE_BAR: return readOptionValue(io, showsTitleBar);
+				case CFGKEY_BACK_NAVIGATION: return readOptionValue(io, viewManager.needsBackControl);
+				case CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU: return readOptionValue(io, systemActionsIsDefaultMenu);
+				case CFGKEY_IDLE_DISPLAY_POWER_SAVE: return readOptionValue(io, idleDisplayPowerSave);
+				case CFGKEY_HIDE_STATUS_BAR: return readOptionValue(io, hidesStatusBar);
 				case CFGKEY_LAYOUT_BEHIND_SYSTEM_UI:
-					return ctx.hasTranslucentSysUI() ? readOptionValue(io, size, layoutBehindSystemUI) : false;
-				case CFGKEY_CONFIRM_OVERWRITE_STATE: return readOptionValue(io, size, confirmOverwriteState);
-				case CFGKEY_FAST_MODE_SPEED: return readOptionValue(io, size, fastModeSpeed, isValidFastSpeed);
-				case CFGKEY_SLOW_MODE_SPEED: return readOptionValue(io, size, slowModeSpeed, isValidSlowSpeed);
-				#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
-				case CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE: return used(notifyOnInputDeviceChange) ? readOptionValue(io, size, notifyOnInputDeviceChange) : false;
-				#endif
+					return ctx.hasTranslucentSysUI() ? readOptionValue(io, layoutBehindSystemUI) : false;
+				case CFGKEY_CONFIRM_OVERWRITE_STATE: return readOptionValue(io, confirmOverwriteState);
+				case CFGKEY_FAST_MODE_SPEED: return readOptionValue(io, fastModeSpeed);
+				case CFGKEY_SLOW_MODE_SPEED: return readOptionValue(io, slowModeSpeed);
+				case CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE: return readOptionValue(io, notifyOnInputDeviceChange);
 				case CFGKEY_MOGA_INPUT_SYSTEM:
-					return MOGA_INPUT ? readOptionValue<bool>(io, size, [&](auto on){setMogaManagerActive(on, false);}) : false;
-				case CFGKEY_TEXTURE_BUFFER_MODE: return readOptionValue(io, size, optionTextureBufferMode);
-				#if defined __ANDROID__
-				case CFGKEY_LOW_PROFILE_OS_NAV: return optionLowProfileOSNav.readFromIO(io, size);
-				case CFGKEY_HIDE_OS_NAV: return optionHideOSNav.readFromIO(io, size);
-				case CFGKEY_SUSTAINED_PERFORMANCE_MODE:
-					return used(useSustainedPerformanceMode) ? readOptionValue(io, size, useSustainedPerformanceMode) : false;
-				#endif
+					return MOGA_INPUT ? readOptionValue<bool>(io, [&](auto on){setMogaManagerActive(on, false);}) : false;
+				case CFGKEY_TEXTURE_BUFFER_MODE: return readOptionValue(io, textureBufferMode);
+				case CFGKEY_LOW_PROFILE_OS_NAV: return readOptionValue(io, lowProfileOSNav);
+				case CFGKEY_HIDE_OS_NAV: return readOptionValue(io, hidesOSNav);
+				case CFGKEY_SUSTAINED_PERFORMANCE_MODE: return appContext().hasSustainedPerformanceMode()
+					&& readOptionValue(io, useSustainedPerformanceMode);
 				#ifdef CONFIG_INPUT_BLUETOOTH
-				case CFGKEY_KEEP_BLUETOOTH_ACTIVE: return used(keepBluetoothActive) ? readOptionValue(io, size, keepBluetoothActive) : false;
-				case CFGKEY_SHOW_BLUETOOTH_SCAN: return optionShowBluetoothScan.readFromIO(io, size);
+				case CFGKEY_KEEP_BLUETOOTH_ACTIVE: return readOptionValue(io, keepBluetoothActive);
+				case CFGKEY_SHOW_BLUETOOTH_SCAN: return readOptionValue(io, showsBluetoothScan);
 					#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-					case CFGKEY_BLUETOOTH_SCAN_CACHE: return readOptionValue<bool>(io, size, [](auto on){BluetoothAdapter::setScanCacheUsage(on);});
+					case CFGKEY_BLUETOOTH_SCAN_CACHE: return readOptionValue<bool>(io, [](auto on){BluetoothAdapter::setScanCacheUsage(on);});
 					#endif
 				#endif
-				case CFGKEY_CPU_AFFINITY_MASK:
-					return used(cpuAffinityMask) ? readOptionValue(io, size, cpuAffinityMask) : false;
-				case CFGKEY_CPU_AFFINITY_MODE:
-					return used(cpuAffinityMode) ? readOptionValue(io, size, cpuAffinityMode, [](auto m){return m <= lastEnum<CPUAffinityMode>;}) : false;
-				case CFGKEY_RENDERER_PRESENT_MODE:
-					return used(presentMode) ? readOptionValue(io, size, presentMode, [](auto m){return m <= lastEnum<Gfx::PresentMode>;}) : false;
+				case CFGKEY_CPU_AFFINITY_MASK: return readOptionValue(io, cpuAffinityMask);
+				case CFGKEY_CPU_AFFINITY_MODE: return readOptionValue(io, cpuAffinityMode);
+				case CFGKEY_RENDERER_PRESENT_MODE: return readOptionValue(io, presentMode);
 				case CFGKEY_RENDERER_PRESENTATION_TIME:
-					return used(presentationTimeMode) ? readOptionValue(io, size, presentationTimeMode, [](auto m){return m <= lastEnum<PresentationTimeMode>;}) : false;
-				case CFGKEY_FRAME_CLOCK:
-					return readOptionValue(io, size, frameTimeSource, [](auto m){return m <= lastEnum<FrameTimeSource>;});
+					return used(presentationTimeMode) ? readOptionValue(io, presentationTimeMode, [](auto m){return m <= lastEnum<PresentationTimeMode>;}) : false;
+				case CFGKEY_FRAME_CLOCK: return readOptionValue(io, frameTimeSource);
 				case CFGKEY_AUDIO_SOLO_MIX:
-					audioManager().setSoloMix(readOptionValue<bool>(io, size));
+					audioManager.setSoloMix(readOptionValue<bool>(io));
 					return true;
 				case CFGKEY_SAVE_PATH:
-					return readStringOptionValue<FS::PathString>(io, size, [&](auto &&path){system().setUserSaveDirectory(path);});
-				case CFGKEY_SCREENSHOTS_PATH: return readStringOptionValue(io, size, userScreenshotPath);
-				case CFGKEY_SHOW_BUNDLED_GAMES: return EmuSystem::hasBundledGames ? readOptionValue(io, size, optionShowBundledGames) : false;
-				case CFGKEY_WINDOW_PIXEL_FORMAT: return readOptionValue(io, size, pendingWindowDrawableConf.pixelFormat, windowPixelFormatIsValid);
-				case CFGKEY_VIDEO_COLOR_SPACE: return readOptionValue(io, size, pendingWindowDrawableConf.colorSpace, colorSpaceIsValid);
-				case CFGKEY_SHOW_HIDDEN_FILES: return readOptionValue(io, size, showHiddenFilesInPicker);
-				case CFGKEY_OVERRIDE_SCREEN_FRAME_RATE: return readOptionValue(io, size, overrideScreenFrameRate);
-				case CFGKEY_BLANK_FRAME_INSERTION: return readOptionValue(io, size, allowBlankFrameInsertion);
-				case CFGKEY_CONTENT_ROTATION: return readOptionValue(io, size, contentRotation_, [](auto r){return r <= lastEnum<Rotation>;});
-				case CFGKEY_VIDEO_LANDSCAPE_ASPECT_RATIO: return readOptionValue(io, size, videoLayer().landscapeAspectRatio, isValidAspectRatio);
-				case CFGKEY_VIDEO_PORTRAIT_ASPECT_RATIO: return readOptionValue(io, size, videoLayer().portraitAspectRatio, isValidAspectRatio);
-				case CFGKEY_VIDEO_LANDSCAPE_OFFSET: return readOptionValue(io, size, videoLayer().landscapeOffset, [](auto v){return v >= -4096 && v <= 4096;});
-				case CFGKEY_VIDEO_PORTRAIT_OFFSET: return readOptionValue(io, size, videoLayer().portraitOffset, [](auto v){return v >= -4096 && v <= 4096;});
-				case CFGKEY_VIDEO_BRIGHTNESS: return readOptionValue(io, size, videoBrightnessRGB);
+					return readStringOptionValue<FS::PathString>(io, [&](auto &&path){system().setUserSaveDirectory(path);});
+				case CFGKEY_SCREENSHOTS_PATH: return readStringOptionValue(io, userScreenshotPath);
+				case CFGKEY_SHOW_BUNDLED_GAMES: return EmuSystem::hasBundledGames ? readOptionValue(io, showsBundledGames) : false;
+				case CFGKEY_WINDOW_PIXEL_FORMAT: return readOptionValue(io, pendingWindowDrawableConf.pixelFormat, windowPixelFormatIsValid);
+				case CFGKEY_VIDEO_COLOR_SPACE: return readOptionValue(io, pendingWindowDrawableConf.colorSpace, colorSpaceIsValid);
+				case CFGKEY_SHOW_HIDDEN_FILES: return readOptionValue(io, showHiddenFilesInPicker);
+				case CFGKEY_OVERRIDE_SCREEN_FRAME_RATE: return readOptionValue(io, overrideScreenFrameRate);
+				case CFGKEY_BLANK_FRAME_INSERTION: return readOptionValue(io, allowBlankFrameInsertion);
+				case CFGKEY_CONTENT_ROTATION: return readOptionValue(io, contentRotation);
+				case CFGKEY_VIDEO_LANDSCAPE_ASPECT_RATIO: return readOptionValue(io, videoLayer.landscapeAspectRatio, isValidAspectRatio);
+				case CFGKEY_VIDEO_PORTRAIT_ASPECT_RATIO: return readOptionValue(io, videoLayer.portraitAspectRatio, isValidAspectRatio);
+				case CFGKEY_VIDEO_LANDSCAPE_OFFSET: return readOptionValue(io, videoLayer.landscapeOffset, [](auto v){return v >= -4096 && v <= 4096;});
+				case CFGKEY_VIDEO_PORTRAIT_OFFSET: return readOptionValue(io, videoLayer.portraitOffset, [](auto v){return v >= -4096 && v <= 4096;});
+				case CFGKEY_VIDEO_BRIGHTNESS: return readOptionValue(io, videoBrightnessRGB);
 				case CFGKEY_INPUT_KEY_CONFIGS_V2: return inputManager.readCustomKeyConfig(io);
 				case CFGKEY_INPUT_DEVICE_CONFIGS: return inputManager.readSavedInputDevices(io);
 			}

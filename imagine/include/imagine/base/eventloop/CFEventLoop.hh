@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/base/eventLoopDefs.hh>
+#include <imagine/base/baseDefs.hh>
 #include <imagine/util/used.hh>
 #include <imagine/util/memory/UniqueFileDescriptor.hh>
 #include <CoreFoundation/CoreFoundation.h>
@@ -49,7 +49,7 @@ public:
 	~CFFDEventSource();
 
 protected:
-	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
+	ConditionalMember<Config::DEBUG_BUILD, const char *> debugLabel{};
 	std::unique_ptr<CFFDEventSourceInfo> info;
 
 	void deinit();

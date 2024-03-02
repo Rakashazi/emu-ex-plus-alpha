@@ -28,11 +28,12 @@
 #include <ss/input/keyboard.h>
 #include <ss/input/jpkeyboard.h>
 #include <mednafen-emuex/MDFNUtils.hh>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
 
-constexpr SystemLogger log{"Input"};
+constexpr SystemLogger log{"Saturn.emu"};
 const int EmuSystem::maxPlayers = 12;
 
 enum class SaturnKey : KeyCode

@@ -26,11 +26,6 @@ struct pa_glib_mainloop;
 struct pa_threaded_mainloop;
 #endif
 
-namespace IG
-{
-class ErrorCode;
-}
-
 namespace IG::Audio
 {
 
@@ -40,7 +35,7 @@ public:
 	PAOutputStream();
 	~PAOutputStream();
 	PAOutputStream &operator=(PAOutputStream &&) = delete;
-	ErrorCode open(OutputStreamConfig config);
+	StreamError open(OutputStreamConfig config);
 	void play();
 	void pause();
 	void close();

@@ -16,7 +16,9 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuApp.hh>
 #include "MainSystem.hh"
+#include <emuframework/Option.hh>
 #include <imagine/util/format.hh>
+#include <imagine/logger/logger.h>
 
 extern "C"
 {
@@ -33,7 +35,7 @@ extern "C"
 namespace EmuEx
 {
 
-constexpr SystemLogger log{"options"};
+constexpr SystemLogger log{"C64.emu"};
 const char *EmuSystem::configFilename = "C64Emu.config";
 
 std::span<const AspectRatioInfo> C64System::aspectRatioInfos()
@@ -147,33 +149,33 @@ bool C64System::resetSessionOptions(EmuApp &)
 	return true;
 }
 
-bool C64System::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
+bool C64System::readConfig(ConfigType type, MapIO &io, unsigned key)
 {
 	if(type == ConfigType::MAIN)
 	{
 		switch(key)
 		{
-			case CFGKEY_VICE_SYSTEM: return readOptionValue(io, readSize, optionViceSystem, [](auto v){return int(v) < VicePlugin::SYSTEMS;});
+			case CFGKEY_VICE_SYSTEM: return readOptionValue(io, optionViceSystem, [](auto v){return int(v) < VicePlugin::SYSTEMS;});
 			case CFGKEY_SYSTEM_FILE_PATH:
-				return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &&path){sysFilePath[0] = IG_forward(path);});
+				return readStringOptionValue<FS::PathString>(io, [&](auto &&path){sysFilePath[0] = IG_forward(path);});
 		}
 	}
 	else if(type == ConfigType::CORE)
 	{
 		switch(key)
 		{
-			case CFGKEY_DEFAULT_MODEL: return readOptionValue(io, readSize, defaultModel, modelIdIsValid);
-			case CFGKEY_CROP_NORMAL_BORDERS: return readOptionValue(io, readSize, optionCropNormalBorders);
-			case CFGKEY_DEFAULT_DRIVE_TRUE_EMULATION: return readOptionValue(io, readSize, defaultDriveTrueEmulation);
-			case CFGKEY_SID_ENGINE: return readOptionValue<uint8_t>(io, readSize, [&](auto v){ setSidEngine(v); });
-			case CFGKEY_BORDER_MODE: return readOptionValue<uint8_t>(io, readSize, [&](auto v){ setBorderMode(v); });
-			case CFGKEY_RESID_SAMPLING: return readOptionValue<uint8_t>(io, readSize, [&](auto v){ setReSidSampling(v); });
-			case CFGKEY_DEFAULT_PALETTE_NAME: return readStringOptionValue(io, readSize, defaultPaletteName);
-			case CFGKEY_COLOR_SATURATION: return readOptionValue<int16_t>(io, readSize, [&](auto v){ setColorSetting(ColorSetting::Saturation, v); });
-			case CFGKEY_COLOR_CONTRAST: return readOptionValue<int16_t>(io, readSize, [&](auto v){ setColorSetting(ColorSetting::Contrast, v); });
-			case CFGKEY_COLOR_BRIGHTNESS: return readOptionValue<int16_t>(io, readSize, [&](auto v){ setColorSetting(ColorSetting::Brightness, v); });
-			case CFGKEY_COLOR_GAMMA: return readOptionValue<int16_t>(io, readSize, [&](auto v){ setColorSetting(ColorSetting::Gamma, v); });
-			case CFGKEY_COLOR_TINT: return readOptionValue<int16_t>(io, readSize, [&](auto v){ setColorSetting(ColorSetting::Tint, v); });
+			case CFGKEY_DEFAULT_MODEL: return readOptionValue(io, defaultModel, modelIdIsValid);
+			case CFGKEY_CROP_NORMAL_BORDERS: return readOptionValue(io, optionCropNormalBorders);
+			case CFGKEY_DEFAULT_DRIVE_TRUE_EMULATION: return readOptionValue(io, defaultDriveTrueEmulation);
+			case CFGKEY_SID_ENGINE: return readOptionValue<uint8_t>(io, [&](auto v){ setSidEngine(v); });
+			case CFGKEY_BORDER_MODE: return readOptionValue<uint8_t>(io, [&](auto v){ setBorderMode(v); });
+			case CFGKEY_RESID_SAMPLING: return readOptionValue<uint8_t>(io, [&](auto v){ setReSidSampling(v); });
+			case CFGKEY_DEFAULT_PALETTE_NAME: return readStringOptionValue(io, defaultPaletteName);
+			case CFGKEY_COLOR_SATURATION: return readOptionValue<int16_t>(io, [&](auto v){ setColorSetting(ColorSetting::Saturation, v); });
+			case CFGKEY_COLOR_CONTRAST: return readOptionValue<int16_t>(io, [&](auto v){ setColorSetting(ColorSetting::Contrast, v); });
+			case CFGKEY_COLOR_BRIGHTNESS: return readOptionValue<int16_t>(io, [&](auto v){ setColorSetting(ColorSetting::Brightness, v); });
+			case CFGKEY_COLOR_GAMMA: return readOptionValue<int16_t>(io, [&](auto v){ setColorSetting(ColorSetting::Gamma, v); });
+			case CFGKEY_COLOR_TINT: return readOptionValue<int16_t>(io, [&](auto v){ setColorSetting(ColorSetting::Tint, v); });
 		}
 	}
 	else if(type == ConfigType::SESSION)
@@ -181,14 +183,14 @@ bool C64System::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 		switch(key)
 		{
 			case CFGKEY_MODEL:
-				return readOptionValue<bool>(io, readSize, [&](auto v){ if(modelIdIsValid(v)) { setModel(v); } });
-			case CFGKEY_DRIVE_TRUE_EMULATION: return readOptionValue<bool>(io, readSize, [&](auto v){ setDriveTrueEmulation(v); });
-			case CFGKEY_AUTOSTART_WARP: return readOptionValue<bool>(io, readSize, [&](auto v){ setAutostartWarp(v); });
-			case CFGKEY_AUTOSTART_TDE: return readOptionValue<bool>(io, readSize, [&](auto v){ setAutostartTDE(v); });
-			case CFGKEY_AUTOSTART_BASIC_LOAD: return readOptionValue<bool>(io, readSize, [&](auto v){ setAutostartBasicLoad(v); });
-			case CFGKEY_SWAP_JOYSTICK_PORTS: return readOptionValue<JoystickMode>(io, readSize, [&](auto v){ if(v <= JoystickMode::KEYBOARD) setJoystickMode(v); });
-			case CFGKEY_AUTOSTART_ON_LOAD: return readOptionValue(io, readSize, optionAutostartOnLaunch);
-			case CFGKEY_VIC20_RAM_EXPANSIONS: return readOptionValue<uint8_t>(io, readSize, [&](auto blocks)
+				return readOptionValue<bool>(io, [&](auto v){ if(modelIdIsValid(v)) { setModel(v); } });
+			case CFGKEY_DRIVE_TRUE_EMULATION: return readOptionValue<bool>(io, [&](auto v){ setDriveTrueEmulation(v); });
+			case CFGKEY_AUTOSTART_WARP: return readOptionValue<bool>(io, [&](auto v){ setAutostartWarp(v); });
+			case CFGKEY_AUTOSTART_TDE: return readOptionValue<bool>(io, [&](auto v){ setAutostartTDE(v); });
+			case CFGKEY_AUTOSTART_BASIC_LOAD: return readOptionValue<bool>(io, [&](auto v){ setAutostartBasicLoad(v); });
+			case CFGKEY_SWAP_JOYSTICK_PORTS: return readOptionValue<JoystickMode>(io, [&](auto v){ if(v <= JoystickMode::KEYBOARD) setJoystickMode(v); });
+			case CFGKEY_AUTOSTART_ON_LOAD: return readOptionValue(io, optionAutostartOnLaunch);
+			case CFGKEY_VIC20_RAM_EXPANSIONS: return readOptionValue<uint8_t>(io, [&](auto blocks)
 			{
 				enterCPUTrap();
 				if(blocks & BLOCK_0)
@@ -202,11 +204,11 @@ bool C64System::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 				if(blocks & BLOCK_5)
 					setIntResource("RamBlock5", 1);
 			});
-			case CFGKEY_C64_RAM_EXPANSION_MODULE: return readOptionValue<int16_t>(io, readSize, [&](auto reuSize)
+			case CFGKEY_C64_RAM_EXPANSION_MODULE: return readOptionValue<int16_t>(io, [&](auto reuSize)
 			{
 				setReuSize(reuSize);
 			});
-			case CFGKEY_PALETTE_NAME: return readStringOptionValue<FS::FileString>(io, readSize, [&](auto &&name)
+			case CFGKEY_PALETTE_NAME: return readStringOptionValue<FS::FileString>(io, [&](auto &&name)
 			{
 				if(name == "internal")
 					setPaletteResources({});
@@ -214,13 +216,13 @@ bool C64System::readConfig(ConfigType type, MapIO &io, unsigned key, size_t read
 					setPaletteResources(name.data());
 			});
 			case CFGKEY_DRIVE8_TYPE:
-				return readOptionValue<uint16_t>(io, readSize, [&](auto type){ setDriveType(8, type); });
+				return readOptionValue<uint16_t>(io, [&](auto type){ setDriveType(8, type); });
 			case CFGKEY_DRIVE9_TYPE:
-				return readOptionValue<uint16_t>(io, readSize, [&](auto type){ setDriveType(9, type); });
+				return readOptionValue<uint16_t>(io, [&](auto type){ setDriveType(9, type); });
 			case CFGKEY_DRIVE10_TYPE:
-				return readOptionValue<uint16_t>(io, readSize, [&](auto type){ setDriveType(10, type); });
+				return readOptionValue<uint16_t>(io, [&](auto type){ setDriveType(10, type); });
 			case CFGKEY_DRIVE11_TYPE:
-				return readOptionValue<uint16_t>(io, readSize, [&](auto type){ setDriveType(11, type); });
+				return readOptionValue<uint16_t>(io, [&](auto type){ setDriveType(11, type); });
 		}
 	}
 	return false;

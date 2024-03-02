@@ -16,7 +16,7 @@
 #include <emuframework/GUIOptionView.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuViewController.hh>
-#include "../EmuOptions.hh"
+#include <emuframework/EmuOptions.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <format>
@@ -78,12 +78,12 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	fontSize
 	{
 		"Font Size", attach,
-		MenuId{app().fontSize()},
+		MenuId{app().fontSize},
 		fontSizeItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(std::format("{:g}", app().fontSize() / 1000.));
+				t.resetString(std::format("{:g}", app().fontSize / 1000.));
 				return true;
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setFontSize(item.id); }
@@ -92,10 +92,10 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	notificationIcon
 	{
 		"Suspended App Icon", attach,
-		(bool)app().notificationIconOption().val,
+		app().showsNotificationIcon,
 		[this](BoolMenuItem &item)
 		{
-			app().notificationIconOption() = item.flipBoolValue(*this);
+			app().showsNotificationIcon = item.flipBoolValue(*this);
 		}
 	},
 	statusBarItem
@@ -107,7 +107,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	statusBar
 	{
 		"Hide Status Bar", attach,
-		MenuId{app().hideStatusBarMode()},
+		MenuId(Tristate(app().hidesStatusBar.value())),
 		statusBarItem,
 		MultiChoiceMenuItem::Config
 		{
@@ -123,7 +123,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	lowProfileOSNav
 	{
 		"Dim OS UI", attach,
-		MenuId{app().lowProfileOSNavMode()},
+		MenuId(Tristate(app().lowProfileOSNav.value())),
 		lowProfileOSNavItem,
 		MultiChoiceMenuItem::Config
 		{
@@ -139,7 +139,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	hideOSNav
 	{
 		"Hide OS Navigation", attach,
-		MenuId{app().hideOSNavMode()},
+		MenuId(Tristate(app().hidesOSNav.value())),
 		hideOSNavItem,
 		MultiChoiceMenuItem::Config
 		{
@@ -149,7 +149,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	idleDisplayPowerSave
 	{
 		"Allow Screen Timeout In Emulation", attach,
-		app().idleDisplayPowerSave(),
+		app().idleDisplayPowerSave,
 		[this](BoolMenuItem &item)
 		{
 			app().setIdleDisplayPowerSave(item.flipBoolValue(*this));
@@ -158,7 +158,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	navView
 	{
 		"Title Bar", attach,
-		app().optionTitleBar,
+		app().showsTitleBar,
 		[this](BoolMenuItem &item)
 		{
 			app().setShowsTitleBar(item.flipBoolValue(*this));
@@ -188,7 +188,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	showBundledGames
 	{
 		"Show Bundled Content", attach,
-		app().showsBundledGames(),
+		app().showsBundledGames,
 		[this](BoolMenuItem &item)
 		{
 			app().setShowsBundledGames(item.flipBoolValue(*this));
@@ -197,7 +197,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	showBluetoothScan
 	{
 		"Show Bluetooth Menu Items", attach,
-		app().showsBluetoothScanItems(),
+		app().showsBluetoothScan,
 		[this](BoolMenuItem &item)
 		{
 			app().setShowsBluetoothScanItems(item.flipBoolValue(*this));
@@ -242,7 +242,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	menuOrientation
 	{
 		"In Menu", attach,
-		MenuId{uint8_t(app().menuOrientation())},
+		MenuId{uint8_t(app().menuOrientation.value())},
 		menuOrientationItem,
 		{
 			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setMenuOrientation(std::bit_cast<Orientations>(uint8_t(item.id))); }
@@ -259,7 +259,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	emuOrientation
 	{
 		"In Emu", attach,
-		MenuId{uint8_t(app().emuOrientation())},
+		MenuId{uint8_t(app().emuOrientation.value())},
 		emuOrientationItem,
 		{
 			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setEmuOrientation(std::bit_cast<Orientations>(uint8_t(item.id))); }
@@ -306,7 +306,7 @@ void GUIOptionView::loadStockItems()
 	{
 		item.emplace_back(&pauseUnfocused);
 	}
-	if(!app().notificationIconOption().isConst)
+	if(app().canShowNotificationIcon(appContext()))
 	{
 		item.emplace_back(&notificationIcon);
 	}

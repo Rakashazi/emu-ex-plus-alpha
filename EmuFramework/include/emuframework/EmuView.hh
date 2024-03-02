@@ -57,7 +57,7 @@ private:
 		Gfx::IQuads bgQuads;
 		WRect rect{};
 	};
-	IG_UseMemberIf(enableFrameTimeStats, FrameTimeStatsUI, frameTimeStats);
+	ConditionalMember<enableFrameTimeStats, FrameTimeStatsUI> frameTimeStats;
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 	Gfx::Text audioStatsText{};
 	WRect audioStatsRect{};

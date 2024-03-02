@@ -14,7 +14,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuInput.hh>
-#include "EmuOptions.hh"
+#include <emuframework/EmuOptions.hh>
 #include <imagine/io/MapIO.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/logger/logger.h>

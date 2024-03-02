@@ -142,8 +142,8 @@ struct InputDeviceSavedConfig
 	int8_t player{};
 	bool enabled = true;
 	AxisAsDpadFlags joystickAxisAsDpadFlags;
-	IG_UseMemberIf(hasICadeInput, bool, iCadeMode){};
-	IG_UseMemberIf(Config::envIsAndroid, bool, handleUnboundEvents){};
+	ConditionalMember<hasICadeInput, bool> iCadeMode{};
+	ConditionalMember<Config::envIsAndroid, bool> handleUnboundEvents{};
 
 	bool operator ==(InputDeviceSavedConfig const& rhs) const
 	{

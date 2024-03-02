@@ -15,6 +15,8 @@
 
 #include <imagine/util/string.h>
 #include "MainApp.hh"
+#include <emuframework/Option.hh>
+#include <imagine/logger/logger.h>
 
 extern "C"
 {
@@ -54,8 +56,8 @@ void NeoSystem::setTimerIntOption()
 
 void NeoSystem::onOptionsLoaded()
 {
-	conf.system = (SYSTEM)optionBIOSType.val;
-	conf.country = (COUNTRY)optionMVSCountry.val;
+	conf.system = SYSTEM(optionBIOSType.value());
+	conf.country = COUNTRY(optionMVSCountry.value());
 }
 
 bool NeoSystem::resetSessionOptions(EmuApp &app)
@@ -65,24 +67,24 @@ bool NeoSystem::resetSessionOptions(EmuApp &app)
 	return true;
 }
 
-bool NeoSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
+bool NeoSystem::readConfig(ConfigType type, MapIO &io, unsigned key)
 {
 	if(type == ConfigType::MAIN)
 	{
 		switch(key)
 		{
-			case CFGKEY_LIST_ALL_GAMES: return optionListAllGames.readFromIO(io, readSize);
-			case CFGKEY_BIOS_TYPE: return optionBIOSType.readFromIO(io, readSize);
-			case CFGKEY_MVS_COUNTRY: return optionMVSCountry.readFromIO(io, readSize);
-			case CFGKEY_CREATE_USE_CACHE: return optionCreateAndUseCache.readFromIO(io, readSize);
-			case CFGKEY_STRICT_ROM_CHECKING: return optionStrictROMChecking.readFromIO(io, readSize);
+			case CFGKEY_LIST_ALL_GAMES: return readOptionValue(io, optionListAllGames);
+			case CFGKEY_BIOS_TYPE: return readOptionValue(io, optionBIOSType);
+			case CFGKEY_MVS_COUNTRY: return readOptionValue(io, optionMVSCountry);
+			case CFGKEY_CREATE_USE_CACHE: return readOptionValue(io, optionCreateAndUseCache);
+			case CFGKEY_STRICT_ROM_CHECKING: return readOptionValue(io, optionStrictROMChecking);
 		}
 	}
 	else if(type == ConfigType::SESSION)
 	{
 		switch(key)
 		{
-			case CFGKEY_TIMER_INT: return optionTimerInt.readFromIO(io, readSize);
+			case CFGKEY_TIMER_INT: return readOptionValue(io, optionTimerInt);
 		}
 	}
 	return false;
@@ -92,15 +94,15 @@ void NeoSystem::writeConfig(ConfigType type, FileIO &io)
 {
 	if(type == ConfigType::MAIN)
 	{
-		optionListAllGames.writeWithKeyIfNotDefault(io);
-		optionBIOSType.writeWithKeyIfNotDefault(io);
-		optionMVSCountry.writeWithKeyIfNotDefault(io);
-		optionCreateAndUseCache.writeWithKeyIfNotDefault(io);
-		optionStrictROMChecking.writeWithKeyIfNotDefault(io);
+		writeOptionValueIfNotDefault(io, optionListAllGames);
+		writeOptionValueIfNotDefault(io, optionBIOSType);
+		writeOptionValueIfNotDefault(io, optionMVSCountry);
+		writeOptionValueIfNotDefault(io, optionCreateAndUseCache);
+		writeOptionValueIfNotDefault(io, optionStrictROMChecking);
 	}
 	else if(type == ConfigType::SESSION)
 	{
-		optionTimerInt.writeWithKeyIfNotDefault(io);
+		writeOptionValueIfNotDefault(io, optionTimerInt);
 	}
 }
 

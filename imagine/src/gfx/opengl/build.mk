@@ -10,16 +10,14 @@ SRC += gfx/common/GfxText.cc \
  gfx/common/Mat4.cc \
  gfx/opengl/BasicEffect.cc \
  gfx/opengl/Buffer.cc \
- gfx/opengl/config.cc \
- gfx/opengl/debug.cc \
+ gfx/opengl/DrawContextSupport.cc \
  gfx/opengl/GLStateCache.cc \
  gfx/opengl/GLTask.cc \
  gfx/opengl/PixmapBufferTexture.cc \
+ gfx/opengl/Program.cc \
  gfx/opengl/Renderer.cc \
  gfx/opengl/RendererCommands.cc \
  gfx/opengl/RendererTask.cc \
- gfx/opengl/shader.cc \
- gfx/opengl/sync.cc \
  gfx/opengl/Texture.cc \
  gfx/opengl/TextureSampler.cc
 

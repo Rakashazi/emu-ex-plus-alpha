@@ -57,7 +57,7 @@ public:
 	auto zoom() const { return zoom_; }
 	void setRotation(IG::Rotation);
 	float evalAspectRatio(float aR);
-	bool readConfig(MapIO &, unsigned key, size_t size);
+	bool readConfig(MapIO &, unsigned key);
 	void writeConfig(FileIO &) const;
 
 	const IG::WindowRect &contentRect() const

@@ -55,7 +55,7 @@ protected:
 	TextMenuItem btnPlace;
 	TextMenuItem placeVideo;
 	TextMenuItem addButton;
-	IG_UseMemberIf(Config::DISPLAY_CUTOUT, BoolMenuItem, allowButtonsPastContentBounds);
+	ConditionalMember<Config::DISPLAY_CUTOUT, BoolMenuItem> allowButtonsPastContentBounds;
 	TextMenuItem resetEmuPositions;
 	TextMenuItem resetEmuGroups;
 	TextMenuItem resetUIPositions;

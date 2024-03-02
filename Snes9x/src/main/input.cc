@@ -9,6 +9,7 @@
 #include "MainApp.hh"
 #include <memmap.h>
 #include <display.h>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {

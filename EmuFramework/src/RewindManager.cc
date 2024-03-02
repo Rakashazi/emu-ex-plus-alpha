@@ -15,7 +15,8 @@
 
 #include <emuframework/RewindManager.hh>
 #include <emuframework/EmuApp.hh>
-#include "EmuOptions.hh"
+#include <emuframework/Option.hh>
+#include <emuframework/EmuOptions.hh>
 #include <imagine/logger/logger.h>
 
 namespace EmuEx
@@ -101,13 +102,13 @@ void RewindManager::pauseTimer()
 	saveTimer.pause();
 }
 
-bool RewindManager::readConfig(MapIO &io, unsigned key, size_t size)
+bool RewindManager::readConfig(MapIO &io, unsigned key)
 {
 	switch(key)
 	{
 		default: return false;
-		case CFGKEY_REWIND_STATES: return readOptionValue<uint32_t>(io, size, [&](auto m){ maxStates = m; });
-		case CFGKEY_REWIND_TIMER_SECS: return readOptionValue<int16_t>(io, size, [&](auto s)
+		case CFGKEY_REWIND_STATES: return readOptionValue<uint32_t>(io, [&](auto m){ maxStates = m; });
+		case CFGKEY_REWIND_TIMER_SECS: return readOptionValue<int16_t>(io, [&](auto s)
 		{
 			if(s > 0)
 				saveTimer.frequency = Seconds{s};

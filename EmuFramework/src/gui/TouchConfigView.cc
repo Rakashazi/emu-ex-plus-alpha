@@ -502,6 +502,20 @@ public:
 			{touchCtrlExtraBtnSizeMenuName[1], attach, {.id = touchCtrlExtraBtnSizeMenuVal[1]}},
 			{touchCtrlExtraBtnSizeMenuName[2], attach, {.id = touchCtrlExtraBtnSizeMenuVal[2]}},
 			{touchCtrlExtraBtnSizeMenuName[3], attach, {.id = touchCtrlExtraBtnSizeMenuVal[3]}},
+			{"Custom Value", attach, [this](const Input::Event &e)
+				{
+					app().pushAndShowNewCollectValueRangeInputView<int, 0, 30>(attachParams(), e, "Input 0 to 30", "",
+						[this](EmuApp &app, auto val)
+						{
+							elem.buttonGroup()->layout.xPadding = val;
+							vCtrl.place();
+							extraXSize.setSelected(MenuId{val}, *this);
+							dismissPrevious();
+							return true;
+						});
+					return false;
+				}, {.id = defaultMenuId}
+			}
 		},
 		extraXSize
 		{
@@ -509,6 +523,13 @@ public:
 			MenuId{elem.buttonGroup() ? elem.buttonGroup()->layout.xPadding : 0},
 			extraXSizeItems,
 			{
+				.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+				{
+					if(!idx)
+						return false;
+					t.resetString(std::format("{}%", elem.buttonGroup()->layout.xPadding));
+					return true;
+				},
 				.defaultItemOnSelect = [this](TextMenuItem &item)
 				{
 					elem.buttonGroup()->layout.xPadding = item.id;
@@ -522,6 +543,20 @@ public:
 			{touchCtrlExtraBtnSizeMenuName[1], attach, {.id = touchCtrlExtraBtnSizeMenuVal[1]}},
 			{touchCtrlExtraBtnSizeMenuName[2], attach, {.id = touchCtrlExtraBtnSizeMenuVal[2]}},
 			{touchCtrlExtraBtnSizeMenuName[3], attach, {.id = touchCtrlExtraBtnSizeMenuVal[3]}},
+			{"Custom Value", attach, [this](const Input::Event &e)
+				{
+					app().pushAndShowNewCollectValueRangeInputView<int, 0, 30>(attachParams(), e, "Input 0 to 30", "",
+						[this](EmuApp &app, auto val)
+						{
+							elem.buttonGroup()->layout.yPadding = val;
+							vCtrl.place();
+							extraYSize.setSelected(MenuId{val}, *this);
+							dismissPrevious();
+							return true;
+						});
+					return false;
+				}, {.id = defaultMenuId}
+			}
 		},
 		extraYSize
 		{
@@ -529,6 +564,13 @@ public:
 			MenuId{elem.buttonGroup() ? elem.buttonGroup()->layout.yPadding : 0},
 			extraYSizeItems,
 			{
+				.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+				{
+					if(!idx)
+						return false;
+					t.resetString(std::format("{}%", elem.buttonGroup()->layout.yPadding));
+					return true;
+				},
 				.defaultItemOnSelect = [this](TextMenuItem &item)
 				{
 					elem.buttonGroup()->layout.yPadding = item.id;
@@ -618,9 +660,9 @@ private:
 	MultiChoiceMenuItem space;
 	TextMenuItem staggerItems[6];
 	MultiChoiceMenuItem stagger;
-	TextMenuItem extraXSizeItems[4];
+	TextMenuItem extraXSizeItems[5];
 	MultiChoiceMenuItem extraXSize;
-	TextMenuItem extraYSizeItems[4];
+	TextMenuItem extraYSizeItems[5];
 	MultiChoiceMenuItem extraYSize;
 	BoolMenuItem showBoundingArea;
 	TextMenuItem add;
@@ -720,7 +762,7 @@ void TouchConfigView::refreshTouchConfigMenu()
 	if(EmuSystem::maxPlayers > 1)
 		player.setSelected((int)vController.inputPlayer(), *this);
 	size.setSelected(MenuId{vController.buttonSize()}, *this);
-	if(app().vibrationManager().hasVibrator())
+	if(app().vibrationManager.hasVibrator())
 	{
 		vibrate.setBoolValue(vController.vibrateOnTouchInput(), *this);
 	}
@@ -877,7 +919,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl):
 		{
 			if(!system().hasContent())
 				return;
-			pushAndShowModal(makeView<PlaceVideoView>(app().videoLayer(), vController), e);
+			pushAndShowModal(makeView<PlaceVideoView>(app().videoLayer, vController), e);
 		}
 	},
 	addButton
@@ -1031,7 +1073,7 @@ void TouchConfigView::reloadItems()
 	{
 		item.emplace_back(&allowButtonsPastContentBounds);
 	}
-	if(app().vibrationManager().hasVibrator())
+	if(app().vibrationManager.hasVibrator())
 	{
 		item.emplace_back(&vibrate);
 	}

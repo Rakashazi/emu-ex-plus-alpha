@@ -34,7 +34,7 @@ namespace EmuEx
 
 IG::ApplicationContext gAppContext();
 
-constexpr SystemLogger log{"RomLoader"};
+constexpr SystemLogger log{"MSXemu"};
 
 ArchiveIO &MsxSystem::firmwareArchive(CStringView path) const
 {

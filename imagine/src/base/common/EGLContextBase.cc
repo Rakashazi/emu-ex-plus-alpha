@@ -16,7 +16,6 @@
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/EGLContextBase.hh>
 #include <imagine/base/Window.hh>
-#include <imagine/base/Error.hh>
 #include <imagine/thread/Thread.hh>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -170,7 +169,7 @@ EGLDrawable::EGLDrawable(EGLDisplay display, Window &win, EGLConfig config, cons
 	{
 		if(Config::DEBUG_BUILD)
 			log.error("eglCreateWindowSurface returned:{}", GLManager::errorString(eglGetError()));
-		throw Error{EINVAL};
+		throw std::runtime_error("Error creating window surface");
 	}
 }
 
@@ -210,7 +209,7 @@ EGLContextBase::EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGL
 		{
 			if(Config::DEBUG_BUILD)
 				log.error("error creating context: {:X}", (int)eglGetError());
-			throw Error{EINVAL};
+			throw std::runtime_error("Error creating GL context");
 		}
 	}
 	if(savePBuffConfig)
@@ -307,9 +306,8 @@ GLManager::GLManager(NativeDisplayConnection ctx, GL::API api)
 		return;
 	}
 	auto display = getDefaultDisplay(ctx);
-	auto ec = initDisplay(display);
-	if(ec)
-		return;
+	if(!initDisplay(display))
+		throw std::runtime_error("Error initializing EGL");
 	dpy.reset((EGLDisplay)display);
 }
 
@@ -402,14 +400,14 @@ void EGLManager::logFeatures() const
 	log.info("features:{}", featuresStr);
 }
 
-IG::ErrorCode EGLManager::initDisplay(EGLDisplay display)
+bool EGLManager::initDisplay(EGLDisplay display)
 {
 	log.info("initializing EGL with display:{}", display);
 	EGLint major, minor;
 	if(!eglInitialize(display, &major, &minor))
 	{
 		log.error("error initializing EGL for display:{}", display);
-		return {EINVAL};
+		return false;
 	}
 	int eglVersion = 10 * major + minor;
 	std::string_view extStr{eglQueryString(display, EGL_EXTENSIONS)};
@@ -429,7 +427,7 @@ IG::ErrorCode EGLManager::initDisplay(EGLDisplay display)
 		}
 	});
 	logFeatures();
-	return {};
+	return true;
 }
 
 GLContext GLManager::makeContext(GLContextAttributes attr, GLBufferConfig config, NativeGLContext shareContext)

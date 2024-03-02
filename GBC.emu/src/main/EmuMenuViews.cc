@@ -23,6 +23,7 @@
 #include "Palette.hh"
 #include "MainApp.hh"
 #include <resample/resamplerinfo.h>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
@@ -42,7 +43,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 	MultiChoiceMenuItem resampler
 	{
 		"Resampler", attachParams(),
-		system().optionAudioResampler.val,
+		system().optionAudioResampler.value(),
 		resamplerItem
 	};
 
@@ -100,7 +101,7 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 	MultiChoiceMenuItem gbPalette
 	{
 		"GB Palette", attachParams(),
-		system().optionGBPal.val,
+		MenuId{system().optionGBPal},
 		gbPaletteItem
 	};
 
@@ -145,7 +146,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	BoolMenuItem reportAsGba
 	{
 		"Report Hardware as GBA", attachParams(),
-		(bool)system().optionReportAsGba,
+		system().optionReportAsGba,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			system().sessionOptionSet();

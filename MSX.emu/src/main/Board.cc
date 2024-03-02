@@ -72,7 +72,8 @@ static void onFdcDone(void* ref, UInt32 time)
 
 void boardSetFdcActive()
 {
-	if(optionSkipFdcAccess)
+	auto &sys = static_cast<MsxSystem&>(gSystem());
+	if(sys.optionSkipFdcAccess)
 	{
 		if(!fdcActive)
 			logMsg("FDC active");

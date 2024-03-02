@@ -22,6 +22,7 @@
 #include <imagine/util/string.h>
 #include <imagine/util/span.hh>
 #include <sys/time.h>
+#include <imagine/logger/logger.h>
 
 extern "C"
 {
@@ -65,7 +66,7 @@ extern "C"
 namespace EmuEx
 {
 
-constexpr SystemLogger log{"main"};
+constexpr SystemLogger log{"C64.emu"};
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nvice-emu.sourceforge.io";
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
@@ -77,7 +78,26 @@ bool EmuApp::needsGlobalInstance = true;
 C64App::C64App(ApplicationInitParams initParams, ApplicationContext &ctx):
 	EmuApp{initParams, ctx}, c64System{ctx}
 {
-	audio().setStereo(false);
+	audio.setStereo(false);
+}
+
+C64System::C64System(ApplicationContext ctx):
+	EmuSystem{ctx}
+{
+	makeDetachedThread(
+		[this]()
+		{
+			emuThreadId = thisThreadId();
+			execSem.acquire();
+			log.info("starting maincpu_mainloop()");
+			plugin.maincpu_mainloop();
+		});
+
+	if(sysFilePath.size() == 3)
+	{
+		sysFilePath[1] = "~/.local/share/C64.emu";
+		sysFilePath[2] = "/usr/share/games/vice";
+	}
 }
 
 const char *EmuSystem::shortSystemName() const
@@ -92,7 +112,7 @@ const char *EmuSystem::systemName() const
 
 void C64System::setModel(int model)
 {
-	logMsg("setting model id:%d", model);
+	log.info("setting model id:{}", model);
 	enterCPUTrap();
 	plugin.model_set(model);
 }
@@ -338,10 +358,10 @@ void C64System::initC64(EmuApp &app)
 		return;
 	if(!hasSysFilePath(appContext(), sysFilePath))
 		throw std::runtime_error{"Missing system file path, please check Options➔File Paths➔VICE System Files"};
-	logMsg("initializing C64");
+	log.info("initializing C64");
   if(plugin.init_main() < 0)
   {
-  	logErr("error in init_main()");
+  	log.error("error in init_main()");
   	c64FailedInit = true;
   	throw std::runtime_error{std::format("Missing system file {}, please check Options➔File Paths➔VICE System Files", lastMissingSysFile)};
 	}
@@ -404,7 +424,7 @@ void C64System::tryLoadingSplitVic20Cart()
 	auto extraCartPath = vic20ExtraCartPath(appContext(), contentFileName(), contentDirectory());
 	if(extraCartPath.size())
 	{
-		logMsg("loading extra cart image:%s", extraCartPath.data());
+		log.info("loading extra cart image:{}", extraCartPath);
 		if(plugin.cartridge_attach_image(CARTRIDGE_VIC20_DETECT, extraCartPath.data()) != 0)
 		{
 			EmuSystem::throwFileReadError();
@@ -417,7 +437,7 @@ void C64System::loadContent(IO &, EmuSystemCreateParams params, OnLoadProgressDe
 	bool shouldAutostart = !(params.systemFlags & SYSTEM_FLAG_NO_AUTOSTART) && optionAutostartOnLaunch;
 	if(shouldAutostart && plugin.autostart_autodetect_)
 	{
-		logMsg("loading & autostarting:%s", contentLocation().data());
+		log.info("loading & autostarting:{}", contentLocation());
 		if(endsWithAnyCaseless(contentFileName(), ".prg"))
 		{
 			// needed to store AutostartPrgDisk.d64
@@ -440,7 +460,7 @@ void C64System::loadContent(IO &, EmuSystemCreateParams params, OnLoadProgressDe
 	{
 		if(hasC64DiskExtension(contentFileName()))
 		{
-			logMsg("loading disk image:%s", contentLocation().data());
+			log.info("loading disk image:{}", contentLocation());
 			if(plugin.file_system_attach_disk(8, 0, contentLocation().data()) != 0)
 			{
 				EmuSystem::throwFileReadError();
@@ -448,7 +468,7 @@ void C64System::loadContent(IO &, EmuSystemCreateParams params, OnLoadProgressDe
 		}
 		else if(hasC64TapeExtension(contentFileName()))
 		{
-			logMsg("loading tape image:%s", contentLocation().data());
+			log.info("loading tape image:{}", contentLocation());
 			if(plugin.tape_image_attach(1, contentLocation().data()) != 0)
 			{
 				EmuSystem::throwFileReadError();
@@ -456,7 +476,7 @@ void C64System::loadContent(IO &, EmuSystemCreateParams params, OnLoadProgressDe
 		}
 		else // cart
 		{
-			logMsg("loading cart image:%s", contentLocation().data());
+			log.info("loading cart image:{}", contentLocation());
 			if(plugin.cartridge_attach_image(systemCartType(currSystem), contentLocation().data()) != 0)
 			{
 				EmuSystem::throwFileReadError();
@@ -494,7 +514,7 @@ void C64System::configAudioRate(FrameTime outputFrameTime, int outputRate)
 	int currRate = intResource("SoundSampleRate");
 	if(currRate == mixRate)
 		return;
-	logMsg("set sound mix rate:%d", mixRate);
+	log.info("set sound mix rate:{}", mixRate);
 	setIntResource("SoundSampleRate", mixRate);
 }
 

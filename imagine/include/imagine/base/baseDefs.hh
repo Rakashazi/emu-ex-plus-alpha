@@ -309,4 +309,22 @@ using WindowInitDelegate = DelegateFunc<void (ApplicationContext, Window &)>;
 using ScreenId = std::conditional_t<Config::envIsAndroid, int, void*>;
 using NativeDisplayConnection = void*;
 
+using PollEventDelegate = DelegateFunc<bool (int fd, int event)>;
+
+class CallbackDelegate : public DelegateFunc<bool ()>
+{
+public:
+	using DelegateFuncBase::DelegateFuncBase;
+
+	constexpr CallbackDelegate(Callable<void> auto &&f):
+		DelegateFuncBase
+		{
+			[=]()
+			{
+				f();
+				return false;
+			}
+		} {}
+};
+
 }

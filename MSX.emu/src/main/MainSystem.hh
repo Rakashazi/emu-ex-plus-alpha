@@ -15,8 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with MSX.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuOptions.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/ArchiveFS.hh>
@@ -27,6 +27,23 @@ extern "C"
 	#include <blueMSX/IoDevice/Casette.h>
 	#include <blueMSX/Language/Language.h>
 }
+
+enum
+{
+	CFGKEY_DEFAULT_MACHINE_NAME = 256, CFGKEY_SKIP_FDC_ACCESS = 257,
+	CFGKEY_MACHINE_FILE_PATH = 258, CFGKEY_SESSION_MACHINE_NAME = 259,
+	CFGKEY_MIXER_PSG_VOLUME = 260, CFGKEY_MIXER_PSG_PAN = 261,
+	CFGKEY_MIXER_SCC_VOLUME = 262, CFGKEY_MIXER_SCC_PAN = 263,
+	CFGKEY_MIXER_MSX_MUSIC_VOLUME = 264, CFGKEY_MIXER_MSX_MUSIC_PAN = 265,
+	CFGKEY_MIXER_MSX_AUDIO_VOLUME = 266, CFGKEY_MIXER_MSX_AUDIO_PAN = 267,
+	CFGKEY_MIXER_MOON_SOUND_VOLUME = 268, CFGKEY_MIXER_MOON_SOUND_PAN = 269,
+	CFGKEY_MIXER_YAMAHA_SFG_VOLUME = 270, CFGKEY_MIXER_YAMAHA_SFG_PAN = 271,
+	CFGKEY_MIXER_KEYBOARD_VOLUME = 272, CFGKEY_MIXER_KEYBOARD_PAN = 273,
+	CFGKEY_MIXER_PCM_VOLUME = 274, CFGKEY_MIXER_PCM_PAN = 275,
+	CFGKEY_MIXER_IO_VOLUME = 276, CFGKEY_MIXER_IO_PAN = 277,
+	CFGKEY_MIXER_MIDI_VOLUME = 278, CFGKEY_MIXER_MIDI_PAN = 279,
+	CFGKEY_DEFAULT_COLECO_MACHINE_NAME = 280
+};
 
 struct Mixer;
 
@@ -45,12 +62,27 @@ namespace EmuEx
 
 class EmuApp;
 
-extern Byte1Option optionSkipFdcAccess;
 extern BoardInfo boardInfo;
 extern bool fdcActive;
 extern Mixer *mixer;
 constexpr std::string_view optionMachineNameDefault{"MSX2"};
 constexpr std::string_view optionColecoMachineNameDefault{"COL - ColecoVision"};
+
+struct MixerFlags
+{
+	uint8_t volume:7{}, enable:1{true};
+	constexpr bool operator==(const MixerFlags&) const = default;
+};
+
+constexpr bool volumeOptionIsValid(const auto &v)
+{
+	return v.volume <= 100;
+}
+
+constexpr bool panOptionIsValid(const auto &v)
+{
+	return v <= 100;
+}
 
 class MsxSystem final: public EmuSystem
 {
@@ -63,6 +95,38 @@ public:
 	std::string optionSessionMachineNameStr;
 	FS::PathString firmwarePath_;
 	mutable ArchiveIO firmwareArch;
+	Property<bool, CFGKEY_SKIP_FDC_ACCESS,
+		PropertyDesc<bool>{.defaultValue = true}> optionSkipFdcAccess;
+
+	Property<MixerFlags, CFGKEY_MIXER_PSG_VOLUME,
+		PropertyDesc<MixerFlags>{.defaultValue = {100}, .isValid = volumeOptionIsValid}> optionMixerPSGVolume;
+	Property<MixerFlags, CFGKEY_MIXER_SCC_VOLUME,
+		PropertyDesc<MixerFlags>{.defaultValue = {100}, .isValid = volumeOptionIsValid}> optionMixerSCCVolume;
+	Property<MixerFlags, CFGKEY_MIXER_MSX_MUSIC_VOLUME,
+		PropertyDesc<MixerFlags>{.defaultValue = {80}, .isValid = volumeOptionIsValid}> optionMixerMSXMUSICVolume;
+	Property<MixerFlags, CFGKEY_MIXER_MSX_AUDIO_VOLUME,
+		PropertyDesc<MixerFlags>{.defaultValue = {80}, .isValid = volumeOptionIsValid}> optionMixerMSXAUDIOVolume;
+	Property<MixerFlags, CFGKEY_MIXER_MOON_SOUND_VOLUME,
+		PropertyDesc<MixerFlags>{.defaultValue = {80}, .isValid = volumeOptionIsValid}> optionMixerMoonSoundVolume;
+	Property<MixerFlags, CFGKEY_MIXER_YAMAHA_SFG_VOLUME,
+		PropertyDesc<MixerFlags>{.defaultValue = {80}, .isValid = volumeOptionIsValid}> optionMixerYamahaSFGVolume;
+	Property<MixerFlags, CFGKEY_MIXER_PCM_VOLUME,
+		PropertyDesc<MixerFlags>{.defaultValue = {100}, .isValid = volumeOptionIsValid}> optionMixerPCMVolume;
+
+	Property<uint8_t, CFGKEY_MIXER_PSG_PAN,
+		PropertyDesc<uint8_t>{.defaultValue = 50, .isValid = panOptionIsValid}> optionMixerPSGPan;
+	Property<uint8_t, CFGKEY_MIXER_SCC_PAN,
+		PropertyDesc<uint8_t>{.defaultValue = 50, .isValid = panOptionIsValid}> optionMixerSCCPan;
+	Property<uint8_t, CFGKEY_MIXER_MSX_MUSIC_PAN,
+		PropertyDesc<uint8_t>{.defaultValue = 50, .isValid = panOptionIsValid}> optionMixerMSXMUSICPan;
+	Property<uint8_t, CFGKEY_MIXER_MSX_AUDIO_PAN,
+		PropertyDesc<uint8_t>{.defaultValue = 50, .isValid = panOptionIsValid}> optionMixerMSXAUDIOPan;
+	Property<uint8_t, CFGKEY_MIXER_MOON_SOUND_PAN,
+		PropertyDesc<uint8_t>{.defaultValue = 50, .isValid = panOptionIsValid}> optionMixerMoonSoundPan;
+	Property<uint8_t, CFGKEY_MIXER_YAMAHA_SFG_PAN,
+		PropertyDesc<uint8_t>{.defaultValue = 50, .isValid = panOptionIsValid}> optionMixerYamahaSFGPan;
+	Property<uint8_t, CFGKEY_MIXER_PCM_PAN,
+		PropertyDesc<uint8_t>{.defaultValue = 50, .isValid = panOptionIsValid}> optionMixerPCMPan;
 
 	MsxSystem(ApplicationContext ctx):
 		EmuSystem{ctx}
@@ -100,6 +164,42 @@ public:
 	void setFirmwarePath(CStringView path, FS::file_type);
 	FS::PathString firmwarePath() const;
 	ArchiveIO &firmwareArchive(CStringView path) const;
+	bool mixerEnableOption(MixerAudioType type);
+	void setMixerEnableOption(MixerAudioType type, bool on);
+	uint8_t mixerVolumeOption(MixerAudioType type);
+	uint8_t setMixerVolumeOption(MixerAudioType type, int volume);
+	uint8_t mixerPanOption(MixerAudioType type);
+	uint8_t setMixerPanOption(MixerAudioType type, int pan);
+
+	auto optionMixerVolume(MixerAudioType type, auto &&func)
+	{
+		switch(type)
+		{
+			default: [[fallthrough]];
+			case MIXER_CHANNEL_PSG: return func(optionMixerPSGVolume);
+			case MIXER_CHANNEL_SCC: return func(optionMixerSCCVolume);
+			case MIXER_CHANNEL_MSXMUSIC: return func(optionMixerMSXMUSICVolume);
+			case MIXER_CHANNEL_MSXAUDIO: return func(optionMixerMSXAUDIOVolume);
+			case MIXER_CHANNEL_MOONSOUND: return func(optionMixerMoonSoundVolume);
+			case MIXER_CHANNEL_YAMAHA_SFG: return func(optionMixerYamahaSFGVolume);
+			case MIXER_CHANNEL_PCM: return func(optionMixerPCMVolume);
+		}
+	}
+
+	auto optionMixerPan(MixerAudioType type, auto &&func)
+	{
+		switch(type)
+		{
+			default: [[fallthrough]];
+			case MIXER_CHANNEL_PSG: return func(optionMixerPSGPan);
+			case MIXER_CHANNEL_SCC: return func(optionMixerSCCPan);
+			case MIXER_CHANNEL_MSXMUSIC: return func(optionMixerMSXMUSICPan);
+			case MIXER_CHANNEL_MSXAUDIO: return func(optionMixerMSXAUDIOPan);
+			case MIXER_CHANNEL_MOONSOUND: return func(optionMixerMoonSoundPan);
+			case MIXER_CHANNEL_YAMAHA_SFG: return func(optionMixerYamahaSFGPan);
+			case MIXER_CHANNEL_PCM: return func(optionMixerPCMPan);
+		}
+	}
 
 	// required API functions
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
@@ -109,7 +209,7 @@ public:
 	size_t stateSize() { return 0x200000; }
 	void readState(EmuApp &, std::span<uint8_t> buff);
 	size_t writeState(std::span<uint8_t> buff, SaveStateFlags = {});
-	bool readConfig(ConfigType, MapIO &, unsigned key, size_t readSize);
+	bool readConfig(ConfigType, MapIO &, unsigned key);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);
@@ -142,11 +242,5 @@ bool insertROM(EmuApp &, const char *name, unsigned slot = 0);
 bool insertDisk(EmuApp &, const char *name, unsigned slot = 0);
 void setupVKeyboardMap(EmuApp &, unsigned boardType);
 const char *currentMachineName();
-bool mixerEnableOption(MixerAudioType type);
-void setMixerEnableOption(MixerAudioType type, bool on);
-uint8_t mixerVolumeOption(MixerAudioType type);
-uint8_t setMixerVolumeOption(MixerAudioType type, int volume);
-uint8_t mixerPanOption(MixerAudioType type);
-uint8_t setMixerPanOption(MixerAudioType type, int pan);
 
 }

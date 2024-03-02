@@ -25,11 +25,11 @@ class SampleFormat
 public:
 	constexpr SampleFormat() = default;
 	constexpr SampleFormat(uint8_t bytes, bool isFloat = false):
-		bytesWithFlags{uint8_t((bytes & BYTES_MASK) | (isFloat ? IS_FLOAT_BIT : 0))}{}
+		bytes_{bytes}, isFloat_{isFloat}{}
 
 	constexpr int bytes() const
 	{
-		return bytesWithFlags & BYTES_MASK;
+		return bytes_;
 	}
 
 	constexpr int bits() const
@@ -39,20 +39,19 @@ public:
 
 	constexpr bool isFloat() const
 	{
-		return bytesWithFlags & IS_FLOAT_BIT;
+		return isFloat_;
 	}
 
 	constexpr bool operator ==(SampleFormat const& rhs) const = default;
 
 	constexpr explicit operator bool() const
 	{
-		return bytesWithFlags;
+		return bytes();
 	}
 
 protected:
-	static constexpr uint8_t BYTES_MASK = 0xF;
-	static constexpr uint8_t IS_FLOAT_BIT = 0x80;
-	uint8_t bytesWithFlags{};
+	uint8_t bytes_:7{};
+	uint8_t isFloat_:1{};
 };
 
 namespace SampleFormats

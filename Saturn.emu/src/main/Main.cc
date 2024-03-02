@@ -32,6 +32,7 @@
 #include <ss/vdp2.h>
 #include <mednafen-emuex/MDFNUtils.hh>
 #include <mednafen-emuex/ArchiveVFS.hh>
+#include <imagine/logger/logger.h>
 
 namespace MDFN_IEN_SS
 {
@@ -46,8 +47,7 @@ void LoadBackupRAM(IG::FileIO&);
 namespace EmuEx
 {
 
-constexpr SystemLogger log{"App"};
-
+constexpr SystemLogger log{"Saturnemu"};
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.github.io";
 bool EmuSystem::handlesArchiveFiles = true;
 bool EmuSystem::hasResetModes = true;

@@ -114,7 +114,7 @@ PAOutputStream::~PAOutputStream()
 	freeMainLoop();
 }
 
-IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
+StreamError PAOutputStream::open(OutputStreamConfig config)
 {
 	if(isOpen())
 	{
@@ -123,7 +123,7 @@ IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
 	}
 	if(!context) [[unlikely]]
 	{
-		return {EINVAL};
+		return StreamError::BadArgument;
 	}
 	auto format = config.format;
 	pcmFormat = format;
@@ -140,7 +140,7 @@ IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
 	{
 		log.error("error creating stream");
 		pa_proplist_free(props);
-		return {EINVAL};
+		return StreamError::BadArgument;
 	}
 	pa_proplist_free(props);
 	StreamStateResult result{this};
@@ -191,7 +191,7 @@ IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
 	{
 		log.error("error connecting playback stream");
 		close();
-		return {EINVAL};
+		return StreamError::BadArgument;
 	}
 	waitMainLoop();
 	pa_stream_set_state_callback(stream, nullptr, nullptr);
@@ -199,7 +199,7 @@ IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
 	{
 		log.error("error connecting playback stream async");
 		close();
-		return {EINVAL};
+		return StreamError::BadArgument;
 	}
 	auto serverAttr = pa_stream_get_buffer_attr(stream);
 	if(config.startPlaying)

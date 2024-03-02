@@ -67,7 +67,7 @@ public:
 	bool canUseMipmaps() const;
 	bool generateMipmaps();
 	int levels() const;
-	ErrorCode setFormat(PixmapDesc, int levels, ColorSpace c = {}, TextureSamplerConfig samplerConf = {});
+	bool setFormat(PixmapDesc, int levels, ColorSpace c = {}, TextureSamplerConfig samplerConf = {});
 	void write(int level, PixmapView pixmap, WPt destPos, TextureWriteFlags writeFlags = {});
 	void writeAligned(int level, PixmapView pixmap, WPt destPos, int assumedDataAlignment, TextureWriteFlags writeFlags = {});
 	void clear(int level);

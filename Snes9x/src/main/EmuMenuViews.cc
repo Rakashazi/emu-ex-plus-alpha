@@ -12,6 +12,7 @@
 #include <apu/bapu/snes/snes.hpp>
 #include <ppu.h>
 #endif
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
@@ -45,7 +46,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 	MultiChoiceMenuItem dspInterpolation
 	{
 		"DSP Interpolation", attachParams(),
-		system().optionAudioDSPInterpolation.val,
+		system().optionAudioDSPInterpolation.value(),
 		dspInterpolationItem
 	};
 
@@ -112,7 +113,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem videoSystem
 	{
 		"System", attachParams(),
-		system().optionVideoSystem.val,
+		system().optionVideoSystem.value(),
 		videoSystemItem
 	};
 
@@ -199,7 +200,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 5 to 250", "",
 					[this](EmuApp &app, auto val)
 					{
-						if(system().optionSuperFXClockMultiplier.isValidVal(val))
+						if(system().optionSuperFXClockMultiplier.isValid(val))
 						{
 							setSuperFXClock(val);
 							superFXClock.setSelected(lastIndex(superFXClockItem), *this);
@@ -222,7 +223,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		"SuperFX Clock Multiplier", attachParams(),
 		[this]()
 		{
-			if(system().optionSuperFXClockMultiplier.val == 100)
+			if(system().optionSuperFXClockMultiplier == 100)
 				return 0;
 			else
 				return 1;
@@ -231,7 +232,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(std::format("{}%", system().optionSuperFXClockMultiplier.val));
+				t.resetString(std::format("{}%", system().optionSuperFXClockMultiplier.value()));
 				return true;
 			}
 		},

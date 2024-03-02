@@ -17,7 +17,6 @@
 #include <imagine/gfx/opengl/android/HardwareBufferStorage.hh>
 #include <imagine/gfx/opengl/android/egl.hh>
 #include <imagine/gfx/Renderer.hh>
-#include <imagine/base/Error.hh>
 #include <imagine/logger/logger.h>
 #include <android/hardware_buffer.h>
 
@@ -32,21 +31,20 @@ HardwareSingleBufferStorage<Buffer>::HardwareSingleBufferStorage(RendererTask &r
 	Texture{r}
 {
 	config = baseInit(r, config);
-	auto err = setFormat(config.pixmapDesc, config.colorSpace, config.samplerConfig);
-	if(err) [[unlikely]]
+	if(!setFormat(config.pixmapDesc, config.colorSpace, config.samplerConfig)) [[unlikely]]
 	{
-		throw Error{err};
+		throw std::runtime_error("Error creating hardware buffer");
 	}
 }
 
 template<class Buffer>
-IG::ErrorCode HardwareSingleBufferStorage<Buffer>::setFormat(PixmapDesc desc, ColorSpace colorSpace, TextureSamplerConfig samplerConf)
+bool HardwareSingleBufferStorage<Buffer>::setFormat(PixmapDesc desc, ColorSpace colorSpace, TextureSamplerConfig samplerConf)
 {
 	buffer = {desc, allocateUsage};
 	if(!buffer)
 	{
 		logMsg("error allocating %dx%d format:%s buffer", desc.w(), desc.h(), desc.format.name());
-		return {EINVAL};
+		return false;
 	}
 	logMsg("allocated buffer:%p size:%dx%d format:%s pitch:%d",
 		buffer.nativeObject(), desc.w(), desc.h(), desc.format.name(), buffer.pitch());
@@ -56,11 +54,11 @@ IG::ErrorCode HardwareSingleBufferStorage<Buffer>::setFormat(PixmapDesc desc, Co
 	if(!eglImg) [[unlikely]]
 	{
 		logErr("error creating EGL image");
-		return {EINVAL};
+		return false;
 	}
 	initWithEGLImage(eglImg, desc, asSamplerParams(samplerConf), false);
 	eglDestroyImageKHR(dpy, eglImg);
-	return {};
+	return true;
 }
 
 template<class Buffer>
@@ -86,15 +84,14 @@ HardwareBufferStorage<Buffer>::HardwareBufferStorage(RendererTask &r, TextureCon
 	Texture{r}
 {
 	config = baseInit(r, config);
-	auto err = setFormat(config.pixmapDesc, config.colorSpace, config.samplerConfig);
-	if(err) [[unlikely]]
+	if(!setFormat(config.pixmapDesc, config.colorSpace, config.samplerConfig)) [[unlikely]]
 	{
-		throw Error{err};
+		throw std::runtime_error("Error creating hardware buffer");
 	}
 }
 
 template<class Buffer>
-ErrorCode HardwareBufferStorage<Buffer>::setFormat(PixmapDesc desc, ColorSpace colorSpace, TextureSamplerConfig samplerConf)
+bool HardwareBufferStorage<Buffer>::setFormat(PixmapDesc desc, ColorSpace colorSpace, TextureSamplerConfig samplerConf)
 {
 	auto dpy = renderer().glDisplay();
 	for(auto &[buff, eglImg, pitchBytes] : bufferInfo)
@@ -103,7 +100,7 @@ ErrorCode HardwareBufferStorage<Buffer>::setFormat(PixmapDesc desc, ColorSpace c
 		if(!buff)
 		{
 			logMsg("error allocating %dx%d format:%s buffer", desc.w(), desc.h(), desc.format.name());
-			return {EINVAL};
+			return false;
 		}
 		logMsg("allocated buffer:%p size:%dx%d format:%s pitch:%d",
 			buff.nativeObject(), desc.w(), desc.h(), desc.format.name(), buff.pitch());
@@ -112,11 +109,11 @@ ErrorCode HardwareBufferStorage<Buffer>::setFormat(PixmapDesc desc, ColorSpace c
 		if(!eglImg) [[unlikely]]
 		{
 			logErr("error creating EGL image");
-			return {EINVAL};
+			return false;
 		}
 	}
 	initWithEGLImage({}, desc, asSamplerParams(samplerConf), true);
-	return {};
+	return true;
 }
 
 template<class Buffer>

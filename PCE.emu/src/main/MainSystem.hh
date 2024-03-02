@@ -16,7 +16,7 @@
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/ApplicationContext.hh>
-#include <emuframework/Option.hh>
+#include <emuframework/EmuOptions.hh>
 #include <emuframework/EmuSystem.hh>
 #include <mednafen/mednafen.h>
 #include <pce/vce.h>
@@ -102,8 +102,8 @@ public:
 	bool configuredFor263Lines{};
 	std::vector<CDInterface *> CDInterfaces;
 	FS::PathString sysCardPath;
-	Byte1Option optionArcadeCard{CFGKEY_ARCADE_CARD, 1};
-	Byte1Option option6BtnPad{CFGKEY_6_BTN_PAD, 0};
+	Property<bool, CFGKEY_ARCADE_CARD, PropertyDesc<bool>{.defaultValue = true}> optionArcadeCard;
+	Property<bool, CFGKEY_6_BTN_PAD> option6BtnPad;
 	VisibleLines defaultVisibleLines{};
 	VisibleLines visibleLines{};
 	uint8_t cdSpeed{2};
@@ -140,7 +140,7 @@ public:
 	size_t stateSize();
 	void readState(EmuApp &, std::span<uint8_t> buff);
 	size_t writeState(std::span<uint8_t> buff, SaveStateFlags);
-	bool readConfig(ConfigType, MapIO &, unsigned key, size_t readSize);
+	bool readConfig(ConfigType, MapIO &, unsigned key);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);

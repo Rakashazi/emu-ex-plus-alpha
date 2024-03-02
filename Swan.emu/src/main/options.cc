@@ -35,27 +35,27 @@ std::span<const AspectRatioInfo> WsSystem::aspectRatioInfos()
 	return aspectRatioInfo;
 }
 
-bool WsSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
+bool WsSystem::readConfig(ConfigType type, MapIO &io, unsigned key)
 {
 	if(type == ConfigType::MAIN)
 	{
 		switch(key)
 		{
-			case CFGKEY_USER_NAME: return readStringOptionValue(io, readSize, userName);
-			case CFGKEY_USER_PROFILE: return readOptionValue<uint32_t>(io, readSize, [&](auto v)
+			case CFGKEY_USER_NAME: return readStringOptionValue(io, userName);
+			case CFGKEY_USER_PROFILE: return readOptionValue<uint32_t>(io, [&](auto v)
 				{
 					userProfile = WsUserProfile::unpack(v);
 				});
-			case CFGKEY_NO_MD5_FILENAMES: return readOptionValue(io, readSize, noMD5InFilenames);
+			case CFGKEY_NO_MD5_FILENAMES: return readOptionValue(io, noMD5InFilenames);
 		}
 	}
 	else if(type == ConfigType::SESSION)
 	{
 		switch(key)
 		{
-			case CFGKEY_SHOW_VGAMEPAD_Y_HORIZ: return readOptionValue(io, readSize, showVGamepadYWhenHorizonal);
-			case CFGKEY_SHOW_VGAMEPAD_AB_VERT: return readOptionValue(io, readSize, showVGamepadABWhenVertical);
-			case CFGKEY_WS_ROTATION: return readOptionValue(io, readSize, rotation, [](auto val)
+			case CFGKEY_SHOW_VGAMEPAD_Y_HORIZ: return readOptionValue(io, showVGamepadYWhenHorizonal);
+			case CFGKEY_SHOW_VGAMEPAD_AB_VERT: return readOptionValue(io, showVGamepadABWhenVertical);
+			case CFGKEY_WS_ROTATION: return readOptionValue(io, rotation, [](auto val)
 				{
 					return val <= lastEnum<WsRotation>;
 				});

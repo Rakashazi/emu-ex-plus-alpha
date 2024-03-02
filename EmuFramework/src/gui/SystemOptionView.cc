@@ -15,7 +15,7 @@
 
 #include <emuframework/SystemOptionView.hh>
 #include <emuframework/EmuApp.hh>
-#include "../EmuOptions.hh"
+#include <emuframework/EmuOptions.hh>
 #include "CPUAffinityView.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gui/TextTableView.hh>
@@ -38,7 +38,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 				app().pushAndShowNewCollectValueRangeInputView<int, 0, maxAutosaveSaveFreq.count()>(attachParams(), e, "Input 0 to 720", "",
 					[this](EmuApp &app, auto val)
 					{
-						app.autosaveManager().saveTimer.frequency = Minutes{val};
+						app.autosaveManager.saveTimer.frequency = Minutes{val};
 						autosaveTimer.setSelected(MenuId{val}, *this);
 						dismissPrevious();
 						return true;
@@ -50,17 +50,17 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	autosaveTimer
 	{
 		"Autosave Timer", attach,
-		MenuId{app().autosaveManager().saveTimer.frequency.count()},
+		MenuId{app().autosaveManager.saveTimer.frequency.count()},
 		autosaveTimerItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
 				if(!idx)
 					return false;
-				t.resetString(std::format("{}", app().autosaveManager().saveTimer.frequency));
+				t.resetString(std::format("{}", app().autosaveManager.saveTimer.frequency));
 				return true;
 			},
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().autosaveManager().saveTimer.frequency = IG::Minutes{item.id}; }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().autosaveManager.saveTimer.frequency = IG::Minutes{item.id}; }
 		},
 	},
 	autosaveLaunchItem
@@ -73,20 +73,20 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	autosaveLaunch
 	{
 		"Autosave Launch Mode", attach,
-		MenuId{app().autosaveManager().autosaveLaunchMode},
+		MenuId{app().autosaveManager.autosaveLaunchMode},
 		autosaveLaunchItem,
 		{
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().autosaveManager().autosaveLaunchMode = AutosaveLaunchMode(item.id.val); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().autosaveManager.autosaveLaunchMode = AutosaveLaunchMode(item.id.val); }
 		},
 	},
 	autosaveContent
 	{
 		"Autosave Content", attach,
-		app().autosaveManager().saveOnlyBackupMemory,
+		app().autosaveManager.saveOnlyBackupMemory,
 		"State & Backup RAM", "Only Backup RAM",
 		[this](BoolMenuItem &item)
 		{
-			app().autosaveManager().saveOnlyBackupMemory = item.flipBoolValue(*this);
+			app().autosaveManager.saveOnlyBackupMemory = item.flipBoolValue(*this);
 		}
 	},
 	confirmOverwriteState

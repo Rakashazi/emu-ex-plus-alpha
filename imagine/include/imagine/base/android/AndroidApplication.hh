@@ -25,6 +25,7 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <variant>
 
 struct ANativeActivity;
 struct AInputQueue;
@@ -128,6 +129,20 @@ private:
 		handleRotationAnimation:1{};
 	};
 
+	struct InputDeviceListenerImpl
+	{
+		JNI::UniqueGlobalRef listenerHelper;
+		JNI::InstMethod<void()> jRegister;
+		JNI::InstMethod<void()> jUnregister;
+	};
+
+	struct INotifyImpl
+	{
+		Timer rescanTimer;
+		int fd = -1;
+		int watch = -1;
+	};
+
 	JNI::UniqueGlobalRef displayListenerHelper;
 	JNI::InstMethod<void()> jRecycle;
 	JNI::InstMethod<void(jint)> jSetUIVisibility;
@@ -148,11 +163,12 @@ private:
 	JNI::InstMethod<jboolean(jstring)> createDirUri;
 	JNI::InstMethod<jboolean(jstring, jstring)> renameUri;
 	JNI::ClassMethod<jstring(jlong)> jFormatDateTime;
+	std::variant<InputDeviceListenerImpl, INotifyImpl> inputDeviceChangeImpl;
 	SystemDocumentPickerDelegate onSystemDocumentPicker;
 	SystemOrientationChangedDelegate onSystemOrientationChanged;
 	Timer userActivityCallback{"userActivityCallback"};
 	using ProcessInputFunc = void (AndroidApplication::*)(AInputQueue *);
-	IG_UseMemberIf(Config::ENV_ANDROID_MIN_SDK < 12, ProcessInputFunc, processInput_){&AndroidApplication::processInputWithHasEvents};
+	ConditionalMember<Config::ENV_ANDROID_MIN_SDK < 12, ProcessInputFunc> processInput_{&AndroidApplication::processInputWithHasEvents};
 	AInputQueue *inputQueue{};
 	Input::Device *builtinKeyboardDev{};
 	Input::Device *virtualDev{};
@@ -171,16 +187,6 @@ public:
 	bool acceptsIntents{};
 
 private:
-	// InputDeviceListener-based device changes
-	JNI::UniqueGlobalRef inputDeviceListenerHelper{};
-	JNI::InstMethod<void()> jRegister{};
-	JNI::InstMethod<void()> jUnregister{};
-
-	// inotify-based device changes
-	std::optional<Timer> inputRescanCallback{};
-	int inputDevNotifyFd = -1;
-	int watch = -1;
-
 	void setHardKeyboardState(ApplicationContext ctx, int hardKeyboardState);
 	void initActivity(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK);
 	void initInput(ApplicationContext ctx, JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK);

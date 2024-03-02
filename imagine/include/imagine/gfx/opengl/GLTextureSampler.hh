@@ -59,7 +59,7 @@ public:
 
 protected:
 	UniqueGLSamplerRef sampler{};
-	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
+	ConditionalMember<Config::DEBUG_BUILD, const char *> debugLabel{};
 };
 
 using TextureSamplerImpl = GLTextureSampler;

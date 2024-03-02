@@ -32,7 +32,7 @@ public:
 	SurfaceTextureStorage(SurfaceTextureStorage &&o) noexcept;
 	SurfaceTextureStorage &operator=(SurfaceTextureStorage &&o) noexcept;
 	~SurfaceTextureStorage();
-	ErrorCode setFormat(PixmapDesc desc, ColorSpace, TextureSamplerConfig);
+	bool setFormat(PixmapDesc desc, ColorSpace, TextureSamplerConfig);
 	LockedTextureBuffer lock(TextureBufferFlags bufferFlags);
 	void unlock(LockedTextureBuffer lockBuff, TextureWriteFlags writeFlags);
 

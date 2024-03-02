@@ -210,7 +210,7 @@ public:
 	size_t stateSize();
 	void readState(EmuApp &, std::span<uint8_t> buff);
 	size_t writeState(std::span<uint8_t> buff, SaveStateFlags = {});
-	bool readConfig(ConfigType, MapIO &io, unsigned key, size_t readSize);
+	bool readConfig(ConfigType, MapIO &io, unsigned key);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);

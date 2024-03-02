@@ -18,11 +18,6 @@
 #include <imagine/audio/defs.hh>
 #include <AudioUnit/AudioUnit.h>
 
-namespace IG
-{
-class ErrorCode;
-}
-
 namespace IG::Audio
 {
 
@@ -32,7 +27,7 @@ public:
 	CAOutputStream();
 	~CAOutputStream();
 	CAOutputStream &operator=(CAOutputStream &&) = delete;
-	ErrorCode open(OutputStreamConfig config);
+	StreamError open(OutputStreamConfig config);
 	void play();
 	void pause();
 	void close();

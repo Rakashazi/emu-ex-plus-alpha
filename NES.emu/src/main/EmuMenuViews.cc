@@ -32,6 +32,7 @@
 #include <fceu/fds.h>
 #include <fceu/sound.h>
 #include <fceu/fceu.h>
+#include <imagine/logger/logger.h>
 
 extern int pal_emulation;
 
@@ -105,7 +106,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem videoSystem
 	{
 		"System", attachParams(),
-		system().optionVideoSystem.val,
+		system().optionVideoSystem.value(),
 		videoSystemItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
@@ -124,7 +125,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	{
 		system().sessionOptionSet();
 		system().optionVideoSystem = val;
-		setRegion(val, system().optionDefaultVideoSystem.val, system().autoDetectedRegion);
+		setRegion(val, system().optionDefaultVideoSystem, system().autoDetectedRegion);
 		app().promptSystemReloadDueToSetOption(attachParams(), e);
 	}
 
@@ -171,7 +172,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		"Visible Lines", attachParams(),
 		[this]()
 		{
-			switch(system().optionVisibleVideoLines.val)
+			switch(system().optionVisibleVideoLines)
 			{
 				default: return 0;
 				case 232: return system().optionStartVideoLine == 8 ? 1 : 2;
@@ -188,8 +189,8 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 			system().sessionOptionSet();
 			system().optionStartVideoLine = startLine;
 			system().optionVisibleVideoLines = lines;
-			system().updateVideoPixmap(app().video(), system().optionHorizontalVideoCrop, system().optionVisibleVideoLines);
-			system().renderFramebuffer(app().video());
+			system().updateVideoPixmap(app().video, system().optionHorizontalVideoCrop, system().optionVisibleVideoLines);
+			system().renderFramebuffer(app().video);
 			app().viewController().placeEmuViews();
 		};
 	}
@@ -202,8 +203,8 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		{
 			system().sessionOptionSet();
 			system().optionHorizontalVideoCrop = item.flipBoolValue(*this);
-			system().updateVideoPixmap(app().video(), system().optionHorizontalVideoCrop, system().optionVisibleVideoLines);
-			system().renderFramebuffer(app().video());
+			system().updateVideoPixmap(app().video, system().optionHorizontalVideoCrop, system().optionVisibleVideoLines);
+			system().renderFramebuffer(app().video);
 			app().viewController().placeEmuViews();
 		}
 	};
@@ -308,7 +309,7 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 	MultiChoiceMenuItem videoSystem
 	{
 		"Default Video System", attachParams(),
-		system().optionDefaultVideoSystem.val,
+		system().optionDefaultVideoSystem.value(),
 		videoSystemItem
 	};
 
@@ -324,7 +325,7 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 			system().defaultPalettePath = {};
 		system().setDefaultPalette(ctx, palPath);
 		auto &app = EmuApp::get(ctx);
-		app.renderSystemFramebuffer(app.video());
+		app.renderSystemFramebuffer();
 	}
 
 	constexpr uint32_t defaultPaletteCustomFileIdx()
@@ -402,7 +403,7 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 		"Default Visible Lines", attachParams(),
 		[this]()
 		{
-			switch(system().optionDefaultVisibleVideoLines.val)
+			switch(system().optionDefaultVisibleVideoLines)
 			{
 				default: return 0;
 				case 232: return system().optionDefaultStartVideoLine == 8 ? 1 : 2;
@@ -418,8 +419,6 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 		{
 			system().optionDefaultStartVideoLine = startLine;
 			system().optionDefaultVisibleVideoLines = lines;
-			system().optionStartVideoLine.defaultVal = startLine;
-			system().optionVisibleVideoLines.defaultVal = lines;
 		};
 	}
 
@@ -467,7 +466,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 	MultiChoiceMenuItem quality
 	{
 		"Emulation Quality", attachParams(),
-		system().optionSoundQuality.val,
+		system().optionSoundQuality.value(),
 		qualityItem
 	};
 

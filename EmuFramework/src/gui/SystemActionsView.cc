@@ -36,12 +36,12 @@ constexpr SystemLogger log{"SystemActionsView"};
 
 static auto autoSaveName(EmuApp &app)
 {
-	return std::format("Autosave Slot ({})", app.autosaveManager().slotFullName());
+	return std::format("Autosave Slot ({})", app.autosaveManager.slotFullName());
 }
 
 static std::string saveAutosaveName(EmuApp &app)
 {
-	auto &autosaveManager = app.autosaveManager();
+	auto &autosaveManager = app.autosaveManager;
 	if(!autosaveManager.timerFrequency().count())
 		return "Save Autosave State";
 	return std::format("Save Autosave State (Timer In {:%M:%S})",
@@ -88,7 +88,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 				{
 					.onYes = [this]
 					{
-						if(app().autosaveManager().save(AutosaveActionSource::Manual))
+						if(app().autosaveManager.save(AutosaveActionSource::Manual))
 							app().showEmulation();
 					}
 				}), e);
@@ -101,7 +101,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 		{
 			if(!item.active())
 				return;
-			auto saveTime = app().autosaveManager().stateTimeAsString();
+			auto saveTime = app().autosaveManager.stateTimeAsString();
 			if(saveTime.empty())
 			{
 				app().postMessage("No saved state");
@@ -112,7 +112,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 				{
 					.onYes = [this]
 					{
-						if(app().autosaveManager().load(AutosaveActionSource::Manual))
+						if(app().autosaveManager.load(AutosaveActionSource::Manual))
 							app().showEmulation();
 					}
 				}), e);
@@ -165,8 +165,8 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 				{
 					.onYes = [this]
 					{
-						app().video().takeGameScreenshot();
-						system().runFrame({}, &app().video(), nullptr);
+						app().video.takeGameScreenshot();
+						system().runFrame({}, &app().video, nullptr);
 					}
 				}), e);
 		}
@@ -214,8 +214,8 @@ void SystemActionsView::onShow()
 	assert(system().hasContent());
 	autosaveSlot.compile(autoSaveName(app()));
 	autosaveNow.compile(saveAutosaveName(app()));
-	autosaveNow.setActive(app().autosaveManager().slotName() != noAutosaveName);
-	revertAutosave.setActive(app().autosaveManager().slotName() != noAutosaveName);
+	autosaveNow.setActive(app().autosaveManager.slotName() != noAutosaveName);
+	revertAutosave.setActive(app().autosaveManager.slotName() != noAutosaveName);
 	resetSessionOptions.setActive(app().hasSavedSessionOptions());
 }
 

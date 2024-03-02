@@ -15,6 +15,7 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
+#include <emuframework/Option.hh>
 #include "MainSystem.hh"
 #include <mednafen-emuex/MDFNUtils.hh>
 #include <mednafen/general.h>
@@ -63,36 +64,36 @@ constexpr bool linesAreValid(VideoLineRange lines)
 		&& lines.first <= lines.last;
 }
 
-bool SaturnSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
+bool SaturnSystem::readConfig(ConfigType type, MapIO &io, unsigned key)
 {
 	if(type == ConfigType::MAIN)
 	{
 		switch(key)
 		{
-			case CFGKEY_NA_BIOS_PATH: return readStringOptionValue(io, readSize, naBiosPath);
-			case CFGKEY_JP_BIOS_PATH: return readStringOptionValue(io, readSize, jpBiosPath);
-			case CFGKEY_KOF_ROM_PATH: return readStringOptionValue(io, readSize, kof95ROMPath);
-			case CFGKEY_ULTRAMAN_ROM_PATH: return readStringOptionValue(io, readSize, ultramanROMPath);
-			case CFGKEY_BIOS_LANG: return readOptionValue(io, readSize, biosLanguage);
-			case CFGKEY_AUTO_RTC_TIME: return readOptionValue(io, readSize, autoRTCTime);
-			case CFGKEY_DEFAULT_NTSC_VIDEO_LINES: return readOptionValue(io, readSize, defaultNtscLines, linesAreValid<240>);
-			case CFGKEY_DEFAULT_PAL_VIDEO_LINES: return readOptionValue(io, readSize, defaultPalLines, linesAreValid<288>);
-			case CFGKEY_DEFAULT_SHOW_H_OVERSCAN: return readOptionValue(io, readSize, defaultShowHOverscan);
-			case CFGKEY_NO_MD5_FILENAMES: return readOptionValue(io, readSize, noMD5InFilenames);
+			case CFGKEY_NA_BIOS_PATH: return readStringOptionValue(io, naBiosPath);
+			case CFGKEY_JP_BIOS_PATH: return readStringOptionValue(io, jpBiosPath);
+			case CFGKEY_KOF_ROM_PATH: return readStringOptionValue(io, kof95ROMPath);
+			case CFGKEY_ULTRAMAN_ROM_PATH: return readStringOptionValue(io, ultramanROMPath);
+			case CFGKEY_BIOS_LANG: return readOptionValue(io, biosLanguage);
+			case CFGKEY_AUTO_RTC_TIME: return readOptionValue(io, autoRTCTime);
+			case CFGKEY_DEFAULT_NTSC_VIDEO_LINES: return readOptionValue(io, defaultNtscLines, linesAreValid<240>);
+			case CFGKEY_DEFAULT_PAL_VIDEO_LINES: return readOptionValue(io, defaultPalLines, linesAreValid<288>);
+			case CFGKEY_DEFAULT_SHOW_H_OVERSCAN: return readOptionValue(io, defaultShowHOverscan);
+			case CFGKEY_NO_MD5_FILENAMES: return readOptionValue(io, noMD5InFilenames);
 		}
 	}
 	else if(type == ConfigType::SESSION)
 	{
 		switch(key)
 		{
-			case CFGKEY_INPUT_PORT_CONFIG: return readOptionValue(io, readSize, inputConfig);
-			case CFGKEY_CART_TYPE: return readOptionValue(io, readSize, cartType);
-			case CFGKEY_REGION: return readOptionValue(io, readSize, region);
-			case CFGKEY_SYSTEM_CONTENT_ROTATION: return readOptionValue(io, readSize, sysContentRotation);
-			case CFGKEY_VIDEO_LINES: return readOptionValue(io, readSize, videoLines);
-			case CFGKEY_SHOW_H_OVERSCAN: return readOptionValue(io, readSize, showHOverscan);
-			case CFGKEY_DEINTERLACE_MODE: return readOptionValue(io, readSize, deinterlaceMode);
-			case CFGKEY_WIDESCREEN_MODE: return readOptionValue(io, readSize, widescreenMode);
+			case CFGKEY_INPUT_PORT_CONFIG: return readOptionValue(io, inputConfig);
+			case CFGKEY_CART_TYPE: return readOptionValue(io, cartType);
+			case CFGKEY_REGION: return readOptionValue(io, region);
+			case CFGKEY_SYSTEM_CONTENT_ROTATION: return readOptionValue(io, sysContentRotation);
+			case CFGKEY_VIDEO_LINES: return readOptionValue(io, videoLines);
+			case CFGKEY_SHOW_H_OVERSCAN: return readOptionValue(io, showHOverscan);
+			case CFGKEY_DEINTERLACE_MODE: return readOptionValue(io, deinterlaceMode);
+			case CFGKEY_WIDESCREEN_MODE: return readOptionValue(io, widescreenMode);
 		}
 	}
 	return false;

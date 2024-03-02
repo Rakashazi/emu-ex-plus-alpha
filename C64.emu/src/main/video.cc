@@ -17,6 +17,7 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuApp.hh>
 #include "MainSystem.hh"
+#include <imagine/logger/logger.h>
 
 extern "C"
 {

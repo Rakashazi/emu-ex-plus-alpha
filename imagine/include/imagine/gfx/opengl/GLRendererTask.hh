@@ -79,9 +79,9 @@ public:
 
 protected:
 	Renderer *r{};
-	IG_UseMemberIf(Config::Gfx::GLDRAWABLE_NEEDS_FRAMEBUFFER, GLuint, defaultFB){};
+	ConditionalMember<Config::Gfx::GLDRAWABLE_NEEDS_FRAMEBUFFER, GLuint> defaultFB{};
 	GLuint fbo = 0;
-	IG_UseMemberIf(Config::Gfx::OPENGL_DEBUG_CONTEXT, bool, debugEnabled){};
+	ConditionalMember<Config::Gfx::OPENGL_DEBUG_CONTEXT, bool> debugEnabled{};
 
 	void doPreDraw(Window &win, WindowDrawParams winParams, DrawParams &params) const;
 	void updateDrawable(Drawable, IRect viewportRect, int swapInterval);

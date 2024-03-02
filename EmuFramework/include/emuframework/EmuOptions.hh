@@ -15,6 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <imagine/pixmap/PixelFormat.hh>
+#include <imagine/util/Property.hh>
+#include <imagine/util/enum.hh>
 #include <cstdint>
 
 namespace EmuEx
@@ -91,9 +94,61 @@ constexpr const char *optionSavePathDefaultToken = ":DEFAULT:";
 constexpr double minRunSpeed = .05;
 constexpr double maxRunSpeed = 20.;
 
+constexpr bool isValidFastSpeed(const auto &v) { return v <= int(maxRunSpeed * 100.) && v > 100; }
+constexpr bool isValidSlowSpeed(const auto &v) { return v >= int(minRunSpeed * 100.) && v < 100; }
+
 bool isValidAspectRatio(float val);
-bool isValidFastSpeed(int16_t);
-bool isValidSlowSpeed(int16_t);
-bool isValidFontSize(int16_t);
+
+constexpr bool isValidFontSize(const auto &v)
+{
+	return v >= 2000 && v <= 10000;
+}
+
+template<class T>
+constexpr bool enumIsValidUpToLast(const T &v)
+{
+	return v <= IG::lastEnum<T>;
+}
+
+constexpr bool optionImageZoomIsValid(const auto &v)
+{
+	return v == optionImageZoomIntegerOnly || v == optionImageZoomIntegerOnlyY
+		|| (v >= 10 && v <= 200);
+}
+
+constexpr bool optionViewportZoomIsValid(const auto &v)
+{
+	return v >= 50 && v <= 100;
+}
+
+constexpr bool isValidFrameInterval(const auto &v)
+{
+	return v >= 0 && v <= 4;
+}
+
+constexpr bool imageEffectPixelFormatIsValid(const auto &v)
+{
+	switch(v)
+	{
+		case IG::PIXEL_NONE:
+		case IG::PIXEL_RGB565:
+		case IG::PIXEL_RGBA8888:
+			return true;
+		default:
+			return false;
+	}
+}
+
+template<auto max>
+constexpr bool isValidWithMax(const auto &v)
+{
+	return v <= max;
+}
+
+template<auto min, auto max>
+constexpr bool isValidWithMinMax(const auto &v)
+{
+	return v >= min && v <= max;
+}
 
 }

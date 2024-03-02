@@ -30,7 +30,7 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 	BoolMenuItem ngpLanguage
 	{
 		"NGP Language", attachParams(),
-		(bool)system().optionNGPLanguage.val,
+		system().optionNGPLanguage,
 		"Japanese", "English",
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{

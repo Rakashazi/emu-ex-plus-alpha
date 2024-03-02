@@ -45,9 +45,9 @@ protected:
 	TextMenuItem rewindStatesItem[4];
 	MultiChoiceMenuItem rewindStates;
 	DualTextMenuItem rewindTimeInterval;
-	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, performanceMode);
-	IG_UseMemberIf(Config::envIsAndroid && Config::DEBUG_BUILD, BoolMenuItem, noopThread);
-	IG_UseMemberIf(Config::cpuAffinity, TextMenuItem, cpuAffinity);
+	ConditionalMember<Config::envIsAndroid, BoolMenuItem> performanceMode;
+	ConditionalMember<Config::envIsAndroid && Config::DEBUG_BUILD, BoolMenuItem> noopThread;
+	ConditionalMember<Config::cpuAffinity, TextMenuItem> cpuAffinity;
 	StaticArrayList<MenuItem*, 30> item;
 };
 

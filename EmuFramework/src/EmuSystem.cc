@@ -14,7 +14,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuSystem.hh>
-#include "EmuOptions.hh"
+#include <emuframework/EmuOptions.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
@@ -266,14 +266,14 @@ void EmuSystem::closeRuntimeSystem(EmuApp &app)
 {
 	if(hasContent())
 	{
-		app.video().clear();
-		app.audio().flush();
-		app.autosaveManager().save();
+		app.video.clear();
+		app.audio.flush();
+		app.autosaveManager.save();
 		app.saveSessionOptions();
 		log.info("closing game:{}", contentName_);
 		flushBackupMemory(app);
 		closeSystem();
-		app.autosaveManager().cancelTimer();
+		app.autosaveManager.cancelTimer();
 		app.rewindManager.clear();
 		state = State::OFF;
 	}
@@ -294,8 +294,8 @@ void EmuSystem::pause(EmuApp &app)
 {
 	if(isActive())
 		state = State::PAUSED;
-	app.audio().stop();
-	app.autosaveManager().pauseTimer();
+	app.audio.stop();
+	app.autosaveManager.pauseTimer();
 	app.rewindManager.pauseTimer();
 	onStop();
 }
@@ -309,7 +309,7 @@ void EmuSystem::start(EmuApp &app)
 	resetFrameTime();
 	onStart();
 	app.startAudio();
-	app.autosaveManager().startTimer();
+	app.autosaveManager.startTimer();
 	if(stateSizeChangesAtRuntime && app.rewindManager.maxStates)
 	{
 		auto newStateSize = stateSize();

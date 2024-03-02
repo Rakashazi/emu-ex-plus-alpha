@@ -28,7 +28,7 @@ class SyncFence : public SyncFenceImpl
 {
 public:
 	using SyncFenceImpl::SyncFenceImpl;
-	explicit operator bool() const;
+	explicit operator bool() const { return SyncFenceImpl::operator bool(); };
 };
 
 }

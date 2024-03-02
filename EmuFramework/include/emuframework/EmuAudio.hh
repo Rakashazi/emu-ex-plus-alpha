@@ -79,7 +79,7 @@ public:
 	IG::Audio::Format format() const;
 	explicit operator bool() const { return bool(rBuff); }
 	void writeConfig(FileIO &) const;
-	bool readConfig(MapIO &, unsigned key, size_t size);
+	bool readConfig(MapIO &, unsigned key);
 
 protected:
 	IG::Audio::OutputStream audioStream;
@@ -96,7 +96,7 @@ protected:
 	std::atomic<AudioWriteState> audioWriteState{AudioWriteState::BUFFER};
 	int8_t channels{2};
 	AudioFlags flags{defaultAudioFlags};
-	IG_UseMemberIf(IG::Audio::Config::MULTIPLE_SYSTEM_APIS, IG::Audio::Api, audioAPI){};
+	ConditionalMember<IG::Audio::Config::MULTIPLE_SYSTEM_APIS, IG::Audio::Api> audioAPI{};
 	bool addSoundBuffersOnUnderrun{};
 public:
 	bool addSoundBuffersOnUnderrunSetting{};

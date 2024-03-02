@@ -367,8 +367,8 @@ struct ARM7TDMI
 	int armMode{0x1f};
 	int cpuNextEvent{};
 	int cpuTotalTicks{};
-	IG_UseMemberIf(USE_SWITICKS, int, SWITicks){};
-	IG_UseMemberIf(USE_IRQTICKS, int, IRQTicks){};
+	ConditionalMember<USE_SWITICKS, int> SWITicks{};
+	ConditionalMember<USE_IRQTICKS, int> IRQTicks{};
 #ifdef VBAM_USE_CPU_PREFETCH
 private:
 	uint32_t cpuPrefetch[2]{};

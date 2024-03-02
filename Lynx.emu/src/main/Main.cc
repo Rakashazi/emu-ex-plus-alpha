@@ -35,6 +35,7 @@ long Lynx_GetSoundRate();
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"Lynx.emu"};
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.github.io";
 bool EmuApp::needsGlobalInstance = true;
 
@@ -103,7 +104,7 @@ void LynxSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
 	configuredHCount = Lynx_HCount();
 	if(Lynx_GetSoundRate() == mixRate)
 		return;
-	logMsg("set sound mix rate:%d", (int)mixRate);
+	log.info("set sound mix rate:{}", mixRate);
 	Lynx_SetSoundRate(mixRate);
 }
 

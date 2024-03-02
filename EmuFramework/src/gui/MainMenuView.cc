@@ -23,13 +23,14 @@
 #include <emuframework/TouchConfigView.hh>
 #include <emuframework/BundledGamesView.hh>
 #include "RecentContentView.hh"
-#include "../EmuOptions.hh"
+#include <emuframework/EmuOptions.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #include <format>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
@@ -306,7 +307,7 @@ void MainMenuView::loadFileBrowserItems()
 {
 	item.emplace_back(&loadGame);
 	item.emplace_back(&recentGames);
-	if(EmuSystem::hasBundledGames && app().showsBundledGames())
+	if(EmuSystem::hasBundledGames && app().showsBundledGames)
 	{
 		item.emplace_back(&bundledGames);
 	}
@@ -318,7 +319,7 @@ void MainMenuView::loadStandardItems()
 	item.emplace_back(&onScreenInputManager);
 	item.emplace_back(&inputManager);
 	item.emplace_back(&options);
-	if(used(scanWiimotes) && app().showsBluetoothScanItems())
+	if(used(scanWiimotes) && app().showsBluetoothScan)
 	{
 		item.emplace_back(&scanWiimotes);
 		#ifdef CONFIG_BLUETOOTH_SERVER

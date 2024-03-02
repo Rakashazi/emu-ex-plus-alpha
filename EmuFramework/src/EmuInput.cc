@@ -18,7 +18,8 @@
 #include <emuframework/EmuViewController.hh>
 #include <emuframework/AppKeyCode.hh>
 #include "InputDeviceData.hh"
-#include "EmuOptions.hh"
+#include <emuframework/EmuOptions.hh>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {

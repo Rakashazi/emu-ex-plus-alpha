@@ -74,7 +74,7 @@ public:
 	void cancelTimer();
 	void resetTimer();
 	SteadyClockTime timerFrequency() const;
-	bool readConfig(MapIO &, unsigned key, size_t size);
+	bool readConfig(MapIO &, unsigned key);
 	void writeConfig(FileIO &) const;
 	ApplicationContext appContext() const;
 	EmuSystem &system();

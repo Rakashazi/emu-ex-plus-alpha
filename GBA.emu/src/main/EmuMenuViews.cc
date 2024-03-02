@@ -26,9 +26,12 @@
 #include <vbam/gba/RTC.h>
 #include <vbam/gba/Sound.h>
 #include <format>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
+
+constexpr SystemLogger log{"GBA.emu"};
 
 template <class T>
 using MainAppHelper = EmuAppHelper<T, MainApp>;
@@ -45,7 +48,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem rtc
 	{
 		"RTC Emulation", attachParams(),
-		system().optionRtcEmulation.val,
+		MenuId{system().optionRtcEmulation.value()},
 		rtcItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
@@ -63,7 +66,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	void setRTCEmulation(RtcMode val)
 	{
 		system().sessionOptionSet();
-		system().optionRtcEmulation = std::to_underlying(val);
+		system().optionRtcEmulation = val;
 		system().setRTC(val);
 	}
 
@@ -81,7 +84,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem saveType
 	{
 		"Save Type", attachParams(),
-		MenuId{system().optionSaveTypeOverride.val},
+		MenuId{system().optionSaveTypeOverride},
 		saveTypeItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)

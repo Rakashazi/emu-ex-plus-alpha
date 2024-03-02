@@ -22,6 +22,7 @@
 #include "MainApp.hh"
 #include <imagine/util/string.h>
 #include <imagine/util/format.hh>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {

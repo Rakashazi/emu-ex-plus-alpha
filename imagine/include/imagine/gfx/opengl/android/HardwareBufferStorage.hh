@@ -30,7 +30,7 @@ class HardwareSingleBufferStorage final: public Texture
 {
 public:
 	HardwareSingleBufferStorage(RendererTask &, TextureConfig config);
-	ErrorCode setFormat(PixmapDesc, ColorSpace, TextureSamplerConfig);
+	bool setFormat(PixmapDesc, ColorSpace, TextureSamplerConfig);
 	LockedTextureBuffer lock(TextureBufferFlags bufferFlags);
 	void unlock(LockedTextureBuffer lockBuff, TextureWriteFlags writeFlags);
 
@@ -44,7 +44,7 @@ class HardwareBufferStorage final: public Texture
 {
 public:
 	HardwareBufferStorage(RendererTask &, TextureConfig config);
-	ErrorCode setFormat(PixmapDesc, ColorSpace, TextureSamplerConfig);
+	bool setFormat(PixmapDesc, ColorSpace, TextureSamplerConfig);
 	LockedTextureBuffer lock(TextureBufferFlags bufferFlags);
 	void unlock(LockedTextureBuffer lockBuff, TextureWriteFlags writeFlags);
 

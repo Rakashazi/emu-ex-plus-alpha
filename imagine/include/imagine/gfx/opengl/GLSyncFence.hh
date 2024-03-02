@@ -30,6 +30,7 @@ public:
 
 	constexpr GLSyncFence() = default;
 	constexpr GLSyncFence(GLsync sync): sync{sync} {}
+	explicit operator bool() const { return sync; };
 };
 
 using SyncFenceImpl = GLSyncFence;

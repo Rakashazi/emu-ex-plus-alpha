@@ -20,33 +20,42 @@
 namespace IG
 {
 
-template <class T, T VALUE, int Tag = 0>
+template <class T, T val, int tag = 0>
 struct ConstantType
 {
+	using Type = T;
+	struct UnusedTypeTag;
+
 	// accept dummy assignment from any value
 	constexpr ConstantType() = default;
 	constexpr ConstantType(auto && ...) {}
 
-	constexpr operator T() const { return VALUE; };
+	constexpr const T &value() const { return value_; }
+	constexpr operator const T&() const { return value_; };
 
 	constexpr auto& operator +=(const auto &) { return *this; }
 	constexpr auto& operator -=(const auto &) { return *this; }
 	constexpr auto& operator *=(const auto &) { return *this; }
 	constexpr auto& operator /=(const auto &) { return *this; }
-	constexpr auto operator<=>(const T &o) const { return VALUE <=> o; };
+	constexpr auto operator<=>(const T &o) const { return value() <=> o; };
+
+private:
+	static constexpr T value_{val};
 };
 
-template <class T, int Tag = 0>
+template <class T, int tag = 0>
 struct UnusedType
 {
+	using Type = T;
 	struct UnusedTypeTag;
 
 	// accept dummy assignment from any value
 	constexpr UnusedType() = default;
 	constexpr UnusedType(auto && ...) {}
 
+	constexpr T value() const { return {}; }
 	constexpr operator T() const { return {}; };
-	constexpr operator bool() const requires (!std::same_as<T, bool>) { return false; };
+	explicit constexpr operator bool() const requires (!std::same_as<T, bool>) { return false; };
 
 	// can take address of object, but always returns nullptr
 	constexpr T* operator &() const { return nullptr; };
@@ -64,18 +73,30 @@ concept Unused = requires {typename T::UnusedTypeTag;};
 // selects either type T and an empty type that converts to T and returns VALUE,
 // used in combination with [[no_unique_address]] and a unique Tag value to declare
 // a class member that conditionally doesn't consume any space without using the C-preprocessor
-template<bool CONDITION, class T, T VALUE, int Tag = 0>
-using UseIfOrConstant = std::conditional_t<CONDITION, T, ConstantType<T, VALUE, Tag>>;
+template<bool condition, class T, T value, int tag = 0>
+using UseIfOrConstant = std::conditional_t<condition, T, ConstantType<T, value, tag>>;
 
-#define IG_UseMemberIfOrConstant(c, t, v, name) \
-	[[no_unique_address]] IG::UseIfOrConstant<(c), t, v, __LINE__> name
+template<int tag>
+struct UseIfOrConstantTagInjector // used to inject the line count as "tag" when used from a macro
+{
+    template<bool condition, class T, T value>
+    using T = UseIfOrConstant<condition, T, value, tag>;
+};
+
+#define ConditionalMemberOr [[no_unique_address]] IG::UseIfOrConstantTagInjector<__LINE__>::T
 
 // same as above but always returns a default constructed value so class types can be used
-template<bool CONDITION, class T, int Tag = 0>
-using UseIf = std::conditional_t<CONDITION, T, UnusedType<T, Tag>>;
+template<bool condition, class T, int tag = 0>
+using UseIf = std::conditional_t<condition, T, UnusedType<T, tag>>;
 
-#define IG_UseMemberIf(c, t, name) \
-	[[no_unique_address]] IG::UseIf<(c), t, __LINE__> name
+template<int tag>
+struct UseIfTagInjector
+{
+    template<bool condition, class T>
+    using T = UseIf<condition, T, tag>;
+};
+
+#define ConditionalMember [[no_unique_address]] IG::UseIfTagInjector<__LINE__>::T
 
 // test that a variable's type is used in UseIf and not the UnusedType case
 constexpr bool used(auto &&) { return true; }

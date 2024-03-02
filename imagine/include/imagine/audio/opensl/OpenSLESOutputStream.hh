@@ -20,11 +20,6 @@
 #include <SLES/OpenSLES_Android.h>
 #include <memory>
 
-namespace IG
-{
-class ErrorCode;
-}
-
 namespace IG::Audio
 {
 
@@ -36,7 +31,7 @@ public:
 	OpenSLESOutputStream(const Manager &);
 	~OpenSLESOutputStream();
 	OpenSLESOutputStream &operator=(OpenSLESOutputStream &&) = delete;
-	ErrorCode open(OutputStreamConfig config);
+	StreamError open(OutputStreamConfig config);
 	void play();
 	void pause();
 	void close();

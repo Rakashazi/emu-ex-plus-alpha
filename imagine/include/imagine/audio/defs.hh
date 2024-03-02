@@ -65,6 +65,11 @@ struct ApiDesc
 
 using OnSamplesNeededDelegate = DelegateFunc<bool(void *buff, size_t frames)>;
 
+enum class StreamError
+{
+	Ok, BadArgument, NotInitialized
+};
+
 struct OutputStreamConfig;
 class Manager;
 

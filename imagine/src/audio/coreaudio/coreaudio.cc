@@ -76,7 +76,7 @@ CAOutputStream::~CAOutputStream()
 	AudioComponentInstanceDispose(outputUnit);
 }
 
-IG::ErrorCode CAOutputStream::open(OutputStreamConfig config)
+StreamError CAOutputStream::open(OutputStreamConfig config)
 {
 	if(isOpen())
 	{
@@ -99,7 +99,7 @@ IG::ErrorCode CAOutputStream::open(OutputStreamConfig config)
 		err)
 	{
 		log.error("error:{} setting stream format", err);
-		return {EINVAL};
+		return StreamError::BadArgument;
 	}
 	onSamplesNeeded = config.onSamplesNeeded;
 	AudioUnitInitialize(outputUnit);

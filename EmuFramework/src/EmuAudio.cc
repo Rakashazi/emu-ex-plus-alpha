@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include "EmuOptions.hh"
+#include <emuframework/EmuOptions.hh>
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/Option.hh>
@@ -452,20 +452,19 @@ void EmuAudio::writeConfig(FileIO &io) const
 	writeOptionValueIfNotDefault(io, CFGKEY_SOUND_BUFFERS, soundBuffers, defaultSoundBuffers);
 	writeOptionValueIfNotDefault(io, CFGKEY_SOUND_VOLUME, maxVolume(), 100);
 	writeOptionValueIfNotDefault(io, CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN, addSoundBuffersOnUnderrunSetting, false);
-	if(used(audioAPI))
-		writeOptionValueIfNotDefault(io, CFGKEY_AUDIO_API, audioAPI, Audio::Api::DEFAULT);
+	writeOptionValueIfNotDefault(io, CFGKEY_AUDIO_API, audioAPI, Audio::Api::DEFAULT);
 }
 
-bool EmuAudio::readConfig(MapIO &io, unsigned key, size_t size)
+bool EmuAudio::readConfig(MapIO &io, unsigned key)
 {
 	switch(key)
 	{
-		case CFGKEY_SOUND: return readOptionValue(io, size, flags);
-		case CFGKEY_SOUND_RATE: return EmuSystem::forcedSoundRate ? false : readOptionValue(io, size, rate_, isValidSoundRate);
-		case CFGKEY_SOUND_BUFFERS: return readOptionValue(io, size, soundBuffers, optionIsValidWithMinMax<1, 7, int8_t>);
-		case CFGKEY_SOUND_VOLUME: return readOptionValue<int8_t>(io, size, [&](auto v){ setMaxVolume(v); }, isValidVolumeSetting);
-		case CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN: return readOptionValue(io, size, addSoundBuffersOnUnderrunSetting);
-		case CFGKEY_AUDIO_API: return used(audioAPI) ? readOptionValue(io, size, audioAPI) : false;
+		case CFGKEY_SOUND: return readOptionValue(io, flags);
+		case CFGKEY_SOUND_RATE: return EmuSystem::forcedSoundRate ? false : readOptionValue(io, rate_, isValidSoundRate);
+		case CFGKEY_SOUND_BUFFERS: return readOptionValue(io, soundBuffers, isValidWithMinMax<1, 7, int8_t>);
+		case CFGKEY_SOUND_VOLUME: return readOptionValue<int8_t>(io, [&](auto v){ setMaxVolume(v); }, isValidVolumeSetting);
+		case CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN: return readOptionValue(io, addSoundBuffersOnUnderrunSetting);
+		case CFGKEY_AUDIO_API: return readOptionValue(io, audioAPI);
 	}
 	return false;
 }

@@ -18,7 +18,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuViewController.hh>
 #include <emuframework/AppKeyCode.hh>
-#include "../EmuOptions.hh"
+#include <emuframework/EmuOptions.hh>
 #include "../InputDeviceData.hh"
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/gui/TextTableView.hh>

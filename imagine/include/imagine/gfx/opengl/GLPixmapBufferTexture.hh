@@ -40,7 +40,7 @@ public:
 		Texture{rTask, config},
 		bufferIdx{singleBuffer ? SINGLE_BUFFER_VALUE : (int8_t)0} {}
 
-	ErrorCode setFormat(PixmapDesc, ColorSpace, TextureSamplerConfig);
+	bool setFormat(PixmapDesc, ColorSpace, TextureSamplerConfig);
 	void writeAligned(PixmapView pixmap, int assumeAlign, TextureWriteFlags writeFlags = {});
 	LockedTextureBuffer lock(TextureBufferFlags bufferFlags = {});
 	void unlock(LockedTextureBuffer lockBuff, TextureWriteFlags writeFlags = {});

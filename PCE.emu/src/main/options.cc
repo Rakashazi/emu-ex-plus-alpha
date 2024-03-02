@@ -15,6 +15,7 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
+#include <emuframework/Option.hh>
 #include "MainSystem.hh"
 #include <pce/pcecd.h>
 #include <pce/vce.h>
@@ -57,32 +58,32 @@ bool PceSystem::resetSessionOptions(EmuApp &app)
 	return true;
 }
 
-bool PceSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
+bool PceSystem::readConfig(ConfigType type, MapIO &io, unsigned key)
 {
 	if(type == ConfigType::MAIN)
 	{
 		switch(key)
 		{
-			case CFGKEY_SYSCARD_PATH: return readStringOptionValue(io, readSize, sysCardPath);
-			case CFGKEY_DEFAULT_VISIBLE_LINES: return readOptionValue(io, readSize, defaultVisibleLines, visibleLinesAreValid);
-			case CFGKEY_CORRECT_LINE_ASPECT: return readOptionValue(io, readSize, correctLineAspect);
-			case CFGKEY_NO_SPRITE_LIMIT: return readOptionValue(io, readSize, noSpriteLimit);
-			case CFGKEY_CD_SPEED: return readOptionValue(io, readSize, cdSpeed, [](auto val){return val <= 8;});
-			case CFGKEY_CDDA_VOLUME: return readOptionValue(io, readSize, cddaVolume, [](auto val){return val <= 200;});
-			case CFGKEY_ADPCM_VOLUME: return readOptionValue(io, readSize, adpcmVolume, [](auto val){return val <= 200;});
-			case CFGKEY_ADPCM_FILTER: return readOptionValue(io, readSize, adpcmFilter);
-			case CFGKEY_EMU_CORE: return readOptionValue(io, readSize, defaultCore, [](auto val){return val <= lastEnum<EmuCore>;});
-			case CFGKEY_NO_MD5_FILENAMES: return readOptionValue(io, readSize, noMD5InFilenames);
+			case CFGKEY_SYSCARD_PATH: return readStringOptionValue(io, sysCardPath);
+			case CFGKEY_DEFAULT_VISIBLE_LINES: return readOptionValue(io, defaultVisibleLines, visibleLinesAreValid);
+			case CFGKEY_CORRECT_LINE_ASPECT: return readOptionValue(io, correctLineAspect);
+			case CFGKEY_NO_SPRITE_LIMIT: return readOptionValue(io, noSpriteLimit);
+			case CFGKEY_CD_SPEED: return readOptionValue(io, cdSpeed, [](auto val){return val <= 8;});
+			case CFGKEY_CDDA_VOLUME: return readOptionValue(io, cddaVolume, [](auto val){return val <= 200;});
+			case CFGKEY_ADPCM_VOLUME: return readOptionValue(io, adpcmVolume, [](auto val){return val <= 200;});
+			case CFGKEY_ADPCM_FILTER: return readOptionValue(io, adpcmFilter);
+			case CFGKEY_EMU_CORE: return readOptionValue(io, defaultCore, [](auto val){return val <= lastEnum<EmuCore>;});
+			case CFGKEY_NO_MD5_FILENAMES: return readOptionValue(io, noMD5InFilenames);
 		}
 	}
 	else if(type == ConfigType::SESSION)
 	{
 		switch(key)
 		{
-			case CFGKEY_ARCADE_CARD: return optionArcadeCard.readFromIO(io, readSize);
-			case CFGKEY_6_BTN_PAD: return option6BtnPad.readFromIO(io, readSize);
-			case CFGKEY_VISIBLE_LINES: return readOptionValue(io, readSize, visibleLines, visibleLinesAreValid);
-			case CFGKEY_EMU_CORE: return readOptionValue(io, readSize, core, [](auto val){return val <= lastEnum<EmuCore>;});
+			case CFGKEY_ARCADE_CARD: return readOptionValue(io, optionArcadeCard);
+			case CFGKEY_6_BTN_PAD: return readOptionValue(io, option6BtnPad);
+			case CFGKEY_VISIBLE_LINES: return readOptionValue(io, visibleLines, visibleLinesAreValid);
+			case CFGKEY_EMU_CORE: return readOptionValue(io, core, [](auto val){return val <= lastEnum<EmuCore>;});
 		}
 	}
 	return false;
@@ -112,8 +113,8 @@ void PceSystem::writeConfig(ConfigType type, FileIO &io)
 	}
 	else if(type == ConfigType::SESSION)
 	{
-		optionArcadeCard.writeWithKeyIfNotDefault(io);
-		option6BtnPad.writeWithKeyIfNotDefault(io);
+		writeOptionValueIfNotDefault(io, optionArcadeCard);
+		writeOptionValueIfNotDefault(io, option6BtnPad);
 		if(visibleLines != defaultVisibleLines)
 			writeOptionValue<VisibleLines>(io, CFGKEY_VISIBLE_LINES, visibleLines);
 		writeOptionValueIfNotDefault(io, CFGKEY_EMU_CORE, core, EmuCore::Auto);

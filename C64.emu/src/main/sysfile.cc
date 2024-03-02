@@ -22,6 +22,7 @@
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
+#include <imagine/logger/logger.h>
 
 extern "C"
 {
@@ -33,7 +34,7 @@ extern "C"
 namespace EmuEx
 {
 
-constexpr SystemLogger log{"sysfile"};
+constexpr SystemLogger log{"C64.emu"};
 
 static int loadSysFile(Readable auto &file, const char *name, uint8_t *dest, int minsize, int maxsize)
 {

@@ -29,7 +29,7 @@ public:
 	MipFilter mipFilter = MipFilter::LINEAR;
 	WrapMode xWrapMode = WrapMode::CLAMP;
 	WrapMode yWrapMode = WrapMode::CLAMP;
-	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
+	ConditionalMember<Config::DEBUG_BUILD, const char *> debugLabel{};
 
 	constexpr void setLinearFilter(bool on) { minLinearFilter = magLinearFilter = on; }
 	constexpr void setWrapMode(WrapMode mode) { xWrapMode = yWrapMode = mode; }

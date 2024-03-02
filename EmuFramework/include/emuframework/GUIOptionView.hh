@@ -32,18 +32,18 @@ public:
 	void loadStockItems();
 
 protected:
-	IG_UseMemberIf(Config::windowFocus, BoolMenuItem, pauseUnfocused);
+	ConditionalMember<Config::windowFocus, BoolMenuItem> pauseUnfocused;
 	TextMenuItem fontSizeItem[10];
 	MultiChoiceMenuItem fontSize;
 	BoolMenuItem notificationIcon;
-	IG_UseMemberIf(Config::STATUS_BAR, TextMenuItem, statusBarItem[3]);
-	IG_UseMemberIf(Config::STATUS_BAR, MultiChoiceMenuItem, statusBar);
-	IG_UseMemberIf(Config::NAVIGATION_BAR, TextMenuItem, lowProfileOSNavItem[3]);
-	IG_UseMemberIf(Config::NAVIGATION_BAR, MultiChoiceMenuItem, lowProfileOSNav);
-	IG_UseMemberIf(Config::NAVIGATION_BAR, TextMenuItem, hideOSNavItem[3]);
-	IG_UseMemberIf(Config::NAVIGATION_BAR, MultiChoiceMenuItem, hideOSNav);
+	ConditionalMember<Config::STATUS_BAR, TextMenuItem> statusBarItem[3];
+	ConditionalMember<Config::STATUS_BAR, MultiChoiceMenuItem> statusBar;
+	ConditionalMember<Config::NAVIGATION_BAR, TextMenuItem> lowProfileOSNavItem[3];
+	ConditionalMember<Config::NAVIGATION_BAR, MultiChoiceMenuItem> lowProfileOSNav;
+	ConditionalMember<Config::NAVIGATION_BAR, TextMenuItem> hideOSNavItem[3];
+	ConditionalMember<Config::NAVIGATION_BAR, MultiChoiceMenuItem> hideOSNav;
 	BoolMenuItem idleDisplayPowerSave;
-	IG_UseMemberIf(CAN_HIDE_TITLE_BAR, BoolMenuItem, navView);
+	ConditionalMember<CAN_HIDE_TITLE_BAR, BoolMenuItem> navView;
 	BoolMenuItem backNav;
 	BoolMenuItem systemActionsIsDefaultMenu;
 	BoolMenuItem showBundledGames;
@@ -55,9 +55,9 @@ protected:
 	MultiChoiceMenuItem menuOrientation;
 	TextMenuItem emuOrientationItem[5];
 	MultiChoiceMenuItem emuOrientation;
-	IG_UseMemberIf(Config::TRANSLUCENT_SYSTEM_UI, BoolMenuItem, layoutBehindSystemUI);
-	IG_UseMemberIf(Config::freeformWindows, TextMenuItem, setWindowSize);
-	IG_UseMemberIf(Config::freeformWindows, TextMenuItem, toggleFullScreen);
+	ConditionalMember<Config::TRANSLUCENT_SYSTEM_UI, BoolMenuItem> layoutBehindSystemUI;
+	ConditionalMember<Config::freeformWindows, TextMenuItem> setWindowSize;
+	ConditionalMember<Config::freeformWindows, TextMenuItem> toggleFullScreen;
 	StaticArrayList<MenuItem*, 23> item;
 };
 

@@ -67,7 +67,7 @@ OpenSLESOutputStream::~OpenSLESOutputStream()
 	(*slE)->Destroy(slE);
 }
 
-IG::ErrorCode OpenSLESOutputStream::open(OutputStreamConfig config)
+StreamError OpenSLESOutputStream::open(OutputStreamConfig config)
 {
 	if(player)
 	{
@@ -76,7 +76,7 @@ IG::ErrorCode OpenSLESOutputStream::open(OutputStreamConfig config)
 	}
 	if(!*this) [[unlikely]]
 	{
-		return {EINVAL};
+		return StreamError::NotInitialized;
 	}
 	auto format = config.format;
 	log.info("creating stream {}Hz, {} channels, {} frames/buffer", format.rate, format.channels, bufferFrames);
@@ -103,7 +103,7 @@ IG::ErrorCode OpenSLESOutputStream::open(OutputStreamConfig config)
 	else if(format.sample.isFloat()) [[unlikely]]
 	{
 		log.error("floating-point samples need API level 21+");
-		return {EINVAL};
+		return StreamError::BadArgument;
 	}
 	SLDataLocator_OutputMix outMixLoc{SL_DATALOCATOR_OUTPUTMIX, outMix};
 	SLDataSink sink{&outMixLoc, nullptr};
@@ -117,7 +117,7 @@ IG::ErrorCode OpenSLESOutputStream::open(OutputStreamConfig config)
 	{
 		log.error("CreateAudioPlayer returned {:#X}", result);
 		player = nullptr;
-		return {EINVAL};
+		return StreamError::BadArgument;
 	}
 	result = (*player)->Realize(player, SL_BOOLEAN_FALSE);
 	assert(result == SL_RESULT_SUCCESS);

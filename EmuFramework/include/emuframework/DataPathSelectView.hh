@@ -122,10 +122,10 @@ public:
 	void appendItem(TextMenuItem &i) { item.emplace_back(&i); }
 
 protected:
-	IG_UseMemberIf(mode == DataPathSelectMode::Folder, TextMenuItem, selectFolder);
+	ConditionalMember<mode == DataPathSelectMode::Folder, TextMenuItem> selectFolder;
 	TextMenuItem selectFile;
 	TextMenuItem unset;
-	IG_UseMemberIf(mode == DataPathSelectMode::File, EmuSystem::NameFilterFunc, fsFilter);
+	ConditionalMember<mode == DataPathSelectMode::File, EmuSystem::NameFilterFunc> fsFilter;
 	StaticArrayList<MenuItem*, 4> item;
 	FS::PathString searchDir;
 

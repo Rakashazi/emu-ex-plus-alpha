@@ -16,7 +16,6 @@
 #define LOGTAG "GLPixmapBufferTexture"
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
-#include <imagine/base/Error.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/math.hh>
@@ -135,7 +134,7 @@ void GLPixmapBufferTexture::initWithSurfaceTexture(RendererTask &r, TextureConfi
 }
 #endif
 
-ErrorCode PixmapBufferTexture::setFormat(PixmapDesc desc, ColorSpace colorSpace, TextureSamplerConfig samplerConf)
+bool PixmapBufferTexture::setFormat(PixmapDesc desc, ColorSpace colorSpace, TextureSamplerConfig samplerConf)
 {
 	if(Config::DEBUG_BUILD && pixmapDesc() == desc)
 		logWarn("resizing with same dimensions %dx%d, should optimize caller code", desc.w(), desc.h());
@@ -231,7 +230,7 @@ bool PixmapBufferTexture::isExternal() const
 }
 
 template<class Impl, class BufferInfo>
-ErrorCode GLTextureStorage<Impl, BufferInfo>::setFormat(PixmapDesc desc, ColorSpace colorSpace, TextureSamplerConfig samplerConf)
+bool GLTextureStorage<Impl, BufferInfo>::setFormat(PixmapDesc desc, ColorSpace colorSpace, TextureSamplerConfig samplerConf)
 {
 	static_cast<Impl*>(this)->initBuffer(desc, isSingleBuffered());
 	return Texture::setFormat(desc, 1, colorSpace, samplerConf);
@@ -356,7 +355,7 @@ void GLPixelBufferStorage::initBuffer(PixmapDesc desc, bool singleBuffer)
 	}
 	else [[unlikely]]
 	{
-		throw Error{ENOMEM};
+		throw std::runtime_error("Error creating pixel buffer");
 	}
 }
 

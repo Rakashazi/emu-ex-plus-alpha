@@ -18,6 +18,7 @@
 #include <emuframework/keyRemappingUtils.hh>
 #include "MainSystem.hh"
 #include "MainApp.hh"
+#include <imagine/logger/logger.h>
 
 extern "C"
 {
@@ -28,6 +29,7 @@ extern "C"
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"C64.emu"};
 bool EmuSystem::inputHasKeyboard = true;
 const int EmuSystem::maxPlayers = 2;
 
@@ -590,7 +592,6 @@ static KeyCode shiftKeycodePositional(C64Key keycode)
 
 void C64System::handleKeyboardInput(InputAction a, bool positionalShift)
 {
-	//logMsg("key:%u %d", key, (int)action);
 	int mod{};
 	if(a.metaState & Input::Meta::SHIFT)
 	{
@@ -659,7 +660,6 @@ void C64System::handleInputAction(EmuApp *app, InputAction a)
 						default: bug_unreachable();
 					}
 				}();
-				//logMsg("js %X p %d", key, player);
 				joystick_value[player] = IG::setOrClearBits(joystick_value[player], jsBits, a.isPushed());
 			}
 			break;
@@ -689,7 +689,7 @@ void C64System::handleInputAction(EmuApp *app, InputAction a)
 		{
 			if(app)
 			{
-				logMsg("pushed restore key");
+				log.info("pushed restore key");
 				app->syncEmulationThread();
 				plugin.machine_set_restore_key(a.state == Input::Action::PUSHED);
 			}
@@ -709,7 +709,7 @@ void C64System::handleInputAction(EmuApp *app, InputAction a)
 			if(app && a.isPushed())
 			{
 				bool active = app->defaultVController().keyboard().toggleShiftActive();
-				//logMsg("positional shift:%d", active);
+				//log.debug("positional shift:{}", active);
 				handleKeyboardInput({KeyCode(C64Key::KeyboardLeftShift), {}, active ? Input::Action::PUSHED : Input::Action::RELEASED});
 			}
 			break;
@@ -787,7 +787,7 @@ SystemInputDeviceDesc C64System::inputDeviceDesc(int idx) const
 signed long kbd_arch_keyname_to_keynum(char *keynamePtr)
 {
 	using namespace EmuEx;
-	//logMsg("kbd_arch_keyname_to_keynum(%s)", keyname);
+	//log.debug("kbd_arch_keyname_to_keynum({})", keyname);
 	std::string_view keyname{keynamePtr};
 	if(keyname == "F1") { return long(C64Key::KeyboardF1); }
 	else if(keyname == "F2") { return long(C64Key::KeyboardF2); }

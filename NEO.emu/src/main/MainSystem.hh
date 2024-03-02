@@ -1,7 +1,23 @@
 #pragma once
 
-#include <emuframework/Option.hh>
+/*  This file is part of NEO.emu.
+
+	NEO.emu is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	NEO.emu is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with NEO.emu.  If not, see <http://www.gnu.org/licenses/> */
+
+#include <emuframework/EmuOptions.hh>
 #include <emuframework/EmuSystem.hh>
+#include <imagine/io/FileIO.hh>
 
 extern "C"
 {
@@ -24,14 +40,14 @@ enum
 	CFGKEY_NEOGEOKEY_TEST_SWITCH = 280, CFGKEY_STRICT_ROM_CHECKING = 281
 };
 
-inline bool systemEnumIsValid(uint8_t val)
+constexpr bool systemEnumIsValid(auto const &v)
 {
-	return val < SYS_MAX;
+	return v < SYS_MAX;
 }
 
-inline bool countryEnumIsValid(uint8_t val)
+constexpr bool countryEnumIsValid(auto const &v)
 {
-	return val < CTY_MAX;
+	return v < CTY_MAX;
 }
 
 class NeoSystem final: public EmuSystem
@@ -46,12 +62,15 @@ public:
 	uint16_t screenBuff[FBResX*256] __attribute__ ((aligned (8))){};
 	FS::PathString datafilePath{};
 	EmuSystem::OnLoadProgressDelegate onLoadProgress{};
-	Byte1Option optionListAllGames{CFGKEY_LIST_ALL_GAMES, 0};
-	Byte1Option optionBIOSType{CFGKEY_BIOS_TYPE, SYS_UNIBIOS, 0, systemEnumIsValid};
-	Byte1Option optionMVSCountry{CFGKEY_MVS_COUNTRY, CTY_USA, 0, countryEnumIsValid};
-	Byte1Option optionTimerInt{CFGKEY_TIMER_INT, 2};
-	Byte1Option optionCreateAndUseCache{CFGKEY_CREATE_USE_CACHE, 0};
-	Byte1Option optionStrictROMChecking{CFGKEY_STRICT_ROM_CHECKING, 0};
+	Property<bool, CFGKEY_LIST_ALL_GAMES> optionListAllGames;
+	Property<uint8_t, CFGKEY_BIOS_TYPE,
+		PropertyDesc<uint8_t>{.defaultValue = SYS_UNIBIOS, .isValid = systemEnumIsValid}> optionBIOSType;
+	Property<uint8_t, CFGKEY_MVS_COUNTRY,
+		PropertyDesc<uint8_t>{.defaultValue = CTY_USA, .isValid = countryEnumIsValid}> optionMVSCountry;
+	Property<uint8_t, CFGKEY_TIMER_INT,
+		PropertyDesc<uint8_t>{.defaultValue = 2}> optionTimerInt;
+	Property<bool, CFGKEY_CREATE_USE_CACHE> optionCreateAndUseCache;
+	Property<bool, CFGKEY_STRICT_ROM_CHECKING> optionStrictROMChecking;
 	static constexpr auto neogeoFrameTime{fromSeconds<FrameTime>(264. / 15625.)}; // ~59.18Hz
 
 	NeoSystem(ApplicationContext ctx);
@@ -70,7 +89,7 @@ public:
 	size_t stateSize();
 	void readState(EmuApp &, std::span<uint8_t> buff);
 	size_t writeState(std::span<uint8_t> buff, SaveStateFlags = {});
-	bool readConfig(ConfigType, MapIO &, unsigned key, size_t readSize);
+	bool readConfig(ConfigType, MapIO &, unsigned key);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);

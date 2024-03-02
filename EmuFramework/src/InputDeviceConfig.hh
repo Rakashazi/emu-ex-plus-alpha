@@ -59,7 +59,7 @@ protected:
 	int8_t player_{};
 public:
 	bool isEnabled{true};
-	IG_UseMemberIf(Config::envIsAndroid, bool, shouldHandleUnboundKeys){};
+	ConditionalMember<Config::envIsAndroid, bool> shouldHandleUnboundKeys{};
 };
 
 }

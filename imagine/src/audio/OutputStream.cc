@@ -46,7 +46,7 @@ void OutputStream::setApi(const Manager &mgr, Api api)
 	}
 }
 
-ErrorCode OutputStream::open(OutputStreamConfig config) { return visit([&](auto &v){ return v.open(config); }, *this); }
+StreamError OutputStream::open(OutputStreamConfig config) { return visit([&](auto &v){ return v.open(config); }, *this); }
 void OutputStream::play() { visit([&](auto &v){ v.play(); }, *this); }
 void OutputStream::pause() { visit([&](auto &v){ v.pause(); }, *this); }
 void OutputStream::close() { visit([&](auto &v){ v.close(); }, *this); }

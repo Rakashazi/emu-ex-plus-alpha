@@ -177,8 +177,8 @@ struct TextureBinding
 struct TextureSizeSupport
 {
 	int maxXSize{}, maxYSize{};
-	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, bool, true, nonPow2CanMipmap){};
-	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, bool, true, nonPow2CanRepeat){};
+	ConditionalMemberOr<(bool)Config::Gfx::OPENGL_ES, bool, true> nonPow2CanMipmap{};
+	ConditionalMemberOr<(bool)Config::Gfx::OPENGL_ES, bool, true> nonPow2CanRepeat{};
 
 	constexpr bool supportsMipmaps(int x, int y) const
 	{

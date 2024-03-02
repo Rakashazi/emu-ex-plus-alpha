@@ -20,7 +20,7 @@
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/VideoImageEffect.hh>
 #include <emuframework/EmuViewController.hh>
-#include "../EmuOptions.hh"
+#include <emuframework/EmuOptions.hh>
 #include "PlaceVideoView.hh"
 #include <imagine/base/Screen.hh>
 #include <imagine/base/ApplicationContext.hh>
@@ -28,6 +28,7 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <format>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
@@ -208,7 +209,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			decltype(textureBufferModeItem) items;
 			items.emplace_back("Auto (Set optimal mode)", attach, [this](View &view)
 			{
-				app().optionTextureBufferMode = Gfx::TextureBufferMode::DEFAULT;
+				app().textureBufferMode = Gfx::TextureBufferMode::DEFAULT;
 				auto defaultMode = renderer().makeValidTextureBufferMode();
 				emuVideo().setTextureBufferMode(system(), defaultMode);
 				textureBufferMode.setSelected(MenuId{defaultMode});
@@ -219,7 +220,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			{
 				items.emplace_back(desc.name, attach, [this](MenuItem &item)
 				{
-					app().optionTextureBufferMode = Gfx::TextureBufferMode(item.id.val);
+					app().textureBufferMode = Gfx::TextureBufferMode(item.id.val);
 					emuVideo().setTextureBufferMode(system(), Gfx::TextureBufferMode(item.id.val));
 				}, MenuItem::Config{.id = desc.mode});
 			}
@@ -229,7 +230,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	textureBufferMode
 	{
 		"GPU Copy Mode", attach,
-		MenuId{renderer().makeValidTextureBufferMode(app().optionTextureBufferMode)},
+		MenuId{renderer().makeValidTextureBufferMode(app().textureBufferMode)},
 		textureBufferModeItem
 	},
 	frameIntervalItem
@@ -243,11 +244,11 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	frameInterval
 	{
 		"Frame Rate Target", attach,
-		MenuId{app().frameInterval()},
+		MenuId{app().frameInterval},
 		frameIntervalItem,
 		MultiChoiceMenuItem::Config
 		{
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setFrameInterval(item.id); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().frameInterval.setUnchecked(item.id); }
 		},
 	},
 	frameRateItems
@@ -445,14 +446,14 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	zoom
 	{
 		"Content Zoom", attach,
-		MenuId{app().videoZoom()},
+		MenuId{app().imageZoom},
 		zoomItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				if(app().videoZoom() <= 200)
+				if(app().imageZoom <= 200)
 				{
-					t.resetString(std::format("{}%", app().videoZoom()));
+					t.resetString(std::format("{}%", app().imageZoom.value()));
 					return true;
 				}
 				return false;
@@ -483,12 +484,12 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	viewportZoom
 	{
 		"App Zoom", attach,
-		MenuId{app().viewportZoom()},
+		MenuId{app().viewportZoom},
 		viewportZoomItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(std::format("{}%", app().viewportZoom()));
+				t.resetString(std::format("{}%", app().viewportZoom.value()));
 				return true;
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setViewportZoom(item.id); }
@@ -505,7 +506,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	contentRotation
 	{
 		"Content Rotation", attach,
-		MenuId{app().contentRotation()},
+		MenuId{app().contentRotation.value()},
 		contentRotationItem,
 		{
 			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setContentRotation(Rotation(item.id.val)); }
@@ -524,7 +525,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	imgFilter
 	{
 		"Image Interpolation", attach,
-		app().videoLayer().usingLinearFilter(),
+		app().videoLayer.usingLinearFilter(),
 		"None", "Linear",
 		[this](BoolMenuItem &item)
 		{
@@ -544,7 +545,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	imgEffect
 	{
 		"Image Effect", attach,
-		MenuId{app().videoLayer().effectId()},
+		MenuId{app().videoLayer.effectId()},
 		imgEffectItem,
 		{
 			.defaultItemOnSelect = [this](TextMenuItem &item)
@@ -568,7 +569,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	overlayEffect
 	{
 		"Overlay Effect", attach,
-		MenuId{app().videoLayer().overlayEffectId()},
+		MenuId{app().videoLayer.overlayEffectId()},
 		overlayEffectItem,
 		{
 			.defaultItemOnSelect = [this](TextMenuItem &item)
@@ -603,7 +604,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	overlayEffectLevel
 	{
 		"Overlay Effect Level", attach,
-		MenuId{app().videoLayer().overlayIntensity() * 100.f},
+		MenuId{app().videoLayer.overlayIntensity() * 100.f},
 		overlayEffectLevelItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
@@ -627,7 +628,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	imgEffectPixelFormat
 	{
 		"Effect Color Format", attach,
-		MenuId{app().videoEffectPixelFormatOption().val},
+		MenuId{app().imageEffectPixelFormat},
 		imgEffectPixelFormatItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
@@ -642,7 +643,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item)
 			{
-				app().videoEffectPixelFormatOption() = item.id;
+				app().imageEffectPixelFormat = PixelFormatID(item.id.val);
 				videoLayer->setEffectFormat(app().videoEffectPixelFormat());
 				app().viewController().postDrawToEmuWindows();
 			}
@@ -702,13 +703,13 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	showOnSecondScreen
 	{
 		"External Screen", attach,
-		app().optionShowOnSecondScreen,
+		app().showOnSecondScreen,
 		"OS Managed", "Emu Content",
 		[this](BoolMenuItem &item)
 		{
-			app().optionShowOnSecondScreen = item.flipBoolValue(*this);
+			app().showOnSecondScreen = item.flipBoolValue(*this);
 			if(appContext().screens().size() > 1)
-				app().setEmuViewOnExtraWindow(app().optionShowOnSecondScreen, *appContext().screens()[1]);
+				app().setEmuViewOnExtraWindow(app().showOnSecondScreen, *appContext().screens()[1]);
 		}
 	},
 	frameClockItems
@@ -732,7 +733,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			.defaultItemOnSelect = [this](TextMenuItem &item)
 			{
 				app().frameTimeSource = FrameTimeSource(item.id.val);
-				app().video().resetImage(); // texture can switch between single/double buffered
+				app().video.resetImage(); // texture can switch between single/double buffered
 			}
 		},
 	},
@@ -811,7 +812,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	presentationTime
 	{
 		"Precise Frame Pacing", attach,
-		MenuId{app().presentationTimeMode},
+		MenuId{PresentationTimeMode(app().presentationTimeMode)},
 		presentationTimeItems,
 		MultiChoiceMenuItem::Config
 		{

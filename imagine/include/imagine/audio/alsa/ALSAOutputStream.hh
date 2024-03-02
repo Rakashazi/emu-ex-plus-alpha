@@ -21,11 +21,6 @@
 #include <atomic>
 #include <thread>
 
-namespace IG
-{
-class ErrorCode;
-}
-
 namespace IG::Audio
 {
 
@@ -35,7 +30,7 @@ public:
 	ALSAOutputStream() = default;
 	~ALSAOutputStream();
 	ALSAOutputStream &operator=(ALSAOutputStream &&) = delete;
-	ErrorCode open(OutputStreamConfig config);
+	StreamError open(OutputStreamConfig config);
 	void play();
 	void pause();
 	void close();

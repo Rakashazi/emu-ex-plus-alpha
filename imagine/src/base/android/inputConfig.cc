@@ -297,11 +297,12 @@ void AndroidApplication::initInput(ApplicationContext ctx, JNIEnv *env, jobject 
 		if(androidSDK >= 16)
 		{
 			log.info("setting up input notifications");
+			auto &impl = inputDeviceChangeImpl.emplace<InputDeviceListenerImpl>();
 			JNI::InstMethod<jobject(jlong)> jInputDeviceListenerHelper{env, baseActivityClass, "inputDeviceListenerHelper", "(J)Lcom/imagine/InputDeviceListenerHelper;"};
-			inputDeviceListenerHelper = {env, jInputDeviceListenerHelper(env, baseActivity, jlong(ctx.aNativeActivityPtr()))};
-			auto inputDeviceListenerHelperCls = env->GetObjectClass(inputDeviceListenerHelper);
-			jRegister = {env, inputDeviceListenerHelperCls, "register", "()V"};
-			jUnregister = {env, inputDeviceListenerHelperCls, "unregister", "()V"};
+			impl.listenerHelper = {env, jInputDeviceListenerHelper(env, baseActivity, jlong(ctx.aNativeActivityPtr()))};
+			auto inputDeviceListenerHelperCls = env->GetObjectClass(impl.listenerHelper);
+			impl.jRegister = {env, inputDeviceListenerHelperCls, "register", "()V"};
+			impl.jUnregister = {env, inputDeviceListenerHelperCls, "unregister", "()V"};
 			JNINativeMethod method[]
 			{
 				{
@@ -329,41 +330,45 @@ void AndroidApplication::initInput(ApplicationContext ctx, JNIEnv *env, jobject 
 			};
 			env->RegisterNatives(inputDeviceListenerHelperCls, method, std::size(method));
 			addOnResume([this, env](ApplicationContext ctx, bool)
-				{
-					enumInputDevices(ctx, env, ctx.baseActivityObject(), true);
-					log.info("registering input device listener");
-					jRegister(env, inputDeviceListenerHelper);
-					return true;
-				}, INPUT_DEVICE_ON_RESUME_PRIORITY);
+			{
+				enumInputDevices(ctx, env, ctx.baseActivityObject(), true);
+				log.info("registering input device listener");
+				auto &impl = *std::get_if<InputDeviceListenerImpl>(&inputDeviceChangeImpl);
+				impl.jRegister(env, impl.listenerHelper);
+				return true;
+			}, INPUT_DEVICE_ON_RESUME_PRIORITY);
 			addOnExit([this, env](ApplicationContext, bool backgrounded)
-				{
-					log.info("unregistering input device listener");
-					jUnregister(env, inputDeviceListenerHelper);
-					return true;
-				}, INPUT_DEVICE_ON_EXIT_PRIORITY);
+			{
+				log.info("unregistering input device listener");
+				auto &impl = *std::get_if<InputDeviceListenerImpl>(&inputDeviceChangeImpl);
+				impl.jUnregister(env, impl.listenerHelper);
+				return true;
+			}, INPUT_DEVICE_ON_EXIT_PRIORITY);
 		}
 		else
 		{
 			log.info("setting up input notifications with inotify");
-			inputDevNotifyFd = inotify_init();
-			if(inputDevNotifyFd == -1)
+			auto &impl = inputDeviceChangeImpl.emplace<INotifyImpl>();
+			impl.fd = inotify_init();
+			if(impl.fd == -1)
 			{
 				log.error("couldn't create inotify instance");
 			}
 			else
 			{
-				int ret = ALooper_addFd(EventLoop::forThread().nativeObject(), inputDevNotifyFd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
+				int ret = ALooper_addFd(EventLoop::forThread().nativeObject(), impl.fd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
 					[](int fd, int events, void* data)
 					{
 						log.info("got inotify event");
 						auto &app = *((AndroidApplication*)data);
+						auto &impl = *std::get_if<INotifyImpl>(&app.inputDeviceChangeImpl);
 						if(events == POLLEV_IN)
 						{
 							char buffer[2048];
 							auto size = read(fd, buffer, sizeof(buffer));
 							if(app.isRunning())
 							{
-								app.inputRescanCallback->runIn(IG::Milliseconds(250));
+								impl.rescanTimer.runIn(IG::Milliseconds(250));
 							}
 						}
 						return 1;
@@ -373,35 +378,33 @@ void AndroidApplication::initInput(ApplicationContext ctx, JNIEnv *env, jobject 
 					log.error("couldn't add inotify fd to looper");
 				}
 				addOnResume([this, env](ApplicationContext ctx, bool)
+				{
+					auto &impl = *std::get_if<INotifyImpl>(&inputDeviceChangeImpl);
+					impl.rescanTimer = {"inputRescanCallback", [ctx]() { ctx.enumInputDevices(); }};
+					enumInputDevices(ctx, env, ctx.baseActivityObject(), true);
+					if(impl.fd != -1 && impl.watch == -1)
 					{
-						inputRescanCallback.emplace("inputRescanCallback",
-							[this, ctx]()
-							{
-								ctx.enumInputDevices();
-							});
-						enumInputDevices(ctx, env, ctx.baseActivityObject(), true);
-						if(inputDevNotifyFd != -1 && watch == -1)
+						log.info("registering inotify input device listener");
+						impl.watch = inotify_add_watch(impl.fd, "/dev/input", IN_CREATE | IN_DELETE);
+						if(impl.watch == -1)
 						{
-							log.info("registering inotify input device listener");
-							watch = inotify_add_watch(inputDevNotifyFd, "/dev/input", IN_CREATE | IN_DELETE);
-							if(watch == -1)
-							{
-								log.error("error setting inotify watch");
-							}
+							log.error("error setting inotify watch");
 						}
-						return true;
-					}, INPUT_DEVICE_ON_RESUME_PRIORITY);
+					}
+					return true;
+				}, INPUT_DEVICE_ON_RESUME_PRIORITY);
 				addOnExit([this, env](ApplicationContext, bool backgrounded)
+				{
+					auto &impl = *std::get_if<INotifyImpl>(&inputDeviceChangeImpl);
+					if(impl.watch != -1)
 					{
-						if(watch != -1)
-						{
-							log.info("unregistering inotify input device listener");
-							inotify_rm_watch(inputDevNotifyFd, watch);
-							watch = -1;
-							inputRescanCallback.reset();
-						}
-						return true;
-					}, INPUT_DEVICE_ON_EXIT_PRIORITY);
+						log.info("unregistering inotify input device listener");
+						inotify_rm_watch(impl.fd, impl.watch);
+						impl.watch = -1;
+						impl.rescanTimer = {};
+					}
+					return true;
+				}, INPUT_DEVICE_ON_EXIT_PRIORITY);
 			}
 		}
 	}

@@ -21,6 +21,7 @@
 #include "MainApp.hh"
 #include <fceu/fceu.h>
 #include <fceu/fds.h>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {

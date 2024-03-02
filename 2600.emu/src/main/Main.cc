@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "main"
 #include <stella/emucore/Cart.hxx>
 #include <stella/emucore/CartCreator.hxx>
 #include <stella/emucore/Props.hxx>
@@ -37,10 +36,12 @@
 #undef Debugger
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"2600.emu"};
 constexpr size_t MAX_ROM_SIZE = 512 * 1024;
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella-emu.github.io";
 bool EmuSystem::hasPALVideoSystem = true;
@@ -58,7 +59,7 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 A2600App::A2600App(ApplicationInitParams initParams, ApplicationContext &ctx):
 	EmuApp{initParams, ctx}, a2600System{ctx, *this}
 {
-	audio().setStereo(false); // TODO: stereo mode
+	audio.setStereo(false); // TODO: stereo mode
 }
 
 const char *EmuSystem::shortSystemName() const
@@ -84,7 +85,7 @@ void A2600System::closeSystem()
 void A2600System::updateSwitchValues()
 {
 	auto switches = osystem.console().switches().read();
-	logMsg("updating switch values to %X", switches);
+	log.info("updating switch values to {:X}", switches);
 	p1DiffB = !(switches & 0x40);
 	p2DiffB = !(switches & 0x80);
 	vcsColor = switches & 0x08;
@@ -117,7 +118,7 @@ void A2600System::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDeleg
 	settings.setValue("romloadcount", 0);
 	settings.setValue("plr.tv.jitter", false);
 	auto cartridge = CartCreator::create(fsNode, image, size, md5, romType, settings);
-	cartridge->setMessageCallback([](const string& msg){ logMsg("%s", msg.c_str()); });
+	cartridge->setMessageCallback([](const string& msg){ log.info("{}", msg); });
 	if((int)optionTVPhosphor != TV_PHOSPHOR_AUTO)
 	{
 		props.set(PropType::Display_Phosphor, optionTVPhosphor ? "YES" : "NO");
@@ -125,17 +126,17 @@ void A2600System::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDeleg
 	os.frameBuffer().enablePhosphor(props.get(PropType::Display_Phosphor) == "YES", optionTVPhosphorBlend);
 	if((int)optionVideoSystem) // not auto
 	{
-		logMsg("forcing video system to:%s", optionVideoSystemToStr(optionVideoSystem));
+		log.info("forcing video system to:{}", optionVideoSystemToStr(optionVideoSystem));
 		props.set(PropType::Display_Format, optionVideoSystemToStr(optionVideoSystem));
 	}
 	os.makeConsole(cartridge, props, contentFileName().data());
 	auto &console = os.console();
 	autoDetectedInput1 = limitToSupportedControllerTypes(console.leftController().type());
-	setControllerType(EmuApp::get(appContext()), console, Controller::Type(optionInputPort1.val));
+	setControllerType(EmuApp::get(appContext()), console, optionInputPort1);
 	Paddles::setDigitalSensitivity(optionPaddleDigitalSensitivity);
 	console.initializeVideo();
 	console.initializeAudio();
-	logMsg("is PAL: %s", videoSystem() == VideoSystem::PAL ? "yes" : "no");
+	log.info("is PAL:{}", videoSystem() == VideoSystem::PAL ? "yes" : "no");
 	Serializer state;
 	osystem.state().saveState(state);
 	saveStateSize = state.size();
@@ -161,7 +162,7 @@ void A2600System::configAudioRate(FrameTime outputFrameTime, int outputRate)
 		return;
 	configuredInputVideoFrameRate = consoleFrameRate(osystem);
 	osystem.setSoundMixRate(std::round(audioMixRate(outputRate, configuredInputVideoFrameRate, outputFrameTime)),
-		AudioSettings::ResamplingQuality(optionAudioResampleQuality.val));
+		AudioSettings::ResamplingQuality(optionAudioResampleQuality));
 }
 
 static void renderVideo(EmuSystemTaskContext taskCtx, EmuVideo &video, FrameBuffer &fb, TIA &tia)
@@ -184,7 +185,7 @@ void A2600System::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAud
 	DispatchResult res;
 	tia.update(res, maxCyclesPerFrame);
 	if(res.getCycles() > maxCyclesPerFrame)
-		logWarn("frame ran %u cycles", (unsigned)res.getCycles());
+		log.warn("frame ran {} cycles", res.getCycles());
 	tia.renderToFrameBuffer();
 	if(video)
 	{

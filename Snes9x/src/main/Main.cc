@@ -6,6 +6,7 @@
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
 #include <imagine/util/zlib.hh>
+#include <imagine/logger/logger.h>
 
 #include <memmap.h>
 #include <display.h>
@@ -266,7 +267,7 @@ void Snes9xSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDele
 	Memory.HeaderCount = 0;
 	auto forceVideoSystemSettings = [&]() -> std::pair<bool, bool> // ForceNTSC, ForcePAL
 	{
-		switch(optionVideoSystem.val)
+		switch(optionVideoSystem)
 		{
 			case 1: return {true, false};
 			case 2: return {false, true};

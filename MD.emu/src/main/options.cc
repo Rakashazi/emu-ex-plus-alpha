@@ -15,6 +15,7 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
+#include <emuframework/Option.hh>
 #include "MainSystem.hh"
 
 namespace EmuEx
@@ -57,32 +58,32 @@ bool MdSystem::resetSessionOptions(EmuApp &app)
 	return true;
 }
 
-bool MdSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
+bool MdSystem::readConfig(ConfigType type, MapIO &io, unsigned key)
 {
 	if(type == ConfigType::MAIN)
 	{
 		switch(key)
 		{
-			case CFGKEY_BIG_ENDIAN_SRAM: return optionBigEndianSram.readFromIO(io, readSize);
-			case CFGKEY_SMS_FM: return optionSmsFM.readFromIO(io, readSize);
+			case CFGKEY_BIG_ENDIAN_SRAM: return readOptionValue(io, optionBigEndianSram);
+			case CFGKEY_SMS_FM: return readOptionValue(io, optionSmsFM);
 			#ifndef NO_SCD
-			case CFGKEY_MD_CD_BIOS_USA_PATH: return readStringOptionValue(io, readSize, cdBiosUSAPath);
-			case CFGKEY_MD_CD_BIOS_JPN_PATH: return readStringOptionValue(io, readSize, cdBiosJpnPath);
-			case CFGKEY_MD_CD_BIOS_EUR_PATH: return readStringOptionValue(io, readSize, cdBiosEurPath);
+			case CFGKEY_MD_CD_BIOS_USA_PATH: return readStringOptionValue(io, cdBiosUSAPath);
+			case CFGKEY_MD_CD_BIOS_JPN_PATH: return readStringOptionValue(io, cdBiosJpnPath);
+			case CFGKEY_MD_CD_BIOS_EUR_PATH: return readStringOptionValue(io, cdBiosEurPath);
 			#endif
-			case CFGKEY_CHEATS_PATH: return readStringOptionValue(io, readSize, cheatsDir);
+			case CFGKEY_CHEATS_PATH: return readStringOptionValue(io, cheatsDir);
 		}
 	}
 	else if(type == ConfigType::SESSION)
 	{
 		switch(key)
 		{
-			case CFGKEY_6_BTN_PAD: return option6BtnPad.readFromIO(io, readSize);
-			case CFGKEY_MD_REGION: return optionRegion.readFromIO(io, readSize);
-			case CFGKEY_VIDEO_SYSTEM: return optionVideoSystem.readFromIO(io, readSize);
-			case CFGKEY_INPUT_PORT_1: return optionInputPort1.readFromIO(io, readSize);
-			case CFGKEY_INPUT_PORT_2: return optionInputPort2.readFromIO(io, readSize);
-			case CFGKEY_MULTITAP: return optionMultiTap.readFromIO(io, readSize);
+			case CFGKEY_6_BTN_PAD: return readOptionValue(io, option6BtnPad);
+			case CFGKEY_MD_REGION: return readOptionValue(io, optionRegion);
+			case CFGKEY_VIDEO_SYSTEM: return readOptionValue(io, optionVideoSystem);
+			case CFGKEY_INPUT_PORT_1: return readOptionValue(io, optionInputPort1);
+			case CFGKEY_INPUT_PORT_2: return readOptionValue(io, optionInputPort2);
+			case CFGKEY_MULTITAP: return readOptionValue(io, optionMultiTap);
 		}
 	}
 	return false;
@@ -92,8 +93,8 @@ void MdSystem::writeConfig(ConfigType type, FileIO &io)
 {
 	if(type == ConfigType::MAIN)
 	{
-		optionBigEndianSram.writeWithKeyIfNotDefault(io);
-		optionSmsFM.writeWithKeyIfNotDefault(io);
+		writeOptionValueIfNotDefault(io, optionBigEndianSram);
+		writeOptionValueIfNotDefault(io, optionSmsFM);
 		#ifndef NO_SCD
 		writeStringOptionValue(io, CFGKEY_MD_CD_BIOS_USA_PATH, cdBiosUSAPath);
 		writeStringOptionValue(io, CFGKEY_MD_CD_BIOS_JPN_PATH, cdBiosJpnPath);
@@ -103,12 +104,12 @@ void MdSystem::writeConfig(ConfigType type, FileIO &io)
 	}
 	else if(type == ConfigType::SESSION)
 	{
-		option6BtnPad.writeWithKeyIfNotDefault(io);
-		optionRegion.writeWithKeyIfNotDefault(io);
-		optionVideoSystem.writeWithKeyIfNotDefault(io);
-		optionInputPort1.writeWithKeyIfNotDefault(io);
-		optionInputPort2.writeWithKeyIfNotDefault(io);
-		optionMultiTap.writeWithKeyIfNotDefault(io);
+		writeOptionValueIfNotDefault(io, option6BtnPad);
+		writeOptionValueIfNotDefault(io, optionRegion);
+		writeOptionValueIfNotDefault(io, optionVideoSystem);
+		writeOptionValueIfNotDefault(io, optionInputPort1);
+		writeOptionValueIfNotDefault(io, optionInputPort2);
+		writeOptionValueIfNotDefault(io, optionMultiTap);
 	}
 }
 

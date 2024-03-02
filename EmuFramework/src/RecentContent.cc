@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include "EmuOptions.hh"
+#include <emuframework/EmuOptions.hh>
 #include <emuframework/RecentContent.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/Option.hh>
@@ -63,11 +63,11 @@ void RecentContent::writeConfig(FileIO &io) const
 	}
 }
 
-bool RecentContent::readConfig(MapIO &io, unsigned key, size_t size, const EmuSystem &system)
+bool RecentContent::readConfig(MapIO &io, unsigned key, const EmuSystem &system)
 {
 	if(key == CFGKEY_MAX_RECENT_CONTENT)
 	{
-		readOptionValue(io, size, maxRecentContent);
+		readOptionValue(io, maxRecentContent);
 		return true;
 	}
 	else if(key == CFGKEY_RECENT_CONTENT_V2)

@@ -25,10 +25,12 @@
 #include "MainApp.hh"
 #include <imagine/util/math.hh>
 #include <imagine/util/container/array.hh>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"2600.emu"};
 const int EmuSystem::maxPlayers = 2;
 
 constexpr auto consoleKeyInfo = makeArray<KeyInfo>
@@ -426,12 +428,12 @@ void A2600System::setControllerType(EmuApp &app, Console &console, Controller::T
 	{
 		app.setDisabledInputKeys(concatToArrayNow<kbButtonCodes, js2ButtonCodes, js3ButtonCodes>);
 	}
-	updateVirtualDPad(app, console, (PaddleRegionMode)optionPaddleAnalogRegion.val);
+	updateVirtualDPad(app, console, (PaddleRegionMode)optionPaddleAnalogRegion.value());
 	updateJoytickMapping(app, type);
 	Controller &currentController = console.leftController();
 	if(currentController.type() == type)
 	{
-		logMsg("using controller type:%s", asString(type));
+		log.info("using controller type:{}", asString(type));
 		return;
 	}
 	auto props = console.properties();
@@ -442,9 +444,9 @@ void A2600System::setControllerType(EmuApp &app, Console &console, Controller::T
 	console.setControllers(md5);
 	if(Config::DEBUG_BUILD)
 	{
-		logMsg("current controller name in console object:%s", console.leftController().name().c_str());
+		log.info("current controller name in console object:%s", console.leftController().name());
 	}
-	logMsg("set controller to type:%s", asString(type));
+	log.info("set controller to type:{}", asString(type));
 }
 
 Controller::Type limitToSupportedControllerTypes(Controller::Type type)
@@ -477,7 +479,7 @@ const char *asString(Controller::Type type)
 
 bool A2600System::updatePaddle(Input::DragTrackerState dragState)
 {
-	auto regionMode = (PaddleRegionMode)optionPaddleAnalogRegion.val;
+	auto regionMode = (PaddleRegionMode)optionPaddleAnalogRegion.value();
 	if(regionMode == PaddleRegionMode::OFF)
 		return false;
 	auto &app = osystem.app();
@@ -495,7 +497,7 @@ bool A2600System::updatePaddle(Input::DragTrackerState dragState)
 	pos = std::clamp(pos, -32768, 32767);
 	auto evType = app.defaultVController().inputPlayer() == 0 ? Event::LeftPaddleAAnalog : Event::LeftPaddleBAnalog;
 	osystem.eventHandler().event().set(evType, pos);
-	//logMsg("set paddle position:%d", pos);
+	//log.debug("set paddle position:{}", pos);
 	return true;
 }
 

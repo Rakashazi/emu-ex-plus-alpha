@@ -21,10 +21,12 @@ extern "C"
 	#include "drive.h"
 }
 
+#include <imagine/logger/logger.h>
+
 namespace EmuEx
 {
 
-constexpr SystemLogger log{"resources"};
+constexpr SystemLogger log{"C64.emu"};
 
 int C64System::intResource(const char *name) const
 {

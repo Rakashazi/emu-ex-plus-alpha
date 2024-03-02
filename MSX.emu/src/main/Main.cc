@@ -23,6 +23,7 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
+#include <imagine/logger/logger.h>
 
 // TODO: remove when namespace code is complete
 #ifdef __APPLE__
@@ -58,6 +59,7 @@ IG::FS::FileString hdName[4]{};
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"MSX.emu"};
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nBlueMSX Team\nbluemsx.com";
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor BlueMSX file loading code
 bool EmuSystem::hasResetModes = true;
@@ -70,7 +72,6 @@ static FS::FileString tapeName{};
 static EmuSystemTaskContext emuSysTask{};
 static EmuVideo *emuVideo{};
 static const char saveStateVersion[] = "blueMSX - state  v 8";
-constexpr SystemLogger log{"MSXApp"};
 
 CLINK Int16 *mixerGetBuffer(Mixer* mixer, UInt32 *samplesOut);
 

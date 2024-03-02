@@ -63,7 +63,7 @@ private:
 	InputManager &inputManager;
 	TextMenuItem deleteDeviceConfig;
 	TextMenuItem deleteProfile;
-	IG_UseMemberIf(Config::envIsAndroid, TextMenuItem, rescanOSDevices);
+	ConditionalMember<Config::envIsAndroid, TextMenuItem> rescanOSDevices;
 	TextMenuItem identDevice;
 	TextMenuItem generalOptions;
 	TextHeadingMenuItem deviceListHeading;
@@ -79,10 +79,10 @@ public:
 	InputManagerOptionsView(ViewAttachParams attach, EmuInputView *emuInputView);
 
 private:
-	IG_UseMemberIf(MOGA_INPUT, BoolMenuItem, mogaInputSystem);
-	IG_UseMemberIf(Config::Input::DEVICE_HOTSWAP, BoolMenuItem, notifyDeviceChange);
-	IG_UseMemberIf(Config::Input::BLUETOOTH, TextHeadingMenuItem, bluetoothHeading);
-	IG_UseMemberIf(Config::Input::BLUETOOTH && Config::BASE_CAN_BACKGROUND_APP, BoolMenuItem, keepBtActive);
+	ConditionalMember<MOGA_INPUT, BoolMenuItem> mogaInputSystem;
+	ConditionalMember<Config::Input::DEVICE_HOTSWAP, BoolMenuItem> notifyDeviceChange;
+	ConditionalMember<Config::Input::BLUETOOTH, TextHeadingMenuItem> bluetoothHeading;
+	ConditionalMember<Config::Input::BLUETOOTH && Config::BASE_CAN_BACKGROUND_APP, BoolMenuItem> keepBtActive;
 	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
 	TextMenuItem btScanSecsItem[5];
 	MultiChoiceMenuItem btScanSecs;
@@ -111,8 +111,8 @@ private:
 	TextMenuItem renameProfile;
 	TextMenuItem newProfile;
 	TextMenuItem deleteProfile;
-	IG_UseMemberIf(hasICadeInput, BoolMenuItem, iCadeMode);
-	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, consumeUnboundKeys);
+	ConditionalMember<hasICadeInput, BoolMenuItem> iCadeMode;
+	ConditionalMember<Config::envIsAndroid, BoolMenuItem> consumeUnboundKeys;
 	BoolMenuItem joystickAxisStick1Keys;
 	BoolMenuItem joystickAxisStick2Keys;
 	BoolMenuItem joystickAxisHatKeys;

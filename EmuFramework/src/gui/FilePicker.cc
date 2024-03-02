@@ -77,7 +77,7 @@ std::unique_ptr<FilePicker> FilePicker::forBenchmarking(ViewAttachParams attach,
 			app.createSystemWithMedia({}, path, displayName, e, {}, picker.attachParams(),
 				[&app](const Input::Event &)
 				{
-					app.runBenchmarkOneShot(app.video());
+					app.runBenchmarkOneShot(app.video);
 				});
 		});
 	return picker;

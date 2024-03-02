@@ -18,6 +18,7 @@
 #include <archive_entry.h>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/io/IO.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
 #include <imagine/util/ScopeGuard.hh>
@@ -29,7 +30,7 @@ namespace EmuEx
 {
 IG::ApplicationContext gAppContext();
 
-constexpr SystemLogger log{"zipHelper"};
+constexpr SystemLogger log{"MSX.emu"};
 }
 
 using namespace EmuEx;

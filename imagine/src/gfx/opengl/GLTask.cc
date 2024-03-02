@@ -16,7 +16,6 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/opengl/GLRendererTask.hh>
 #include <imagine/thread/Thread.hh>
-#include <imagine/base/Error.hh>
 #include <imagine/logger/logger.h>
 #include "internalDefs.hh"
 #include <cassert>

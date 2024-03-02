@@ -54,20 +54,20 @@ protected:
 	DelegateFuncSet<OnFrameDelegate> onFrame;
 	std::shared_ptr<void> appDataPtr;
 	std::shared_ptr<void> rendererDataPtr;
-	IG_UseMemberIf(Config::BASE_MULTI_SCREEN, Screen*, screen_){};
+	ConditionalMember<Config::BASE_MULTI_SCREEN, Screen*> screen_{};
 	CustomEvent drawEvent{"Window::drawEvent"};
 	WSize winSizePixels{}; // size of full window surface
 	F2Size winSizeMM{}; // size in millimeter
 	F2Size mmToPixelScaler{};
 	 // size in millimeter scaled by OS
-	IG_UseMemberIf(Config::envIsAndroid, F2Size, winSizeSMM){};
-	IG_UseMemberIf(Config::envIsAndroid, F2Size, smmToPixelScaler){};
+	ConditionalMember<Config::envIsAndroid, F2Size> winSizeSMM{};
+	ConditionalMember<Config::envIsAndroid, F2Size> smmToPixelScaler{};
 	bool drawNeeded{};
 	DrawPhase drawPhase{DrawPhase::READY};
 	int8_t drawEventPriority_{};
 	// all windows need an initial onSurfaceChange call
 	WindowSurfaceChangeFlags surfaceChangeFlags{.surfaceResized = true, .contentRectResized = true};
-	IG_UseMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Rotation, Rotation::UP, softOrientation_){Rotation::UP};
+	ConditionalMemberOr<!Config::SYSTEM_ROTATES_WINDOWS, Rotation, Rotation::UP> softOrientation_{Rotation::UP};
 
 	F2Size smmPixelScaler() const;
 	void attachDrawEvent();

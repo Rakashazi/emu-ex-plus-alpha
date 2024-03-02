@@ -25,19 +25,19 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	snd
 	{
 		"Sound", attach,
-		app().audio().isEnabled(),
+		app().audio.isEnabled(),
 		[this](BoolMenuItem &item)
 		{
-			app().audio().setEnabled(item.flipBoolValue(*this));
+			app().audio.setEnabled(item.flipBoolValue(*this));
 		}
 	},
 	soundDuringFastSlowMode
 	{
 		"Sound During Fast/Slow Mode", attach,
-		app().audio().isEnabledDuringAltSpeed(),
+		app().audio.isEnabledDuringAltSpeed(),
 		[this](BoolMenuItem &item)
 		{
-			app().audio().setEnabledDuringAltSpeed(item.flipBoolValue(*this));
+			app().audio.setEnabledDuringAltSpeed(item.flipBoolValue(*this));
 		}
 	},
 	soundVolumeItem
@@ -51,7 +51,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 				app().pushAndShowNewCollectValueRangeInputView<int, 0, 125>(attachParams(), e, "Input 0 to 125", "",
 					[this](EmuApp &app, auto val)
 					{
-						app.audio().setMaxVolume(val);
+						app.audio.setMaxVolume(val);
 						soundVolume.setSelected(MenuId{val}, *this);
 						dismissPrevious();
 						return true;
@@ -63,15 +63,15 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	soundVolume
 	{
 		"Volume", attach,
-		MenuId{app().audio().maxVolume()},
+		MenuId{app().audio.maxVolume()},
 		soundVolumeItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
 			{
-				t.resetString(std::format("{}%", app().audio().maxVolume()));
+				t.resetString(std::format("{}%", app().audio.maxVolume()));
 				return true;
 			},
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().audio().setMaxVolume(item.id); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().audio.setMaxVolume(item.id); }
 		},
 	},
 	soundBuffersItem
@@ -87,19 +87,19 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	soundBuffers
 	{
 		"Buffer Size In Frames", attach,
-		MenuId{app().audio().soundBuffers},
+		MenuId{app().audio.soundBuffers},
 		soundBuffersItem,
 		{
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().audio().soundBuffers = item.id; }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().audio.soundBuffers = item.id; }
 		},
 	},
 	addSoundBuffersOnUnderrun
 	{
 		"Auto-increase Buffer Size", attach,
-		app().audio().addSoundBuffersOnUnderrunSetting,
+		app().audio.addSoundBuffersOnUnderrunSetting,
 		[this](BoolMenuItem &item)
 		{
-			app().audio().addSoundBuffersOnUnderrunSetting = item.flipBoolValue(*this);
+			app().audio.addSoundBuffersOnUnderrunSetting = item.flipBoolValue(*this);
 		}
 	},
 	audioRateItem
@@ -109,16 +109,16 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 			decltype(audioRateItem) items;
 			items.emplace_back("Device Native", attach, [this](View &view)
 			{
-				app().audio().setRate(0);
-				audioRate.setSelected(MenuId{app().audio().rate()});
+				app().audio.setRate(0);
+				audioRate.setSelected(MenuId{app().audio.rate()});
 				view.dismiss();
 				return false;
 			});
-			auto setRateDel = [this](TextMenuItem &item) { app().audio().setRate(item.id); };
+			auto setRateDel = [this](TextMenuItem &item) { app().audio.setRate(item.id); };
 			items.emplace_back("22KHz", attach, setRateDel, MenuItem::Config{.id = 22050});
 			items.emplace_back("32KHz", attach, setRateDel, MenuItem::Config{.id = 32000});
 			items.emplace_back("44KHz", attach, setRateDel, MenuItem::Config{.id = 44100});
-			if(app().audio().maxRate() >= 48000)
+			if(app().audio.maxRate() >= 48000)
 				items.emplace_back("48KHz", attach, setRateDel, MenuItem::Config{.id = 48000});
 			return items;
 		}()
@@ -126,16 +126,16 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	audioRate
 	{
 		"Sound Rate", attach,
-		MenuId{app().audio().rate()},
+		MenuId{app().audio.rate()},
 		audioRateItem
 	},
 	audioSoloMix
 	{
 		"Mix With Other Apps", attach,
-		!app().audioManager().soloMix(),
+		!app().audioManager.soloMix(),
 		[this](BoolMenuItem &item)
 		{
-			app().audioManager().setSoloMix(!item.flipBoolValue(*this));
+			app().audioManager.setSoloMix(!item.flipBoolValue(*this));
 		}
 	},
 	apiItem
@@ -145,17 +145,17 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 			ApiItemContainer items{};
 			items.emplace_back("Auto", attachParams(), [this](View &view)
 			{
-				app().audio().setOutputAPI(Audio::Api::DEFAULT);
-				doIfUsed(api, [&](auto &api){ api.setSelected(MenuId{app().audioManager().makeValidAPI()}); });
+				app().audio.setOutputAPI(Audio::Api::DEFAULT);
+				doIfUsed(api, [&](auto &api){ api.setSelected(MenuId{app().audioManager.makeValidAPI()}); });
 				view.dismiss();
 				return false;
 			});
-			auto &audioManager = app().audioManager();
+			auto &audioManager = app().audioManager;
 			for(auto desc: audioManager.audioAPIs())
 			{
 				items.emplace_back(desc.name, attachParams(), [this](TextMenuItem &item)
 				{
-					app().audio().setOutputAPI(Audio::Api(item.id.val));
+					app().audio.setOutputAPI(Audio::Api(item.id.val));
 				}, MenuItem::Config{.id = desc.api});
 			}
 			return items;
@@ -164,7 +164,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	api
 	{
 		"Audio Driver", attach,
-		MenuId{app().audioManager().makeValidAPI(app().audio().outputAPI())},
+		MenuId{app().audioManager.makeValidAPI(app().audio.outputAPI())},
 		apiItem
 	}
 {

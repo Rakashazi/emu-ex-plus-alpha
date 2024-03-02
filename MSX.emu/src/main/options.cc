@@ -14,65 +14,17 @@
 	along with MSX.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include "MainSystem.hh"
+#include <emuframework/Option.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/util/format.hh>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
 
-constexpr SystemLogger log{"MSXOpt"};
-
-enum
-{
-	CFGKEY_DEFAULT_MACHINE_NAME = 256, CFGKEY_SKIP_FDC_ACCESS = 257,
-	CFGKEY_MACHINE_FILE_PATH = 258, CFGKEY_SESSION_MACHINE_NAME = 259,
-	CFGKEY_MIXER_PSG_VOLUME = 260, CFGKEY_MIXER_PSG_PAN = 261,
-	CFGKEY_MIXER_SCC_VOLUME = 262, CFGKEY_MIXER_SCC_PAN = 263,
-	CFGKEY_MIXER_MSX_MUSIC_VOLUME = 264, CFGKEY_MIXER_MSX_MUSIC_PAN = 265,
-	CFGKEY_MIXER_MSX_AUDIO_VOLUME = 266, CFGKEY_MIXER_MSX_AUDIO_PAN = 267,
-	CFGKEY_MIXER_MOON_SOUND_VOLUME = 268, CFGKEY_MIXER_MOON_SOUND_PAN = 269,
-	CFGKEY_MIXER_YAMAHA_SFG_VOLUME = 270, CFGKEY_MIXER_YAMAHA_SFG_PAN = 271,
-	CFGKEY_MIXER_KEYBOARD_VOLUME = 272, CFGKEY_MIXER_KEYBOARD_PAN = 273,
-	CFGKEY_MIXER_PCM_VOLUME = 274, CFGKEY_MIXER_PCM_PAN = 275,
-	CFGKEY_MIXER_IO_VOLUME = 276, CFGKEY_MIXER_IO_PAN = 277,
-	CFGKEY_MIXER_MIDI_VOLUME = 278, CFGKEY_MIXER_MIDI_PAN = 279,
-	CFGKEY_DEFAULT_COLECO_MACHINE_NAME = 280
-};
-
-// volume options use top bit as enable switch, lower 7 bits as volume value
-static constexpr uint8_t MIXER_ENABLE_BIT = IG::bit(7);
-static constexpr uint8_t MIXER_VOLUME_MASK = 0x7F;
-
-static bool volumeOptionIsValid(uint8_t val)
-{
-	val &= MIXER_VOLUME_MASK;
-	return val <= 100;
-}
-
-static bool panOptionIsValid(uint8_t val)
-{
-	return val <= 100;
-}
-
+constexpr SystemLogger log{"MSX.emu"};
 const char *EmuSystem::configFilename = "MsxEmu.config";
 int EmuSystem::forcedSoundRate = 44100;
-Byte1Option optionSkipFdcAccess{CFGKEY_SKIP_FDC_ACCESS, 1};
-
-Byte1Option optionMixerPSGVolume{CFGKEY_MIXER_PSG_VOLUME, 100 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
-Byte1Option optionMixerSCCVolume{CFGKEY_MIXER_SCC_VOLUME, 100 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
-Byte1Option optionMixerMSXMUSICVolume{CFGKEY_MIXER_MSX_MUSIC_VOLUME, 80 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
-Byte1Option optionMixerMSXAUDIOVolume{CFGKEY_MIXER_MSX_AUDIO_VOLUME, 80 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
-Byte1Option optionMixerMoonSoundVolume{CFGKEY_MIXER_MOON_SOUND_VOLUME, 80 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
-Byte1Option optionMixerYamahaSFGVolume{CFGKEY_MIXER_YAMAHA_SFG_VOLUME, 80 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
-Byte1Option optionMixerPCMVolume{CFGKEY_MIXER_PCM_VOLUME, 100 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
-
-Byte1Option optionMixerPSGPan{CFGKEY_MIXER_PSG_PAN, 50, false, panOptionIsValid};
-Byte1Option optionMixerSCCPan{CFGKEY_MIXER_SCC_PAN, 50, false, panOptionIsValid};
-Byte1Option optionMixerMSXMUSICPan{CFGKEY_MIXER_MSX_MUSIC_PAN, 50, false, panOptionIsValid};
-Byte1Option optionMixerMSXAUDIOPan{CFGKEY_MIXER_MSX_AUDIO_PAN, 50, false, panOptionIsValid};
-Byte1Option optionMixerMoonSoundPan{CFGKEY_MIXER_MOON_SOUND_PAN, 50, false, panOptionIsValid};
-Byte1Option optionMixerYamahaSFGPan{CFGKEY_MIXER_YAMAHA_SFG_PAN, 50, false, panOptionIsValid};
-Byte1Option optionMixerPCMPan{CFGKEY_MIXER_PCM_PAN, 50, false, panOptionIsValid};
 
 std::span<const AspectRatioInfo> MsxSystem::aspectRatioInfos()
 {
@@ -84,80 +36,57 @@ std::span<const AspectRatioInfo> MsxSystem::aspectRatioInfos()
 	return aspectRatioInfo;
 }
 
-static Byte1Option &optionMixerVolume(MixerAudioType type)
+bool MsxSystem::mixerEnableOption(MixerAudioType type)
 {
-	switch(type)
+	return optionMixerVolume(type, [&](auto &v){ return v.value().enable; });
+}
+
+void MsxSystem::setMixerEnableOption(MixerAudioType type, bool on)
+{
+	optionMixerVolume(type, [&](auto &v)
 	{
-		default: [[fallthrough]];
-		case MIXER_CHANNEL_PSG: return optionMixerPSGVolume;
-		case MIXER_CHANNEL_SCC: return optionMixerSCCVolume;
-		case MIXER_CHANNEL_MSXMUSIC: return optionMixerMSXMUSICVolume;
-		case MIXER_CHANNEL_MSXAUDIO: return optionMixerMSXAUDIOVolume;
-		case MIXER_CHANNEL_MOONSOUND: return optionMixerMoonSoundVolume;
-		case MIXER_CHANNEL_YAMAHA_SFG: return optionMixerYamahaSFGVolume;
-		case MIXER_CHANNEL_PCM: return optionMixerPCMVolume;
-	}
-}
-
-bool mixerEnableOption(MixerAudioType type)
-{
-	return optionMixerVolume(type).val & MIXER_ENABLE_BIT;
-}
-
-void setMixerEnableOption(MixerAudioType type, bool on)
-{
-	auto &option = optionMixerVolume(type);
-	option.val = IG::setOrClearBits(option.val, MIXER_ENABLE_BIT, on);
+		auto flags = v.value();
+		flags.enable = on;
+		v.setUnchecked(flags);
+	});
 	mixerEnableChannelType(mixer, type, on);
 }
 
-uint8_t mixerVolumeOption(MixerAudioType type)
+uint8_t MsxSystem::mixerVolumeOption(MixerAudioType type)
 {
-	return optionMixerVolume(type).val & MIXER_VOLUME_MASK;
+	return optionMixerVolume(type, [](auto &v){return v.value().volume;});
 }
 
-uint8_t setMixerVolumeOption(MixerAudioType type, int volume)
+uint8_t MsxSystem::setMixerVolumeOption(MixerAudioType type, int volume)
 {
-	auto &option = optionMixerVolume(type);
-	if(volume == -1)
+	return optionMixerVolume(type, [&](auto &v)
 	{
-		volume = option.defaultVal & MIXER_VOLUME_MASK;
-	}
-	option.val = IG::updateBits(option.val, (uint8_t)volume, MIXER_VOLUME_MASK);
-	mixerSetChannelTypeVolume(mixer, type, volume);
-	return volume;
+		if(volume == -1)
+		{
+			volume = v.defaultValue().volume;
+		}
+		auto flags = v.value();
+		flags.volume = volume;
+		v.set(flags);
+		mixerSetChannelTypeVolume(mixer, type, volume);
+		return volume;
+	});
 }
 
-static Byte1Option &optionMixerPan(MixerAudioType type)
+uint8_t MsxSystem::mixerPanOption(MixerAudioType type)
 {
-	switch(type)
-	{
-		default: [[fallthrough]];
-		case MIXER_CHANNEL_PSG: return optionMixerPSGPan;
-		case MIXER_CHANNEL_SCC: return optionMixerSCCPan;
-		case MIXER_CHANNEL_MSXMUSIC: return optionMixerMSXMUSICPan;
-		case MIXER_CHANNEL_MSXAUDIO: return optionMixerMSXAUDIOPan;
-		case MIXER_CHANNEL_MOONSOUND: return optionMixerMoonSoundPan;
-		case MIXER_CHANNEL_YAMAHA_SFG: return optionMixerYamahaSFGPan;
-		case MIXER_CHANNEL_PCM: return optionMixerPCMPan;
-	}
+	return optionMixerPan(type, [](auto &v){ return v.value(); });
 }
 
-uint8_t mixerPanOption(MixerAudioType type)
+uint8_t MsxSystem::setMixerPanOption(MixerAudioType type, int pan)
 {
-	return optionMixerPan(type);
-}
-
-uint8_t setMixerPanOption(MixerAudioType type, int pan)
-{
-	auto &option = optionMixerPan(type);
 	if(pan == -1)
 	{
-		pan = option.reset();
+		optionMixerPan(type, [&](auto &v){ pan = v.reset(); });
 	}
 	else
 	{
-		option = pan;
+		optionMixerPan(type, [&](auto &v){ v = pan; });
 	}
 	mixerSetChannelTypePan(mixer, type, pan);
 	return pan;
@@ -169,37 +98,37 @@ bool MsxSystem::resetSessionOptions(EmuApp &)
 	return true;
 }
 
-bool MsxSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
+bool MsxSystem::readConfig(ConfigType type, MapIO &io, unsigned key)
 {
 	if(type == ConfigType::MAIN)
 	{
 		switch(key)
 		{
-			case CFGKEY_DEFAULT_MACHINE_NAME: return readStringOptionValue(io, readSize, optionDefaultMachineNameStr);
-			case CFGKEY_DEFAULT_COLECO_MACHINE_NAME: return readStringOptionValue(io, readSize, optionDefaultColecoMachineNameStr);
-			case CFGKEY_SKIP_FDC_ACCESS: return optionSkipFdcAccess.readFromIO(io, readSize);
-			case CFGKEY_MACHINE_FILE_PATH: return readStringOptionValue<FS::PathString>(io, readSize, [&](auto &&path){firmwarePath_ = IG_forward(path);});
-			case CFGKEY_MIXER_PSG_VOLUME: return optionMixerPSGVolume.readFromIO(io, readSize);
-			case CFGKEY_MIXER_SCC_VOLUME: return optionMixerSCCVolume.readFromIO(io, readSize);
-			case CFGKEY_MIXER_MSX_MUSIC_VOLUME: return optionMixerMSXMUSICVolume.readFromIO(io, readSize);
-			case CFGKEY_MIXER_MSX_AUDIO_VOLUME: return optionMixerMSXAUDIOVolume.readFromIO(io, readSize);
-			case CFGKEY_MIXER_MOON_SOUND_VOLUME: return optionMixerMoonSoundVolume.readFromIO(io, readSize);
-			case CFGKEY_MIXER_YAMAHA_SFG_VOLUME: return optionMixerYamahaSFGVolume.readFromIO(io, readSize);
-			case CFGKEY_MIXER_PCM_VOLUME: return optionMixerPCMVolume.readFromIO(io, readSize);
-			case CFGKEY_MIXER_PSG_PAN: return optionMixerPSGPan.readFromIO(io, readSize);
-			case CFGKEY_MIXER_SCC_PAN: return optionMixerSCCPan.readFromIO(io, readSize);
-			case CFGKEY_MIXER_MSX_MUSIC_PAN: return optionMixerMSXMUSICPan.readFromIO(io, readSize);
-			case CFGKEY_MIXER_MSX_AUDIO_PAN: return optionMixerMSXAUDIOPan.readFromIO(io, readSize);
-			case CFGKEY_MIXER_MOON_SOUND_PAN: return optionMixerMoonSoundPan.readFromIO(io, readSize);
-			case CFGKEY_MIXER_YAMAHA_SFG_PAN: return optionMixerYamahaSFGPan.readFromIO(io, readSize);
-			case CFGKEY_MIXER_PCM_PAN: return optionMixerPCMPan.readFromIO(io, readSize);
+			case CFGKEY_DEFAULT_MACHINE_NAME: return readStringOptionValue(io, optionDefaultMachineNameStr);
+			case CFGKEY_DEFAULT_COLECO_MACHINE_NAME: return readStringOptionValue(io, optionDefaultColecoMachineNameStr);
+			case CFGKEY_SKIP_FDC_ACCESS: return readOptionValue(io, optionSkipFdcAccess);
+			case CFGKEY_MACHINE_FILE_PATH: return readStringOptionValue<FS::PathString>(io, [&](auto &&path){firmwarePath_ = IG_forward(path);});
+			case CFGKEY_MIXER_PSG_VOLUME: return readOptionValue(io, optionMixerPSGVolume);
+			case CFGKEY_MIXER_SCC_VOLUME: return readOptionValue(io, optionMixerSCCVolume);
+			case CFGKEY_MIXER_MSX_MUSIC_VOLUME: return readOptionValue(io, optionMixerMSXMUSICVolume);
+			case CFGKEY_MIXER_MSX_AUDIO_VOLUME: return readOptionValue(io, optionMixerMSXAUDIOVolume);
+			case CFGKEY_MIXER_MOON_SOUND_VOLUME: return readOptionValue(io, optionMixerMoonSoundVolume);
+			case CFGKEY_MIXER_YAMAHA_SFG_VOLUME: return readOptionValue(io, optionMixerYamahaSFGVolume);
+			case CFGKEY_MIXER_PCM_VOLUME: return readOptionValue(io, optionMixerPCMVolume);
+			case CFGKEY_MIXER_PSG_PAN: return readOptionValue(io, optionMixerPSGPan);
+			case CFGKEY_MIXER_SCC_PAN: return readOptionValue(io, optionMixerSCCPan);
+			case CFGKEY_MIXER_MSX_MUSIC_PAN: return readOptionValue(io, optionMixerMSXMUSICPan);
+			case CFGKEY_MIXER_MSX_AUDIO_PAN: return readOptionValue(io, optionMixerMSXAUDIOPan);
+			case CFGKEY_MIXER_MOON_SOUND_PAN: return readOptionValue(io, optionMixerMoonSoundPan);
+			case CFGKEY_MIXER_YAMAHA_SFG_PAN: return readOptionValue(io, optionMixerYamahaSFGPan);
+			case CFGKEY_MIXER_PCM_PAN: return readOptionValue(io, optionMixerPCMPan);
 		}
 	}
 	else if(type == ConfigType::SESSION)
 	{
 		switch(key)
 		{
-			case CFGKEY_SESSION_MACHINE_NAME: return readStringOptionValue(io, readSize, optionSessionMachineNameStr);
+			case CFGKEY_SESSION_MACHINE_NAME: return readStringOptionValue(io, optionSessionMachineNameStr);
 		}
 	}
 	return false;
@@ -217,24 +146,24 @@ void MsxSystem::writeConfig(ConfigType type, FileIO &io)
 		{
 			writeStringOptionValue(io, CFGKEY_DEFAULT_COLECO_MACHINE_NAME, optionDefaultColecoMachineNameStr);
 		}
-		optionSkipFdcAccess.writeWithKeyIfNotDefault(io);
+		writeOptionValueIfNotDefault(io, optionSkipFdcAccess);
 		writeStringOptionValue(io, CFGKEY_MACHINE_FILE_PATH, firmwarePath_);
 
-		optionMixerPSGVolume.writeWithKeyIfNotDefault(io);
-		optionMixerSCCVolume.writeWithKeyIfNotDefault(io);
-		optionMixerMSXMUSICVolume.writeWithKeyIfNotDefault(io);
-		optionMixerMSXAUDIOVolume.writeWithKeyIfNotDefault(io);
-		optionMixerMoonSoundVolume.writeWithKeyIfNotDefault(io);
-		optionMixerYamahaSFGVolume.writeWithKeyIfNotDefault(io);
-		optionMixerPCMVolume.writeWithKeyIfNotDefault(io);
+		writeOptionValueIfNotDefault(io, optionMixerPSGVolume);
+		writeOptionValueIfNotDefault(io, optionMixerSCCVolume);
+		writeOptionValueIfNotDefault(io, optionMixerMSXMUSICVolume);
+		writeOptionValueIfNotDefault(io, optionMixerMSXAUDIOVolume);
+		writeOptionValueIfNotDefault(io, optionMixerMoonSoundVolume);
+		writeOptionValueIfNotDefault(io, optionMixerYamahaSFGVolume);
+		writeOptionValueIfNotDefault(io, optionMixerPCMVolume);
 
-		optionMixerPSGPan.writeWithKeyIfNotDefault(io);
-		optionMixerSCCPan.writeWithKeyIfNotDefault(io);
-		optionMixerMSXMUSICPan.writeWithKeyIfNotDefault(io);
-		optionMixerMSXAUDIOPan.writeWithKeyIfNotDefault(io);
-		optionMixerMoonSoundPan.writeWithKeyIfNotDefault(io);
-		optionMixerYamahaSFGPan.writeWithKeyIfNotDefault(io);
-		optionMixerPCMPan.writeWithKeyIfNotDefault(io);
+		writeOptionValueIfNotDefault(io, optionMixerPSGPan);
+		writeOptionValueIfNotDefault(io, optionMixerSCCPan);
+		writeOptionValueIfNotDefault(io, optionMixerMSXMUSICPan);
+		writeOptionValueIfNotDefault(io, optionMixerMSXAUDIOPan);
+		writeOptionValueIfNotDefault(io, optionMixerMoonSoundPan);
+		writeOptionValueIfNotDefault(io, optionMixerYamahaSFGPan);
+		writeOptionValueIfNotDefault(io, optionMixerPCMPan);
 	}
 	else if(type == ConfigType::SESSION)
 	{

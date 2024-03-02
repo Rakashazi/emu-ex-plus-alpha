@@ -80,7 +80,7 @@ static bool readConfigKeys(MapIO io, ON_KEY onKey)
 
 		logMsg("got config key %u, size %zu", key, size);
 		auto ioView = io.subView(io.tell(), size);
-		onKey(key, size, ioView);
+		onKey(key, ioView);
 
 		if(io.seek(nextBlockPos) == -1)
 		{

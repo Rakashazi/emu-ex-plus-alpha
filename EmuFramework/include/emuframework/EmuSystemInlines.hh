@@ -146,9 +146,9 @@ void EmuSystem::writeConfig(ConfigType type, FileIO &io)
 	static_cast<MainSystem*>(this)->writeConfig(type, io);
 }
 
-bool EmuSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
+bool EmuSystem::readConfig(ConfigType type, MapIO &io, unsigned key)
 {
-	return static_cast<MainSystem*>(this)->readConfig(type, io, key, readSize);
+	return static_cast<MainSystem*>(this)->readConfig(type, io, key);
 }
 
 bool EmuSystem::resetSessionOptions(EmuApp &app)

@@ -15,7 +15,6 @@
 
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/Texture.hh>
-#include <imagine/base/Error.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/math.hh>
@@ -191,7 +190,7 @@ static TextureConfig configWithLoadedImagePixmap(PixmapDesc desc, bool makeMipma
 	return config;
 }
 
-static ErrorCode loadImageSource(Texture &texture, Data::PixmapSource img, bool makeMipmaps)
+static bool loadImageSource(Texture &texture, Data::PixmapSource img, bool makeMipmaps)
 {
 	auto imgPix = img.pixmapView();
 	TextureWriteFlags writeFlags{.makeMipmaps = makeMipmaps};
@@ -204,12 +203,12 @@ static ErrorCode loadImageSource(Texture &texture, Data::PixmapSource img, bool 
 	{
 		auto lockBuff = texture.lock(0);
 		if(!lockBuff) [[unlikely]]
-			return {ENOMEM};
+			return false;
 		//log.debug("writing image source into texture pixel buffer");
 		img.write(lockBuff.pixmap());
 		texture.unlock(lockBuff, writeFlags);
 	}
-	return {};
+	return true;
 }
 
 MutablePixmapView LockedTextureBuffer::pixmap() const
@@ -313,7 +312,7 @@ int Texture::levels() const
 	return levels_;
 }
 
-ErrorCode Texture::setFormat(PixmapDesc desc, int levels, ColorSpace colorSpace, TextureSamplerConfig samplerConf)
+bool Texture::setFormat(PixmapDesc desc, int levels, ColorSpace colorSpace, TextureSamplerConfig samplerConf)
 {
 	assumeExpr(desc.w());
 	assumeExpr(desc.h());

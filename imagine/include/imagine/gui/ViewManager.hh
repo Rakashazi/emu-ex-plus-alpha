@@ -43,8 +43,8 @@ public:
 	Gfx::GlyphTextureSet defaultBoldFace;
 	int tableXIndentPx{};
 	// True if the platform needs an on-screen/pointer-based control to move to a previous view
-	IG_UseMemberIfOrConstant(needsBackControlIsMutable,
-		bool, needsBackControlDefault, needsBackControl){needsBackControlDefault};
+	ConditionalMemberOr<needsBackControlIsMutable, bool, needsBackControlDefault>
+		needsBackControl{needsBackControlDefault};
 
 	std::optional<bool> needsBackControlOption() const;
 	void setTableXIndentMM(float indentMM, const Window &);

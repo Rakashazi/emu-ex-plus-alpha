@@ -22,6 +22,7 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/zlib.hh>
+#include <imagine/logger/logger.h>
 
 extern "C"
 {
@@ -45,7 +46,6 @@ extern "C"
 	CONF_ITEM* cf_get_item_by_name(const char *nameStr)
 	{
 		using namespace EmuEx;
-		//logMsg("getting conf item %s", name);
 		static CONF_ITEM conf{};
 		std::string_view name{nameStr};
 		if(name == "dump")
@@ -92,6 +92,7 @@ CLINK void main_frame(void *emuTaskPtr, void *neoSystemPtr, void *emuVideoPtr);
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"NEO.emu"};
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGngeo Team\ncode.google.com/p/gngeo";
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor GnGeo file loading code
 bool EmuSystem::canRenderRGBA8888 = false;
@@ -230,7 +231,7 @@ size_t NeoSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags)
 
 void NeoSystem::loadBackupMemory(EmuApp &app)
 {
-	logMsg("loading nvram & memcard");
+	log.info("loading nvram & memcard");
 	app.setupStaticBackupMemoryFile(nvramFileIO, ".nv", 0x10000);
 	app.setupStaticBackupMemoryFile(memcardFileIO, ".memcard", 0x800);
 	nvramFileIO.read(memory.sram, 0x10000, 0);
@@ -241,12 +242,12 @@ void NeoSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags flags)
 {
 	if(flags & SRAM_DIRTY_BIT)
 	{
-		logMsg("saving nvram");
+		log.info("saving nvram");
 		nvramFileIO.write(memory.sram, 0x10000, 0);
 	}
 	if(flags & MEMCARD_DIRTY_BIT)
 	{
-		logMsg("saving memcard");
+		log.info("saving memcard");
 		memcardFileIO.write(memory.memcard, 0x800, 0);
 	}
 }
@@ -288,11 +289,11 @@ void NeoSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate 
 		throw std::runtime_error("This game isn't recognized");
 	}
 	auto freeDrv = IG::scopeGuard([&](){ free(drv); });
-	logMsg("rom set %s, %s", drv->name, drv->longname);
+	log.info("rom set {}, {}", drv->name, drv->longname);
 	auto gnoFilename = EmuSystem::contentSaveFilePath(".gno");
 	if(optionCreateAndUseCache && ctx.fileUriExists(gnoFilename))
 	{
-		logMsg("loading .gno file");
+		log.info("loading .gno file");
 		char errorStr[1024];
 		if(!init_game(&ctx, gnoFilename.data(), errorStr))
 		{
@@ -309,7 +310,7 @@ void NeoSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate 
 
 		if(optionCreateAndUseCache && !ctx.fileUriExists(gnoFilename))
 		{
-			logMsg("%s doesn't exist, creating", gnoFilename.data());
+			log.info("{} doesn't exist, creating", gnoFilename);
 			dr_save_gno(&memory.rom, gnoFilename.data());
 		}
 	}

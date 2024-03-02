@@ -21,7 +21,6 @@
 #include <imagine/thread/Thread.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/fs/ArchiveFS.hh>
-#include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
 #include <vector>
 #include <string>
@@ -130,25 +129,7 @@ public:
 	static constexpr uint8_t defaultReSidSampling = SID_RESID_SAMPLING_FAST;
 	#endif
 
-	C64System(ApplicationContext ctx):
-		EmuSystem{ctx}
-	{
-		makeDetachedThread(
-			[this]()
-			{
-				emuThreadId = thisThreadId();
-				execSem.acquire();
-				logMsg("starting maincpu_mainloop()");
-				plugin.maincpu_mainloop();
-			});
-
-		if(sysFilePath.size() == 3)
-		{
-			sysFilePath[1] = "~/.local/share/C64.emu";
-			sysFilePath[2] = "/usr/share/games/vice";
-		}
-	}
-
+	C64System(ApplicationContext ctx);
 	int intResource(const char *name) const;
 	void setIntResource(const char *name, int val);
 	bool updateIntResourceInCPUTrap(const char *name, int val);
@@ -221,7 +202,7 @@ public:
 	size_t stateSize();
 	void readState(EmuApp &, std::span<uint8_t> buff);
 	size_t writeState(std::span<uint8_t> buff, SaveStateFlags = {});
-	bool readConfig(ConfigType, MapIO &io, unsigned key, size_t readSize);
+	bool readConfig(ConfigType, MapIO &io, unsigned key);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);

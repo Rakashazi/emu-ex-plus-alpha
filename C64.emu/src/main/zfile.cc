@@ -32,7 +32,7 @@ using namespace EmuEx;
 
 namespace EmuEx
 {
-constexpr SystemLogger log{"zfile"};
+constexpr SystemLogger log{"C64.emu"};
 }
 
 CLINK FILE *zfile_fopen(const char *path_, const char *mode_)

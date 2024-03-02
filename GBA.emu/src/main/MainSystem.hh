@@ -1,8 +1,24 @@
 #pragma once
 
-#include <emuframework/Option.hh>
+/*  This file is part of GBA.emu.
+
+	GBA.emu is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	GBA.emu is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with GBA.emu.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuOptions.hh>
 #include <imagine/base/Sensor.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/util/enum.hh>
 #include <vbam/gba/GBA.h>
 
@@ -37,7 +53,7 @@ int soundFilteringAsInt(GBASys &);
 constexpr uint32_t packSaveTypeOverride(int type, int size = 0) { return (type << 24) | (size & 0xFFFFFF); }
 constexpr std::pair<int, int> unpackSaveTypeOverride(uint32_t val) { return {val >> 24, val & 0xFFFFFF}; }
 
-constexpr bool optionSaveTypeOverrideIsValid(uint32_t val)
+constexpr bool optionSaveTypeOverrideIsValid(const auto &val)
 {
 	auto [type, size] = unpackSaveTypeOverride(val);
 	return type >= GBA_SAVE_AUTO && type <= GBA_SAVE_NONE;
@@ -55,8 +71,10 @@ public:
 	std::string cheatsDir;
 	std::string patchesDir;
 	[[no_unique_address]] IG::SensorListener sensorListener;
-	Byte1Option optionRtcEmulation{CFGKEY_RTC_EMULATION, std::to_underlying(RtcMode::AUTO), 0, optionIsValidWithMax<2>};
-	Byte4Option optionSaveTypeOverride{CFGKEY_SAVE_TYPE_OVERRIDE, GBA_SAVE_AUTO, 0, optionSaveTypeOverrideIsValid};
+	Property<RtcMode, CFGKEY_RTC_EMULATION,
+		PropertyDesc<RtcMode>{.defaultValue = RtcMode::AUTO, .isValid = isValidWithMax<RtcMode::ON>}> optionRtcEmulation;
+	Property<uint32_t, CFGKEY_SAVE_TYPE_OVERRIDE,
+		PropertyDesc<uint32_t>{.defaultValue = GBA_SAVE_AUTO, .isValid = optionSaveTypeOverrideIsValid}> optionSaveTypeOverride;
 	FileIO saveFileIO;
 	static constexpr size_t maxStateSize{0x1FFFFF};
 	size_t saveStateSize{};
@@ -66,15 +84,15 @@ public:
 	uint8_t darknessLevel{darknessLevelDefault};
 	uint8_t detectedSaveType{};
 	bool detectedRtcGame{};
-	IG_UseMemberIf(Config::SENSORS, GbaSensorType, sensorType){};
-	IG_UseMemberIf(Config::SENSORS, GbaSensorType, detectedSensorType){};
+	ConditionalMember<Config::SENSORS, GbaSensorType> sensorType{};
+	ConditionalMember<Config::SENSORS, GbaSensorType> detectedSensorType{};
 	static constexpr auto gbaFrameTime{fromSeconds<FrameTime>(280896. / 16777216.)}; // ~59.7275Hz
 
 	GbaSystem(ApplicationContext ctx):
 		EmuSystem{ctx} {}
 	void setGameSpecificSettings(GBASys &gba, int romSize);
 	void setRTC(RtcMode mode);
-	std::pair<int, int> saveTypeOverride() { return unpackSaveTypeOverride(optionSaveTypeOverride.val); }
+	std::pair<int, int> saveTypeOverride() { return unpackSaveTypeOverride(optionSaveTypeOverride); }
 	void setSaveTypeOverride(int type, int size) { optionSaveTypeOverride = packSaveTypeOverride(type, size); };
 	void setSensorActive(bool);
 	void setSensorType(GbaSensorType);
@@ -88,7 +106,7 @@ public:
 	size_t stateSize() { return saveStateSize; }
 	void readState(EmuApp &, std::span<uint8_t> buff);
 	size_t writeState(std::span<uint8_t> buff, SaveStateFlags = {});
-	bool readConfig(ConfigType, MapIO &, unsigned key, size_t readSize);
+	bool readConfig(ConfigType, MapIO &, unsigned key);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);

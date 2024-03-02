@@ -22,11 +22,6 @@
 typedef struct AAudioStreamStruct AAudioStream;
 typedef struct AAudioStreamBuilderStruct AAudioStreamBuilder;
 
-namespace IG
-{
-class ErrorCode;
-}
-
 namespace IG::Audio
 {
 
@@ -38,7 +33,7 @@ public:
 	AAudioOutputStream(const Manager &);
 	~AAudioOutputStream();
 	AAudioOutputStream &operator=(AAudioOutputStream &&) = delete;
-	ErrorCode open(OutputStreamConfig config);
+	StreamError open(OutputStreamConfig config);
 	void play();
 	void pause();
 	void close();

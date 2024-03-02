@@ -59,8 +59,7 @@ public:
 private:
 	WRect originRect{};
 	WRect rect{};
-	IG_UseMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Rotation,
-		Rotation::UP, softRotation_){Rotation::UP};
+	ConditionalMemberOr<!Config::SYSTEM_ROTATES_WINDOWS, Rotation, Rotation::UP> softRotation_{Rotation::UP};
 };
 
 }

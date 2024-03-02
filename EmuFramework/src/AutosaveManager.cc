@@ -15,7 +15,8 @@
 
 #include <emuframework/AutosaveManager.hh>
 #include <emuframework/EmuApp.hh>
-#include "EmuOptions.hh"
+#include <emuframework/Option.hh>
+#include <emuframework/EmuOptions.hh>
 #include "pathUtils.hh"
 #include <imagine/io/MapIO.hh>
 #include <imagine/io/FileIO.hh>
@@ -234,19 +235,19 @@ SteadyClockTime AutosaveManager::timerFrequency() const
 	return saveTimer.frequency;
 }
 
-bool AutosaveManager::readConfig(MapIO &io, unsigned key, size_t size)
+bool AutosaveManager::readConfig(MapIO &io, unsigned key)
 {
 	switch(key)
 	{
 		default: return false;
-		case CFGKEY_AUTOSAVE_LAUNCH_MODE: return readOptionValue(io, size, autosaveLaunchMode, [](auto m){return m <= lastEnum<AutosaveLaunchMode>;});
-		case CFGKEY_AUTOSAVE_TIMER_MINS: return readOptionValue<decltype(saveTimer.frequency.count())>(io, size, [&](auto m)
+		case CFGKEY_AUTOSAVE_LAUNCH_MODE: return readOptionValue(io, autosaveLaunchMode, [](auto m){return m <= lastEnum<AutosaveLaunchMode>;});
+		case CFGKEY_AUTOSAVE_TIMER_MINS: return readOptionValue<decltype(saveTimer.frequency.count())>(io, [&](auto m)
 		{
 			Minutes mins = Minutes{m};
 			if(mins >= Minutes{0} && mins <= maxAutosaveSaveFreq)
 				saveTimer.frequency = mins;
 		});
-		case CFGKEY_AUTOSAVE_CONTENT: return readOptionValue(io, size, saveOnlyBackupMemory);
+		case CFGKEY_AUTOSAVE_CONTENT: return readOptionValue(io, saveOnlyBackupMemory);
 	}
 }
 

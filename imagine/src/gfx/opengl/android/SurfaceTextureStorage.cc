@@ -16,7 +16,6 @@
 #define LOGTAG "SurfaceTexStorage"
 #include <imagine/gfx/opengl/android/SurfaceTextureStorage.hh>
 #include <imagine/gfx/Renderer.hh>
-#include <imagine/base/Error.hh>
 #include "../../../base/android/android.hh"
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/logger/logger.h>
@@ -31,8 +30,7 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 	config = baseInit(r, config);
 	if(!renderer().support.hasExternalEGLImages) [[unlikely]]
 	{
-		logErr("can't init without OES_EGL_image_external extension");
-		throw Error{ENOTSUP};
+		throw std::runtime_error("Error creating surface texture: missing OES_EGL_image_external extension");
 	}
 	SamplerParams samplerParams = asSamplerParams(config.samplerConfig);
 	task().runSync(
@@ -57,8 +55,7 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 		});
 	if(!surfaceTex) [[unlikely]]
 	{
-		logErr("SurfaceTexture ctor failed");
-		throw Error{EINVAL};
+		throw std::runtime_error("Error creating surface texture: SurfaceTexture constructor failed");
 	}
 	logMsg("made%sSurfaceTexture with texture:0x%X",
 		singleBuffered ? " " : " buffered ", texName());
@@ -66,21 +63,18 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 	auto localSurface = makeSurface(env, surfaceTex);
 	if(!localSurface) [[unlikely]]
 	{
-		logErr("Surface ctor failed");
-		throw Error{EINVAL};
+		throw std::runtime_error("Error creating surface texture: Surface constructor failed");
 	}
 	surface = env->NewGlobalRef(localSurface);
 	nativeWin = ANativeWindow_fromSurface(env, localSurface);
 	if(!nativeWin) [[unlikely]]
 	{
-		logErr("ANativeWindow_fromSurface failed");
-		throw Error{EINVAL};
+		throw std::runtime_error("Error creating surface texture: ANativeWindow_fromSurface failed");
 	}
 	logMsg("native window:%p from Surface:%p%s", nativeWin, localSurface, singleBuffered ? " (single-buffered)" : "");
-	auto err = setFormat(config.pixmapDesc, config.colorSpace, config.samplerConfig);
-	if(err) [[unlikely]]
+	if(!setFormat(config.pixmapDesc, config.colorSpace, config.samplerConfig)) [[unlikely]]
 	{
-		throw Error{err};
+		throw std::runtime_error("Error creating surface texture: bad format");
 	}
 }
 
@@ -126,23 +120,23 @@ void SurfaceTextureStorage::deinit()
 	}
 }
 
-ErrorCode SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, TextureSamplerConfig)
+bool SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, TextureSamplerConfig)
 {
 	logMsg("setting size:%dx%d format:%s", desc.w(), desc.h(), desc.format.name());
 	int winFormat = toAHardwareBufferFormat(desc.format);
 	if(!winFormat) [[unlikely]]
 	{
 		logErr("pixel format not usable");
-		return {EINVAL};
+		return false;
 	}
 	if(ANativeWindow_setBuffersGeometry(nativeWin, desc.w(), desc.h(), winFormat) < 0) [[unlikely]]
 	{
 		logErr("ANativeWindow_setBuffersGeometry failed");
-		return {EINVAL};
+		return false;
 	}
 	updateFormatInfo(desc, 1, GL_TEXTURE_EXTERNAL_OES);
 	bpp = desc.format.bytesPerPixel();
-	return {};
+	return true;
 }
 
 LockedTextureBuffer SurfaceTextureStorage::lock(TextureBufferFlags bufferFlags)

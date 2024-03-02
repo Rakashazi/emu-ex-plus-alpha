@@ -57,6 +57,7 @@ public:
 		new (store.data()) F(funcObj);
 	}
 
+#ifdef IG_DELEGATE_FUNC_POINTER_SUPPORT
 	constexpr DelegateFuncBase(CallableFunctionPointer<R, Args...> auto const &funcObj)
 		requires (StorageSize >= sizeof(void*) && Align >= sizeof(void*)):
 		exec
@@ -70,6 +71,7 @@ public:
 		// construct from free function
 		new (store.data()) FreeFuncPtr(funcObj);
 	}
+#endif
 
 	explicit constexpr operator bool() const
 	{

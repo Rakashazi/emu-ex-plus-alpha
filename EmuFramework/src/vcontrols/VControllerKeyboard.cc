@@ -56,7 +56,7 @@ void VControllerKeyboard::place(int btnSize, int yOffset, WRect viewBounds)
 	bound = bounds;
 	keyXSize = std::max(bound.xSize() / VKEY_COLS, 1);
 	keyYSize = std::max(bound.ySize() / KEY_ROWS, 1);
-	log.info("key size {}x{}", keyXSize, keyYSize);
+	//log.info("key size {}x{}", keyXSize, keyYSize);
 	updateImg();
 }
 

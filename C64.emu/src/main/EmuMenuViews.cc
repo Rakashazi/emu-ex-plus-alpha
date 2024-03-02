@@ -30,6 +30,7 @@
 #include <imagine/io/IO.hh>
 #include <imagine/util/string.h>
 #include <imagine/util/format.hh>
+#include <imagine/logger/logger.h>
 
 extern "C"
 {
@@ -52,7 +53,7 @@ extern "C"
 namespace EmuEx
 {
 
-constexpr SystemLogger log{"C64Menus"};
+constexpr SystemLogger log{"C64.emu"};
 
 template <class T>
 using MainAppHelper = EmuAppHelper<T, MainApp>;

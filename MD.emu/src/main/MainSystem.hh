@@ -1,6 +1,22 @@
 #pragma once
 
+/*  This file is part of MD.emu.
+
+	MD.emu is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	MD.emu is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuOptions.hh>
 #include <emuframework/Option.hh>
 #include "genplus-config.h"
 #include "system.h"
@@ -34,14 +50,15 @@ public:
 	int8_t mdInputPortDev[2]{-1, -1};
 	int8_t autoDetectedVidSysPAL{};
 	int8_t savedVControllerPlayer = -1;
-	Byte1Option optionBigEndianSram{CFGKEY_BIG_ENDIAN_SRAM, 0};
-	Byte1Option optionSmsFM{CFGKEY_SMS_FM, 1};
-	Byte1Option option6BtnPad{CFGKEY_6_BTN_PAD, 0};
-	Byte1Option optionMultiTap{CFGKEY_MULTITAP, 0};
-	SByte1Option optionInputPort1{CFGKEY_INPUT_PORT_1, -1, false, optionIsValidWithMinMax<-1, 4>};
-	SByte1Option optionInputPort2{CFGKEY_INPUT_PORT_2, -1, false, optionIsValidWithMinMax<-1, 4>};
-	Byte1Option optionRegion{CFGKEY_MD_REGION, 0, false, optionIsValidWithMax<4>};
-	Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMax<2>};
+
+	Property<bool, CFGKEY_BIG_ENDIAN_SRAM> optionBigEndianSram;
+	Property<bool, CFGKEY_SMS_FM, PropertyDesc<bool>{.defaultValue = true}> optionSmsFM;
+	Property<bool, CFGKEY_6_BTN_PAD> option6BtnPad;
+	Property<bool, CFGKEY_MULTITAP> optionMultiTap;
+	Property<int8_t, CFGKEY_INPUT_PORT_1, PropertyDesc<int8_t>{.defaultValue = -1, .isValid = isValidWithMinMax<-1, 4>}> optionInputPort1;
+	Property<int8_t, CFGKEY_INPUT_PORT_2, PropertyDesc<int8_t>{.defaultValue = -1, .isValid = isValidWithMinMax<-1, 4>}> optionInputPort2;
+	Property<uint8_t, CFGKEY_MD_REGION, PropertyDesc<uint8_t>{.isValid = isValidWithMax<4>}> optionRegion;
+	Property<uint8_t, CFGKEY_VIDEO_SYSTEM, PropertyDesc<uint8_t>{.isValid = isValidWithMax<2>}> optionVideoSystem;
 	#ifndef NO_SCD
 	FS::PathString cdBiosUSAPath{}, cdBiosJpnPath{}, cdBiosEurPath{};
 	#endif
@@ -61,7 +78,7 @@ public:
 	size_t stateSize() { return maxSaveStateSize; }
 	void readState(EmuApp &, std::span<uint8_t> buff);
 	size_t writeState(std::span<uint8_t> buff, SaveStateFlags = {});
-	bool readConfig(ConfigType, MapIO &, unsigned key, size_t readSize);
+	bool readConfig(ConfigType, MapIO &, unsigned key);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);

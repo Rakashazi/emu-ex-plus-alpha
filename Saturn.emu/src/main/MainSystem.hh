@@ -16,7 +16,6 @@
 	along with Saturn.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/ApplicationContext.hh>
-#include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
 #include <mednafen/mednafen.h>
 #include <ss/ss.h>
@@ -170,7 +169,7 @@ public:
 	size_t stateSize();
 	void readState(EmuApp &, std::span<uint8_t> buff);
 	size_t writeState(std::span<uint8_t> buff, SaveStateFlags);
-	bool readConfig(ConfigType, MapIO &, unsigned key, size_t readSize);
+	bool readConfig(ConfigType, MapIO &, unsigned key);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);

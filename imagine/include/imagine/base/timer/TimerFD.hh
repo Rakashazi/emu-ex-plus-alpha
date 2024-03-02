@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/base/timerDefs.hh>
+#include <imagine/base/baseDefs.hh>
 #include <imagine/base/EventLoop.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/used.hh>
@@ -35,7 +35,7 @@ public:
 	TimerFD(const char *debugLabel, CallbackDelegate c);
 
 protected:
-	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
+	ConditionalMember<Config::DEBUG_BUILD, const char *> debugLabel{};
 	std::unique_ptr<CallbackDelegate> callback_;
 	FDEventSource fdSrc;
 

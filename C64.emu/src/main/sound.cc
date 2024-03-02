@@ -22,6 +22,8 @@ extern "C"
 	#include "sound.h"
 }
 
+#include <imagine/logger/logger.h>
+
 using namespace EmuEx;
 
 static int soundInit(const char *param, int *speed,

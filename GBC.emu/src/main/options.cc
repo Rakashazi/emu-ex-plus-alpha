@@ -14,6 +14,7 @@
 	along with GBC.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
+#include <emuframework/Option.hh>
 #include "MainSystem.hh"
 #include "Palette.hh"
 
@@ -45,24 +46,24 @@ bool GbcSystem::resetSessionOptions(EmuApp &)
 	return true;
 }
 
-bool GbcSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
+bool GbcSystem::readConfig(ConfigType type, MapIO &io, unsigned key)
 {
 	if(type == ConfigType::MAIN)
 	{
 		switch(key)
 		{
-			case CFGKEY_GB_PAL_IDX: return optionGBPal.readFromIO(io, readSize);
-			case CFGKEY_FULL_GBC_SATURATION: return optionFullGbcSaturation.readFromIO(io, readSize);
-			case CFGKEY_AUDIO_RESAMPLER: return optionAudioResampler.readFromIO(io, readSize);
-			case CFGKEY_CHEATS_PATH: return readStringOptionValue(io, readSize, cheatsDir);
+			case CFGKEY_GB_PAL_IDX: return readOptionValue(io, optionGBPal);
+			case CFGKEY_FULL_GBC_SATURATION: return readOptionValue(io, optionFullGbcSaturation);
+			case CFGKEY_AUDIO_RESAMPLER: return readOptionValue(io, optionAudioResampler);
+			case CFGKEY_CHEATS_PATH: return readStringOptionValue(io, cheatsDir);
 		}
 	}
 	else if(type == ConfigType::SESSION)
 	{
 		switch(key)
 		{
-			case CFGKEY_USE_BUILTIN_GB_PAL: return optionUseBuiltinGBPalette.readFromIO(io, readSize);
-			case CFGKEY_REPORT_AS_GBA: return optionReportAsGba.readFromIO(io, readSize);
+			case CFGKEY_USE_BUILTIN_GB_PAL: return readOptionValue(io, optionUseBuiltinGBPalette);
+			case CFGKEY_REPORT_AS_GBA: return readOptionValue(io, optionReportAsGba);
 		}
 	}
 	return false;
@@ -72,15 +73,15 @@ void GbcSystem::writeConfig(ConfigType type, FileIO &io)
 {
 	if(type == ConfigType::MAIN)
 	{
-		optionGBPal.writeWithKeyIfNotDefault(io);
-		optionFullGbcSaturation.writeWithKeyIfNotDefault(io);
-		optionAudioResampler.writeWithKeyIfNotDefault(io);
+		writeOptionValueIfNotDefault(io, optionGBPal);
+		writeOptionValueIfNotDefault(io, optionFullGbcSaturation);
+		writeOptionValueIfNotDefault(io, optionAudioResampler);
 		writeStringOptionValue(io, CFGKEY_CHEATS_PATH, cheatsDir);
 	}
 	else if(type == ConfigType::SESSION)
 	{
-		optionUseBuiltinGBPalette.writeWithKeyIfNotDefault(io);
-		optionReportAsGba.writeWithKeyIfNotDefault(io);
+		writeOptionValueIfNotDefault(io, optionUseBuiltinGBPalette);
+		writeOptionValueIfNotDefault(io, optionReportAsGba);
 	}
 }
 

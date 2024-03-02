@@ -27,6 +27,7 @@
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
 #include "MainApp.hh"
+#include <imagine/logger/logger.h>
 
 extern "C"
 {
@@ -39,7 +40,7 @@ namespace EmuEx
 template <class T>
 using MainAppHelper = EmuAppHelper<T, MainApp>;
 
-constexpr SystemLogger log{"MsxMenus"};
+constexpr SystemLogger log{"MSX.emu"};
 
 static std::vector<FS::FileString> readMachinesNames(IG::ApplicationContext ctx, std::string_view firmwarePath)
 {
@@ -182,10 +183,10 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 	BoolMenuItem skipFdcAccess
 	{
 		"Fast-forward Disk IO", attachParams(),
-		(bool)optionSkipFdcAccess,
+		system().optionSkipFdcAccess,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			optionSkipFdcAccess = item.flipBoolValue(*this);
+			system().optionSkipFdcAccess = item.flipBoolValue(*this);
 		}
 	};
 
@@ -691,10 +692,10 @@ protected:
 		return
 		{
 			"Output", attachParams(),
-			(bool)mixerEnableOption(type),
+			system().mixerEnableOption(type),
 			[this, type](BoolMenuItem &item, View &, Input::Event)
 			{
-				setMixerEnableOption(type, item.flipBoolValue(*this));
+				system().setMixerEnableOption(type, item.flipBoolValue(*this));
 			}
 		};
 	}
@@ -719,7 +720,7 @@ protected:
 			TextMenuItem{"Default Value", attachParams(),
 				[this, type]()
 				{
-					setMixerVolumeOption(type, -1);
+					system().setMixerVolumeOption(type, -1);
 				}},
 			TextMenuItem{"Custom Value", attachParams(),
 				[this, type = (uint8_t)type, idx](Input::Event e)
@@ -729,7 +730,7 @@ protected:
 						{
 							if(val >= 0 && val <= 100)
 							{
-								setMixerVolumeOption((MixerAudioType)type, val);
+								system().setMixerVolumeOption((MixerAudioType)type, val);
 								volumeLevel[idx].setSelected(std::size(volumeLevelItem[idx]) - 1, *this);
 								dismissPrevious();
 								return true;
@@ -767,7 +768,7 @@ protected:
 			{
 				.onSetDisplayString = [this, type](auto idx, Gfx::Text &t)
 				{
-					t.resetString(std::format("{}%", mixerVolumeOption(type)));
+					t.resetString(std::format("{}%", system().mixerVolumeOption(type)));
 					return true;
 				}
 			},
@@ -792,7 +793,7 @@ protected:
 			TextMenuItem{"Default Value", attachParams(),
 				[this, type]()
 				{
-					setMixerPanOption(type, -1);
+					system().setMixerPanOption(type, -1);
 				}},
 			TextMenuItem{"Custom Value", attachParams(),
 				[this, type = (uint8_t)type, idx](Input::Event e)
@@ -802,7 +803,7 @@ protected:
 						{
 							if(val >= 0 && val <= 100)
 							{
-								setMixerPanOption((MixerAudioType)type, val);
+								system().setMixerPanOption((MixerAudioType)type, val);
 								panLevel[idx].setSelected(std::size(panLevelItem[idx]) - 1, *this);
 								dismissPrevious();
 								return true;
@@ -840,7 +841,7 @@ protected:
 			{
 				.onSetDisplayString = [this, type](auto idx, Gfx::Text &t)
 				{
-					t.resetString(std::format("{}%", mixerPanOption(type)));
+					t.resetString(std::format("{}%", system().mixerPanOption(type)));
 					return true;
 				}
 			},

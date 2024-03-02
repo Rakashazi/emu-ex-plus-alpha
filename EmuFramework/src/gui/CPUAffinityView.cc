@@ -32,7 +32,7 @@ CPUAffinityView::CPUAffinityView(ViewAttachParams attach, int cpuCount):
 	affinityMode
 	{
 		"CPU Affinity Mode", attach,
-		MenuId{uint8_t(app().cpuAffinityMode)},
+		MenuId{app().cpuAffinityMode.value()},
 		affinityModeItems,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)

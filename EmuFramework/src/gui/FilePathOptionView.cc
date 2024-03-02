@@ -17,13 +17,14 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
 #include <emuframework/UserPathSelectView.hh>
-#include "../EmuOptions.hh"
+#include <emuframework/EmuOptions.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 #include "../pathUtils.hh"
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {

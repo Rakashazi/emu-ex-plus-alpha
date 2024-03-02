@@ -21,6 +21,7 @@
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
 #include <imagine/util/zlib.hh>
+#include <imagine/logger/logger.h>
 #include <vbam/gba/GBA.h>
 #include <vbam/gba/GBAGfx.h>
 #include <vbam/gba/Sound.h>
@@ -33,6 +34,7 @@
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"GBA.emu"};
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
 bool EmuSystem::hasBundledGames = true;
 bool EmuSystem::hasCheats = true;
@@ -126,12 +128,12 @@ void GbaSystem::onFlushBackupMemory(EmuApp &app, BackupMemoryDirtyFlags)
 	const ByteBuffer &saveData = eepromInUse ? eepromData : flashSaveMemory;
 	if(saveMemoryIsMappedFile)
 	{
-		logMsg("flushing backup memory");
+		log.info("flushing backup memory");
 		msync(saveData.data(), saveData.size(), MS_SYNC);
 	}
 	else
 	{
-		logMsg("saving backup memory");
+		log.info("saving backup memory");
 		saveFileIO.write(saveData.span(), 0);
 	}
 }
@@ -161,7 +163,7 @@ void GbaSystem::applyGamePatches(uint8_t *rom, int &romSize)
 	if(auto f = IG::FileUtils::fopenUri(ctx, userFilePath(patchesDir, ".ips"), "rb");
 		f)
 	{
-		logMsg("applying IPS patch:%s", userFilePath(patchesDir, ".ips").data());
+		log.info("applying IPS patch:{}", userFilePath(patchesDir, ".ips"));
 		if(!patchApplyIPS(f, &rom, &romSize))
 		{
 			throw std::runtime_error(std::format("Error applying IPS patch in:\n{}", patchesDir));
@@ -170,7 +172,7 @@ void GbaSystem::applyGamePatches(uint8_t *rom, int &romSize)
 	else if(auto f = IG::FileUtils::fopenUri(ctx, userFilePath(patchesDir, ".ups"), "rb");
 		f)
 	{
-		logMsg("applying UPS patch:%s", userFilePath(patchesDir, ".ups").data());
+		log.info("applying UPS patch:{}", userFilePath(patchesDir, ".ups"));
 		if(!patchApplyUPS(f, &rom, &romSize))
 		{
 			throw std::runtime_error(std::format("Error applying UPS patch in:\n{}", patchesDir));
@@ -179,7 +181,7 @@ void GbaSystem::applyGamePatches(uint8_t *rom, int &romSize)
 	else if(auto f = IG::FileUtils::fopenUri(ctx, userFilePath(patchesDir, ".ppf"), "rb");
 		f)
 	{
-		logMsg("applying UPS patch:%s", userFilePath(patchesDir, ".ppf").data());
+		log.info("applying UPS patch:{}", userFilePath(patchesDir, ".ppf"));
 		if(!patchApplyPPF(f, &rom, &romSize))
 		{
 			throw std::runtime_error(std::format("Error applying PPF patch in:\n{}", patchesDir));
@@ -215,7 +217,7 @@ static void updateColorMap(auto &map, const PixelDesc &pxDesc)
 
 bool GbaSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 {
-	logMsg("updating system color maps");
+	log.info("updating system color maps");
 	video.setFormat({lcdSize, fmt});
 	if(fmt == PIXEL_RGB565)
 		updateColorMap(systemColorMap.map16, PIXEL_DESC_RGB565);
@@ -237,7 +239,7 @@ void GbaSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 void GbaSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
 {
 	long mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
-	logMsg("set sound mix rate:%ld", mixRate);
+	log.info("set sound mix rate:{}", mixRate);
 	soundSetSampleRate(gGba, mixRate);
 }
 
@@ -288,7 +290,7 @@ void systemOnWriteDataToSoundBuffer(EmuEx::EmuAudio *audio, const uint16_t *fina
 	if(audio)
 	{
 		int frames = length >> 1; // stereo samples
-		//logMsg("%d audio frames", frames);
+		//log.debug("{} audio frames", frames);
 		audio->writeFrames(finalWave, frames);
 	}
 }

@@ -25,10 +25,12 @@
 #include <resample/resamplerinfo.h>
 #include <libgambatte/src/mem/cartridge.h>
 #include <main/Cheats.hh>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"GBC.emu"};
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2024\nRobert Broglia\nwww.explusalpha.com\n\n\nPortions (c) the\nGambatte Team\ngambatte.sourceforge.net";
 bool EmuSystem::hasCheats = true;
 constexpr WSize lcdSize{gambatte::lcd_hres, gambatte::lcd_vres};
@@ -67,9 +69,9 @@ void GbcSystem::applyGBPalette()
 	assert(idx < gbPalettes().size());
 	bool useBuiltin = optionUseBuiltinGBPalette && gameBuiltinPalette;
 	if(useBuiltin)
-		logMsg("using built-in game palette");
+		log.info("using built-in game palette");
 	else
-		logMsg("using palette index:%zu", idx);
+		log.info("using palette index:{}", idx);
 	const GBPalette &pal = useBuiltin ? *gameBuiltinPalette : gbPalettes()[idx];
 	for(auto i : iotaCount(4))
 		gbEmu.setDmgPaletteColor(0, i, makeOutputColor(pal.bg[i]));
@@ -111,14 +113,14 @@ void GbcSystem::loadBackupMemory(EmuApp &app)
 	if(auto sram = gbEmu.srambank();
 		sram.size())
 	{
-		logMsg("loading sram");
+		log.info("loading sram");
 		app.setupStaticBackupMemoryFile(saveFileIO, ".sav", sram.size(), 0xFF);
 		saveFileIO.read(sram, 0);
 	}
 	if(auto timeOpt = gbEmu.rtcTime();
 		timeOpt)
 	{
-		logMsg("loading rtc");
+		log.info("loading rtc");
 		app.setupStaticBackupMemoryFile(rtcFileIO, ".rtc", 4);
 		auto rtcData = rtcFileIO.get<std::array<uint8_t, 4>>(0);
 		gbEmu.setRtcTime(rtcData[0] << 24 | rtcData[1] << 16 | rtcData[2] << 8 | rtcData[3]);
@@ -130,13 +132,13 @@ void GbcSystem::onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags)
 	if(auto sram = gbEmu.srambank();
 		sram.size())
 	{
-		logMsg("saving sram");
+		log.info("saving sram");
 		saveFileIO.write(sram, 0);
 	}
 	if(auto timeOpt = gbEmu.rtcTime();
 		timeOpt)
 	{
-		logMsg("saving rtc");
+		log.info("saving rtc");
 		rtcFileIO.put(std::array<uint8_t, 4>
 			{
 				uint8_t(*timeOpt >> 24 & 0xFF),
@@ -179,7 +181,7 @@ void GbcSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	{
 		gameBuiltinPalette = findGbcTitlePal(gbEmu.romTitle().c_str());
 		if(gameBuiltinPalette)
-			logMsg("game %s has built-in palette", gbEmu.romTitle().c_str());
+			log.info("game {} has built-in palette", gbEmu.romTitle());
 		applyGBPalette();
 	}
 	readCheatFile(*this);
@@ -215,7 +217,7 @@ void GbcSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
 	if(!resampler || optionAudioResampler != activeResampler
 		|| resampler->outRate() != outputRate  || resampler->inRate() != inputRate)
 	{
-		logMsg("setting up resampler %d for input rate %ldHz", (int)optionAudioResampler, inputRate);
+		log.info("setting up resampler {} for input rate {}Hz", optionAudioResampler.value(), inputRate);
 		resampler.reset(ResamplerInfo::get(optionAudioResampler).create(inputRate, outputRate, 35112 + 2064));
 		activeResampler = optionAudioResampler;
 	}
@@ -258,7 +260,7 @@ void GbcSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	auto currentFrame = totalSamples / 35112;
 	if(totalFrames < currentFrame)
 	{
-		logMsg("unchanged video frame");
+		log.info("unchanged video frame");
 		if(video)
 			video->startUnchangedFrame(taskCtx);
 		return;

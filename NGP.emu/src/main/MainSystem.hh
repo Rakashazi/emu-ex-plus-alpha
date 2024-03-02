@@ -16,7 +16,7 @@
 	along with NGP.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/ApplicationContext.hh>
-#include <emuframework/Option.hh>
+#include <emuframework/EmuOptions.hh>
 #include <mednafen/mednafen.h>
 
 extern const Mednafen::MDFNGI EmulatedNGP;
@@ -33,7 +33,7 @@ class NgpSystem final: public EmuSystem
 {
 public:
 	Mednafen::MDFNGI mdfnGameInfo{EmulatedNGP};
-	Byte1Option optionNGPLanguage{CFGKEY_NGPKEY_LANGUAGE, 1};
+	Property<bool, CFGKEY_NGPKEY_LANGUAGE, PropertyDesc<bool>{.defaultValue = true}> optionNGPLanguage;
 	uint8_t inputBuff{};
 	MutablePixmapView mSurfacePix{};
 	static constexpr WSize vidBufferPx{160, 152};
@@ -57,7 +57,7 @@ public:
 	size_t stateSize();
 	void readState(EmuApp &, std::span<uint8_t> buff);
 	size_t writeState(std::span<uint8_t> buff, SaveStateFlags);
-	bool readConfig(ConfigType, MapIO &, unsigned key, size_t readSize);
+	bool readConfig(ConfigType, MapIO &, unsigned key);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);

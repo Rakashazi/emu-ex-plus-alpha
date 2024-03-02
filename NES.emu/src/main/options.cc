@@ -14,6 +14,7 @@
 	along with NES.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
+#include <emuframework/Option.hh>
 #include "MainSystem.hh"
 #include <fceu/sound.h>
 #include <fceu/fceu.h>
@@ -38,15 +39,13 @@ void NesSystem::onOptionsLoaded()
 	FCEUI_SetSoundQuality(optionSoundQuality);
 	FCEUI_DisableSpriteLimitation(!optionSpriteLimit);
 	setDefaultPalette(appContext(), defaultPalettePath);
-	optionStartVideoLine.defaultVal = optionDefaultStartVideoLine;
-	optionVisibleVideoLines.defaultVal = optionDefaultVisibleVideoLines;
 }
 
 void NesSystem::onSessionOptionsLoaded(EmuApp &app)
 {
 	nesInputPortDev[0] = (ESI)(int)optionInputPort1;
 	nesInputPortDev[1] = (ESI)(int)optionInputPort2;
-	updateVideoPixmap(app.video(), optionHorizontalVideoCrop, optionVisibleVideoLines);
+	updateVideoPixmap(app.video, optionHorizontalVideoCrop, optionVisibleVideoLines);
 }
 
 bool NesSystem::resetSessionOptions(EmuApp &app)
@@ -60,57 +59,57 @@ bool NesSystem::resetSessionOptions(EmuApp &app)
 	nesInputPortDev[1] = (ESI)(int)optionInputPort2;
 	setupNESInputPorts();
 	optionCompatibleFrameskip.reset();
-	optionStartVideoLine.reset();
-	optionVisibleVideoLines.reset();
+	optionStartVideoLine = optionDefaultStartVideoLine;
+	optionVisibleVideoLines = optionDefaultVisibleVideoLines;
 	optionHorizontalVideoCrop.reset();
-	updateVideoPixmap(app.video(), optionHorizontalVideoCrop, optionVisibleVideoLines);
+	updateVideoPixmap(app.video, optionHorizontalVideoCrop, optionVisibleVideoLines);
 	overclock_enabled = 0;
 	postrenderscanlines = 0;
 	vblankscanlines = 0;
 	return true;
 }
 
-bool NesSystem::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
+bool NesSystem::readConfig(ConfigType type, MapIO &io, unsigned key)
 {
 	if(type == ConfigType::MAIN)
 	{
 		switch(key)
 		{
 			case CFGKEY_FDS_BIOS_PATH:
-				return readStringOptionValue(io, readSize, fdsBiosPath);
-			case CFGKEY_SPRITE_LIMIT: return optionSpriteLimit.readFromIO(io, readSize);
-			case CFGKEY_SOUND_QUALITY: return optionSoundQuality.readFromIO(io, readSize);
-			case CFGKEY_DEFAULT_VIDEO_SYSTEM: return optionDefaultVideoSystem.readFromIO(io, readSize);
+				return readStringOptionValue(io, fdsBiosPath);
+			case CFGKEY_SPRITE_LIMIT: return readOptionValue(io, optionSpriteLimit);
+			case CFGKEY_SOUND_QUALITY: return readOptionValue(io, optionSoundQuality);
+			case CFGKEY_DEFAULT_VIDEO_SYSTEM: return readOptionValue(io, optionDefaultVideoSystem);
 			case CFGKEY_DEFAULT_PALETTE_PATH:
-				return readStringOptionValue(io, readSize, defaultPalettePath);
+				return readStringOptionValue(io, defaultPalettePath);
 			case CFGKEY_DEFAULT_SOUND_LOW_PASS_FILTER:
-				return readOptionValue<bool>(io, readSize, [](auto val){FCEUI_SetLowPass(val);});
-			case CFGKEY_SWAP_DUTY_CYCLES: return readOptionValue(io, readSize, swapDuty);
-			case CFGKEY_START_VIDEO_LINE: return optionDefaultStartVideoLine.readFromIO(io, readSize);
-			case CFGKEY_VISIBLE_VIDEO_LINES: return optionDefaultVisibleVideoLines.readFromIO(io, readSize);
-			case CFGKEY_CORRECT_LINE_ASPECT: return optionCorrectLineAspect.readFromIO(io, readSize);
-			case CFGKEY_FF_DURING_FDS_ACCESS: return readOptionValue(io, readSize, fastForwardDuringFdsAccess);
-			case CFGKEY_CHEATS_PATH: return readStringOptionValue(io, readSize, cheatsDir);
-			case CFGKEY_PATCHES_PATH: return readStringOptionValue(io, readSize, patchesDir);
-			case CFGKEY_PALETTE_PATH: return readStringOptionValue(io, readSize, palettesDir);
+				return readOptionValue<bool>(io, [](auto val){FCEUI_SetLowPass(val);});
+			case CFGKEY_SWAP_DUTY_CYCLES: return readOptionValue(io, swapDuty);
+			case CFGKEY_START_VIDEO_LINE: return readOptionValue(io, optionDefaultStartVideoLine);
+			case CFGKEY_VISIBLE_VIDEO_LINES: return readOptionValue(io, optionDefaultVisibleVideoLines);
+			case CFGKEY_CORRECT_LINE_ASPECT: return readOptionValue(io, optionCorrectLineAspect);
+			case CFGKEY_FF_DURING_FDS_ACCESS: return readOptionValue(io, fastForwardDuringFdsAccess);
+			case CFGKEY_CHEATS_PATH: return readStringOptionValue(io, cheatsDir);
+			case CFGKEY_PATCHES_PATH: return readStringOptionValue(io, patchesDir);
+			case CFGKEY_PALETTE_PATH: return readStringOptionValue(io, palettesDir);
 		}
 	}
 	else if(type == ConfigType::SESSION)
 	{
 		switch(key)
 		{
-			case CFGKEY_FOUR_SCORE: return optionFourScore.readFromIO(io, readSize);
-			case CFGKEY_VIDEO_SYSTEM: return optionVideoSystem.readFromIO(io, readSize);
-			case CFGKEY_INPUT_PORT_1: return optionInputPort1.readFromIO(io, readSize);
-			case CFGKEY_INPUT_PORT_2: return optionInputPort2.readFromIO(io, readSize);
-			case CFGKEY_COMPATIBLE_FRAMESKIP: return optionCompatibleFrameskip.readFromIO(io, readSize);
-			case CFGKEY_START_VIDEO_LINE: return optionStartVideoLine.readFromIO(io, readSize);
-			case CFGKEY_VISIBLE_VIDEO_LINES: return optionVisibleVideoLines.readFromIO(io, readSize);
-			case CFGKEY_HORIZONTAL_VIDEO_CROP: return optionHorizontalVideoCrop.readFromIO(io, readSize);
-			case CFGKEY_OVERCLOCKING: return readOptionValue<bool>(io, readSize, [&](auto on){overclock_enabled = on;});
-			case CFGKEY_OVERCLOCK_EXTRA_LINES: return readOptionValue<int16_t>(io, readSize,
+			case CFGKEY_FOUR_SCORE: return readOptionValue(io, optionFourScore);
+			case CFGKEY_VIDEO_SYSTEM: return readOptionValue(io, optionVideoSystem);
+			case CFGKEY_INPUT_PORT_1: return readOptionValue(io, optionInputPort1);
+			case CFGKEY_INPUT_PORT_2: return readOptionValue(io, optionInputPort2);
+			case CFGKEY_COMPATIBLE_FRAMESKIP: return readOptionValue(io, optionCompatibleFrameskip);
+			case CFGKEY_START_VIDEO_LINE: return readOptionValue(io, optionStartVideoLine);
+			case CFGKEY_VISIBLE_VIDEO_LINES: return readOptionValue(io, optionVisibleVideoLines);
+			case CFGKEY_HORIZONTAL_VIDEO_CROP: return readOptionValue(io, optionHorizontalVideoCrop);
+			case CFGKEY_OVERCLOCKING: return readOptionValue<bool>(io, [&](auto on){overclock_enabled = on;});
+			case CFGKEY_OVERCLOCK_EXTRA_LINES: return readOptionValue<int16_t>(io,
 				[&](auto v){if(v >= 0 && v <= maxExtraLinesPerFrame) postrenderscanlines = v;});
-			case CFGKEY_OVERCLOCK_VBLANK_MULTIPLIER: return readOptionValue<int8_t>(io, readSize,
+			case CFGKEY_OVERCLOCK_VBLANK_MULTIPLIER: return readOptionValue<int8_t>(io,
 				[&](auto v){if(v >= 0 && v <= maxVBlankMultiplier) vblankscanlines = v;});
 		}
 	}
@@ -121,18 +120,18 @@ void NesSystem::writeConfig(ConfigType type, FileIO &io)
 {
 	if(type == ConfigType::MAIN)
 	{
-		optionSpriteLimit.writeWithKeyIfNotDefault(io);
-		optionSoundQuality.writeWithKeyIfNotDefault(io);
+		writeOptionValueIfNotDefault(io, optionSpriteLimit);
+		writeOptionValueIfNotDefault(io, optionSoundQuality);
 		writeStringOptionValue(io, CFGKEY_FDS_BIOS_PATH, fdsBiosPath);
-		optionDefaultVideoSystem.writeWithKeyIfNotDefault(io);
+		writeOptionValueIfNotDefault(io, optionDefaultVideoSystem);
 		writeStringOptionValue(io, CFGKEY_DEFAULT_PALETTE_PATH, defaultPalettePath);
 		if(swapDuty)
 			writeOptionValue(io, CFGKEY_SWAP_DUTY_CYCLES, swapDuty);
 		if(FSettings.lowpass)
 			writeOptionValue(io, CFGKEY_DEFAULT_SOUND_LOW_PASS_FILTER, (bool)FSettings.lowpass);
-		optionDefaultStartVideoLine.writeWithKeyIfNotDefault(io);
-		optionDefaultVisibleVideoLines.writeWithKeyIfNotDefault(io);
-		optionCorrectLineAspect.writeWithKeyIfNotDefault(io);
+		writeOptionValueIfNotDefault(io, optionDefaultStartVideoLine);
+		writeOptionValueIfNotDefault(io, optionDefaultVisibleVideoLines);
+		writeOptionValueIfNotDefault(io, optionCorrectLineAspect);
 		if(!fastForwardDuringFdsAccess)
 			writeOptionValue(io, CFGKEY_FF_DURING_FDS_ACCESS, fastForwardDuringFdsAccess);
 		writeStringOptionValue(io, CFGKEY_CHEATS_PATH, cheatsDir);
@@ -141,14 +140,14 @@ void NesSystem::writeConfig(ConfigType type, FileIO &io)
 	}
 	else if(type == ConfigType::SESSION)
 	{
-		optionFourScore.writeWithKeyIfNotDefault(io);
-		optionVideoSystem.writeWithKeyIfNotDefault(io);
-		optionInputPort1.writeWithKeyIfNotDefault(io);
-		optionInputPort2.writeWithKeyIfNotDefault(io);
-		optionCompatibleFrameskip.writeWithKeyIfNotDefault(io);
-		optionStartVideoLine.writeWithKeyIfNotDefault(io);
-		optionVisibleVideoLines.writeWithKeyIfNotDefault(io);
-		optionHorizontalVideoCrop.writeWithKeyIfNotDefault(io);
+		writeOptionValueIfNotDefault(io, optionFourScore);
+		writeOptionValueIfNotDefault(io, optionVideoSystem);
+		writeOptionValueIfNotDefault(io, optionInputPort1);
+		writeOptionValueIfNotDefault(io, optionInputPort2);
+		writeOptionValueIfNotDefault(io, optionCompatibleFrameskip);
+		writeOptionValueIfNotDefault(io, optionStartVideoLine);
+		writeOptionValueIfNotDefault(io, optionVisibleVideoLines);
+		writeOptionValueIfNotDefault(io, optionHorizontalVideoCrop);
 		writeOptionValueIfNotDefault(io, CFGKEY_OVERCLOCKING, bool(overclock_enabled), 0);
 		writeOptionValueIfNotDefault(io, CFGKEY_OVERCLOCK_EXTRA_LINES, int16_t(postrenderscanlines), 0);
 		writeOptionValueIfNotDefault(io, CFGKEY_OVERCLOCK_VBLANK_MULTIPLIER, int8_t(vblankscanlines), 0);

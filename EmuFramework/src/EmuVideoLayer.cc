@@ -19,7 +19,7 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/VController.hh>
 #include <emuframework/Option.hh>
-#include "EmuOptions.hh"
+#include <emuframework/EmuOptions.hh>
 #include <imagine/util/math/Point2D.hh>
 #include <imagine/util/format.hh>
 #include <imagine/base/Window.hh>
@@ -143,8 +143,7 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, E
 		}
 		contentRect_.fitIn(displayRect);
 		quad.write(0, {.bounds = contentRect_.as<int16_t>(), .textureSpan = texture, .rotation = rotation});
-		log.info("placed game rect at pixels {}:{}:{}:{}",
-			contentRect_.x, contentRect_.y, contentRect_.x2, contentRect_.y2);
+		//log.info("placed game rect at pixels {}:{}:{}:{}", contentRect_.x, contentRect_.y, contentRect_.x2, contentRect_.y2);
 	}
 	placeOverlay();
 }
@@ -391,15 +390,15 @@ Gfx::ColorSpace EmuVideoLayer::videoColorSpace(IG::PixelFormat videoFmt) const
 
 Gfx::TextureSamplerConfig EmuVideoLayer::samplerConfig() const { return EmuVideo::samplerConfigForLinearFilter(useLinearFilter); }
 
-bool EmuVideoLayer::readConfig(MapIO &io, unsigned key, size_t size)
+bool EmuVideoLayer::readConfig(MapIO &io, unsigned key)
 {
 	switch(key)
 	{
 		default: return false;
-		case CFGKEY_GAME_IMG_FILTER: return readOptionValue(io, size, useLinearFilter);
-		case CFGKEY_IMAGE_EFFECT: return readOptionValue(io, size, userEffectId, [](auto m){return m <= lastEnum<ImageEffectId>;});
-		case CFGKEY_OVERLAY_EFFECT: return readOptionValue(io, size, userOverlayEffectId, [](auto m){return m <= lastEnum<ImageOverlayId>;});
-		case CFGKEY_OVERLAY_EFFECT_LEVEL: return readOptionValue<int8_t>(io, size, [&](auto i){if(i >= 0 && i <= 100) setOverlayIntensity(i / 100.f); });
+		case CFGKEY_GAME_IMG_FILTER: return readOptionValue(io, useLinearFilter);
+		case CFGKEY_IMAGE_EFFECT: return readOptionValue(io, userEffectId, [](auto m){return m <= lastEnum<ImageEffectId>;});
+		case CFGKEY_OVERLAY_EFFECT: return readOptionValue(io, userOverlayEffectId, [](auto m){return m <= lastEnum<ImageOverlayId>;});
+		case CFGKEY_OVERLAY_EFFECT_LEVEL: return readOptionValue<int8_t>(io, [&](auto i){if(i >= 0 && i <= 100) setOverlayIntensity(i / 100.f); });
 	}
 }
 

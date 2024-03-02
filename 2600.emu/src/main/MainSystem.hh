@@ -20,6 +20,7 @@
 #include <stella/emucore/Paddles.hxx>
 #include <OSystem.hxx>
 #include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuOptions.hh>
 
 namespace EmuEx
 {
@@ -42,9 +43,9 @@ enum
 
 static constexpr int TV_PHOSPHOR_AUTO = 2;
 
-inline bool optionIsValidControllerType(uint8_t val)
+constexpr bool optionIsValidControllerType(const auto &v)
 {
-	switch(Controller::Type(val))
+	switch(Controller::Type(v))
 	{
 		case Controller::Type::Unknown:
 		case Controller::Type::Joystick:
@@ -74,17 +75,22 @@ public:
 	std::array<Event::Type, 2> jsFireMap{Event::LeftJoystickFire, Event::RightJoystickFire};
 	std::array<Event::Type, 2> jsLeftMap{Event::LeftJoystickLeft, Event::RightJoystickLeft};
 	std::array<Event::Type, 2> jsRightMap{Event::LeftJoystickRight, Event::RightJoystickRight};
-	Byte1Option optionTVPhosphor{CFGKEY_2600_TV_PHOSPHOR, TV_PHOSPHOR_AUTO, false, optionIsValidWithMax<2>};
-	Byte1Option optionTVPhosphorBlend{CFGKEY_2600_TV_PHOSPHOR_BLEND, 80, false, optionIsValidWithMax<100>};
-	Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMax<6>};
-	Byte1Option optionAudioResampleQuality{CFGKEY_AUDIO_RESAMPLE_QUALITY,
-		(uint8_t)AudioSettings::DEFAULT_RESAMPLING_QUALITY, false,
-		optionIsValidWithMinMax<(uint8_t)AudioSettings::ResamplingQuality::nearestNeightbour, (uint8_t)AudioSettings::ResamplingQuality::lanczos_3>};
-	Byte1Option optionInputPort1{CFGKEY_INPUT_PORT_1, 0, false, optionIsValidControllerType};
-	Byte1Option optionPaddleDigitalSensitivity{CFGKEY_PADDLE_DIGITAL_SENSITIVITY, 1, false,
-		optionIsValidWithMinMax<1, 20>};
-	Byte1Option optionPaddleAnalogRegion{CFGKEY_PADDLE_ANALOG_REGION, 1, false,
-		optionIsValidWithMax<3>};
+	Property<uint8_t, CFGKEY_2600_TV_PHOSPHOR,
+		PropertyDesc<uint8_t>{.defaultValue = TV_PHOSPHOR_AUTO, .isValid = isValidWithMax<2>}> optionTVPhosphor;
+	Property<int8_t, CFGKEY_2600_TV_PHOSPHOR_BLEND,
+		PropertyDesc<int8_t>{.defaultValue = 80, .isValid = isValidWithMax<100>}> optionTVPhosphorBlend;
+	Property<uint8_t, CFGKEY_VIDEO_SYSTEM,
+		PropertyDesc<uint8_t>{.isValid = isValidWithMax<6>}> optionVideoSystem;
+	Property<AudioSettings::ResamplingQuality, CFGKEY_AUDIO_RESAMPLE_QUALITY,
+		PropertyDesc<AudioSettings::ResamplingQuality>{.defaultValue = AudioSettings::DEFAULT_RESAMPLING_QUALITY,
+		.isValid = isValidWithMinMax<AudioSettings::ResamplingQuality::nearestNeightbour, AudioSettings::ResamplingQuality::lanczos_3>}>
+		optionAudioResampleQuality;
+	Property<Controller::Type, CFGKEY_INPUT_PORT_1,
+		PropertyDesc<Controller::Type>{.isValid = optionIsValidControllerType}> optionInputPort1;
+	Property<int8_t, CFGKEY_PADDLE_DIGITAL_SENSITIVITY,
+		PropertyDesc<int8_t>{.defaultValue = 1, .isValid = isValidWithMinMax<1, 20>}> optionPaddleDigitalSensitivity;
+	Property<int8_t, CFGKEY_PADDLE_ANALOG_REGION,
+		PropertyDesc<int8_t>{.defaultValue = 1, .isValid = isValidWithMax<3>}> optionPaddleAnalogRegion;
 
 	A2600System(ApplicationContext ctx, EmuApp &app):
 		EmuSystem{ctx}, osystem{app}
@@ -105,7 +111,7 @@ public:
 	size_t stateSize() { return saveStateSize; }
 	void readState(EmuApp &, std::span<uint8_t> buff);
 	size_t writeState(std::span<uint8_t> buff, SaveStateFlags = {});
-	bool readConfig(ConfigType, MapIO &io, unsigned key, size_t readSize);
+	bool readConfig(ConfigType, MapIO &io, unsigned key);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);

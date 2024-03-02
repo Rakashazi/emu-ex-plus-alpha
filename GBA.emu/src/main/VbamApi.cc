@@ -245,7 +245,7 @@ void GbaSystem::setGameSpecificSettings(GBASys &gba, int romSize)
 	{
 		setSaveType(detectedSaveType, detectedSaveSize);
 	}
-	setRTC((RtcMode)optionRtcEmulation.val);
+	setRTC(optionRtcEmulation);
 }
 
 void GbaSystem::setSensorActive(bool on)

@@ -29,6 +29,7 @@
 #include <pce_fast/vdc.h>
 #include <mednafen-emuex/MDFNUtils.hh>
 #include <mednafen-emuex/ArchiveVFS.hh>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {

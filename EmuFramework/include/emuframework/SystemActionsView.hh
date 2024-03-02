@@ -42,7 +42,7 @@ protected:
 	TextMenuItem autosaveNow;
 	TextMenuItem revertAutosave;
 	TextMenuItem stateSlot;
-	IG_UseMemberIf(Config::envIsAndroid, TextMenuItem, addLauncherIcon);
+	ConditionalMember<Config::envIsAndroid, TextMenuItem> addLauncherIcon;
 	TextMenuItem screenshot;
 	TextMenuItem resetSessionOptions;
 	TextMenuItem close;

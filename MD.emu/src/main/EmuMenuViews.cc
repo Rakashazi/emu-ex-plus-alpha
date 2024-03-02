@@ -112,7 +112,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 	MultiChoiceMenuItem videoSystem
 	{
 		"Video System", attachParams(),
-		system().optionVideoSystem.val,
+		system().optionVideoSystem.value(),
 		videoSystemItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)

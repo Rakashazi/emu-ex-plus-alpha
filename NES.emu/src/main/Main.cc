@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with NES.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "main"
 #include <emuframework/EmuAppInlines.hh>
 #include <emuframework/EmuSystemInlines.hh>
 #include "EmuFileIO.hh"
@@ -30,6 +29,7 @@
 #include <fceu/video.h>
 #include <fceu/sound.h>
 #include <fceu/x6502.h>
+#include <imagine/logger/logger.h>
 
 void ApplyDeemphasisComplete(pal* pal512);
 void FCEU_setDefaultPalettePtr(pal *ptr);
@@ -47,6 +47,7 @@ bool swapDuty = false;
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"NES.emu"};
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nFCEUX Team\nfceux.com";
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
@@ -58,7 +59,7 @@ unsigned fceuCheats = 0;
 NesApp::NesApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	EmuApp{initParams, ctx}, nesSystem{ctx}
 {
-	audio().setStereo(false);
+	audio.setStereo(false);
 }
 
 bool hasFDSBIOSExtension(std::string_view name)
@@ -191,7 +192,7 @@ void NesSystem::setDefaultPalette(IO &io)
 	auto colors = io.read(std::span<pal>{defaultPal}).items;
 	if(colors < 64)
 	{
-		logErr("skipped palette with only %d colors", (int)colors);
+		log.error("skipped palette with only {} colors", colors);
 		return;
 	}
 	if(colors != 512)
@@ -208,7 +209,7 @@ void NesSystem::setDefaultPalette(IG::ApplicationContext ctx, IG::CStringView pa
 		FCEU_setDefaultPalettePtr(nullptr);
 		return;
 	}
-	logMsg("setting default palette with path:%s", palPath.data());
+	log.info("setting default palette with path:{}", palPath);
 	if(palPath[0] != '/' && !IG::isUri(palPath))
 	{
 		// load as asset
@@ -259,7 +260,7 @@ void NesSystem::setupNESFourScore()
 	if(!usingZapper)
 	{
 		if(optionFourScore)
-			logMsg("attaching four score");
+			log.info("attaching four score");
 		FCEUI_SetInputFourscore(optionFourScore);
 	}
 	else
@@ -291,7 +292,7 @@ void NesSystem::setupNESInputPorts()
 			connectNESInput(i, GameInfo->input[i] == SI_UNSET ? SI_GAMEPAD : GameInfo->input[i]);
 		else
 			connectNESInput(i, nesInputPortDev[i]);
-		logMsg("attached %s to port %d%s", fceuInputToStr(joyports[i].type), i, nesInputPortDev[i] == SI_UNSET ? " (auto)" : "");
+		log.info("attached {} to port {}{}", fceuInputToStr(joyports[i].type), i, nesInputPortDev[i] == SI_UNSET ? " (auto)" : "");
 	}
 	if(GameInfo->inputfc == SIFC_HYPERSHOT)
 	{
@@ -311,7 +312,7 @@ void NesSystem::setupNESInputPorts()
 
 static int cheatCallback(const char *name, uint32 a, uint8 v, int compare, int s, int type, void *data)
 {
-	logMsg("cheat: %s, %d", name, s);
+	log.info("cheat:{}, {}", name, s);
 	fceuCheats++;
 	return 1;
 }
@@ -345,17 +346,17 @@ void setRegion(int region, int defaultRegion, int detectedRegion)
 {
 	if(region)
 	{
-		logMsg("Forced region:%s", regionToStr(region - 1));
+		log.info("Forced region:{}", regionToStr(region - 1));
 		FCEUI_SetRegion(region - 1, false);
 	}
 	else if(defaultRegion)
 	{
-		logMsg("Forced region (Default):%s", regionToStr(defaultRegion - 1));
+		log.info("Forced region (Default):{}", regionToStr(defaultRegion - 1));
 		FCEUI_SetRegion(defaultRegion - 1, false);
 	}
 	else
 	{
-		logMsg("Detected region:%s", regionToStr(detectedRegion));
+		log.info("Detected region:{}", regionToStr(detectedRegion));
 		FCEUI_SetRegion(detectedRegion, false);
 	}
 }
@@ -381,10 +382,10 @@ void NesSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 			throw std::runtime_error("Error loading game");
 	}
 	autoDetectedRegion = regionFromName(contentFileName());
-	setRegion(optionVideoSystem.val, optionDefaultVideoSystem.val, autoDetectedRegion);
+	setRegion(optionVideoSystem, optionDefaultVideoSystem, autoDetectedRegion);
 	FCEUI_ListCheats(cheatCallback, 0);
 	if(fceuCheats)
-		logMsg("%d total cheats", fceuCheats);
+		log.info("{} total cheats", fceuCheats);
 	setupNESInputPorts();
 	EMUFILE_MEMORY stateMemFile;
 	FCEUSS_SaveMS(&stateMemFile, 0);
@@ -404,7 +405,7 @@ void NesSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
 	uint32 mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
 	if(FSettings.SndRate == mixRate)
 		return;
-	logMsg("set sound mix rate:%d", (int)mixRate);
+	log.info("set sound mix rate:{}", (int)mixRate);
 	FCEUI_Sound(mixRate);
 }
 
@@ -414,7 +415,7 @@ void emulateSound(EmuAudio *audio)
 	int32 sound[maxAudioFrames];
 	auto frames = FlushEmulateSound(sound);
 	soundtimestamp = 0;
-	//logMsg("%d frames", frames);
+	//log.debug("{} frames", frames);
 	assert(frames <= maxAudioFrames);
 	if(audio)
 	{
@@ -494,7 +495,7 @@ void FCEUD_SetPalette(uint8 index, uint8 r, uint8 g, uint8 b)
 		auto desc = sys.pixFmt == IG::PIXEL_BGRA8888 ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888_NATIVE;
 		sys.nativeCol.col32[index] = desc.build(r, g, b, (uint8)0);
 	}
-	//logMsg("set palette %d %X", index, nativeCol[index]);
+	//log.debug("set palette {} {}", index, nativeCol[index]);
 }
 
 void FCEUPPU_FrameReady(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::NesSystem &sys, EmuEx::EmuVideo *video, uint8 *buf)
@@ -517,7 +518,7 @@ void setDiskIsAccessing(bool on)
 	auto &sys = static_cast<NesSystem&>(gSystem());
 	if(sys.fastForwardDuringFdsAccess)
 	{
-		if(on && !sys.fdsIsAccessing) logDMsg("FDS access started");
+		//if(on && !sys.fdsIsAccessing) log.debug("FDS access started");
 		sys.fdsIsAccessing = on;
 	}
 	else

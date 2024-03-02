@@ -161,8 +161,8 @@ protected:
 	T startVal{};
 	T endVal{};
 	T endValDiff{};
-	IG_UseMemberIfOrConstant(INTERPOLATOR_TYPE == InterpolatorType::UNSET,
-		InterpolatorType, INTERPOLATOR_TYPE, type){InterpolatorType::LINEAR};
+	ConditionalMemberOr<INTERPOLATOR_TYPE == InterpolatorType::UNSET,
+		InterpolatorType, INTERPOLATOR_TYPE> type{InterpolatorType::LINEAR};
 };
 
 template <class T, ChronoTimePoint TimePoint = SteadyClockTimePoint, InterpolatorType INTERPOLATOR_TYPE = InterpolatorType::UNSET>

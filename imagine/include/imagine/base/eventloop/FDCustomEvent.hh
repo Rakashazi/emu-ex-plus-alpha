@@ -62,7 +62,7 @@ public:
 	}
 
 protected:
-	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
+	ConditionalMember<Config::DEBUG_BUILD, const char *> debugLabel{};
 	FDEventSource fdSrc{};
 
 	static bool shouldPerformCallback(int fd);

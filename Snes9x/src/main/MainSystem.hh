@@ -1,6 +1,6 @@
 #pragma once
 
-#include <emuframework/Option.hh>
+#include <emuframework/EmuOptions.hh>
 #include <emuframework/EmuSystem.hh>
 #include <snes9x.h>
 #include <port.h>
@@ -71,15 +71,21 @@ public:
 	Input::PointerId mousePointerId{Input::NULL_POINTER_ID};
 	bool dragWithButton{}; // true to start next mouse drag with a button held
 	DeinterlaceMode deinterlaceMode{DeinterlaceMode::Bob};
-	Byte1Option optionMultitap{CFGKEY_MULTITAP, 0};
-	SByte1Option optionInputPort{CFGKEY_INPUT_PORT, inputPortMinVal, false, optionIsValidWithMinMax<inputPortMinVal, SNES_JUSTIFIER>};
-	Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMax<3>};
-	Byte1Option optionAllowExtendedVideoLines{CFGKEY_ALLOW_EXTENDED_VIDEO_LINES, 0};
+
+	Property<bool, CFGKEY_MULTITAP> optionMultitap;
+	Property<int8_t, CFGKEY_INPUT_PORT,
+		PropertyDesc<int8_t>{.defaultValue = inputPortMinVal,
+		.isValid = isValidWithMinMax<inputPortMinVal, SNES_JUSTIFIER>}> optionInputPort;
+	Property<uint8_t, CFGKEY_VIDEO_SYSTEM,
+		PropertyDesc<uint8_t>{.isValid = isValidWithMax<3>}> optionVideoSystem;
+	Property<bool, CFGKEY_ALLOW_EXTENDED_VIDEO_LINES> optionAllowExtendedVideoLines;
 	#ifndef SNES9X_VERSION_1_4
-	Byte1Option optionBlockInvalidVRAMAccess{CFGKEY_BLOCK_INVALID_VRAM_ACCESS, 1};
-	Byte1Option optionSeparateEchoBuffer{CFGKEY_SEPARATE_ECHO_BUFFER, 0};
-	Byte1Option optionSuperFXClockMultiplier{CFGKEY_SUPERFX_CLOCK_MULTIPLIER, 100, false, optionIsValidWithMinMax<5, 250>};
-	Byte1Option optionAudioDSPInterpolation{CFGKEY_AUDIO_DSP_INTERPOLATON, DSP_INTERPOLATION_GAUSSIAN, false, optionIsValidWithMax<4>};
+	Property<bool, CFGKEY_BLOCK_INVALID_VRAM_ACCESS, PropertyDesc<bool>{.defaultValue = true}> optionBlockInvalidVRAMAccess;
+	Property<bool, CFGKEY_SEPARATE_ECHO_BUFFER> optionSeparateEchoBuffer;
+	Property<uint8_t, CFGKEY_SUPERFX_CLOCK_MULTIPLIER,
+		PropertyDesc<uint8_t>{.defaultValue = 100, .isValid = isValidWithMinMax<5, 250>}> optionSuperFXClockMultiplier;
+	Property<uint8_t, CFGKEY_AUDIO_DSP_INTERPOLATON,
+		PropertyDesc<uint8_t>{.defaultValue = DSP_INTERPOLATION_GAUSSIAN, .isValid = isValidWithMax<4>}> optionAudioDSPInterpolation;
 	#endif
 	static constexpr FloatSeconds ntscFrameTimeSecs{357366. / 21477272.}; // ~60.098Hz
 	static constexpr FloatSeconds palFrameTimeSecs{425568. / 21281370.}; // ~50.00Hz
@@ -120,7 +126,7 @@ public:
 	size_t stateSize();
 	void readState(EmuApp &, std::span<uint8_t> buff);
 	size_t writeState(std::span<uint8_t> buff, SaveStateFlags);
-	bool readConfig(ConfigType, MapIO &, unsigned key, size_t readSize);
+	bool readConfig(ConfigType, MapIO &, unsigned key);
 	void writeConfig(ConfigType, FileIO &);
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);

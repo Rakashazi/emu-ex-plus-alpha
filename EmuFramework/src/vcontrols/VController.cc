@@ -16,8 +16,9 @@
 #include <emuframework/VController.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/AppKeyCode.hh>
-#include "../EmuOptions.hh"
+#include <emuframework/EmuOptions.hh>
 #include "../WindowData.hh"
+#include <emuframework/Option.hh>
 #include <imagine/util/math.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/RendererCommands.hh>
@@ -313,7 +314,7 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect 
 					app().handleSystemKeyInput(vBtn, Input::Action::PUSHED);
 					if(vibrateOnTouchInput())
 					{
-						app().vibrationManager().vibrate(IG::Milliseconds{32});
+						app().vibrationManager.vibrate(IG::Milliseconds{32});
 					}
 				}
 			}
@@ -523,7 +524,7 @@ bool VController::shouldShowOnTouchInput() const
 
 void VController::setVibrateOnTouchInput(EmuApp &app, std::optional<bool> opt)
 {
-	if(!opt || !app.vibrationManager().hasVibrator())
+	if(!opt || !app.vibrationManager.hasVibrator())
 		return;
 	vibrateOnTouchInput_ = *opt;
 }
@@ -645,34 +646,34 @@ static bool readVControllerElement(InputManager &mgr, MapIO &io, std::vector<VCo
 	return true;
 }
 
-bool VController::readConfig(EmuApp &app, MapIO &io, unsigned key, size_t size)
+bool VController::readConfig(EmuApp &app, MapIO &io, unsigned key)
 {
 	switch(key)
 	{
 		default: return false;
 		case CFGKEY_TOUCH_CONTROL_ALPHA:
-			setButtonAlpha(readOptionValue<uint8_t>(io, size));
+			setButtonAlpha(readOptionValue<uint8_t>(io));
 			return true;
 		case CFGKEY_TOUCH_CONTROL_DISPLAY:
-			setGamepadControlsVisibility(readOptionValue<VControllerVisibility>(io, size, visibilityIsValid));
+			setGamepadControlsVisibility(readOptionValue<VControllerVisibility>(io, visibilityIsValid));
 			return true;
 		case CFGKEY_TOUCH_CONTROL_SIZE:
-			return readOptionValue<int16_t>(io, size, [&](auto val){setButtonSize(val, false);});
+			return readOptionValue<int16_t>(io, [&](auto val){setButtonSize(val, false);});
 		case CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH:
-			setShowOnTouchInput(readOptionValue<bool>(io, size));
+			setShowOnTouchInput(readOptionValue<bool>(io));
 			return true;
 		case CFGKEY_TOUCH_CONTROL_VIRBRATE:
-			setVibrateOnTouchInput(app, readOptionValue<bool>(io, size));
+			setVibrateOnTouchInput(app, readOptionValue<bool>(io));
 			return true;
-		case CFGKEY_VCONTROLLER_ALLOW_PAST_CONTENT_BOUNDS: return readOptionValue(io, size, allowButtonsPastContentBounds_);
-		case CFGKEY_VCONTROLLER_HIGHLIGHT_PUSHED_BUTTONS: return readOptionValue(io, size, highlightPushedButtons);
+		case CFGKEY_VCONTROLLER_ALLOW_PAST_CONTENT_BOUNDS: return readOptionValue(io, allowButtonsPastContentBounds_);
+		case CFGKEY_VCONTROLLER_HIGHLIGHT_PUSHED_BUTTONS: return readOptionValue(io, highlightPushedButtons);
 		case CFGKEY_VCONTROLLER_DEVICE_BUTTONS_V2:
 		{
 			gpElements.clear();
 			auto emuDeviceId = io.get<uint8_t>(); // reserved for future use
 			auto configId = io.get<uint8_t>(); // reserved for future use
 			auto elements = io.get<uint8_t>();
-			log.info("read emu device button data ({} bytes) with {} element(s)", size, elements);
+			log.info("read emu device button data ({} bytes) with {} element(s)", io.size(), elements);
 			for(auto i : iotaCount(elements))
 			{
 				if(!readVControllerElement(app.inputManager, io, gpElements, false))
@@ -685,7 +686,7 @@ bool VController::readConfig(EmuApp &app, MapIO &io, unsigned key, size_t size)
 			uiElements.clear();
 			auto configId = io.get<uint8_t>(); // reserved for future use
 			auto elements = io.get<uint8_t>();
-			log.info("read UI button data ({} bytes) with {} element(s)", size, elements);
+			log.info("read UI button data ({} bytes) with {} element(s)", io.size(), elements);
 			for(auto i : iotaCount(elements))
 			{
 				if(!readVControllerElement(app.inputManager, io, uiElements, true))

@@ -18,10 +18,12 @@
 #include <emuframework/EmuApp.hh>
 #undef Debugger
 #include "MainSystem.hh"
+#include <emuframework/Option.hh>
 
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"2600.emu"};
 const char *EmuSystem::configFilename = "2600emu.config";
 
 std::span<const AspectRatioInfo> A2600System::aspectRatioInfos()
@@ -44,30 +46,30 @@ bool A2600System::resetSessionOptions(EmuApp &app)
 	optionPaddleAnalogRegion.reset();
 	if(osystem.hasConsole())
 	{
-		setControllerType(app, osystem.console(), (Controller::Type)optionInputPort1.val);
+		setControllerType(app, osystem.console(), optionInputPort1);
 	}
 	return true;
 }
 
-bool A2600System::readConfig(ConfigType type, MapIO &io, unsigned key, size_t readSize)
+bool A2600System::readConfig(ConfigType type, MapIO &io, unsigned key)
 {
 	if(type == ConfigType::MAIN)
 	{
 		switch(key)
 		{
-			case CFGKEY_2600_TV_PHOSPHOR_BLEND: return optionTVPhosphorBlend.readFromIO(io, readSize);
-			case CFGKEY_AUDIO_RESAMPLE_QUALITY: return optionAudioResampleQuality.readFromIO(io, readSize);
+			case CFGKEY_2600_TV_PHOSPHOR_BLEND: return readOptionValue(io, optionTVPhosphorBlend);
+			case CFGKEY_AUDIO_RESAMPLE_QUALITY: return readOptionValue(io, optionAudioResampleQuality);
 		}
 	}
 	else if(type == ConfigType::SESSION)
 	{
 		switch(key)
 		{
-			case CFGKEY_2600_TV_PHOSPHOR: return optionTVPhosphor.readFromIO(io, readSize);
-			case CFGKEY_VIDEO_SYSTEM: return optionVideoSystem.readFromIO(io, readSize);
-			case CFGKEY_INPUT_PORT_1: return optionInputPort1.readFromIO(io, readSize);
-			case CFGKEY_PADDLE_DIGITAL_SENSITIVITY: return optionPaddleDigitalSensitivity.readFromIO(io, readSize);
-			case CFGKEY_PADDLE_ANALOG_REGION: return optionPaddleAnalogRegion.readFromIO(io, readSize);
+			case CFGKEY_2600_TV_PHOSPHOR: return readOptionValue(io, optionTVPhosphor);
+			case CFGKEY_VIDEO_SYSTEM: return readOptionValue(io, optionVideoSystem);
+			case CFGKEY_INPUT_PORT_1: return readOptionValue(io, optionInputPort1);
+			case CFGKEY_PADDLE_DIGITAL_SENSITIVITY: return readOptionValue(io, optionPaddleDigitalSensitivity);
+			case CFGKEY_PADDLE_ANALOG_REGION: return readOptionValue(io, optionPaddleAnalogRegion);
 		}
 	}
 	return false;
@@ -77,16 +79,16 @@ void A2600System::writeConfig(ConfigType type, FileIO &io)
 {
 	if(type == ConfigType::MAIN)
 	{
-		optionTVPhosphorBlend.writeWithKeyIfNotDefault(io);
-		optionAudioResampleQuality.writeWithKeyIfNotDefault(io);
+		writeOptionValueIfNotDefault(io, optionTVPhosphorBlend);
+		writeOptionValueIfNotDefault(io, optionAudioResampleQuality);
 	}
 	else if(type == ConfigType::SESSION)
 	{
-		optionTVPhosphor.writeWithKeyIfNotDefault(io);
-		optionVideoSystem.writeWithKeyIfNotDefault(io);
-		optionInputPort1.writeWithKeyIfNotDefault(io);
-		optionPaddleDigitalSensitivity.writeWithKeyIfNotDefault(io);
-		optionPaddleAnalogRegion.writeWithKeyIfNotDefault(io);
+		writeOptionValueIfNotDefault(io, optionTVPhosphor);
+		writeOptionValueIfNotDefault(io, optionVideoSystem);
+		writeOptionValueIfNotDefault(io, optionInputPort1);
+		writeOptionValueIfNotDefault(io, optionPaddleDigitalSensitivity);
+		writeOptionValueIfNotDefault(io, optionPaddleAnalogRegion);
 	}
 }
 
@@ -120,7 +122,7 @@ void A2600System::setRuntimeTVPhosphor(int val, int blend)
 	{
 		usePhosphor = val;
 	}
-	logMsg("Phosphor effect %s", usePhosphor ? "on" : "off");
+	log.info("Phosphor effect:{}", usePhosphor ? "on" : "off");
 	auto props = osystem.console().properties();
 	if(usePhosphor)
 	{

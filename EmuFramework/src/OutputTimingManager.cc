@@ -15,7 +15,8 @@
 
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>
-#include "EmuOptions.hh"
+#include <emuframework/EmuOptions.hh>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {

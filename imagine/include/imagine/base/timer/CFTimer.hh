@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/base/timerDefs.hh>
+#include <imagine/base/baseDefs.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/used.hh>
 #include <CoreFoundation/CoreFoundation.h>
@@ -43,7 +43,7 @@ public:
 	~CFTimer();
 
 protected:
-	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
+	ConditionalMember<Config::DEBUG_BUILD, const char *> debugLabel{};
 	CFRunLoopTimerRef timer{};
 	std::unique_ptr<CFTimerInfo> info;
 

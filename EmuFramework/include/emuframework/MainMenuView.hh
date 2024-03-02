@@ -53,8 +53,8 @@ protected:
 	TextMenuItem onScreenInputManager;
 	TextMenuItem inputManager;
 	TextMenuItem benchmark;
-	IG_UseMemberIf(Config::Input::BLUETOOTH, TextMenuItem, scanWiimotes);
-	IG_UseMemberIf(Config::Input::BLUETOOTH, TextMenuItem, bluetoothDisconnect);
+	ConditionalMember<Config::Input::BLUETOOTH, TextMenuItem> scanWiimotes;
+	ConditionalMember<Config::Input::BLUETOOTH, TextMenuItem> bluetoothDisconnect;
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	TextMenuItem acceptPS3ControllerConnection;
 	#endif

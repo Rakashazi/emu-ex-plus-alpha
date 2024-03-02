@@ -22,7 +22,7 @@
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/MainMenuView.hh>
-#include "../EmuOptions.hh"
+#include <emuframework/EmuOptions.hh>
 #include "../WindowData.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Screen.hh>
@@ -32,6 +32,7 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/ToastView.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
@@ -73,7 +74,7 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 		app().onCustomizeNavView(*viewNav);
 		viewStack.setNavView(std::move(viewNav));
 	}
-	viewStack.showNavView(app().optionTitleBar);
+	viewStack.showNavView(app().showsTitleBar);
 	emuView.setLayoutInputView(&inputView);
 }
 
@@ -215,7 +216,7 @@ void EmuViewController::moveEmuViewToWindow(IG::Window &win)
 
 void EmuViewController::configureWindowForEmulation(IG::Window &win, FrameTimeConfig frameTimeConfig, bool running)
 {
-	emuView.renderer().setWindowValidOrientations(win, running ? app().emuOrientation() : app().menuOrientation());
+	emuView.renderer().setWindowValidOrientations(win, running ? app().emuOrientation.value() : app().menuOrientation.value());
 	emuView.renderer().task().setPresentMode(win, running ? Gfx::PresentMode(app().effectivePresentMode()) : Gfx::PresentMode::Auto);
 	if(running)
 		app().setIntendedFrameRate(win, frameTimeConfig);
