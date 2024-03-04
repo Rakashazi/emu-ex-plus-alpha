@@ -180,7 +180,7 @@ jobs:
     - name: Upload EX-Emulators artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: EX-Emulators-${{ matrix.image }}
+        name: ${{ matrix.image }}
         path: EX-Emulators/
 
   release:
@@ -199,21 +199,20 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         path: EX-Emulators
-        pattern: EX-Emulators-*
         merge-multiple: true
 
     - name: Re-ZIP artifacts
       run: |
         mkdir dist
         cd EX-Emulators
+        COMMIT_PREFIX=$(echo ${{ github.sha }} | cut -c1-8)
         for artifact in *.apk
         do
           file_name="${artifact%.apk}"
-          echo "-> Creating ${file_name}.zip"
-          zip "../dist/${file_name}.zip" "${file_name}.apk"
+          echo "-> Creating ${file_name//-${COMMIT_PREFIX}/}.zip"
+          zip "../dist/${file_name//-${COMMIT_PREFIX}/}.zip" "${file_name}.apk"
         done
-        COMMIT_PREFIX=$(echo ${{ github.sha }} | cut -c1-8)
-        zip -r "../dist/EX-Emulators-${COMMIT_PREFIX}.zip" *.apk
+        zip -r "../dist/EX-Emulators.zip" *.apk
 
     - name: Update Git Tag
       run: |
