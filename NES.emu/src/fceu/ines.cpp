@@ -49,6 +49,7 @@ extern SFORMAT FCEUVSUNI_STATEINFO[];
 uint8 *trainerpoo = NULL;
 uint8 *ROM = NULL;
 uint8 *VROM = NULL;
+uint8 *MiscROM = NULL;
 uint8 *ExtraNTARAM = NULL;
 iNES_HEADER head;
 
@@ -58,6 +59,7 @@ uint8 Mirroring = 0;
 uint8 MirroringAs2bits = 0;
 uint32 ROM_size = 0;
 uint32 VROM_size = 0;
+uint32 MiscROM_size = 0;
 char LoadedRomFName[4096]; //mbg merge 7/17/06 added
 char LoadedRomFNamePatchToUse[4096];
 
@@ -475,21 +477,33 @@ static void CheckHInfo(uint64 partialmd5) {
 	if (MapperNo == 99)
 		Mirroring = 2;
 
-	if (tofix) {
-		char gigastr[768];
-		strcpy(gigastr, "The iNES header contains incorrect information.  For now, the information will be corrected in RAM.  ");
+	if (tofix)
+	{
+		char tmpStr[128];
+		std::string gigastr;
+		gigastr.reserve(768);
+		gigastr.assign("The iNES header contains incorrect information.  For now, the information will be corrected in RAM.  ");
 		if (tofix & 1)
-			sprintf(gigastr + strlen(gigastr), "The mapper number should be set to %d.  ", MapperNo);
-		if (tofix & 2) {
+		{
+			snprintf(tmpStr, sizeof(tmpStr), "The mapper number should be set to %d.  ", MapperNo);
+			gigastr.append(tmpStr);
+		}
+		if (tofix & 2)
+		{
 			const char *mstr[3] = { "Horizontal", "Vertical", "Four-screen" };
-			sprintf(gigastr + strlen(gigastr), "Mirroring should be set to \"%s\".  ", mstr[Mirroring & 3]);
+			snprintf(tmpStr, sizeof(tmpStr), "Mirroring should be set to \"%s\".  ", mstr[Mirroring & 3]);
+			gigastr.append(tmpStr);
 		}
 		if (tofix & 4)
-			strcat(gigastr, "The battery-backed bit should be set.  ");
+		{
+			gigastr.append("The battery-backed bit should be set.  ");
+		}
 		if (tofix & 8)
-			strcat(gigastr, "This game should not have any CHR ROM.  ");
-		strcat(gigastr, "\n");
-		FCEU_printf("%s", gigastr);
+		{
+			gigastr.append("This game should not have any CHR ROM.  ");
+		}
+		gigastr.append("\n");
+		FCEU_printf("%s", gigastr.c_str());
 	}
 }
 
@@ -796,6 +810,7 @@ BMAPPINGLocal bmap[] = {
 	{"FAM250/81-01-39-C/SCHI-24",			354, Mapper354_Init },
 
 	{"Impact Soft MMC3 Flash Board",	406, Mapper406_Init },
+	{"Super Russian Roulette",	413, Mapper413_Init },
 	{"INX_007T_V01",		470, INX_007T_Init },
 
 	{"KONAMI QTAi Board",	547, QTAi_Init },
@@ -821,9 +836,12 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 	struct md5_context md5;
 	uint64 partialmd5 = 0;
 	const char* mappername = "Not Listed";
+	size_t filesize = FCEU_fgetsize(fp);
 
 	if (FCEU_fread(&head, 1, 16, fp) != 16 || memcmp(&head, "NES\x1A", 4))
 		return LOADER_INVALID_FORMAT;
+	// Remove header size from filesize
+	filesize -= 16;
 	
 	head.cleanup();
 
@@ -961,6 +979,7 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 	if (head.ROM_type & 4) {	/* Trainer */
 		trainerpoo = (uint8*)FCEU_gmalloc(512);
 		FCEU_fread(trainerpoo, 512, 1, fp);
+		filesize -= 512;
 	}
 
 	ResetCartMapping();
@@ -972,6 +991,15 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 
 	if (vrom_size_bytes)
 		FCEU_fread(VROM, 1, vrom_size_bytes, fp);
+
+	// Misc ROMS
+	if ((head.misc_roms & 0x03) && !(head.ROM_type & 4)) {
+		MiscROM_size = filesize - rom_size_bytes - vrom_size_bytes;
+		MiscROM = (uint8 *)FCEU_malloc(MiscROM_size);
+		memset(MiscROM, 0xFF, MiscROM_size);
+		FCEU_fread(MiscROM, 1, MiscROM_size, fp);
+		FCEU_printf(" Misc ROM size : %d\n", MiscROM_size);
+	}
 
 	md5_starts(&md5); 
 	md5_update(&md5, ROM, rom_size_bytes);
@@ -1023,6 +1051,7 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 			FCEU_printf(" WRAM backed by battery: %d KiB\n", iNESCart.battery_wram_size / 1024);
 			FCEU_printf(" VRAM backed by battery: %d KiB\n", iNESCart.battery_vram_size / 1024);
 		}
+		if (head.misc_roms & 0x03) FCEU_printf(" Misc ROM: %d KiB\n", MiscROM_size / 1024);
 	}
 
 	SetInput();

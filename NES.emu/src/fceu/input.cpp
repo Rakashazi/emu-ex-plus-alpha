@@ -234,6 +234,10 @@ static uint8 ReadGPVS(int w)
 	return ret;
 }
 
+#ifdef __FCEU_QSCRIPT_ENABLE__
+extern uint8_t FCEU_JSReadJoypad(int which, uint8_t phyState);
+#endif
+
 static void UpdateGP(int w, void *data, int arg)
 {
 	if(w==0)	//adelikat, 3/14/09: Changing the joypads to inclusive OR the user's joypad + the Lua joypad, this way lua only takes over the buttons it explicity says to
@@ -247,6 +251,11 @@ static void UpdateGP(int w, void *data, int arg)
 		joy[0] = *(uint32 *)joyports[0].ptr;;
 		joy[2] = *(uint32 *)joyports[0].ptr >> 16;
 		#endif
+
+		#ifdef __FCEU_QSCRIPT_ENABLE__
+		joy[0]= FCEU_JSReadJoypad(0,joy[0]);
+		joy[2]= FCEU_JSReadJoypad(2,joy[2]);
+		#endif
 	}
 	else
 	{
@@ -259,8 +268,12 @@ static void UpdateGP(int w, void *data, int arg)
 		joy[1] = *(uint32 *)joyports[1].ptr >> 8;
 		joy[3] = *(uint32 *)joyports[1].ptr >> 24;
 		#endif
-	}
 
+		#ifdef __FCEU_QSCRIPT_ENABLE__
+		joy[1]= FCEU_JSReadJoypad(1,joy[1]);
+		joy[3]= FCEU_JSReadJoypad(3,joy[3]);
+		#endif
+	}
 }
 
 static void LogGP(int w, MovieRecord* mr)
@@ -421,6 +434,10 @@ void FCEU_DrawInput(uint8 *buf)
 		portFC.driver->Draw(buf,portFC.attrib);
 }
 
+#ifdef __FCEU_QNETWORK_ENABLE__
+extern bool NetPlayActive(void);
+void NetPlayReadInputFrame(uint8_t* joy);
+#endif
 
 void FCEU_UpdateInput(void)
 {
@@ -438,6 +455,12 @@ void FCEU_UpdateInput(void)
 		if (coinon2) coinon2--;
 		if (service) service--;
 	}
+	#ifdef __FCEU_QNETWORK_ENABLE__
+	if (NetPlayActive())
+	{
+		NetPlayReadInputFrame(joy);
+	}
+	#endif
 
 	if(FCEUnetplay)
 		NetplayUpdate(joy);

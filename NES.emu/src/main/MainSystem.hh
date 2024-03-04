@@ -39,7 +39,7 @@ enum
 	CFGKEY_FF_DURING_FDS_ACCESS = 286, CFGKEY_CHEATS_PATH = 287,
 	CFGKEY_PATCHES_PATH = 288, CFGKEY_PALETTE_PATH = 289,
 	CFGKEY_OVERCLOCKING = 290, CFGKEY_OVERCLOCK_EXTRA_LINES = 291,
-	CFGKEY_OVERCLOCK_VBLANK_MULTIPLIER = 292,
+	CFGKEY_OVERCLOCK_VBLANK_MULTIPLIER = 292, CFGKEY_P2_START_AS_FC_MIC = 293,
 };
 
 constexpr int maxExtraLinesPerFrame = 30000;
@@ -74,7 +74,6 @@ public:
 	using PalArray = std::array<pal, 512>;
 
 	size_t saveStateSize{};
-	ESI nesInputPortDev[2]{SI_UNSET, SI_UNSET};
 	uint32 padData{};
 	uint32 zapperData[3]{};
 	uint8_t fcExtData{};
@@ -94,13 +93,13 @@ public:
 	std::string defaultPalettePath;
 	std::string fdsBiosPath;
 	std::string loaderErrorString;
-	bool fastForwardDuringFdsAccess = true;
+	Property<bool, CFGKEY_FF_DURING_FDS_ACCESS, PropertyDesc<bool>{.defaultValue = true}> fastForwardDuringFdsAccess;
 	bool fdsIsAccessing{};
 	Property<bool, CFGKEY_FOUR_SCORE> optionFourScore;
-	Property<int8_t, CFGKEY_INPUT_PORT_1,
-		PropertyDesc<int8_t>{.defaultValue = -1, .isValid = isValidWithMinMax<-1, 2>}> optionInputPort1;
-	Property<int8_t, CFGKEY_INPUT_PORT_2,
-		PropertyDesc<int8_t>{.defaultValue = -1, .isValid = isValidWithMinMax<-1, 2>}> optionInputPort2;
+	Property<ESI, CFGKEY_INPUT_PORT_1,
+		PropertyDesc<ESI, int8_t>{.defaultValue = SI_UNSET, .isValid = isValidWithMinMax<SI_UNSET, SI_COUNT>}> inputPort1;
+	Property<ESI, CFGKEY_INPUT_PORT_2,
+		PropertyDesc<ESI, int8_t>{.defaultValue = SI_UNSET, .isValid = isValidWithMinMax<SI_UNSET, SI_COUNT>}> inputPort2;
 	Property<uint8_t, CFGKEY_VIDEO_SYSTEM,
 		PropertyDesc<uint8_t>{.defaultValue = 0, .isValid = isValidWithMax<3>}> optionVideoSystem;
 	Property<uint8_t, CFGKEY_DEFAULT_VIDEO_SYSTEM,
@@ -182,3 +181,4 @@ struct FCEUGI;
 struct FCEUFILE;
 
 FCEUGI *FCEUI_LoadGameWithFileVirtual(FCEUFILE *fp, const char *name, int OverwriteVidMode, bool silent);
+extern bool replaceP2StartWithMicrophone;

@@ -97,14 +97,14 @@ inline bool readOptionValue(Readable auto &io, T &output)
 template<PropertyOption Prop>
 inline bool readOptionValue(Readable auto &io, Prop &output)
 {
-	using T = Prop::Type;
+	using T = Prop::SerializedType;
 	auto bytesToRead = io.size();
 	if(bytesToRead != sizeof(T))
 	{
 		logMsg("skipping %zu byte option value, expected %zu bytes", bytesToRead, sizeof(T));
 		return false;
 	}
-	return output.set(io.template get<T>());
+	return output.unserialize(io.template get<T>());
 }
 
 template <Container T>
@@ -176,7 +176,7 @@ inline void writeOptionValueIfNotDefault(Writable auto &io, PropertyOption auto 
 {
 	if(p.isDefault())
 		return;
-	writeOptionValue(io, p.uid, p.value());
+	writeOptionValue(io, p.uid, p.serialize());
 }
 
 inline void writeStringOptionValueAllowEmpty(Writable auto &io, uint16_t key, std::string_view s)

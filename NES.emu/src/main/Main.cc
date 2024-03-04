@@ -64,17 +64,17 @@ NesApp::NesApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 
 bool hasFDSBIOSExtension(std::string_view name)
 {
-	return IG::endsWithAnyCaseless(name, ".rom", ".bin");
+	return endsWithAnyCaseless(name, ".rom", ".bin");
 }
 
 static bool hasFDSExtension(std::string_view name)
 {
-	return IG::endsWithAnyCaseless(name, ".fds");
+	return endsWithAnyCaseless(name, ".fds");
 }
 
 static bool hasROMExtension(std::string_view name)
 {
-	return IG::endsWithAnyCaseless(name, ".nes", ".unf", ".unif");
+	return endsWithAnyCaseless(name, ".nes", ".unf", ".unif");
 }
 
 static bool hasNESExtension(std::string_view name)
@@ -127,7 +127,7 @@ static char saveSlotCharNES(int slot)
 
 FS::FileString NesSystem::stateFilename(int slot, std::string_view name) const
 {
-	return IG::format<FS::FileString>("{}.fc{}", name, saveSlotCharNES(slot));
+	return format<FS::FileString>("{}.fc{}", name, saveSlotCharNES(slot));
 }
 
 void NesSystem::readState(EmuApp &app, std::span<uint8_t> buff)
@@ -182,11 +182,6 @@ void NesSystem::closeSystem()
 	fdsIsAccessing = false;
 }
 
-void FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b)
-{
-	bug_unreachable("called FCEUD_GetPalette()");
-}
-
 void NesSystem::setDefaultPalette(IO &io)
 {
 	auto colors = io.read(std::span<pal>{defaultPal}).items;
@@ -202,7 +197,7 @@ void NesSystem::setDefaultPalette(IO &io)
 	FCEU_setDefaultPalettePtr(defaultPal.data());
 }
 
-void NesSystem::setDefaultPalette(IG::ApplicationContext ctx, IG::CStringView palPath)
+void NesSystem::setDefaultPalette(ApplicationContext ctx, CStringView palPath)
 {
 	if(palPath.empty())
 	{
@@ -210,7 +205,7 @@ void NesSystem::setDefaultPalette(IG::ApplicationContext ctx, IG::CStringView pa
 		return;
 	}
 	log.info("setting default palette with path:{}", palPath);
-	if(palPath[0] != '/' && !IG::isUri(palPath))
+	if(palPath[0] != '/' && !isUri(palPath))
 	{
 		// load as asset
 		IO io = ctx.openAsset(FS::pathString("palette", palPath), IO::AccessHint::All);
@@ -286,13 +281,13 @@ void NesSystem::setupNESInputPorts()
 {
 	if(!GameInfo)
 		return;
-	for(auto i : iotaCount(2))
+	for(auto &&[i, dev] : enumerate(std::array{inputPort1.value(), inputPort2.value()}))
 	{
-		if(nesInputPortDev[i] == SI_UNSET) // user didn't specify device, go with auto settings
+		if(dev == SI_UNSET) // user didn't specify device, go with auto settings
 			connectNESInput(i, GameInfo->input[i] == SI_UNSET ? SI_GAMEPAD : GameInfo->input[i]);
 		else
-			connectNESInput(i, nesInputPortDev[i]);
-		log.info("attached {} to port {}{}", fceuInputToStr(joyports[i].type), i, nesInputPortDev[i] == SI_UNSET ? " (auto)" : "");
+			connectNESInput(i, dev);
+		log.info("attached {} to port {}{}", fceuInputToStr(joyports[i].type), i, dev == SI_UNSET ? " (auto)" : "");
 	}
 	if(GameInfo->inputfc == SIFC_HYPERSHOT)
 	{
@@ -330,12 +325,12 @@ const char *regionToStr(int region)
 
 static int regionFromName(std::string_view name)
 {
-	if(IG::containsAny(name, "(E)", "(e)", "(EU)", "(Europe)", "(PAL)",
+	if(containsAny(name, "(E)", "(e)", "(EU)", "(Europe)", "(PAL)",
 		"(F)", "(f)", "(G)", "(g)", "(I)", "(i)"))
 	{
 		return 1; // PAL
 	}
-	else if(IG::containsAny(name, "(RU)", "(ru)"))
+	else if(containsAny(name, "(RU)", "(ru)"))
 	{
 		return 2; // Dendy
 	}
@@ -392,7 +387,7 @@ void NesSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	saveStateSize = stateMemFile.get_vec()->size();
 }
 
-bool NesSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
+bool NesSystem::onVideoRenderFormatChange(EmuVideo &video, PixelFormat fmt)
 {
 	pixFmt = fmt;
 	updateVideoPixmap(video, optionHorizontalVideoCrop, optionVisibleVideoLines);
@@ -435,12 +430,12 @@ void NesSystem::renderVideo(EmuSystemTaskContext taskCtx, EmuVideo &video, uint8
 {
 	auto img = video.startFrame(taskCtx);
 	auto pix = img.pixmap();
-	IG::PixmapView ppuPix{{{256, 256}, IG::PIXEL_FMT_I8}, buf};
+	PixmapView ppuPix{{{256, 256}, PIXEL_FMT_I8}, buf};
 	int xStart = pix.w() == 256 ? 0 : 8;
 	int yStart = optionStartVideoLine;
 	auto ppuPixRegion = ppuPix.subView({xStart, yStart}, pix.size());
 	assumeExpr(pix.size() == ppuPixRegion.size());
-	if(pix.format() == IG::PIXEL_RGB565)
+	if(pix.format() == PIXEL_RGB565)
 	{
 		pix.writeTransformed([&](uint8 p){ return nativeCol.col16[p]; }, ppuPixRegion);
 	}
@@ -486,13 +481,13 @@ void FCEUD_SetPalette(uint8 index, uint8 r, uint8 g, uint8 b)
 {
 	using namespace EmuEx;
 	auto &sys = static_cast<NesSystem&>(gSystem());
-	if(sys.pixFmt == IG::PIXEL_RGB565)
+	if(sys.pixFmt == PIXEL_RGB565)
 	{
 		sys.nativeCol.col16[index] = sys.pixFmt.desc().build(r >> 3, g >> 2, b >> 3, 0);
 	}
 	else // RGBA8888
 	{
-		auto desc = sys.pixFmt == IG::PIXEL_BGRA8888 ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888_NATIVE;
+		auto desc = sys.pixFmt == PIXEL_BGRA8888 ? PIXEL_DESC_BGRA8888.nativeOrder() : PIXEL_DESC_RGBA8888_NATIVE;
 		sys.nativeCol.col32[index] = desc.build(r, g, b, (uint8)0);
 	}
 	//log.debug("set palette {} {}", index, nativeCol[index]);

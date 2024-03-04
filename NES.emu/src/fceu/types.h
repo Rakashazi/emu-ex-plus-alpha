@@ -97,9 +97,6 @@ typedef uint32_t uint32;
  #define GINLINE			/* Can't declare a function INLINE
 					   and global in MSVC.  Bummer.
 					*/
- #define PSS_STYLE 2			/* Does MSVC compile for anything
-					   other than Windows/DOS targets?
-					*/
 
  #if _MSC_VER >= 1300
   #pragma warning(disable:4244) //warning C4244: '=' : conversion from 'uint32' to 'uint8', possible loss of data
@@ -109,6 +106,17 @@ typedef uint32_t uint32;
  #if _MSC_VER < 1400
   #define vsnprintf _vsnprintf
  #endif
+#endif
+
+#if defined(__linux__) || defined(__APPLE__) || defined(__unix__)
+
+ #define PSS_STYLE 1
+
+#elif defined(MSVC)
+
+ #define PSS_STYLE 2			/* Does MSVC compile for anything
+					   other than Windows/DOS targets?
+					*/
 #endif
 
 #if PSS_STYLE==2
@@ -161,6 +169,7 @@ typedef uint8 (*readfunc)(uint32 A);
 #endif
 
 #define  FCEU_UNUSED(x)   (void)(x)
+#define  FCEU_CRASH()     int *_dumbPointer = nullptr; *_dumbPointer = 0xdeadbeef
 
 #if FCEU_CPP_HAS_STD(201603L) || FCEU_HAS_CPP_ATTRIBUTE(maybe_unused)
 #define  FCEU_MAYBE_UNUSED  [[maybe_unused]]
@@ -183,6 +192,7 @@ typedef uint8 (*readfunc)(uint32 A);
 	#define  __FCEU_PRINTF_ATTRIBUTE( fmt, va )
 #endif
 
+#if defined(__cplusplus)
 // Scoped pointer ensures that memory pointed to by this object gets cleaned up
 // and deallocated when this object goes out of scope. Helps prevent memory leaks
 // on temporary memory allocations in functions with early outs.
@@ -253,6 +263,7 @@ class fceuScopedPtr
 		enum fceuAllocType  _allocType;
 
 };
+#endif // __cplusplus
 
 #include "utils/endian.h"
 

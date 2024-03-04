@@ -39,6 +39,8 @@ extern int pal_emulation;
 namespace EmuEx
 {
 
+constexpr SystemLogger log{"NES.emu"};
+
 template <class T>
 using MainAppHelper = EmuAppHelper<T, MainApp>;
 
@@ -68,45 +70,52 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 
 	TextMenuItem inputPortsItem[4]
 	{
-		{"Auto",          attachParams(), setInputPortsDel(), {.id = packInputEnums(SI_UNSET, SI_UNSET)}},
-		{"Gamepads",      attachParams(), setInputPortsDel(), {.id = packInputEnums(SI_GAMEPAD, SI_GAMEPAD)}},
-		{"Gun (2P, NES)", attachParams(), setInputPortsDel(), {.id = packInputEnums(SI_GAMEPAD, SI_ZAPPER)}},
-		{"Gun (1P, VS)",  attachParams(), setInputPortsDel(), {.id = packInputEnums(SI_ZAPPER, SI_GAMEPAD)}},
+		{"Auto",          attachParams(), {.id = packInputEnums(SI_UNSET, SI_UNSET)}},
+		{"Gamepads",      attachParams(), {.id = packInputEnums(SI_GAMEPAD, SI_GAMEPAD)}},
+		{"Gun (2P, NES)", attachParams(), {.id = packInputEnums(SI_GAMEPAD, SI_ZAPPER)}},
+		{"Gun (1P, VS)",  attachParams(), {.id = packInputEnums(SI_ZAPPER, SI_GAMEPAD)}},
 	};
 
 	MultiChoiceMenuItem inputPorts
 	{
 		"Input Ports", attachParams(),
-		MenuId{packInputEnums(system().nesInputPortDev[0], system().nesInputPortDev[1])},
-		inputPortsItem
+		MenuId{packInputEnums(system().inputPort1.value(), system().inputPort2.value())},
+		inputPortsItem,
+		{
+			.defaultItemOnSelect = [this](TextMenuItem &item)
+			{
+				system().sessionOptionSet();
+				auto [port1, port2] = unpackInputEnums(item.id);
+				system().inputPort1 = port1;
+				system().inputPort2 = port2;
+				system().setupNESInputPorts();
+			}
+		}
 	};
 
-	TextMenuItem::SelectDelegate setInputPortsDel()
+	BoolMenuItem fcMic
 	{
-		return [this](TextMenuItem &item)
+		"P2 Start As Microphone", attachParams(),
+		replaceP2StartWithMicrophone,
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			system().sessionOptionSet();
-			auto [port1, port2] = unpackInputEnums(item.id);
-			system().optionInputPort1 = (int)port1;
-			system().optionInputPort2 = (int)port2;
-			system().nesInputPortDev[0] = port1;
-			system().nesInputPortDev[1] = port2;
-			system().setupNESInputPorts();
-		};
-	}
+			replaceP2StartWithMicrophone = item.flipBoolValue(*this);
+		}
+	};
 
 	TextMenuItem videoSystemItem[4]
 	{
-		{"Auto", attachParams(), [this](Input::Event e){ setVideoSystem(0, e); }},
-		{"NTSC", attachParams(), [this](Input::Event e){ setVideoSystem(1, e); }},
-		{"PAL", attachParams(), [this](Input::Event e){ setVideoSystem(2, e); }},
-		{"Dendy", attachParams(), [this](Input::Event e){ setVideoSystem(3, e); }},
+		{"Auto",  attachParams(), {.id = 0}},
+		{"NTSC",  attachParams(), {.id = 1}},
+		{"PAL",   attachParams(), {.id = 2}},
+		{"Dendy", attachParams(), {.id = 3}},
 	};
 
 	MultiChoiceMenuItem videoSystem
 	{
 		"System", attachParams(),
-		system().optionVideoSystem.value(),
+		MenuId{system().optionVideoSystem},
 		videoSystemItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
@@ -117,17 +126,16 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 					return true;
 				}
 				return false;
+			},
+			.defaultItemOnSelect = [this](TextMenuItem &item, Input::Event e)
+			{
+				system().sessionOptionSet();
+				system().optionVideoSystem = item.id;
+				setRegion(item.id, system().optionDefaultVideoSystem, system().autoDetectedRegion);
+				app().promptSystemReloadDueToSetOption(attachParams(), e);
 			}
 		},
 	};
-
-	void setVideoSystem(int val, Input::Event e)
-	{
-		system().sessionOptionSet();
-		system().optionVideoSystem = val;
-		setRegion(val, system().optionDefaultVideoSystem, system().autoDetectedRegion);
-		app().promptSystemReloadDueToSetOption(attachParams(), e);
-	}
 
 	BoolMenuItem compatibleFrameskip
 	{
@@ -152,6 +160,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 			}
 			else
 			{
+				system().sessionOptionSet();
 				system().optionCompatibleFrameskip = item.flipBoolValue(*this);
 			}
 		}
@@ -159,41 +168,42 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 
 	TextHeadingMenuItem videoHeading{"Video", attachParams()};
 
+	static uint16_t packVideoLines(uint8_t start, uint8_t total)
+	{
+		return (uint16_t)start | ((uint16_t)total << 8);
+	}
+
+	static std::pair<uint8_t, uint8_t> unpackVideoLines(uint16_t packed)
+	{
+		return {uint8_t(packed & 0xFF), uint8_t(packed >> 8)};
+	}
+
 	TextMenuItem visibleVideoLinesItem[4]
 	{
-		{"8+224", attachParams(), setVisibleVideoLinesDel(8, 224)},
-		{"8+232", attachParams(), setVisibleVideoLinesDel(8, 232)},
-		{"0+232", attachParams(), setVisibleVideoLinesDel(0, 232)},
-		{"0+240", attachParams(), setVisibleVideoLinesDel(0, 240)},
+		{"8+224", attachParams(), {.id = packVideoLines(8, 224)}},
+		{"8+232", attachParams(), {.id = packVideoLines(8, 232)}},
+		{"0+232", attachParams(), {.id = packVideoLines(0, 232)}},
+		{"0+240", attachParams(), {.id = packVideoLines(0, 240)}},
 	};
 
 	MultiChoiceMenuItem visibleVideoLines
 	{
 		"Visible Lines", attachParams(),
-		[this]()
+		MenuId{packVideoLines(system().optionStartVideoLine, system().optionVisibleVideoLines)},
+		visibleVideoLinesItem,
 		{
-			switch(system().optionVisibleVideoLines)
+			.defaultItemOnSelect = [this](TextMenuItem &item)
 			{
-				default: return 0;
-				case 232: return system().optionStartVideoLine == 8 ? 1 : 2;
-				case 240: return 3;
+				auto [startLine, lines] = unpackVideoLines(item.id);
+				system().sessionOptionSet();
+				system().optionStartVideoLine = startLine;
+				system().optionVisibleVideoLines = lines;
+				system().updateVideoPixmap(app().video, system().optionHorizontalVideoCrop, system().optionVisibleVideoLines);
+				system().renderFramebuffer(app().video);
+				app().viewController().placeEmuViews();
 			}
-		}(),
-		visibleVideoLinesItem
+		}
 	};
-
-	TextMenuItem::SelectDelegate setVisibleVideoLinesDel(uint8_t startLine, uint8_t lines)
-	{
-		return [this, startLine, lines]()
-		{
-			system().sessionOptionSet();
-			system().optionStartVideoLine = startLine;
-			system().optionVisibleVideoLines = lines;
-			system().updateVideoPixmap(app().video, system().optionHorizontalVideoCrop, system().optionVisibleVideoLines);
-			system().renderFramebuffer(app().video);
-			app().viewController().placeEmuViews();
-		};
-	}
 
 	BoolMenuItem horizontalVideoCrop
 	{
@@ -256,10 +266,11 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		}
 	};
 
-	std::array<MenuItem*, 11> menuItem
+	std::array<MenuItem*, 12> menuItem
 	{
 		&inputPorts,
 		&fourScore,
+		&fcMic,
 		&compatibleFrameskip,
 		&videoHeading,
 		&videoSystem,
@@ -278,8 +289,7 @@ public:
 			"Console Options",
 			attach,
 			menuItem
-		}
-	{}
+		} {}
 };
 
 class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<CustomVideoOptionView>
@@ -571,7 +581,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 			pushAndShow(makeViewWithName<UserPathSelectView>("Cheats", system().userPath(system().cheatsDir),
 				[this](CStringView path)
 				{
-					logMsg("set cheats path:%s", path.data());
+					log.info("set cheats path:{}", path);
 					system().cheatsDir = path;
 					cheatsPath.compile(cheatsMenuName(appContext(), path));
 				}), e);
@@ -586,7 +596,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 			pushAndShow(makeViewWithName<UserPathSelectView>("Patches", system().userPath(system().patchesDir),
 				[this](CStringView path)
 				{
-					logMsg("set patches path:%s", path.data());
+					log.info("set patches path:{}", path);
 					system().patchesDir = path;
 					patchesPath.compile(patchesMenuName(appContext(), path));
 				}), e);
@@ -601,7 +611,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 			pushAndShow(makeViewWithName<UserPathSelectView>("Palettes", system().userPath(system().palettesDir),
 				[this](CStringView path)
 				{
-					logMsg("set palettes path:%s", path.data());
+					log.info("set palettes path:{}", path);
 					system().palettesDir = path;
 					palettesPath.compile(palettesMenuName(appContext(), path));
 				}), e);
@@ -618,7 +628,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 				[this](CStringView path, FS::file_type type)
 				{
 					system().fdsBiosPath = path;
-					logMsg("set fds bios:%s", path.data());
+					log.info("set fds bios:{}", path);
 					fdsBios.compile(biosMenuEntryStr(path));
 					return true;
 				}, hasFDSBIOSExtension), e);
@@ -773,7 +783,7 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 	BoolMenuItem skipFdcAccess
 	{
 		"Fast-forward Disk IO", attachParams(),
-		(bool)system().fastForwardDuringFdsAccess,
+		system().fastForwardDuringFdsAccess,
 		[this](BoolMenuItem &item)
 		{
 			system().fastForwardDuringFdsAccess = item.flipBoolValue(*this);

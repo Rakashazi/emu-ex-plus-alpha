@@ -17,23 +17,28 @@
 
 #include <imagine/util/used.hh>
 #include <imagine/util/utility.h>
+#include <type_traits>
+#include <concepts>
 
 namespace IG
 {
 
-template<class T, std::predicate<const T&> Validator = bool(*)(const T&)>
+template<class T, class SerializedT = T, std::predicate<const T&> Validator = bool(*)(const T&)>
 struct PropertyDesc
 {
+	using SerializedType = SerializedT;
 	T defaultValue{};
 	bool mutableDefault{};
 	Validator isValid = [](const T&){return true;};
 };
 
-template<class T, auto uid_, PropertyDesc<T> desc = PropertyDesc<T>{}>
+template<class T, auto uid_, PropertyDesc desc = PropertyDesc<T>{}>
 class Property
 {
 public:
 	using Type = T;
+	using SerializedType = decltype(desc)::SerializedType;
+	static constexpr bool sameSerializedType = std::is_same_v<T, SerializedType>;
 	static constexpr auto uid{uid_};
 
 	static_assert(desc.isValid(desc.defaultValue));
@@ -75,6 +80,12 @@ public:
 		setDefaultValue(IG_forward(v));
 		return reset();
 	}
+
+	// If serialized types match, no need to copy/convert values
+	constexpr const T& serialize() const requires (sameSerializedType) { return value(); }
+	constexpr bool unserialize(auto &&v) requires (sameSerializedType) { return set(IG_forward(v)); }
+	constexpr auto serialize() const requires (!sameSerializedType) { return SerializedType(value()); }
+	constexpr bool unserialize(auto &&v) requires (!sameSerializedType) { return set(T(IG_forward(v))); }
 
 private:
 	T value_{desc.defaultValue};

@@ -18,11 +18,6 @@
 #include <fceu/emufile.h>
 #include <imagine/io/MapIO.hh>
 
-namespace IG
-{
-class IO;
-}
-
 namespace EmuEx
 {
 

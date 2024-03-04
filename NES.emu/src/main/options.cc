@@ -43,8 +43,6 @@ void NesSystem::onOptionsLoaded()
 
 void NesSystem::onSessionOptionsLoaded(EmuApp &app)
 {
-	nesInputPortDev[0] = (ESI)(int)optionInputPort1;
-	nesInputPortDev[1] = (ESI)(int)optionInputPort2;
 	updateVideoPixmap(app.video, optionHorizontalVideoCrop, optionVisibleVideoLines);
 }
 
@@ -53,10 +51,9 @@ bool NesSystem::resetSessionOptions(EmuApp &app)
 	optionFourScore.reset();
 	setupNESFourScore();
 	optionVideoSystem.reset();
-	optionInputPort1.reset();
-	optionInputPort2.reset();
-	nesInputPortDev[0] = (ESI)(int)optionInputPort1;
-	nesInputPortDev[1] = (ESI)(int)optionInputPort2;
+	inputPort1.reset();
+	inputPort2.reset();
+	replaceP2StartWithMicrophone = false;
 	setupNESInputPorts();
 	optionCompatibleFrameskip.reset();
 	optionStartVideoLine = optionDefaultStartVideoLine;
@@ -100,8 +97,8 @@ bool NesSystem::readConfig(ConfigType type, MapIO &io, unsigned key)
 		{
 			case CFGKEY_FOUR_SCORE: return readOptionValue(io, optionFourScore);
 			case CFGKEY_VIDEO_SYSTEM: return readOptionValue(io, optionVideoSystem);
-			case CFGKEY_INPUT_PORT_1: return readOptionValue(io, optionInputPort1);
-			case CFGKEY_INPUT_PORT_2: return readOptionValue(io, optionInputPort2);
+			case CFGKEY_INPUT_PORT_1: return readOptionValue(io, inputPort1);
+			case CFGKEY_INPUT_PORT_2: return readOptionValue(io, inputPort2);
 			case CFGKEY_COMPATIBLE_FRAMESKIP: return readOptionValue(io, optionCompatibleFrameskip);
 			case CFGKEY_START_VIDEO_LINE: return readOptionValue(io, optionStartVideoLine);
 			case CFGKEY_VISIBLE_VIDEO_LINES: return readOptionValue(io, optionVisibleVideoLines);
@@ -111,6 +108,7 @@ bool NesSystem::readConfig(ConfigType type, MapIO &io, unsigned key)
 				[&](auto v){if(v >= 0 && v <= maxExtraLinesPerFrame) postrenderscanlines = v;});
 			case CFGKEY_OVERCLOCK_VBLANK_MULTIPLIER: return readOptionValue<int8_t>(io,
 				[&](auto v){if(v >= 0 && v <= maxVBlankMultiplier) vblankscanlines = v;});
+			case CFGKEY_P2_START_AS_FC_MIC: return readOptionValue(io, replaceP2StartWithMicrophone);
 		}
 	}
 	return false;
@@ -132,8 +130,7 @@ void NesSystem::writeConfig(ConfigType type, FileIO &io)
 		writeOptionValueIfNotDefault(io, optionDefaultStartVideoLine);
 		writeOptionValueIfNotDefault(io, optionDefaultVisibleVideoLines);
 		writeOptionValueIfNotDefault(io, optionCorrectLineAspect);
-		if(!fastForwardDuringFdsAccess)
-			writeOptionValue(io, CFGKEY_FF_DURING_FDS_ACCESS, fastForwardDuringFdsAccess);
+		writeOptionValueIfNotDefault(io, fastForwardDuringFdsAccess);
 		writeStringOptionValue(io, CFGKEY_CHEATS_PATH, cheatsDir);
 		writeStringOptionValue(io, CFGKEY_PATCHES_PATH, patchesDir);
 		writeStringOptionValue(io, CFGKEY_PALETTE_PATH, palettesDir);
@@ -142,8 +139,8 @@ void NesSystem::writeConfig(ConfigType type, FileIO &io)
 	{
 		writeOptionValueIfNotDefault(io, optionFourScore);
 		writeOptionValueIfNotDefault(io, optionVideoSystem);
-		writeOptionValueIfNotDefault(io, optionInputPort1);
-		writeOptionValueIfNotDefault(io, optionInputPort2);
+		writeOptionValueIfNotDefault(io, inputPort1);
+		writeOptionValueIfNotDefault(io, inputPort2);
 		writeOptionValueIfNotDefault(io, optionCompatibleFrameskip);
 		writeOptionValueIfNotDefault(io, optionStartVideoLine);
 		writeOptionValueIfNotDefault(io, optionVisibleVideoLines);
@@ -151,6 +148,7 @@ void NesSystem::writeConfig(ConfigType type, FileIO &io)
 		writeOptionValueIfNotDefault(io, CFGKEY_OVERCLOCKING, bool(overclock_enabled), 0);
 		writeOptionValueIfNotDefault(io, CFGKEY_OVERCLOCK_EXTRA_LINES, int16_t(postrenderscanlines), 0);
 		writeOptionValueIfNotDefault(io, CFGKEY_OVERCLOCK_VBLANK_MULTIPLIER, int8_t(vblankscanlines), 0);
+		writeOptionValueIfNotDefault(io, CFGKEY_P2_START_AS_FC_MIC, replaceP2StartWithMicrophone, false);
 	}
 }
 

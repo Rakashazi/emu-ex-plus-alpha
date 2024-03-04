@@ -38,6 +38,11 @@ int StackAddrBackup = -1;
 int KillFCEUXonFrame = 0;
 int eoptions = 0;
 
+namespace EmuEx
+{
+constexpr SystemLogger log{"NES.emu"};
+}
+
 void FCEUI_Emulate(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::NesSystem &sys, EmuEx::EmuVideo *video, int skip, EmuEx::EmuAudio *audio)
 {
 	#ifdef _S9XLUA_H
@@ -71,7 +76,7 @@ void FCEUI_Emulate(EmuEx::NesSystem &sys, EmuEx::EmuVideo *video, int skip, EmuE
 
 FILE *FCEUD_UTF8fopen(const char *fn, const char *mode)
 {
-	logMsg("opening file:%s mode:%s", fn, mode);
+	EmuEx::log.info("opening file:{} mode:{}", fn, mode);
 	return IG::FileUtils::fopenUri(EmuEx::gAppContext(), fn, mode);
 }
 
@@ -90,7 +95,7 @@ void FCEUD_PrintError(const char *errormsg)
 {
 	if(!Config::DEBUG_BUILD)
 		return;
-	logErr("%s", errormsg);
+	EmuEx::log.error("{}", errormsg);
 }
 
 void FCEUD_Message(const char *s)
@@ -208,7 +213,7 @@ void FCEUD_FlushTrace() {}
 
 void FCEUD_SetInput(bool fourscore, bool microphone, ESI port0, ESI port1, ESIFC fcexp)
 {
-	logMsg("called set input");
+	EmuEx::log.info("called set input");
 }
 
 int FCEUD_FDSReadBIOS(void *buff, uint32 size)
@@ -222,7 +227,7 @@ int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 		sys.loaderErrorString = "No FDS BIOS set";
 		return -1;
 	}
-	logMsg("loading FDS BIOS:%s", fdsBiosPath.data());
+	EmuEx::log.info("loading FDS BIOS:{}", fdsBiosPath);
 	if(EmuApp::hasArchiveExtension(appCtx.fileUriDisplayName(fdsBiosPath)))
 	{
 		for(auto &entry : FS::ArchiveIterator{appCtx.openFileUri(fdsBiosPath)})
@@ -233,7 +238,7 @@ int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 			}
 			if(hasFDSBIOSExtension(entry.name()))
 			{
-				logMsg("archive file entry:%s", entry.name().data());
+				EmuEx::log.info("archive file entry:%s", entry.name().data());
 				if(entry.size() != size)
 				{
 					sys.loaderErrorString = "Incompatible FDS BIOS";
@@ -258,6 +263,11 @@ int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 }
 
 void RefreshThrottleFPS() {}
+
+void FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b)
+{
+	bug_unreachable("called FCEUD_GetPalette()");
+}
 
 // for boards/transformer.cpp
 unsigned int *GetKeyboard(void)
@@ -362,7 +372,7 @@ std::string FCEU_MakeFName(int type, int id1, const char *cd1)
 		case FCEUMKF_MOVIEGLOB:
 		case FCEUMKF_MOVIEGLOB2:
 		case FCEUMKF_STATEGLOB:
-			logWarn("unused filename type:%d", type);
+			EmuEx::log.warn("unused filename type:%d", type);
 	}
 	return {};
 }
