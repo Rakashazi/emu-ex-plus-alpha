@@ -10,6 +10,7 @@
 #include <imagine/util/memory/Buffer.hh>
 #include <array>
 #include <cstring>
+#include <span>
 
 namespace IG
 {
@@ -134,7 +135,6 @@ extern bool cpuSramEnabled;
 extern bool cpuFlashEnabled;
 extern bool cpuEEPROMEnabled;
 extern bool cpuEEPROMSensorEnabled;
-extern bool saveMemoryIsMappedFile;
 
 #ifdef BKPT_SUPPORT
 extern uint8_t freezeWorkRAM[0x40000];
@@ -174,7 +174,7 @@ extern int CPULoadRomWithIO(GBASys &gba, IG::IO &);
 extern void doMirroring(GBASys &gba, bool);
 extern void CPUUpdateRegister(ARM7TDMI &cpu, uint32_t, uint16_t);
 extern void applyTimer(ARM7TDMI &cpu);
-extern void CPUInit(GBASys &gba, const char *,bool);
+extern void CPUInit(GBASys &gba, std::span<uint8_t> biosRom);
 void SetSaveType(int st);
 extern void CPUReset(GBASys &gba);
 extern void CPULoop(int);

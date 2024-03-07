@@ -23,4 +23,13 @@ namespace IG
 template <class WiseEnum>
 constexpr auto lastEnum = wise_enum::range<WiseEnum>.back().value;
 
+template<class T>
+constexpr bool isValidProperty(const T&);
+
+template<class T>
+constexpr bool enumIsValidUpToLast(const T &v)
+{
+	return v <= lastEnum<T>;
+}
+
 }

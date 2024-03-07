@@ -287,6 +287,10 @@ void SaturnSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDele
 		if(isM3U(contentFileName()))
 		{
 			filenames = m3uFilenames(io);
+			for(auto &fn : filenames)
+			{
+				fn = contentDirectory(fn);
+			}
 		}
 		else
 		{

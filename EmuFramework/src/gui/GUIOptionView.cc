@@ -100,50 +100,50 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	statusBarItem
 	{
-		{"Off",    attach, MenuItem::Config{.id = Tristate::OFF}},
-		{"In Emu", attach, MenuItem::Config{.id = Tristate::IN_EMU}},
-		{"On",     attach, MenuItem::Config{.id = Tristate::ON}}
+		{"Off",    attach, MenuItem::Config{.id = InEmuTristate::Off}},
+		{"In Emu", attach, MenuItem::Config{.id = InEmuTristate::InEmu}},
+		{"On",     attach, MenuItem::Config{.id = InEmuTristate::On}}
 	},
 	statusBar
 	{
 		"Hide Status Bar", attach,
-		MenuId(Tristate(app().hidesStatusBar.value())),
+		MenuId(InEmuTristate(app().hidesStatusBar.value())),
 		statusBarItem,
 		MultiChoiceMenuItem::Config
 		{
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setHideStatusBarMode(Tristate(item.id.val)); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setHideStatusBarMode(InEmuTristate(item.id.val)); }
 		},
 	},
 	lowProfileOSNavItem
 	{
-		{"Off",    attach, MenuItem::Config{.id = Tristate::OFF}},
-		{"In Emu", attach, MenuItem::Config{.id = Tristate::IN_EMU}},
-		{"On",     attach, MenuItem::Config{.id = Tristate::ON}}
+		{"Off",    attach, MenuItem::Config{.id = InEmuTristate::Off}},
+		{"In Emu", attach, MenuItem::Config{.id = InEmuTristate::InEmu}},
+		{"On",     attach, MenuItem::Config{.id = InEmuTristate::On}}
 	},
 	lowProfileOSNav
 	{
 		"Dim OS UI", attach,
-		MenuId(Tristate(app().lowProfileOSNav.value())),
+		MenuId(InEmuTristate(app().lowProfileOSNav.value())),
 		lowProfileOSNavItem,
 		MultiChoiceMenuItem::Config
 		{
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setLowProfileOSNavMode(Tristate(item.id.val)); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setLowProfileOSNavMode(InEmuTristate(item.id.val)); }
 		},
 	},
 	hideOSNavItem
 	{
-		{"Off",    attach, MenuItem::Config{.id = Tristate::OFF}},
-		{"In Emu", attach, MenuItem::Config{.id = Tristate::IN_EMU}},
-		{"On",     attach, MenuItem::Config{.id = Tristate::ON}}
+		{"Off",    attach, MenuItem::Config{.id = InEmuTristate::Off}},
+		{"In Emu", attach, MenuItem::Config{.id = InEmuTristate::InEmu}},
+		{"On",     attach, MenuItem::Config{.id = InEmuTristate::On}}
 	},
 	hideOSNav
 	{
 		"Hide OS Navigation", attach,
-		MenuId(Tristate(app().hidesOSNav.value())),
+		MenuId(InEmuTristate(app().hidesOSNav.value())),
 		hideOSNavItem,
 		MultiChoiceMenuItem::Config
 		{
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setHideOSNavMode(Tristate(item.id.val)); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setHideOSNavMode(InEmuTristate(item.id.val)); }
 		},
 	},
 	idleDisplayPowerSave

@@ -24,6 +24,7 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/string.h>
 #include "input.h"
 #include "io_ctrl.h"
 #include "vdp_ctrl.h"

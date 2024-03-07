@@ -22,7 +22,7 @@
 #include <stdint.h>
 #else
 #include <zlib.h>
-#include <stdint.h>
+#include "cstdint.h"
 #endif
 
 #endif // __VBA_TYPES_H__

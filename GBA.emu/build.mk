@@ -31,7 +31,6 @@ gba/gbafilter.cpp \
 gba/RTC.cpp \
 gba/Sound.cpp \
 gba/Sram.cpp \
-common/memgzio.c \
 common/Patch.cpp \
 Util.cpp
 #gba/remote.cpp gba/GBASockClient.cpp gba/GBALink.cpp gba/agbprint.cpp

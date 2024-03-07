@@ -198,7 +198,14 @@ void GbaSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	}
 	setGameSpecificSettings(gGba, size);
 	applyGamePatches(gGba.mem.rom, size);
-	CPUInit(gGba, 0, 0);
+	ByteBuffer biosRom;
+	if(shouldUseBios())
+	{
+		biosRom = appContext().openFileUri(biosPath, IOAccessHint::All).buffer(IOBufferMode::Release);
+		if(biosRom.size() != 0x4000)
+			throw std::runtime_error("BIOS size should be 16KB");
+	}
+	CPUInit(gGba, biosRom);
 	CPUReset(gGba);
 	saveStateSize = CPUWriteState(gGba, DynArray<uint8_t>{maxStateSize}.data());
 	readCheatFile(*this);

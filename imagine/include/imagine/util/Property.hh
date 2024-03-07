@@ -23,13 +23,16 @@
 namespace IG
 {
 
+template<class T>
+constexpr bool isValidProperty(const T&) { return true; }
+
 template<class T, class SerializedT = T, std::predicate<const T&> Validator = bool(*)(const T&)>
 struct PropertyDesc
 {
 	using SerializedType = SerializedT;
 	T defaultValue{};
 	bool mutableDefault{};
-	Validator isValid = [](const T&){return true;};
+	Validator isValid = [](const T &v){ return isValidProperty(v); };
 };
 
 template<class T, auto uid_, PropertyDesc desc = PropertyDesc<T>{}>
@@ -44,7 +47,14 @@ public:
 	static_assert(desc.isValid(desc.defaultValue));
 
 	constexpr Property() = default;
-	constexpr Property(auto &&v) { set(IG_forward(v)); }
+	constexpr Property(const Property&) = default;
+	constexpr Property& operator=(const Property&) = default;
+
+	constexpr Property& operator=(auto &&v)
+	{
+		set(IG_forward(v));
+		return *this;
+	}
 
 	constexpr void setUnchecked(auto &&v)
 	{

@@ -47,7 +47,7 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 	auto androidSdk = ctx.androidSDK();
 	if(!ctx.hasHardwareNavButtons() && androidSdk >= 19)
 	{
-		hidesOSNav.resetDefault(Tristate::IN_EMU);
+		hidesOSNav.resetDefault(InEmuTristate::InEmu);
 	}
 	if(androidSdk >= 11)
 	{
@@ -172,19 +172,19 @@ void EmuApp::setIdleDisplayPowerSave(bool on)
 	appContext().setIdleDisplayPowerSave(on);
 }
 
-void EmuApp::setLowProfileOSNavMode(Tristate mode)
+void EmuApp::setLowProfileOSNavMode(InEmuTristate mode)
 {
 	lowProfileOSNav = mode;
 	applyOSNavStyle(appContext(), false);
 }
 
-void EmuApp::setHideOSNavMode(Tristate mode)
+void EmuApp::setHideOSNavMode(InEmuTristate mode)
 {
 	hidesOSNav = mode;
 	applyOSNavStyle(appContext(), false);
 }
 
-void EmuApp::setHideStatusBarMode(Tristate mode)
+void EmuApp::setHideStatusBarMode(InEmuTristate mode)
 {
 	hidesStatusBar = mode;
 	applyOSNavStyle(appContext(), false);

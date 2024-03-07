@@ -31,7 +31,6 @@
 #include <imagine/logger/logger.h>
 #include <imagine/io/IO.hh>
 #include <imagine/io/FileIO.hh>
-#include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/ScopeGuard.hh>
 #include <emuframework/EmuSystemTaskContext.hh>
@@ -86,7 +85,6 @@ bool cpuSramEnabled = true;
 bool cpuFlashEnabled = true;
 bool cpuEEPROMEnabled = true;
 bool cpuEEPROMSensorEnabled = false;
-bool saveMemoryIsMappedFile = false;
 
 #ifdef PROFILING
 int profilingTicks = 0;
@@ -757,8 +755,13 @@ bool CPUReadState(GBASys &gba, const uint8_t* data)
     if (memcmp(&rom[0xa0], romname, 16) != 0)
         return false;
 
-    // Don't care about use bios ...
-    utilReadIntMem(data);
+    int ub = utilReadIntMem(data);
+    if (ub != coreOptions.useBios) {
+      if (coreOptions.useBios)
+      	throw std::runtime_error("State needs BIOS disabled");
+      else
+      	throw std::runtime_error("State needs BIOS enabled");
+    }
 
     utilReadMem(&cpu.reg[0], data, sizeof(cpu.reg));
 
@@ -866,21 +869,23 @@ static bool CPUWriteState(GBASys &gba, gzFile gzFile)
   return true;
 }
 
-bool CPUWriteState(IG::ApplicationContext ctx, GBASys &gba, const char* file)
+#if 0
+bool CPUWriteState(const char* file)
 {
-  gzFile gzFile = utilGzOpen(ctx.openFileUriFd(file, IG::OpenFlags::testNewFile()).release(), "wb");
+  gzFile gzFile = utilGzOpen(file, "wb");
 
   if (gzFile == NULL) {
     systemMessage(MSG_ERROR_CREATING_FILE, N_("Error creating file %s"), file);
     return false;
   }
 
-  bool res = CPUWriteState(gba, gzFile);
+  bool res = CPUWriteState(gzFile);
 
   utilGzClose(gzFile);
 
   return res;
 }
+#endif
 
 bool CPUWriteMemState(GBASys &gba, char *memory, int available, long& reserved)
 {
@@ -1067,19 +1072,21 @@ bool CPUReadMemState(GBASys &gba, char *memory, int available)
   return res;
 }
 
-bool CPUReadState(IG::ApplicationContext ctx, GBASys &gba, const char * file)
+#if 0
+bool CPUReadState(const char* file)
 {
-  gzFile gzFile = utilGzOpen(ctx.openFileUriFd(file).release(), "rb");
+  gzFile gzFile = utilGzOpen(file, "rb");
 
   if (gzFile == NULL)
     return false;
 
-  bool res = CPUReadState(gba, gzFile);
+  bool res = CPUReadState(gzFile);
 
   utilGzClose(gzFile);
 
   return res;
 }
+#endif
 
 bool CPUExportEepromFile(const char* fileName)
 {
@@ -1106,12 +1113,11 @@ bool CPUExportEepromFile(const char* fileName)
   return true;
 }
 
-bool CPUWriteBatteryFile(IG::ApplicationContext ctx, GBASys &gba, const char* fileName)
+#if 0
+bool CPUWriteBatteryFile(const char* fileName)
 {
-  if(saveMemoryIsMappedFile)
-    return false;
   if ((coreOptions.saveType) && (coreOptions.saveType != GBA_SAVE_NONE)) {
-    FILE* file = IG::FileUtils::fopenUri(ctx, fileName, "wb");
+    FILE* file = utilOpenFile(fileName, "wb");
 
     if (!file) {
       systemMessage(MSG_ERROR_CREATING_FILE, N_("Error creating file %s"),
@@ -1122,18 +1128,18 @@ bool CPUWriteBatteryFile(IG::ApplicationContext ctx, GBASys &gba, const char* fi
     // only save if Flash/Sram in use or EEprom in use
     if (!eepromInUse) {
     	if (coreOptions.saveType == GBA_SAVE_FLASH) { // save flash type
-        if (fwrite(flashSaveMemory.data(), 1, flashSize, file) != (size_t)flashSize) {
+        if (fwrite(flashSaveMemory 1, flashSize, file) != (size_t)flashSize) {
           fclose(file);
           return false;
         }
     	} else if (coreOptions.saveType == GBA_SAVE_SRAM) { // save sram type
-        if (fwrite(flashSaveMemory.data(), 1, 0x8000, file) != 0x8000) {
+        if (fwrite(flashSaveMemory, 1, 0x8000, file) != 0x8000) {
           fclose(file);
           return false;
         }
       }
     } else { // save eeprom type
-      if (fwrite(eepromData.data(), 1, eepromSize, file) != (size_t)eepromSize) {
+      if (fwrite(eepromData, 1, eepromSize, file) != (size_t)eepromSize) {
         fclose(file);
         return false;
       }
@@ -1142,6 +1148,7 @@ bool CPUWriteBatteryFile(IG::ApplicationContext ctx, GBASys &gba, const char* fi
   }
   return true;
 }
+#endif
 
 bool CPUReadGSASnapshot(GBASys &gba, const char* fileName)
 {
@@ -1368,17 +1375,50 @@ bool CPUImportEepromFile(GBASys &gba, const char* fileName)
   return true;
 }
 
-bool CPUReadBatteryFile(IG::ApplicationContext ctx, GBASys &gba, const char* fileName)
+#if 0
+bool CPUReadBatteryFile(const char* fileName)
 {
-  auto buff = IG::FileUtils::rwBufferFromUri(ctx, fileName, {.test = true}, saveMemorySize(), 0xFF);
-  if(!buff)
-    return false;
-  saveMemoryIsMappedFile = buff.isMappedFile();
-  setSaveMemory(std::move(buff));
+  FILE* file = utilOpenFile(fileName, "rb");
+
+  if (!file)
+      return false;
+
+  // check file size to know what we should read
+  fseek(file, 0, SEEK_END);
+
+  long size = ftell(file);
+  fseek(file, 0, SEEK_SET);
+  systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
+
+  if (size == 512 || size == 0x2000) {
+      if (fread(eepromData, 1, size, file) != (size_t)size) {
+          fclose(file);
+          return false;
+      }
+  } else {
+      if (size == 0x20000) {
+          if (fread(flashSaveMemory, 1, 0x20000, file) != 0x20000) {
+              fclose(file);
+              return false;
+          }
+          flashSetSize(0x20000);
+      } else if (size == 0x10000) {
+          if (fread(flashSaveMemory, 1, 0x10000, file) != 0x10000) {
+              fclose(file);
+              return false;
+          }
+          flashSetSize(0x10000);
+      } else if (size == 0x8000) {
+          if (fread(flashSaveMemory, 1, 0x8000, file) != 0x8000) {
+              fclose(file);
+              return false;
+          }
+      }
+  }
+  fclose(file);
   return true;
 }
 
-#if 0
 bool CPUWritePNGFile(const char* fileName)
 {
   return utilWritePNGFile(fileName, 240, 160, pix);
@@ -1528,7 +1568,6 @@ void CPUCleanUp()
 
   flashSaveMemory = {};
   eepromData = {};
-  saveMemoryIsMappedFile = false;
 
   emulating = 0;
 }
@@ -3293,7 +3332,7 @@ void applyTimer(GBASys &gba, ARM7TDMI &cpu)
   timerOnOffDelay = 0;
 }
 
-void CPUInit(GBASys &gba, const char *biosFileName, bool useBiosFile)
+void CPUInit(GBASys &gba, std::span<uint8_t> biosRom)
 {
 #ifdef WORDS_BIGENDIAN
   if (!cpuBiosSwapped) {
@@ -3306,20 +3345,10 @@ void CPUInit(GBASys &gba, const char *biosFileName, bool useBiosFile)
   eepromInUse = 0;
   coreOptions.useBios = false;
 
-#if 0
-  if (useBiosFile && strlen(biosFileName) > 0) {
-    int size = 0x4000;
-    if (utilLoad(biosFileName,
-                CPUIsGBABios,
-                bios,
-                size)) {
-      if (size == 0x4000)
-        coreOptions.useBios = true;
-      else
-        systemMessage(MSG_INVALID_BIOS_FILE_SIZE, N_("Invalid BIOS file size"));
-    }
+  if (biosRom.size() == 0x4000) {
+  	std::ranges::copy(biosRom, bios);
+    coreOptions.useBios = true;
   }
-#endif
 
   if (!coreOptions.useBios) {
     memcpy(bios, myROM, sizeof(myROM));

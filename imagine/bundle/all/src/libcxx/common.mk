@@ -1,4 +1,4 @@
-libcxxVersion := 17.0.6
+libcxxVersion := 18.1.0
 libcxxSrcDir := $(tempDir)/llvm-project-$(libcxxVersion).src/libcxx
 libcxxabiSrcDir := $(tempDir)/llvm-project-$(libcxxVersion).src/libcxxabi
 # Archive containing the libcxx & libcxxabi directories along with a minimal set of cmake support files
@@ -70,5 +70,5 @@ $(makeFile) : $(libcxxSrcDir)/CMakeLists.txt
 	-DLIBCXX_CXX_ABI=libcxxabi -DLLVM_INCLUDE_TESTS=OFF -DLIBCXX_ENABLE_EXPERIMENTAL_LIBRARY=OFF \
 	-DLIBCXX_ENABLE_DEBUG_MODE_SUPPORT=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="$(CPPFLAGS) $(CXXFLAGS)" \
 	-DLIBCXX_ABI_UNSTABLE=ON -DLIBCXX_ENABLE_INCOMPLETE_FEATURES=ON -DCMAKE_CXX_COMPILER_TARGET=$(clangTarget) \
-	-DLIBCXX_HERMETIC_STATIC_LIBRARY=ON -DLIBCXX_INCLUDE_BENCHMARKS=OFF \
+	-DLIBCXX_HERMETIC_STATIC_LIBRARY=ON -DLIBCXX_INCLUDE_BENCHMARKS=OFF -DLIBCXX_ENABLE_TIME_ZONE_DATABASE=OFF \
 	$(buildArg) -B $(@D)

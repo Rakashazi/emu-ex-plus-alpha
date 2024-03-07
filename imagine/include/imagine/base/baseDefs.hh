@@ -181,6 +181,9 @@ WISE_ENUM_CLASS((Rotation, uint8_t),
 	LEFT,
 	ANY);
 
+template<>
+constexpr bool isValidProperty(const Rotation &v) { return enumIsValidUpToLast(v); }
+
 constexpr bool isSideways(Rotation r) { return r == Rotation::LEFT || r == Rotation::RIGHT; }
 
 static constexpr int APP_ON_EXIT_PRIORITY = 0;

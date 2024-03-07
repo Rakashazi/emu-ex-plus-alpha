@@ -19,9 +19,12 @@
 #include <emuframework/FilePathOptionView.hh>
 #include <emuframework/UserPathSelectView.hh>
 #include <emuframework/SystemActionsView.hh>
+#include <emuframework/DataPathSelectView.hh>
 #include "EmuCheatViews.hh"
 #include "MainApp.hh"
 #include <imagine/gui/AlertView.hh>
+#include <imagine/util/format.hh>
+#include <imagine/util/string.h>
 #include <vbam/gba/GBA.h>
 #include <vbam/gba/RTC.h>
 #include <vbam/gba/Sound.h>
@@ -38,11 +41,33 @@ using MainAppHelper = EmuAppHelper<T, MainApp>;
 
 class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionView>
 {
+	TextMenuItem biosItems[3]
+	{
+		{"Auto", attachParams(), {.id = AutoTristate::Auto}},
+		{"Off",  attachParams(), {.id = AutoTristate::Off}},
+		{"On",   attachParams(), {.id = AutoTristate::On}},
+	};
+
+	MultiChoiceMenuItem bios
+	{
+		"Use BIOS", attachParams(),
+		MenuId{system().useBios.value()},
+		biosItems,
+		{
+			.defaultItemOnSelect = [this](TextMenuItem &item, const Input::Event &e)
+			{
+				system().sessionOptionSet();
+				system().useBios = AutoTristate(item.id.val);
+				app().promptSystemReloadDueToSetOption(attachParams(), e);
+			}
+		}
+	};
+
 	TextMenuItem rtcItem[3]
 	{
-		{"Auto", attachParams(), [this](){ setRTCEmulation(RtcMode::AUTO); }},
-		{"Off",  attachParams(), [this](){ setRTCEmulation(RtcMode::OFF); }},
-		{"On",   attachParams(), [this](){ setRTCEmulation(RtcMode::ON); }},
+		{"Auto", attachParams(), {.id = RtcMode::AUTO}},
+		{"Off",  attachParams(), {.id = RtcMode::OFF}},
+		{"On",   attachParams(), {.id = RtcMode::ON}},
 	};
 
 	MultiChoiceMenuItem rtc
@@ -59,26 +84,24 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 					return true;
 				}
 				return false;
+			},
+			.defaultItemOnSelect = [this](TextMenuItem &item)
+			{
+				system().sessionOptionSet();
+				system().setRTC(system().optionRtcEmulation = RtcMode(item.id.val));
 			}
 		}
 	};
 
-	void setRTCEmulation(RtcMode val)
-	{
-		system().sessionOptionSet();
-		system().optionRtcEmulation = val;
-		system().setRTC(val);
-	}
-
 	TextMenuItem saveTypeItem[7]
 	{
-		{"Auto",            attachParams(), setSaveTypeDel(), {.id = packSaveTypeOverride(GBA_SAVE_AUTO)}},
-		{"EEPROM",          attachParams(), setSaveTypeDel(), {.id = packSaveTypeOverride(GBA_SAVE_EEPROM)}},
-		{"SRAM",            attachParams(), setSaveTypeDel(), {.id = packSaveTypeOverride(GBA_SAVE_SRAM)}},
-		{"Flash (64K)",     attachParams(), setSaveTypeDel(), {.id = packSaveTypeOverride(GBA_SAVE_FLASH, SIZE_FLASH512)}},
-		{"Flash (128K)",    attachParams(), setSaveTypeDel(), {.id = packSaveTypeOverride(GBA_SAVE_FLASH, SIZE_FLASH1M)}},
-		{"EEPROM + Sensor", attachParams(), setSaveTypeDel(), {.id = packSaveTypeOverride(GBA_SAVE_EEPROM_SENSOR)}},
-		{"None",            attachParams(), setSaveTypeDel(), {.id = packSaveTypeOverride(GBA_SAVE_NONE)}},
+		{"Auto",            attachParams(), {.id = packSaveTypeOverride(GBA_SAVE_AUTO)}},
+		{"EEPROM",          attachParams(), {.id = packSaveTypeOverride(GBA_SAVE_EEPROM)}},
+		{"SRAM",            attachParams(), {.id = packSaveTypeOverride(GBA_SAVE_SRAM)}},
+		{"Flash (64K)",     attachParams(), {.id = packSaveTypeOverride(GBA_SAVE_FLASH, SIZE_FLASH512)}},
+		{"Flash (128K)",    attachParams(), {.id = packSaveTypeOverride(GBA_SAVE_FLASH, SIZE_FLASH1M)}},
+		{"EEPROM + Sensor", attachParams(), {.id = packSaveTypeOverride(GBA_SAVE_EEPROM_SENSOR)}},
+		{"None",            attachParams(), {.id = packSaveTypeOverride(GBA_SAVE_NONE)}},
 	};
 
 	MultiChoiceMenuItem saveType
@@ -95,50 +118,46 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 					return true;
 				}
 				return false;
+			},
+			.defaultItemOnSelect = [this](TextMenuItem &item, const Input::Event &e)
+			{
+				if(system().optionSaveTypeOverride == (uint32_t)item.id)
+					return true;
+				static auto setSaveTypeOption = [](GbaApp &app, uint32_t optVal, ViewAttachParams attach, const Input::Event &e)
+				{
+					app.system().sessionOptionSet();
+					app.system().optionSaveTypeOverride = optVal;
+					app.promptSystemReloadDueToSetOption(attach, e);
+				};
+				if(saveMemoryHasContent())
+				{
+					pushAndShowModal(makeView<YesNoAlertView>("Really change save type? Existing data in .sav file may be lost so please make a backup before proceeding.",
+						YesNoAlertView::Delegates
+						{
+							.onYes = [this, optVal = item.id](const Input::Event &e)
+							{
+								setSaveTypeOption(app(), optVal, attachParams(), e);
+							}
+						}), e);
+					return false;
+				}
+				else
+				{
+					setSaveTypeOption(app(), item.id, attachParams(), e);
+					return true;
+				}
 			}
 		}
 	};
 
-	TextMenuItem::SelectDelegate setSaveTypeDel()
-	{
-		return [this](TextMenuItem &item, const Input::Event &e)
-		{
-			if(system().optionSaveTypeOverride == (uint32_t)item.id)
-				return true;
-			static auto setSaveTypeOption = [](GbaApp &app, uint32_t optVal, ViewAttachParams attach, const Input::Event &e)
-			{
-				app.system().sessionOptionSet();
-				app.system().optionSaveTypeOverride = optVal;
-				app.promptSystemReloadDueToSetOption(attach, e);
-			};
-			if(saveMemoryHasContent())
-			{
-				pushAndShowModal(makeView<YesNoAlertView>("Really change save type? Existing data in .sav file may be lost so please make a backup before proceeding.",
-					YesNoAlertView::Delegates
-					{
-						.onYes = [this, optVal = item.id](const Input::Event &e)
-						{
-							setSaveTypeOption(app(), optVal, attachParams(), e);
-						}
-					}), e);
-				return false;
-			}
-			else
-			{
-				setSaveTypeOption(app(), item.id, attachParams(), e);
-				return true;
-			}
-		};
-	}
-
 	#ifdef IG_CONFIG_SENSORS
 	TextMenuItem hardwareSensorItem[5]
 	{
-		{"Auto",          attachParams(), setHardwareSensorDel(), {.id = GbaSensorType::Auto}},
-		{"None",          attachParams(), setHardwareSensorDel(), {.id = GbaSensorType::None}},
-		{"Accelerometer", attachParams(), setHardwareSensorDel(), {.id = GbaSensorType::Accelerometer}},
-		{"Gyroscope",     attachParams(), setHardwareSensorDel(), {.id = GbaSensorType::Gyroscope}},
-		{"Light",         attachParams(), setHardwareSensorDel(), {.id = GbaSensorType::Light}},
+		{"Auto",          attachParams(), {.id = GbaSensorType::Auto}},
+		{"None",          attachParams(), {.id = GbaSensorType::None}},
+		{"Accelerometer", attachParams(), {.id = GbaSensorType::Accelerometer}},
+		{"Gyroscope",     attachParams(), {.id = GbaSensorType::Gyroscope}},
+		{"Light",         attachParams(), {.id = GbaSensorType::Light}},
 	};
 
 	MultiChoiceMenuItem hardwareSensor
@@ -155,18 +174,18 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 					return true;
 				}
 				return false;
+			},
+			.defaultItemOnSelect = [this](TextMenuItem &item)
+			{
+				system().setSensorType(GbaSensorType(item.id.val));
 			}
 		},
 	};
-
-	TextMenuItem::SelectDelegate setHardwareSensorDel()
-	{
-		return [this](TextMenuItem &item) { system().setSensorType(GbaSensorType(item.id.val)); };
-	}
 	#endif
 
-	std::array<MenuItem*, Config::SENSORS ? 3 : 2> menuItem
+	std::array<MenuItem*, Config::SENSORS ? 4 : 3> menuItem
 	{
+		&bios,
 		&rtc
 		, &saveType
 		#ifdef IG_CONFIG_SENSORS
@@ -181,8 +200,7 @@ public:
 			"Console Options",
 			attach,
 			menuItem
-		}
-	{}
+		} {}
 };
 
 class CustomSystemActionsView : public SystemActionsView
@@ -377,13 +395,23 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 	using MainAppHelper<CustomSystemOptionView>::system;
 	using MainAppHelper<CustomSystemOptionView>::app;
 
+	BoolMenuItem bios
+	{
+		"Default Use BIOS", attachParams(),
+		system().defaultUseBios,
+		[this](BoolMenuItem &item)
+		{
+			system().defaultUseBios = item.flipBoolValue(*this);
+		}
+	};
+
 	#ifdef IG_CONFIG_SENSORS
 	TextMenuItem lightSensorScaleItem[5]
 	{
-		{"Darkness",      attachParams(), setLightSensorScaleDel(), {.id = 0}},
-		{"Indoor Light",  attachParams(), setLightSensorScaleDel(), {.id = 100}},
-		{"Overcast Day",  attachParams(), setLightSensorScaleDel(), {.id = 1000}},
-		{"Sunny Day",     attachParams(), setLightSensorScaleDel(), {.id = 10000}},
+		{"Darkness",      attachParams(), {.id = 0}},
+		{"Indoor Light",  attachParams(), {.id = 100}},
+		{"Overcast Day",  attachParams(), {.id = 1000}},
+		{"Sunny Day",     attachParams(), {.id = 10000}},
 		{"Custom Value",  attachParams(),
 			[this](Input::Event e)
 			{
@@ -410,20 +438,20 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 			{
 				t.resetString(std::format("{} lux", (int)system().lightSensorScaleLux));
 				return true;
+			},
+			.defaultItemOnSelect = [this](TextMenuItem &item)
+			{
+				system().lightSensorScaleLux = item.id;
 			}
 		},
 	};
-
-	TextMenuItem::SelectDelegate setLightSensorScaleDel()
-	{
-		return [this](TextMenuItem &item) { system().lightSensorScaleLux = item.id; };
-	}
 	#endif
 
 public:
 	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
+		item.emplace_back(&bios);
 		#ifdef IG_CONFIG_SENSORS
 		item.emplace_back(&lightSensorScale);
 		#endif
@@ -433,6 +461,7 @@ public:
 class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<CustomFilePathOptionView>
 {
 	using MainAppHelper<CustomFilePathOptionView>::system;
+	using MainAppHelper<CustomFilePathOptionView>::app;
 
 	TextMenuItem cheatsPath
 	{
@@ -464,12 +493,40 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 		}
 	};
 
+	TextMenuItem biosPath
+	{
+		biosMenuEntryStr(system().biosPath), attachParams(),
+		[this](Input::Event e)
+		{
+			pushAndShow(makeViewWithName<DataFileSelectView<>>("BIOS",
+				app().validSearchPath(FS::dirnameUri(system().biosPath)),
+				[this](CStringView path, FS::file_type type)
+				{
+					system().biosPath = path;
+					log.info("set BIOS:{}", system().biosPath);
+					biosPath.compile(biosMenuEntryStr(path));
+					return true;
+				}, hasBiosExtension), e);
+		}
+	};
+
+	std::string biosMenuEntryStr(std::string_view path) const
+	{
+		return std::format("BIOS: {}", appContext().fileUriDisplayName(path));
+	}
+
+	static bool hasBiosExtension(std::string_view name)
+	{
+		return endsWithAnyCaseless(name, ".bin", ".rom");
+	}
+
 public:
 	CustomFilePathOptionView(ViewAttachParams attach): FilePathOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&cheatsPath);
 		item.emplace_back(&patchesPath);
+		item.emplace_back(&biosPath);
 	}
 };
 

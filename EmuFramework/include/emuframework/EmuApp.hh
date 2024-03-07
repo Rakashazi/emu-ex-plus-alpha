@@ -65,11 +65,6 @@ struct MainWindowData;
 class EmuMainMenuView;
 class EmuViewController;
 
-enum class Tristate : uint8_t
-{
-	OFF, IN_EMU, ON
-};
-
 WISE_ENUM_CLASS((AssetFileID, size_t),
 	ui,
 	gamepadOverlay,
@@ -251,7 +246,7 @@ public:
 	VController &defaultVController() { return inputManager.vController; }
 	static std::unique_ptr<View> makeView(ViewAttachParams, ViewID);
 	std::unique_ptr<YesNoAlertView> makeCloseContentView();
-	void applyOSNavStyle(IG::ApplicationContext, bool inGame);
+	void applyOSNavStyle(IG::ApplicationContext, bool inEmu);
 	void setCPUNeedsLowLatency(IG::ApplicationContext, bool needed);
 	bool advanceFrames(FrameParams, EmuSystemTask *);
 	void runFrames(EmuSystemTaskContext, EmuVideo *, EmuAudio *, int frames);
@@ -330,9 +325,9 @@ public:
 	void applyFontSize(Window &win);
 	IG::FontSettings fontSettings(Window &win) const;
 	void setShowsTitleBar(bool on);
-	void setLowProfileOSNavMode(Tristate mode);
-	void setHideOSNavMode(Tristate mode);
-	void setHideStatusBarMode(Tristate mode);
+	void setLowProfileOSNavMode(InEmuTristate mode);
+	void setHideOSNavMode(InEmuTristate mode);
+	void setHideStatusBarMode(InEmuTristate mode);
 	void setEmuOrientation(Orientations);
 	void setMenuOrientation(Orientations);
 	void setShowsBundledGames(bool);
@@ -534,12 +529,12 @@ public:
 		PropertyDesc<bool>{.defaultValue = true, .mutableDefault = true}> showsNotificationIcon;
 	ConditionalProperty<CAN_HIDE_TITLE_BAR, bool, CFGKEY_TITLE_BAR,
 		PropertyDesc<bool>{.defaultValue = true}> showsTitleBar;
-	ConditionalProperty<Config::NAVIGATION_BAR, Tristate, CFGKEY_LOW_PROFILE_OS_NAV,
-		PropertyDesc<Tristate>{.defaultValue = Tristate::IN_EMU}> lowProfileOSNav;
-	ConditionalProperty<Config::NAVIGATION_BAR, Tristate, CFGKEY_HIDE_OS_NAV,
-		PropertyDesc<Tristate>{.defaultValue = Tristate::OFF, .mutableDefault = true}> hidesOSNav;
-	ConditionalProperty<Config::STATUS_BAR, Tristate, CFGKEY_HIDE_STATUS_BAR,
-		PropertyDesc<Tristate>{.defaultValue = Tristate::IN_EMU}> hidesStatusBar;
+	ConditionalProperty<Config::NAVIGATION_BAR, InEmuTristate, CFGKEY_LOW_PROFILE_OS_NAV,
+		PropertyDesc<InEmuTristate>{.defaultValue = InEmuTristate::InEmu}> lowProfileOSNav;
+	ConditionalProperty<Config::NAVIGATION_BAR, InEmuTristate, CFGKEY_HIDE_OS_NAV,
+		PropertyDesc<InEmuTristate>{.defaultValue = InEmuTristate::Off, .mutableDefault = true}> hidesOSNav;
+	ConditionalProperty<Config::STATUS_BAR, InEmuTristate, CFGKEY_HIDE_STATUS_BAR,
+		PropertyDesc<InEmuTristate>{.defaultValue = InEmuTristate::InEmu}> hidesStatusBar;
 	Property<Orientations, CFGKEY_GAME_ORIENTATION> emuOrientation;
 	Property<Orientations, CFGKEY_MENU_ORIENTATION> menuOrientation;
 	Property<bool, CFGKEY_SHOW_BUNDLED_GAMES, PropertyDesc<bool>{.defaultValue = true}> showsBundledGames;

@@ -229,14 +229,14 @@ void EmuApp::closeSystemWithoutSave()
 	closeSystem();
 }
 
-void EmuApp::applyOSNavStyle(IG::ApplicationContext ctx, bool inGame)
+void EmuApp::applyOSNavStyle(IG::ApplicationContext ctx, bool inEmu)
 {
 	SystemUIStyleFlags flags;
-	if(lowProfileOSNav > (inGame ? Tristate::OFF : Tristate::IN_EMU))
+	if(lowProfileOSNav > (inEmu ? InEmuTristate::Off : InEmuTristate::InEmu))
 		flags.dimNavigation = true;
-	if(hidesOSNav > (inGame ? Tristate::OFF : Tristate::IN_EMU))
+	if(hidesOSNav > (inEmu ? InEmuTristate::Off : InEmuTristate::InEmu))
 		flags.hideNavigation = true;
-	if(hidesStatusBar > (inGame ? Tristate::OFF : Tristate::IN_EMU))
+	if(hidesStatusBar > (inEmu ? InEmuTristate::Off : InEmuTristate::InEmu))
 		flags.hideStatus = true;
 	ctx.setSysUIStyle(flags);
 }
@@ -460,7 +460,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 				if(renderer.makeValidTextureBufferMode(mode) != mode)
 				{
 					// reset to default if saved non-default mode isn't supported
-					textureBufferMode = {};
+					textureBufferMode.reset();
 				}
 			}
 			viewManager.defaultFace = {renderer, fontManager.makeSystem(), fontSettings(win)};

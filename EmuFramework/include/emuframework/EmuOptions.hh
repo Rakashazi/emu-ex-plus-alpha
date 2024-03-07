@@ -87,6 +87,16 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	// 256+ is reserved
 };
 
+enum class AutoTristate : uint8_t
+{
+	Auto, Off, On
+};
+
+enum class InEmuTristate : uint8_t
+{
+	Off, InEmu, On
+};
+
 constexpr unsigned optionImageZoomIntegerOnly = 255, optionImageZoomIntegerOnlyY = 254;
 
 constexpr const char *optionSavePathDefaultToken = ":DEFAULT:";
@@ -102,12 +112,6 @@ bool isValidAspectRatio(float val);
 constexpr bool isValidFontSize(const auto &v)
 {
 	return v >= 2000 && v <= 10000;
-}
-
-template<class T>
-constexpr bool enumIsValidUpToLast(const T &v)
-{
-	return v <= IG::lastEnum<T>;
 }
 
 constexpr bool optionImageZoomIsValid(const auto &v)
@@ -150,5 +154,16 @@ constexpr bool isValidWithMinMax(const auto &v)
 {
 	return v >= min && v <= max;
 }
+
+}
+
+namespace IG
+{
+
+template<>
+constexpr bool isValidProperty(const EmuEx::AutoTristate &v) { return unsigned(v) <= 2; }
+
+template<>
+constexpr bool isValidProperty(const EmuEx::InEmuTristate &v) { return unsigned(v) <= 2; }
 
 }

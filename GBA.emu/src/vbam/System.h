@@ -127,7 +127,6 @@ union SystemColorMap
 extern SystemColorMap systemColorMap;
 extern uint16_t systemGbPalette[24];
 extern int systemFrameSkip;
-extern int systemDebug;
 static const int systemVerbose = 0;
 extern int systemSaveUpdateCounter;
 extern int systemSpeed;

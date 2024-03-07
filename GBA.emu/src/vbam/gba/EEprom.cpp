@@ -66,32 +66,26 @@ void eepromReadGame(const uint8_t*& data)
     IG::copy_n(eepromDataTemp, eepromData.size(), eepromData.data());
 }
 
-
+#if 0
 void eepromSaveGame(gzFile gzFile)
 {
-    uint8_t eepromDataTemp[SIZE_EEPROM_8K]{};
-    IG::copy_n(eepromData.data(), eepromData.size(), eepromDataTemp);
-    utilWriteData(gzFile, eepromSaveData(eepromDataTemp).data());
+    utilWriteData(gzFile, eepromSaveData);
     utilWriteInt(gzFile, eepromSize);
-    utilGzWrite(gzFile, eepromDataTemp, SIZE_EEPROM_8K);
+    utilGzWrite(gzFile, eepromData, SIZE_EEPROM_8K);
 }
 
 void eepromReadGame(gzFile gzFile, int version)
 {
-    uint8_t eepromDataTemp[SIZE_EEPROM_8K]{};
-    utilReadData(gzFile, eepromSaveData(eepromDataTemp).data());
-    // prior to 0.7.1, only 4K EEPROM was supported
-    int eepromSizeTemp = SIZE_EEPROM_512;
-    if (version >= SAVE_GAME_VERSION_3) {
-      eepromSizeTemp = utilReadInt(gzFile);
-      utilGzRead(gzFile, eepromDataTemp, SIZE_EEPROM_8K);
-    }
-    if(eepromSizeTemp != eepromSize)
-    {
-      logWarn("expected EEPROM size:%d but got %d from state", eepromSize, eepromSizeTemp);
-    }
-    IG::copy_n(eepromDataTemp, eepromData.size(), eepromData.data());
+  utilReadData(gzFile, eepromSaveData);
+  if (version >= SAVE_GAME_VERSION_3) {
+      eepromSize = utilReadInt(gzFile);
+      utilGzRead(gzFile, eepromData, SIZE_EEPROM_8K);
+  } else {
+      // prior to 0.7.1, only 4K EEPROM was supported
+      eepromSize = SIZE_EEPROM_512;
+  }
 }
+#endif
 
 void eepromReadGameSkip(gzFile gzFile, int version)
 {

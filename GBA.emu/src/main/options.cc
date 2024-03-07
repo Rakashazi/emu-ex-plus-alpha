@@ -43,6 +43,7 @@ bool GbaSystem::resetSessionOptions(EmuApp &)
 	setRTC(optionRtcEmulation);
 	optionSaveTypeOverride.reset();
 	sensorType = GbaSensorType::Auto;
+	useBios.reset();
 	return true;
 }
 
@@ -59,6 +60,8 @@ bool GbaSystem::readConfig(ConfigType type, MapIO &io, unsigned key)
 			case CFGKEY_LIGHT_SENSOR_SCALE: return readOptionValue<uint16_t>(io, [&](auto val){lightSensorScaleLux = val;});
 			case CFGKEY_CHEATS_PATH: return readStringOptionValue(io, cheatsDir);
 			case CFGKEY_PATCHES_PATH: return readStringOptionValue(io, patchesDir);
+			case CFGKEY_BIOS_PATH: return readStringOptionValue(io, biosPath);
+			case CFGKEY_DEFAULT_USE_BIOS: return readOptionValue(io, defaultUseBios);
 		}
 	}
 	else if(type == ConfigType::SESSION)
@@ -69,6 +72,7 @@ bool GbaSystem::readConfig(ConfigType type, MapIO &io, unsigned key)
 			case CFGKEY_SAVE_TYPE_OVERRIDE: return readOptionValue(io, optionSaveTypeOverride);
 			case CFGKEY_SENSOR_TYPE:
 				return readOptionValue(io, sensorType, [&](auto v){return v <= IG::lastEnum<GbaSensorType>;});
+			case CFGKEY_USE_BIOS: return readOptionValue(io, useBios);
 		}
 	}
 	return false;
@@ -85,6 +89,8 @@ void GbaSystem::writeConfig(ConfigType type, FileIO &io)
 		writeOptionValueIfNotDefault(io, CFGKEY_LIGHT_SENSOR_SCALE, (uint16_t)lightSensorScaleLux, (uint16_t)lightSensorScaleLuxDefault);
 		writeStringOptionValue(io, CFGKEY_CHEATS_PATH, cheatsDir);
 		writeStringOptionValue(io, CFGKEY_PATCHES_PATH, patchesDir);
+		writeStringOptionValue(io, CFGKEY_BIOS_PATH, biosPath);
+		writeOptionValueIfNotDefault(io, defaultUseBios);
 	}
 	else if(type == ConfigType::SESSION)
 	{
@@ -92,6 +98,7 @@ void GbaSystem::writeConfig(ConfigType type, FileIO &io)
 		writeOptionValueIfNotDefault(io, optionSaveTypeOverride);
 		if(sensorType != GbaSensorType::Auto)
 			writeOptionValue(io, CFGKEY_SENSOR_TYPE, sensorType);
+		writeOptionValueIfNotDefault(io, useBios);
 	}
 }
 

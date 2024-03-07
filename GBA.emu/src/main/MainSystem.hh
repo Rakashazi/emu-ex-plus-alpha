@@ -41,6 +41,8 @@ enum
 	CFGKEY_SOUND_FILTERING = 260, CFGKEY_SOUND_INTERPOLATION = 261,
 	CFGKEY_SENSOR_TYPE = 262, CFGKEY_LIGHT_SENSOR_SCALE = 263,
 	CFGKEY_CHEATS_PATH = 264, CFGKEY_PATCHES_PATH = 265,
+	CFGKEY_USE_BIOS = 266, CFGKEY_DEFAULT_USE_BIOS = 267,
+	CFGKEY_BIOS_PATH = 268
 };
 
 void readCheatFile(class EmuSystem &);
@@ -70,6 +72,7 @@ class GbaSystem final: public EmuSystem
 public:
 	std::string cheatsDir;
 	std::string patchesDir;
+	std::string biosPath;
 	[[no_unique_address]] IG::SensorListener sensorListener;
 	Property<RtcMode, CFGKEY_RTC_EMULATION,
 		PropertyDesc<RtcMode>{.defaultValue = RtcMode::AUTO, .isValid = isValidWithMax<RtcMode::ON>}> optionRtcEmulation;
@@ -84,6 +87,9 @@ public:
 	uint8_t darknessLevel{darknessLevelDefault};
 	uint8_t detectedSaveType{};
 	bool detectedRtcGame{};
+	bool saveMemoryIsMappedFile{};
+	Property<AutoTristate, CFGKEY_USE_BIOS> useBios;
+	Property<bool, CFGKEY_DEFAULT_USE_BIOS> defaultUseBios;
 	ConditionalMember<Config::SENSORS, GbaSensorType> sensorType{};
 	ConditionalMember<Config::SENSORS, GbaSensorType> detectedSensorType{};
 	static constexpr auto gbaFrameTime{fromSeconds<FrameTime>(280896. / 16777216.)}; // ~59.7275Hz
@@ -129,6 +135,16 @@ public:
 
 private:
 	void applyGamePatches(uint8_t *rom, int &romSize);
+	bool shouldUseBios() const
+	{
+		switch(useBios)
+		{
+			case AutoTristate::Auto: return defaultUseBios && biosPath.size();
+			case AutoTristate::On: return biosPath.size();
+			case AutoTristate::Off: return false;
+		}
+		std::unreachable();
+	}
 };
 
 using MainSystem = GbaSystem;
