@@ -431,7 +431,7 @@ void readCheatFile(EmuSystem &sys_)
 {
 	auto &sys = static_cast<MdSystem&>(sys_);
 	auto path = sys.userFilePath(sys.cheatsDir, ".pat");
-	auto file = sys.appContext().openFileUri(path, IOAccessHint::All, {.test = true});
+	auto file = sys.appContext().openFileUri(path, {.test = true, .accessHint = IOAccessHint::All});
 	if(!file)
 	{
 		return;

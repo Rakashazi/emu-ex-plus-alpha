@@ -252,7 +252,7 @@ int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 	}
 	else
 	{
-		auto io = appCtx.openFileUri(fdsBiosPath, IOAccessHint::All);
+		auto io = appCtx.openFileUri(fdsBiosPath, {.accessHint = IOAccessHint::All});
 		if(io.size() != size)
 		{
 			sys.loaderErrorString = "Incompatible FDS BIOS";

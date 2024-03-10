@@ -267,7 +267,7 @@ void NeoSystem::closeSystem()
 static auto openGngeoDataIO(IG::ApplicationContext ctx, IG::CStringView filename)
 {
 	#ifdef __ANDROID__
-	return ctx.openAsset(filename, IO::AccessHint::All);
+	return ctx.openAsset(filename, {.accessHint = IOAccessHint::All});
 	#else
 	auto &datafilePath = static_cast<NeoApp&>(ctx.application()).system().datafilePath;
 	return FS::findFileInArchive(ArchiveIO{datafilePath}, filename);

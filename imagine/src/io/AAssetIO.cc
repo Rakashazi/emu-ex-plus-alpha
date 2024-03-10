@@ -40,9 +40,10 @@ static int asAAssetMode(IOAccessHint advice)
 	}
 }
 
-AAssetIO::AAssetIO(ApplicationContext ctx, CStringView name, AccessHint access, OpenFlags openFlags):
-	asset{AAssetManager_open(ctx.aAssetManager(), name, asAAssetMode(access))}
+AAssetIO::AAssetIO(ApplicationContext ctx, CStringView name, OpenFlags openFlags):
+	asset{AAssetManager_open(ctx.aAssetManager(), name, asAAssetMode(openFlags.accessHint))}
 {
+	auto access = openFlags.accessHint;
 	if(!asset) [[unlikely]]
 	{
 		logErr("error in AAssetManager_open(%s, %s)", name.data(), asString(access));

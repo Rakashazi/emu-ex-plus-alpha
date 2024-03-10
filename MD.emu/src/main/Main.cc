@@ -171,7 +171,7 @@ void MdSystem::loadBackupMemory(EmuApp &app)
 	if(sCD.isActive)
 	{
 		auto saveStr = bramSaveFilename(app);
-		auto bramFile = appContext().openFileUri(saveStr, IOAccessHint::All, {.test = true});
+		auto bramFile = appContext().openFileUri(saveStr, {.test = true, .accessHint = IOAccessHint::All});
 		if(!bramFile)
 		{
 			log.info("no BRAM on disk, formatting");

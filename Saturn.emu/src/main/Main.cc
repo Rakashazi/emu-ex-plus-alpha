@@ -93,7 +93,7 @@ void SaturnSystem::loadCartNV(EmuApp &app, FileIO &io)
 		return;
 	auto fullExt = saveExtMDFN(ext, noMD5InFilenames);
 	if(!io)
-		io = app.appContext().openFileUri(app.contentSaveFilePath(fullExt), IOAccessHint::Normal, OpenFlags::testCreateFile());
+		io = app.appContext().openFileUri(app.contentSaveFilePath(fullExt), OpenFlags::testCreateFile());
 	if(!io)
 		throw std::runtime_error(std::format("Error opening {}, please verify save path has write access", contentNameExt(fullExt)));
 	auto buff = io.buffer();

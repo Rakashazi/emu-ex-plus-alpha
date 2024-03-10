@@ -28,7 +28,7 @@ enum class IOAdvice
 	Normal, Sequential, Random, WillNeed
 };
 
-enum class IOAccessHint
+enum class IOAccessHint : uint8_t
 {
 	Normal, Sequential, Random, All
 };
@@ -48,7 +48,7 @@ enum class IOSeekMode
 
 struct OpenFlags
 {
-	using BitSetClassInt = uint8_t;
+	using BitSetClassInt = uint16_t;
 
 	BitSetClassInt
 	// allow reading file
@@ -62,6 +62,8 @@ struct OpenFlags
 	// return from constructor without throwing exception if opening fails,
 	// used to avoid redundant FS::exists() tests when searching for a file to open
 	test:1{};
+
+	IOAccessHint accessHint{};
 
 	constexpr bool operator==(OpenFlags const&) const = default;
 

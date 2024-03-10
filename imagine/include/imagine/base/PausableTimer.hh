@@ -47,7 +47,7 @@ public:
 	{
 		if(!startTime.time_since_epoch().count())
 			return;
-		elapsedTime = SteadyClock::now() - startTime;
+		elapsedTime += SteadyClock::now() - startTime;
 		startTime = {};
 		timer.cancel();
 	}
@@ -70,13 +70,14 @@ public:
 		if(!startTime.time_since_epoch().count())
 			return;
 		startTime = SteadyClock::now();
+		elapsedTime = {};
 	}
 
 	SteadyClockTime nextFireTime() const
 	{
 		if(elapsedTime < frequency)
 			return frequency - elapsedTime;
-		return frequency;
+		return Nanoseconds{1};
 	}
 
 private:

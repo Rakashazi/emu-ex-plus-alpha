@@ -297,6 +297,26 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 		}
 	};
 
+	TextMenuItem joystickModeItems[3]
+	{
+		{toString(JoystickMode::Port1),    attachParams(), {.id = JoystickMode::Port1}},
+		{toString(JoystickMode::Port2),    attachParams(), {.id = JoystickMode::Port2}},
+		{toString(JoystickMode::Keyboard), attachParams(), {.id = JoystickMode::Keyboard}},
+	};
+
+	MultiChoiceMenuItem joystickMode
+	{
+		"Default Main Joystick Mode", attachParams(),
+		MenuId{system().defaultJoystickMode},
+		joystickModeItems,
+		{
+			.defaultItemOnSelect = [this](MenuItem &item)
+			{
+				system().defaultJoystickMode = JoystickMode(item.id.val);
+			}
+		}
+	};
+
 public:
 	CustomSystemOptionView(ViewAttachParams attach):
 		SystemOptionView{attach, true},
@@ -320,6 +340,7 @@ public:
 		loadStockItems();
 		item.emplace_back(&defaultModel);
 		item.emplace_back(&defaultTrueDriveEmu);
+		item.emplace_back(&joystickMode);
 	}
 };
 
@@ -956,12 +977,12 @@ class MachineOptionView : public TableView, public MainAppHelper<MachineOptionVi
 
 	BoolMenuItem autostartBasicLoad
 	{
-		"Autostart Basic Load (Omit ',1')", attachParams(),
-		system().autostartBasicLoad(),
+		"Load To BASIC Start (Disk)", attachParams(),
+		bool(system().intResource("AutostartBasicLoad")),
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			system().sessionOptionSet();
-			system().setAutostartBasicLoad(item.flipBoolValue(*this));
+			system().setIntResource("AutostartBasicLoad", item.flipBoolValue(*this));
 		}
 	};
 
@@ -1170,23 +1191,26 @@ class CustomSystemActionsView : public SystemActionsView, public MainAppHelper<C
 		}
 	};
 
-	TextMenuItem joystickModeItems[3]
+	TextMenuItem joystickModeItems[4]
 	{
-		{"Normal",          attachParams(), {.id = JoystickMode::NORMAL}},
-		{"Swapped",         attachParams(), {.id = JoystickMode::SWAPPED}},
-		{"Keyboard Cursor", attachParams(), {.id = JoystickMode::KEYBOARD}},
+		{toString(JoystickMode::Auto),     attachParams(), {.id = JoystickMode::Auto}},
+		{toString(JoystickMode::Port1),    attachParams(), {.id = JoystickMode::Port1}},
+		{toString(JoystickMode::Port2),    attachParams(), {.id = JoystickMode::Port2}},
+		{toString(JoystickMode::Keyboard), attachParams(), {.id = JoystickMode::Keyboard}},
 	};
 
 	MultiChoiceMenuItem joystickMode
 	{
-		"Joystick Mode", attachParams(),
-		MenuId{system().optionSwapJoystickPorts},
+		"Main Joystick Mode", attachParams(),
+		MenuId{system().effectiveJoystickMode},
 		joystickModeItems,
 		{
-			.defaultItemOnSelect = [this](MenuItem &item)
+			.defaultItemOnSelect = [this](MenuItem &item, View &view, const Input::Event &)
 			{
 				system().sessionOptionSet();
 				system().setJoystickMode(JoystickMode(item.id.val));
+				view.dismiss();
+				return false; // active item is set in onShow()
 			}
 		}
 	};
@@ -1236,6 +1260,7 @@ public:
 		c64IOControl.setActive(system().hasContent());
 		options.setActive(system().hasContent());
 		warpMode.setBoolValue(*system().plugin.warp_mode_enabled, *this);
+		joystickMode.setSelected(MenuId{system().effectiveJoystickMode}, *this);
 	}
 };
 

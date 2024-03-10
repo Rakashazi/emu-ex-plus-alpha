@@ -208,14 +208,14 @@ void NesSystem::setDefaultPalette(ApplicationContext ctx, CStringView palPath)
 	if(palPath[0] != '/' && !isUri(palPath))
 	{
 		// load as asset
-		IO io = ctx.openAsset(FS::pathString("palette", palPath), IO::AccessHint::All);
+		IO io = ctx.openAsset(FS::pathString("palette", palPath), {.accessHint = IOAccessHint::All});
 		if(!io)
 			return;
 		setDefaultPalette(io);
 	}
 	else
 	{
-		IO io = ctx.openFileUri(palPath, IO::AccessHint::All, {.test = true});
+		IO io = ctx.openFileUri(palPath, {.test = true, .accessHint = IOAccessHint::All});
 		if(!io)
 			return;
 		setDefaultPalette(io);

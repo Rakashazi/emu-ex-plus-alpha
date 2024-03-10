@@ -64,7 +64,7 @@ bool AutosaveManager::load(AutosaveActionSource src, LoadAutosaveMode mode)
 		if(saveOnlyBackupMemory && src == AutosaveActionSource::Auto)
 			return true;
 		if(!stateIO)
-			stateIO = appContext().openFileUri(statePath(), {}, OpenFlags::createFile());
+			stateIO = appContext().openFileUri(statePath(), OpenFlags::createFile());
 		if(stateIO.getExpected<uint8_t>(0)) // check if state contains data
 		{
 			if(mode == LoadAutosaveMode::NoState)

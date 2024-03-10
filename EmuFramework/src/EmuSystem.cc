@@ -74,13 +74,13 @@ bool EmuApp::shouldOverwriteExistingState() const
 
 void EmuSystem::loadState(EmuApp &app, CStringView uri)
 {
-	auto file = appContext().openFileUri(uri, IOAccessHint::All, {});
+	auto file = appContext().openFileUri(uri, {.accessHint = IOAccessHint::All});
 	readState(app, file.buffer(IOBufferMode::Release));
 }
 
 void EmuSystem::saveState(CStringView uri)
 {
-	auto file = appContext().openFileUri(uri, {}, OpenFlags::newFile());
+	auto file = appContext().openFileUri(uri, OpenFlags::newFile());
 	file.write(saveState().span());
 }
 
@@ -415,7 +415,8 @@ void EmuSystem::loadContentFromPath(CStringView pathStr, std::string_view displa
 		return;
 	}
 	log.info("load from {}:{}", IG::isUri(path) ? "uri" : "path", path);
-	loadContentFromFile(appContext().openFileUri(path, IOAccessHint::Sequential), path, displayName, params, onLoadProgress);
+	loadContentFromFile(appContext().openFileUri(path, {.accessHint = IOAccessHint::Sequential}),
+		path, displayName, params, onLoadProgress);
 }
 
 void EmuSystem::loadContentFromFile(IO file, CStringView path, std::string_view displayName, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
@@ -568,14 +569,14 @@ FileIO EmuSystem::openStaticBackupMemoryFile(CStringView uri, size_t size, uint8
 {
 	if(!size) [[unlikely]]
 		return {};
-	auto file = appContext().openFileUri(uri, IOAccessHint::Normal, OpenFlags::testCreateFile());
+	auto file = appContext().openFileUri(uri, OpenFlags::testCreateFile());
 	if(!file) [[unlikely]]
 		return {};
 	auto fileSize = file.size();
 	if(fileSize != size)
 		file.truncate(size);
 	// size is static so try to use a mapped file for writing
-	bool isMapped = file.tryMap(IOAccessHint::Normal, OpenFlags::createFile());
+	bool isMapped = file.tryMap(OpenFlags::createFile());
 	if(initValue && fileSize < size)
 	{
 		if(isMapped)

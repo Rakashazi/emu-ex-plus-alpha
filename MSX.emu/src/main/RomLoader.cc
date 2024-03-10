@@ -83,7 +83,7 @@ static IO fileFromFirmwarePath(CStringView path)
 			}
 			else
 			{
-				return appCtx.openFileUri(FS::uriString(firmwarePath, path), IOAccessHint::All);
+				return appCtx.openFileUri(FS::uriString(firmwarePath, path), {.accessHint = IOAccessHint::All});
 			}
 		}
 		catch(...)
@@ -92,7 +92,7 @@ static IO fileFromFirmwarePath(CStringView path)
 		}
 	}
 	// fall back to asset path
-	auto assetFile = appCtx.openAsset(path, IOAccessHint::All, {.test = true});
+	auto assetFile = appCtx.openAsset(path, {.test = true, .accessHint = IOAccessHint::All});
 	if(assetFile)
 	{
 		return assetFile;
@@ -120,7 +120,7 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 		auto appCtx = sys.appContext();
 		if(filename[0] == '/' || IG::isUri(filename)) // try to load absolute path directly
 		{
-			auto file = appCtx.openFileUri(filename, IOAccessHint::All, {.test = true});
+			auto file = appCtx.openFileUri(filename, {.test = true, .accessHint = IOAccessHint::All});
 			if(file)
 			{
 				return fileToMallocBuffer(file, size);

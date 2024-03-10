@@ -38,7 +38,7 @@ std::pair<IG::OpenFlags, uint8_t> modeToAttribs(uint32 mode)
 			throw MDFN_Error(0, _("Unknown FileStream mode."));
 
 		case FileStream::MODE_READ:
-			return {{.read = true}, Stream::ATTRIBUTE_READABLE};
+			return {{.read = true, .accessHint = IOAccessHint::Sequential}, Stream::ATTRIBUTE_READABLE};
 
 		case FileStream::MODE_READ_WRITE:
 			return {OpenFlags::createFile(), Stream::ATTRIBUTE_READABLE | Stream::ATTRIBUTE_WRITEABLE};
@@ -56,7 +56,7 @@ std::pair<IG::OpenFlags, uint8_t> modeToAttribs(uint32 mode)
 
 FileStream::FileStream(const std::string& path, const uint32 mode, const int do_lock, const uint32 buffer_size)
 try:
-	io{EmuEx::gAppContext().openFileUri(path, IG::IOAccessHint::Sequential, modeToAttribs(mode).first)},
+	io{EmuEx::gAppContext().openFileUri(path, modeToAttribs(mode).first)},
  attribs{modeToAttribs(mode).second}
 {
  assert(!do_lock);

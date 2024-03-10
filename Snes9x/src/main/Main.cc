@@ -247,7 +247,7 @@ IOBuffer Snes9xSystem::readSufamiTurboBios() const
 	}
 	else
 	{
-		auto buff = appCtx.openFileUri(sufamiBiosPath, IOAccessHint::All).releaseBuffer();
+		auto buff = appCtx.openFileUri(sufamiBiosPath, {.accessHint = IOAccessHint::All}).releaseBuffer();
 		if(!isSufamiTurboBios(buff))
 			throw std::runtime_error{"Incompatible Sufami Turbo BIOS"};
 		return buff;

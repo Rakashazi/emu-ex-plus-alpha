@@ -622,7 +622,7 @@ void C64System::handleInputAction(EmuApp *app, InputAction a)
 	{
 		case C64Key::Up ... C64Key::JSTrigger:
 		{
-			if(optionSwapJoystickPorts == JoystickMode::KEYBOARD)
+			if(effectiveJoystickMode == JoystickMode::Keyboard)
 			{
 				if(key == C64Key::Right)
 					handleKeyboardInput({KeyCode(C64Key::KeyboardRight), {}, a.state, a.metaState}, positionalShift);
@@ -639,7 +639,7 @@ void C64System::handleInputAction(EmuApp *app, InputAction a)
 			{
 				auto &joystick_value = *plugin.joystick_value;
 				auto player = a.flags.deviceId;
-				if(optionSwapJoystickPorts == JoystickMode::SWAPPED)
+				if(effectiveJoystickMode == JoystickMode::Port2)
 				{
 					player = (player == 1) ? 0 : 1;
 				}
@@ -666,13 +666,14 @@ void C64System::handleInputAction(EmuApp *app, InputAction a)
 		}
 		case C64Key::SwapJSPorts:
 		{
-			if(a.isPushed() && optionSwapJoystickPorts != JoystickMode::KEYBOARD)
+			if(a.isPushed() && effectiveJoystickMode != JoystickMode::Keyboard)
 			{
 				EmuSystem::sessionOptionSet();
-				if(optionSwapJoystickPorts == JoystickMode::SWAPPED)
-					optionSwapJoystickPorts = JoystickMode::NORMAL;
+				if(effectiveJoystickMode == JoystickMode::Port2)
+					joystickMode = JoystickMode::Port1;
 				else
-					optionSwapJoystickPorts = JoystickMode::SWAPPED;
+					joystickMode = JoystickMode::Port2;
+				effectiveJoystickMode = joystickMode;
 				IG::fill(*plugin.joystick_value);
 				if(app)
 					app->postMessage(1, false, "Swapped Joystick Ports");
@@ -749,14 +750,15 @@ void C64System::onVKeyboardShown(VControllerKeyboard &kb, bool shown)
 
 void C64System::setJoystickMode(JoystickMode mode)
 {
-	optionSwapJoystickPorts = mode;
+	joystickMode = mode;
+	effectiveJoystickMode = mode == JoystickMode::Auto ? defaultJoystickMode : mode;
 	updateJoystickDevices();
 }
 
 void C64System::updateJoystickDevices()
 {
 	enterCPUTrap();
-	if(optionSwapJoystickPorts == JoystickMode::KEYBOARD)
+	if(effectiveJoystickMode == JoystickMode::Keyboard)
 	{
 		setIntResource("JoyPort1Device", JOYPORT_ID_NONE);
 		setIntResource("JoyPort2Device", JOYPORT_ID_NONE);

@@ -201,7 +201,7 @@ void GbaSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	ByteBuffer biosRom;
 	if(shouldUseBios())
 	{
-		biosRom = appContext().openFileUri(biosPath, IOAccessHint::All).buffer(IOBufferMode::Release);
+		biosRom = appContext().openFileUri(biosPath, {.accessHint = IOAccessHint::All}).buffer(IOBufferMode::Release);
 		if(biosRom.size() != 0x4000)
 			throw std::runtime_error("BIOS size should be 16KB");
 	}

@@ -33,7 +33,7 @@ Serializer::Serializer(const string& filename, Mode m)
     FilesystemNode node(filename);
     if(node.isFile() && node.isReadable())
     {
-      auto str = make_unique<IG::FStream>(EmuEx::gAppContext().openFileUri(filename, IG::IOAccessHint::All), ios::in | ios::binary);
+      auto str = make_unique<IG::FStream>(EmuEx::gAppContext().openFileUri(filename), ios::in | ios::binary);
       if(str && str->is_open())
       {
         myStream = std::move(str);

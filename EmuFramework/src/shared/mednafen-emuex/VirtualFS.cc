@@ -34,7 +34,7 @@ NativeVFS NVFS{};
 FILE* NativeVFS::openAsStdio(const std::string& path, const uint32 mode)
 {
 	assert(mode == MODE_READ);
-	return EmuEx::gAppContext().openFileUri(path, IG::IOAccessHint::Sequential, modeToAttribs(mode).first).toFileStream("rb");
+	return EmuEx::gAppContext().openFileUri(path, modeToAttribs(mode).first).toFileStream("rb");
 }
 
 VirtualFS::VirtualFS(char preferred_path_separator_, const std::string& allowed_path_separators_)

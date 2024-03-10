@@ -39,7 +39,7 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 			[this](const Input::Event &e)
 			{
 				auto &info = system().bundledGameInfo(0);
-				auto file = appContext().openAsset(info.assetName, IOAccessHint::All, {.test = true});
+				auto file = appContext().openAsset(info.assetName, OpenFlags{.test = true, .accessHint = IOAccessHint::All});
 				if(!file)
 				{
 					log.error("error opening bundled game asset:{}", info.assetName);

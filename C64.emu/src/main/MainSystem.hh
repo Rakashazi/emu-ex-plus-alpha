@@ -22,6 +22,7 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuOptions.hh>
 #include <vector>
 #include <string>
 #include <string_view>
@@ -37,13 +38,44 @@ extern "C"
 namespace EmuEx
 {
 
+enum JoystickMode : uint8_t
+{
+	Auto, Port1, Port2, Keyboard
+};
+
+constexpr auto toString(JoystickMode v)
+{
+	using enum JoystickMode;
+	switch(v)
+	{
+		case Auto: return "Auto";
+		case Port1: return "Port 1";
+		case Port2: return "Port 2";
+		case Keyboard: return "Keyboard Cursor";
+	}
+}
+
+}
+
+
+namespace IG
+{
+
+template<>
+constexpr bool isValidProperty(const EmuEx::JoystickMode &v) { return v <= EmuEx::JoystickMode::Keyboard; }
+
+}
+
+namespace EmuEx
+{
+
 class EmuAudio;
 
 enum
 {
 	CFGKEY_DRIVE_TRUE_EMULATION = 256, CFGKEY_AUTOSTART_WARP = 257,
 	CFGKEY_AUTOSTART_TDE = 258, CFGKEY_C64_MODEL = 259,
-	CFGKEY_BORDER_MODE = 260, CFGKEY_SWAP_JOYSTICK_PORTS = 261,
+	CFGKEY_BORDER_MODE = 260, CFGKEY_JOYSTICK_MODE = 261,
 	CFGKEY_SID_ENGINE = 262, CFGKEY_CROP_NORMAL_BORDERS = 263,
 	CFGKEY_SYSTEM_FILE_PATH = 264, CFGKEY_DTV_MODEL = 265,
 	CFGKEY_C128_MODEL = 266, CFGKEY_SUPER_CPU_MODEL = 267,
@@ -59,7 +91,8 @@ enum
 	CFGKEY_DRIVE10_TYPE = 286, CFGKEY_DRIVE11_TYPE = 287,
 	CFGKEY_DEFAULT_DRIVE_TRUE_EMULATION = 288, CFGKEY_COLOR_SATURATION = 289,
 	CFGKEY_COLOR_CONTRAST = 290, CFGKEY_COLOR_BRIGHTNESS = 291,
-	CFGKEY_COLOR_GAMMA = 292, CFGKEY_COLOR_TINT = 293
+	CFGKEY_COLOR_GAMMA = 292, CFGKEY_COLOR_TINT = 293,
+	CFGKEY_DEFAULT_JOYSTICK_MODE = 294
 };
 
 enum Vic20Ram : uint8_t
@@ -69,13 +102,6 @@ enum Vic20Ram : uint8_t
 	BLOCK_2 = 1 << 2,
 	BLOCK_3 = 1 << 3,
 	BLOCK_5 = 1 << 5
-};
-
-enum JoystickMode : uint8_t
-{
-	NORMAL = 0,
-	SWAPPED = 1,
-	KEYBOARD = 2,
 };
 
 enum class ColorSetting
@@ -108,7 +134,11 @@ public:
 	ViceSystem currSystem{};
 	bool viceThreadSignaled{};
 	bool inCPUTrap{};
-	JoystickMode optionSwapJoystickPorts{JoystickMode::NORMAL};
+	Property<JoystickMode, CFGKEY_DEFAULT_JOYSTICK_MODE,
+		PropertyDesc<JoystickMode>{.defaultValue = JoystickMode::Port2}> defaultJoystickMode;
+	Property<JoystickMode, CFGKEY_JOYSTICK_MODE,
+		PropertyDesc<JoystickMode>{.defaultValue = JoystickMode::Auto}> joystickMode;
+	JoystickMode effectiveJoystickMode{};
 	bool ctrlLock{};
 	bool c64IsInit{}, c64FailedInit{};
 	std::array <FS::PathString, Config::envIsLinux ? 3 : 1> sysFilePath{};
@@ -149,8 +179,6 @@ public:
 	bool autostartWarp() const;
 	void setAutostartTDE(bool on);
 	bool autostartTDE() const;
-	void setAutostartBasicLoad(bool on);
-	bool autostartBasicLoad() const;
 	void setModel(int model);
 	int model() const;
 	void setDriveType(int idx, int type);
@@ -215,6 +243,7 @@ public:
 	// optional API functions
 	FS::FileString configName() const;
 	void onOptionsLoaded();
+	void onSessionOptionsLoaded(EmuApp &);
 	bool resetSessionOptions(EmuApp &);
 	VController::KbMap vControllerKeyboardMap(VControllerKbMode mode);
 	void onVKeyboardShown(VControllerKeyboard &, bool shown);

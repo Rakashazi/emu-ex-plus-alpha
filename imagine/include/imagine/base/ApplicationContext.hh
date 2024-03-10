@@ -164,7 +164,7 @@ public:
 	FS::PathLocation sharedStoragePathLocation() const;
 	std::vector<FS::PathLocation> rootFileLocations() const;
 	FS::RootPathInfo rootPathInfo(std::string_view path) const;
-	AssetIO openAsset(CStringView name, IOAccessHint access, OpenFlags oFlags = {}, const char *appName = applicationName) const;
+	AssetIO openAsset(CStringView name, OpenFlags oFlags = {}, const char *appName = applicationName) const;
 	FS::AssetDirectoryIterator openAssetDirectory(CStringView path, const char *appName = applicationName);
 
 	// path/file access using OS-specific URIs such as those in the Android Storage Access Framework,
@@ -174,7 +174,6 @@ public:
 	bool hasSystemDocumentPicker() const;
 	bool showSystemDocumentPicker(SystemDocumentPickerDelegate);
 	bool showSystemCreateDocumentPicker(SystemDocumentPickerDelegate);
-	FileIO openFileUri(CStringView uri, IOAccessHint, OpenFlags oFlags = {}) const;
 	FileIO openFileUri(CStringView uri, OpenFlags oFlags = {}) const;
 	UniqueFileDescriptor openFileUriFd(CStringView uri, OpenFlags oFlags = {}) const;
 	bool fileUriExists(CStringView uri) const;

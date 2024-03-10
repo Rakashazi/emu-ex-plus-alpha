@@ -108,7 +108,7 @@ void readCheatFile(EmuSystem &sys_)
 {
 	auto &sys = static_cast<GbcSystem&>(sys_);
 	auto path = sys.userFilePath(sys.cheatsDir, ".gbcht");
-	auto file = sys.appContext().openFileUri(path, IOAccessHint::All, {.test = true});
+	auto file = sys.appContext().openFileUri(path, {.test = true, .accessHint = IOAccessHint::All});
 	if(!file)
 	{
 		return;

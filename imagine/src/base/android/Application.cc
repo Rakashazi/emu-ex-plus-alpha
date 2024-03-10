@@ -137,7 +137,7 @@ FS::PathString AndroidApplication::externalMediaPath(JNIEnv *env, jobject baseAc
 
 UniqueFileDescriptor AndroidApplication::openFileUriFd(JNIEnv *env, jobject baseActivity, CStringView uri, OpenFlags openFlags) const
 {
-	int fd = openUriFd(env, baseActivity, env->NewStringUTF(uri), jint(std::bit_cast<uint8_t>(openFlags)));
+	int fd = openUriFd(env, baseActivity, env->NewStringUTF(uri), jint(std::bit_cast<OpenFlags::BitSetClassInt>(openFlags)));
 	if(fd == -1)
 	{
 		if constexpr(Config::DEBUG_BUILD)

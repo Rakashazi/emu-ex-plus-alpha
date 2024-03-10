@@ -110,13 +110,14 @@ ssize_t writeToPath(CStringView path, IO &io)
 
 ssize_t readFromPath(CStringView path, std::span<unsigned char> dest, IO::AccessHint accessHint)
 {
-	FileIO f{path, accessHint, {.test = true}};
+	FileIO f{path, {.test = true, .accessHint = accessHint}};
 	return f.read(dest).bytes;
 }
 
 IOBuffer bufferFromPath(CStringView path, OpenFlags openFlags, size_t sizeLimit)
 {
-	FileIO file{path, IOAccessHint::All, openFlags};
+	openFlags.accessHint = IOAccessHint::All;
+	FileIO file{path, openFlags};
 	if(!file)
 		return {};
 	if(file.size() > sizeLimit)

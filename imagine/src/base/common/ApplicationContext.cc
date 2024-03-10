@@ -227,12 +227,12 @@ FS::RootPathInfo ApplicationContext::rootPathInfo(std::string_view path) const
 	return nearestPtr->root.info;
 }
 
-AssetIO ApplicationContext::openAsset(CStringView name, IOAccessHint hint, OpenFlags openFlags, const char *appName) const
+AssetIO ApplicationContext::openAsset(CStringView name, OpenFlags openFlags, const char *appName) const
 {
 	#ifdef __ANDROID__
-	return {*this, name, hint, openFlags};
+	return {*this, name, openFlags};
 	#else
-	return {FS::pathString(assetPath(appName), name), hint, openFlags};
+	return {FS::pathString(assetPath(appName), name), openFlags};
 	#endif
 }
 
@@ -255,14 +255,9 @@ FS::AssetDirectoryIterator ApplicationContext::openAssetDirectory(CStringView pa
 
 [[gnu::weak]] bool ApplicationContext::showSystemCreateDocumentPicker(SystemDocumentPickerDelegate) { return false; }
 
-[[gnu::weak]] FileIO ApplicationContext::openFileUri(CStringView uri, IOAccessHint access, OpenFlags openFlags) const
+[[gnu::weak]] FileIO ApplicationContext::openFileUri(CStringView uri, OpenFlags openFlags) const
 {
-	return {uri, access, openFlags};
-}
-
-FileIO ApplicationContext::openFileUri(CStringView uri, OpenFlags openFlags) const
-{
-	return openFileUri(uri, IOAccessHint::Normal, openFlags);
+	return {uri, openFlags};
 }
 
 [[gnu::weak]] UniqueFileDescriptor ApplicationContext::openFileUriFd(CStringView uri, OpenFlags openFlags) const
@@ -540,14 +535,14 @@ ssize_t writeToUri(ApplicationContext ctx, CStringView uri, std::span<const unsi
 ssize_t readFromUri(ApplicationContext ctx, CStringView uri, std::span<unsigned char> dest,
 	IOAccessHint accessHint)
 {
-	auto f = ctx.openFileUri(uri, accessHint, {.test = true});
+	auto f = ctx.openFileUri(uri, {.test = true, .accessHint = accessHint});
 	return f.read(dest).bytes;
 }
 
 std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(ApplicationContext ctx, CStringView uri,
 	std::span<unsigned char> dest, bool(*nameMatchFunc)(std::string_view), IOAccessHint accessHint)
 {
-	auto io = ctx.openFileUri(uri, accessHint);
+	auto io = ctx.openFileUri(uri, {.accessHint = accessHint});
 	if(FS::hasArchiveExtension(uri))
 	{
 		for(auto &entry : FS::ArchiveIterator{std::move(io)})
@@ -575,7 +570,8 @@ IOBuffer bufferFromUri(ApplicationContext ctx, CStringView uri, OpenFlags openFl
 {
 	if(!sizeLimit) [[unlikely]]
 		return {};
-	auto file = ctx.openFileUri(uri, IOAccessHint::All, openFlags);
+	openFlags.accessHint = IOAccessHint::All;
+	auto file = ctx.openFileUri(uri, openFlags);
 	if(!file)
 		return {};
 	else if(file.size() > sizeLimit)
@@ -592,7 +588,8 @@ IOBuffer rwBufferFromUri(ApplicationContext ctx, CStringView uri, OpenFlags extr
 {
 	if(!size) [[unlikely]]
 		return {};
-	auto file = ctx.openFileUri(uri, IOAccessHint::Random, OpenFlags::createFile() | extraOFlags);
+	extraOFlags.accessHint = IOAccessHint::Random;
+	auto file = ctx.openFileUri(uri, OpenFlags::createFile() | extraOFlags);
 	if(!file) [[unlikely]]
 		return {};
 	auto fileSize = file.size();

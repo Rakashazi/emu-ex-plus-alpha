@@ -117,15 +117,20 @@ void C64System::onOptionsLoaded()
 	setReSidSampling(defaultReSidSampling);
 }
 
+void C64System::onSessionOptionsLoaded(EmuApp &)
+{
+	setJoystickMode(joystickMode);
+}
+
 bool C64System::resetSessionOptions(EmuApp &)
 {
 	initC64(EmuApp::get(appContext()));
 	enterCPUTrap();
 	setModel(defaultModel);
-	setJoystickMode(JoystickMode::NORMAL);
+	setJoystickMode(JoystickMode::Auto);
 	setAutostartWarp(true);
 	setAutostartTDE(false);
-	setAutostartBasicLoad(false);
+	resetIntResource("AutostartBasicLoad");
 	optionAutostartOnLaunch = true;
 	if(currSystem == ViceSystem::VIC20)
 	{
@@ -176,6 +181,7 @@ bool C64System::readConfig(ConfigType type, MapIO &io, unsigned key)
 			case CFGKEY_COLOR_BRIGHTNESS: return readOptionValue<int16_t>(io, [&](auto v){ setColorSetting(ColorSetting::Brightness, v); });
 			case CFGKEY_COLOR_GAMMA: return readOptionValue<int16_t>(io, [&](auto v){ setColorSetting(ColorSetting::Gamma, v); });
 			case CFGKEY_COLOR_TINT: return readOptionValue<int16_t>(io, [&](auto v){ setColorSetting(ColorSetting::Tint, v); });
+			case CFGKEY_DEFAULT_JOYSTICK_MODE: return readOptionValue(io, defaultJoystickMode);
 		}
 	}
 	else if(type == ConfigType::SESSION)
@@ -187,8 +193,8 @@ bool C64System::readConfig(ConfigType type, MapIO &io, unsigned key)
 			case CFGKEY_DRIVE_TRUE_EMULATION: return readOptionValue<bool>(io, [&](auto v){ setDriveTrueEmulation(v); });
 			case CFGKEY_AUTOSTART_WARP: return readOptionValue<bool>(io, [&](auto v){ setAutostartWarp(v); });
 			case CFGKEY_AUTOSTART_TDE: return readOptionValue<bool>(io, [&](auto v){ setAutostartTDE(v); });
-			case CFGKEY_AUTOSTART_BASIC_LOAD: return readOptionValue<bool>(io, [&](auto v){ setAutostartBasicLoad(v); });
-			case CFGKEY_SWAP_JOYSTICK_PORTS: return readOptionValue<JoystickMode>(io, [&](auto v){ if(v <= JoystickMode::KEYBOARD) setJoystickMode(v); });
+			case CFGKEY_AUTOSTART_BASIC_LOAD: return readOptionValue<bool>(io, [&](auto v){ setIntResource("AutostartBasicLoad", v); });
+			case CFGKEY_JOYSTICK_MODE: return readOptionValue(io, joystickMode);
 			case CFGKEY_AUTOSTART_ON_LOAD: return readOptionValue(io, optionAutostartOnLaunch);
 			case CFGKEY_VIC20_RAM_EXPANSIONS: return readOptionValue<uint8_t>(io, [&](auto blocks)
 			{
@@ -249,14 +255,15 @@ void C64System::writeConfig(ConfigType type, FileIO &io)
 		writeOptionValueIfNotDefault(io, CFGKEY_COLOR_BRIGHTNESS, int16_t(colorSetting(ColorSetting::Brightness)), 1000);
 		writeOptionValueIfNotDefault(io, CFGKEY_COLOR_GAMMA, int16_t(colorSetting(ColorSetting::Gamma)), 1000);
 		writeOptionValueIfNotDefault(io, CFGKEY_COLOR_TINT, int16_t(colorSetting(ColorSetting::Tint)), 1000);
+		writeOptionValueIfNotDefault(io, defaultJoystickMode);
 	}
 	else if(type == ConfigType::SESSION)
 	{
 		writeOptionValueIfNotDefault(io, CFGKEY_MODEL, model(), defaultModel);
 		writeOptionValueIfNotDefault(io, CFGKEY_AUTOSTART_WARP, autostartWarp(), true);
 		writeOptionValueIfNotDefault(io, CFGKEY_AUTOSTART_TDE, autostartTDE(), false);
-		writeOptionValueIfNotDefault(io, CFGKEY_AUTOSTART_BASIC_LOAD, autostartBasicLoad(), false);
-		writeOptionValueIfNotDefault(io, CFGKEY_SWAP_JOYSTICK_PORTS, optionSwapJoystickPorts, JoystickMode::NORMAL);
+		writeOptionValueIfNotDefault(io, CFGKEY_AUTOSTART_BASIC_LOAD, intResource("AutostartBasicLoad"), defaultIntResource("AutostartBasicLoad"));
+		writeOptionValueIfNotDefault(io, joystickMode);
 		writeOptionValueIfNotDefault(io, CFGKEY_AUTOSTART_ON_LOAD, optionAutostartOnLaunch, true);
 		if(currSystem == ViceSystem::VIC20) // save RAM expansion settings
 		{

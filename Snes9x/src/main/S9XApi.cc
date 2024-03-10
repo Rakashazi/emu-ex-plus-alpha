@@ -244,7 +244,7 @@ void S9xReadBSXBios(uint8 *data)
 	}
 	else
 	{
-		auto io = appCtx.openFileUri(bsxBiosPath, IOAccessHint::All);
+		auto io = appCtx.openFileUri(bsxBiosPath, {.accessHint = IOAccessHint::All});
 		auto size = io.read(data, BsxBiosSize);
 		if(!isBsxBios(data, size))
 			throw std::runtime_error{"Incompatible BS-X BIOS"};

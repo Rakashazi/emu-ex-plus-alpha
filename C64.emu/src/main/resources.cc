@@ -48,6 +48,7 @@ bool C64System::updateIntResourceInCPUTrap(const char *name, int val)
 {
 	if(intResource(name) == val)
 		return false;
+	log.info("updating resource:{} to:{}", name, val);
 	enterCPUTrap();
 	setIntResource(name, val);
 	return true;
@@ -108,16 +109,6 @@ void C64System::setAutostartTDE(bool on)
 bool C64System::autostartTDE() const
 {
 	return intResource("AutostartHandleTrueDriveEmulation");
-}
-
-void C64System::setAutostartBasicLoad(bool on)
-{
-	setIntResource("AutostartBasicLoad", on);
-}
-
-bool C64System::autostartBasicLoad() const
-{
-	return intResource("AutostartBasicLoad");
 }
 
 void C64System::setBorderMode(int mode)
@@ -224,6 +215,8 @@ void C64System::setColorSetting(ColorSetting s, int v)
 
 void C64System::setReuSize(int size)
 {
+	if(!currSystemIsC64Or128())
+		return;
 	enterCPUTrap();
 	if(size)
 	{

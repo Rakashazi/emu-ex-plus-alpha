@@ -40,9 +40,7 @@ public:
 	using IOUtilsBase::toFileStream;
 
 	constexpr PosixFileIO() = default;
-	PosixFileIO(UniqueFileDescriptor fd, AccessHint access, OpenFlags);
 	PosixFileIO(UniqueFileDescriptor fd, OpenFlags);
-	PosixFileIO(CStringView path, AccessHint access, OpenFlags oFlags = {});
 	PosixFileIO(CStringView path, OpenFlags oFlags = {});
 	PosixFileIO(PosixIO);
 	PosixFileIO(MapIO);
@@ -59,12 +57,12 @@ public:
 	IOBuffer releaseBuffer();
 	UniqueFileDescriptor releaseFd();
 	operator IO();
-	bool tryMap(AccessHint access, OpenFlags);
+	bool tryMap(OpenFlags);
 
 private:
 	std::variant<PosixIO, MapIO> ioImpl{};
 
-	void initMmap(AccessHint access, OpenFlags openFlags);
+	void initMmap(OpenFlags openFlags);
 };
 
 }

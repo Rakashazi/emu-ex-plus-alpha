@@ -141,11 +141,11 @@ FS::PathString ApplicationContext::libPath(const char *) const
 	return {};
 }
 
-FileIO ApplicationContext::openFileUri(CStringView uri, IOAccessHint access, OpenFlags openFlags) const
+FileIO ApplicationContext::openFileUri(CStringView uri, OpenFlags openFlags) const
 {
 	if(androidSDK() < 19 || !isUri(uri))
-		return {uri, access, openFlags};
-	return {application().openFileUriFd(thisThreadJniEnv(), baseActivityObject(), uri, openFlags), access, openFlags};
+		return {uri, openFlags};
+	return {application().openFileUriFd(thisThreadJniEnv(), baseActivityObject(), uri, openFlags), openFlags};
 }
 
 UniqueFileDescriptor ApplicationContext::openFileUriFd(CStringView uri, OpenFlags openFlags) const

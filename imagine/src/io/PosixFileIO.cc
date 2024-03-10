@@ -46,47 +46,41 @@ static void applyAccessHint(PosixFileIO &io, IOAccessHint access, bool isMapped)
 	}
 }
 
-PosixFileIO::PosixFileIO(UniqueFileDescriptor fd_, IOAccessHint access, OpenFlags openFlags):
+PosixFileIO::PosixFileIO(UniqueFileDescriptor fd_, OpenFlags openFlags):
 	ioImpl{std::in_place_type<PosixIO>, std::move(fd_)}
 {
-	initMmap(access, openFlags);
-}
-
-PosixFileIO::PosixFileIO(UniqueFileDescriptor fd, OpenFlags openFlags):
-	PosixFileIO{std::move(fd), IOAccessHint::Normal, openFlags} {}
-
-PosixFileIO::PosixFileIO(CStringView path, IOAccessHint access, OpenFlags openFlags):
-	ioImpl{std::in_place_type<PosixIO>, path, openFlags}
-{
-	initMmap(access, openFlags);
+	initMmap(openFlags);
 }
 
 PosixFileIO::PosixFileIO(CStringView path, OpenFlags openFlags):
-	PosixFileIO{path, IOAccessHint::Normal, openFlags} {}
+	ioImpl{std::in_place_type<PosixIO>, path, openFlags}
+{
+	initMmap(openFlags);
+}
 
 PosixFileIO::PosixFileIO(PosixIO io): ioImpl{std::move(io)} {}
 
 PosixFileIO::PosixFileIO(MapIO io): ioImpl{std::move(io)} {}
 
-void PosixFileIO::initMmap(IOAccessHint access, OpenFlags openFlags)
+void PosixFileIO::initMmap(OpenFlags openFlags)
 {
 	if(!getAs<PosixIO>(ioImpl))
 		return;
 	if(openFlags.write
-		|| !tryMap(access, openFlags)) // try to open as memory map only if read-only
+		|| !tryMap(openFlags)) // try to open as memory map only if read-only
 	{
-		applyAccessHint(*this, access, false);
+		applyAccessHint(*this, openFlags.accessHint, false);
 	}
 }
 
-bool PosixFileIO::tryMap(IOAccessHint access, OpenFlags openFlags)
+bool PosixFileIO::tryMap(OpenFlags openFlags)
 {
 	return visit(overloaded
 	{
 		[&](PosixIO &io)
 		{
 			IOMapFlags flags{};
-			if(access == IOAccessHint::All)
+			if(openFlags.accessHint == IOAccessHint::All)
 				flags.populatePages = true;
 			if(openFlags.write)
 				flags.write = true;
@@ -94,7 +88,7 @@ bool PosixFileIO::tryMap(IOAccessHint access, OpenFlags openFlags)
 			if(!mappedFile)
 				return false;
 			ioImpl = std::move(mappedFile);
-			applyAccessHint(*this, access, true);
+			applyAccessHint(*this, openFlags.accessHint, true);
 			return true;
 		},
 		[&](MapIO &) { return true; }

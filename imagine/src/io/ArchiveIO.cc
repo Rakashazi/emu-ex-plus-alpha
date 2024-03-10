@@ -78,7 +78,7 @@ ArchiveIO &ArchiveIO::operator=(ArchiveIO &&) noexcept = default;
 
 ArchiveIO::ArchiveIO(CStringView path)
 {
-	init(FileIO{path, IOAccessHint::Sequential});
+	init(FileIO{path, {.accessHint = IOAccessHint::Sequential}});
 }
 
 ArchiveIO::ArchiveIO(FileIO io) { init(std::move(io)); }

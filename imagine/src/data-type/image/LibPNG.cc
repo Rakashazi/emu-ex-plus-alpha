@@ -398,12 +398,12 @@ PixmapImage PixmapReader::load(const char *name, PixmapReaderParams params) cons
 		logErr("suffix doesn't match PNG image");
 		return {};
 	}
-	return load(FileIO{name, IOAccessHint::All, {.test = true}}, params);
+	return load(FileIO{name, {.test = true, .accessHint = IOAccessHint::All}}, params);
 }
 
 PixmapImage PixmapReader::loadAsset(const char *name, PixmapReaderParams params, const char *appName) const
 {
-	return load(appContext().openAsset(name, IOAccessHint::All, {}, appName), params);
+	return load(appContext().openAsset(name, {.accessHint = IOAccessHint::All}, appName), params);
 }
 
 bool PixmapWriter::writeToFile(PixmapView pix, const char *path) const
