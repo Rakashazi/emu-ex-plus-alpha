@@ -27,7 +27,6 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/Vec3.hh>
 #include <imagine/gfx/Mat4.hh>
-#include <imagine/glm/common.hpp>
 #include <imagine/glm/gtc/color_space.hpp>
 #include <imagine/logger/logger.h>
 #include <algorithm>

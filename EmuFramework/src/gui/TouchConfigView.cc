@@ -727,6 +727,9 @@ public:
 		buttons.emplace_back(
 			leftUIComponents.name, attach,
 			[this](const Input::Event &e){ add(leftUIComponents); });
+		buttons.emplace_back(
+			rewindUIComponents.name, attach,
+			[this](const Input::Event &e){ add(rewindUIComponents); });
 	}
 
 private:
