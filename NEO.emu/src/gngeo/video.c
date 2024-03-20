@@ -26,10 +26,8 @@
 #include "video.h"
 #include "memory.h"
 #include "emu.h"
-#include "messages.h"
-#include "screen.h"
-#include "frame_skip.h"
 #include "transpack.h"
+#include "screen.h"
 #include <imagine/logger/logger.h>
 
 extern int neogeo_fix_bank_type;

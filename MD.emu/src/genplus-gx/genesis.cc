@@ -113,11 +113,11 @@ void gen_init(void)
   {
     /* initialize Z80 read handler */
     /* NB: memory map & write handler are defined by cartridge hardware */
-    z80_readmem = z80_sms_memory_r;
+    Z80.onReadMem = z80_sms_memory_r;
 
     /* initialize Z80 ports handlers */
-    z80_writeport = z80_sms_port_w;
-    z80_readport  = z80_sms_port_r;
+    Z80.onWritePort = z80_sms_port_w;
+    Z80.onReadPort  = z80_sms_port_r;
 
     /* initialize MS cartridge hardware */
     sms_cart_init();
@@ -162,12 +162,12 @@ void gen_init(void)
     }
 
     /* initialize Z80 memory handlers */
-    z80_writemem  = z80_md_memory_w;
-    z80_readmem   = z80_md_memory_r;
+    Z80.onWriteMem  = z80_md_memory_w;
+    Z80.onReadMem   = z80_md_memory_r;
 
     /* initialize Z80 port handlers */
-    z80_writeport = z80_unused_port_w;
-    z80_readport  = z80_unused_port_r;
+    Z80.onWritePort = z80_unused_port_w;
+    Z80.onReadPort  = z80_unused_port_r;
 
     /* initialize MD cartridge hardware */
     md_cart_init();

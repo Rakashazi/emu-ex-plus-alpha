@@ -2846,6 +2846,7 @@ void YM2610ChangeSamplerate(int rate) {
 		YM2610.adpcma[i].step = (u32) ((double) (1 << ADPCM_SHIFT) * ((double) YM2610.OPN.ST.freqbase) / 3.0);
 	}
 	YM2610.adpcmb.freqbase = YM2610.OPN.ST.freqbase;
+	YM2610.adpcmb.step  = (u32)((double)(YM2610.adpcmb.delta) * (YM2610.adpcmb.freqbase));
 }
 /* reset one of chip */
 void YM2610Reset(void)

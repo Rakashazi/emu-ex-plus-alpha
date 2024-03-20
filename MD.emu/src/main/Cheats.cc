@@ -15,6 +15,7 @@
 
 #include <emuframework/EmuApp.hh>
 #include <main/Cheats.hh>
+#include <z80.hh>
 #include "EmuCheatViews.hh"
 #include "MainSystem.hh"
 #include <imagine/io/FileIO.hh>
@@ -26,7 +27,6 @@
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include "system.h"
-#include "z80.h"
 #include "loadrom.h"
 #include "md_cart.h"
 #include "genesis.h"

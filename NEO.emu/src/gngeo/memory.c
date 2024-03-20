@@ -24,7 +24,6 @@
 #include "video.h"
 #include "memory.h"
 #include "pd4990a.h"
-#include "transpack.h"
 #include <imagine/logger/logger.h>
 
 #ifdef GP2X
@@ -52,15 +51,16 @@ Uint16 z80_bank[4];
 
 Uint32 bankaddress = 0;
 
-void neogeo_sound_irq(int irq) {
-	//printf("neogeo_sound_irq %d\n",irq);
-#ifndef ENABLE_940T
-	if (irq) {
+void neogeo_sound_irq(int irq)
+{
+	if(irq)
+	{
 		cpu_z80_raise_irq(0);
-	} else
-	cpu_z80_lower_irq();
-#endif
-	//printf("neogeo_sound_end %d\n",irq);
+	}
+	else
+	{
+		cpu_z80_lower_irq();
+	}
 }
 
 static __inline__ Uint16 read_neo_control(void) {
@@ -402,21 +402,11 @@ Uint8 mem68k_fetch_coin_byte(Uint32 addr) {
 	}
 	if (addr == 0x0) {
 		int res = 0;
-		if (conf.sound) {
-			//printf("fetch coin byte, rescoe= %x\n",result_code);
-#ifdef ENABLE_940T
-
-			res |= shared_ctl->result_code;
-			if (shared_ctl->pending_command)
-				res &= 0x7f;
-#else
-			res |= result_code;
-			if (pending_command)
+		syncZ80();
+		//printf("fetch coin byte, rescoe= %x\n",result_code);
+		res |= result_code;
+		if (pending_command)
 			res &= 0x7f;
-#endif
-		} else {
-			res |= 0x01;
-		}
 		return res;
 	}
 	return 0;
@@ -639,59 +629,21 @@ void mem68k_store_pd4990_long(Uint32 addr, Uint32 data) {
 /**** Z80 ****/
 void mem68k_store_z80_byte(Uint32 addr, Uint8 data) {
 	if (addr == 0x320000) {
+		syncZ80();
 		sound_code = data & 0xff;
 		pending_command = 1;
 		//printf("B Pending command. Sound_code=%02x\n",sound_code);
-		if (conf.sound) {
-#ifdef ENABLE_940T
-			//printf("%d\n",shared_ctl->pending_command);
-			shared_ctl->sound_code = sound_code;
-			shared_ctl->pending_command = pending_command;
-			//shared_ctl->pending_command=pending_command++;
-			shared_ctl->nmi_pending = 1;
-
-			if (conf.accurate940) {
-				while (CHECK_BUSY(JOB940_RUN_Z80)
-						&& shared_ctl->pending_command)
-					;
-				if (shared_ctl->nmi_pending) {
-					gp2x_add_job940(JOB940_RUN_Z80_NMI);
-					while (CHECK_BUSY(JOB940_RUN_Z80_NMI))
-						;
-				}
-			}
-#else
-			cpu_z80_nmi();
-			cpu_z80_run(300);
-#endif
-		}
+		cpu_z80_nmi();
 	}
 }
 void mem68k_store_z80_word(Uint32 addr, Uint16 data) {
 	/* tpgolf use word store for sound */
 	if (addr == 0x320000) {
+		syncZ80();
 		sound_code = data >> 8;
 		pending_command = 1;
 		//printf("W Pending command. Sound_code=%02x\n",sound_code);
-		if (conf.sound) {
-#ifdef ENABLE_940T
-			shared_ctl->sound_code = sound_code;
-			shared_ctl->pending_command = pending_command;
-			shared_ctl->nmi_pending = 1;
-			if (conf.accurate940) {
-				while (CHECK_BUSY(JOB940_RUN_Z80))
-					;
-				if (shared_ctl->nmi_pending) {
-					gp2x_add_job940(JOB940_RUN_Z80_NMI);
-					while (CHECK_BUSY(JOB940_RUN_Z80_NMI))
-						;
-				}
-			}
-#else
-			cpu_z80_nmi();
-			cpu_z80_run(300);
-#endif
-		}
+		cpu_z80_nmi();
 	}
 }
 void mem68k_store_z80_long(Uint32 addr, Uint32 data) {

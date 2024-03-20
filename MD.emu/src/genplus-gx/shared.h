@@ -8,7 +8,6 @@
 #include "genplus-config.h"
 #include "macros.h"
 #include "m68k.h"
-#include "z80.h"
 #include "system.h"
 #include "genesis.h"
 #include "vdp_ctrl.h"

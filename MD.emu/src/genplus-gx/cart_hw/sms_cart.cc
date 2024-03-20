@@ -189,23 +189,23 @@ void sms_cart_init(void)
   switch(slot.mapper)
   {
     case MAPPER_NONE:
-      z80_writemem = write_mapper_none;
+    	Z80.onWriteMem = write_mapper_none;
       break;
 
     case MAPPER_CODIES:
-      z80_writemem = write_mapper_codies;
+    	Z80.onWriteMem = write_mapper_codies;
       break;
 
     case MAPPER_KOREA:
-      z80_writemem = write_mapper_korea;
+    	Z80.onWriteMem = write_mapper_korea;
       break;
 
     case MAPPER_MSX:
-      z80_writemem = write_mapper_msx;
+    	Z80.onWriteMem = write_mapper_msx;
       break;
 
     default:
-      z80_writemem = write_mapper_sega;
+    	Z80.onWriteMem = write_mapper_sega;
       break;
   }
 

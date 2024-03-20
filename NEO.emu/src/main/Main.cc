@@ -33,9 +33,8 @@ extern "C"
 	#include <gngeo/timer.h>
 	#include <gngeo/memory.h>
 	#include <gngeo/video.h>
-	#include <gngeo/screen.h>
-	#include <gngeo/menu.h>
 	#include <gngeo/resfile.h>
+	#include <gngeo/menu.h>
 
 	CONFIG conf{};
 	GN_Rect visible_area;
@@ -113,7 +112,6 @@ NeoSystem::NeoSystem(ApplicationContext ctx):
 	sdlSurf.w = FBResX;
 	sdlSurf.pixels = screenBuff;
 	buffer = &sdlSurf;
-	conf.sound = 1;
 	conf.sample_rate = 4096; // must be initialized to any valid value for YM2610Init()
 	strcpy(rompathConfItem.data.dt_str.str, ".");
 	if(!Config::envIsAndroid)
@@ -457,6 +455,11 @@ CLINK void screen_update(void *emuTaskCtxPtr, void *neoSystemPtr, void *emuVideo
 	{
 		//logMsg("skipping render");
 	}
+}
+
+CLINK int currentZ80Timeslice()
+{
+	return IG::remap(memory.vid.current_line, 0, 264, 0, 256);
 }
 
 void sramWritten()

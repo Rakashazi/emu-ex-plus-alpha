@@ -1,6 +1,0 @@
-#ifndef EPEND
-#warning ************************************************
-#warning * WARNING: this s/w is an ALPHA TEST release!! *
-#warning * Please report bugs to: Ian.Piumarta@INRIA.Fr *
-#warning ************************************************
-#endif

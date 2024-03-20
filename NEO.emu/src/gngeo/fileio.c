@@ -40,13 +40,9 @@
 #include "emu.h"
 #include "fileio.h"
 #include "neocrypt.h"
-#include "screen.h"
 #include "conf.h"
-//#include "pbar.h"
 #include "sound.h"
-#include "transpack.h"
 #include "menu.h"
-#include "frame_skip.h"
 #include <imagine/logger/logger.h>
 
 #ifdef GP2X
@@ -63,8 +59,6 @@
 
 //Uint8 *current_buf;
 //char *rom_file;
-
-void sdl_set_title(char *name);
 
 void chomp(char *str) {
     int i = 0;
@@ -150,7 +144,6 @@ int init_game(void *contextPtr, char *rom_name, char romerror[1024]) {
 	load_game_config(contextPtr, rom_name);
 	/* reinit screen if necessary */
 	//screen_change_blitter_and_effect(NULL,NULL);
-	reset_frame_skip();
 	screen_reinit();
 	//logMsg("BBB Blitter %s effect %s\n",CF_STR(cf_get_item_by_name("blitter")),CF_STR(cf_get_item_by_name("effect")));
     /* open transpack if need */
@@ -178,9 +171,6 @@ int init_game(void *contextPtr, char *rom_name, char romerror[1024]) {
 
     }
 
-#ifndef GP2X
-    sdl_set_title(conf.game);
-#endif
     init_neo();
     setup_misc_patch(conf.game);
 

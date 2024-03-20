@@ -27,8 +27,6 @@
 
 #include <string.h>
 #include <stdint.h>
-//#include "SDL.h"
-//#include "SDL_types.h"
 #define Uintptr uintptr_t
 
 
@@ -62,7 +60,6 @@ typedef struct {
     Uint16 sample_rate;
     Uint16 test_switch;
 
-    Uint8 sound;
     //Uint8 vsync;
     Uint8 snd_st_reg_create;
     //Uint8 do_message;
@@ -100,42 +97,6 @@ typedef struct {
 } CONFIG;
 extern CONFIG conf;
 
-enum {
-    HOTKEY_MASK_A = 0x1,
-    HOTKEY_MASK_B = 0x2,
-    HOTKEY_MASK_C = 0x4,
-    HOTKEY_MASK_D = 0x8,
-};
-
-enum {
-    BUT_A = 0,
-    BUT_B,
-    BUT_C,
-    BUT_D,
-    BUT_START,
-    BUT_COIN,
-    KB_UP,
-    KB_DOWN,
-    KB_LEFT,
-    KB_RIGHT,
-    BUT_HOTKEY0,
-    BUT_HOTKEY1,
-    BUT_HOTKEY2,
-    BUT_HOTKEY3
-};
-enum {
-    AXE_X = 6,
-    AXE_Y,
-    AXE_X_DIR,
-    AXE_Y_DIR
-};
-
-//config conf;
-
-//Uint8 key[SDLK_LAST];
-extern Uint8 *joy_button[2];
-extern Sint32 *joy_axe[2];
-extern Uint32 joy_numaxes[2];
 extern unsigned int fc;
 extern int last_line;
 
@@ -145,15 +106,8 @@ void init_neo(void);
 void cpu_68k_dpg_step(int skip_this_frame, void *emuTaskPtr, void *neoSystemPtr, void *emuVideoPtr);
 void setup_misc_patch(char *name);
 void neogeo_reset(void);
-
-#ifdef ENABLE_PROFILER
-#define PROFILER_START profiler_start
-#define PROFILER_STOP profiler_stop
-
-#else
-#define PROFILER_START(a)
-#define PROFILER_STOP(a)
-#endif
+int currentZ80Timeslice();
+void syncZ80();
 
 /* LOG generation */
 #define GNGEO_LOG(...)

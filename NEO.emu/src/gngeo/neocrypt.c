@@ -46,8 +46,7 @@
 
 ***************************************************************************/
 
-//#include "driver.h"
-//#include "neogeo.h"
+#include <gngeo-config.h>
 #include "resfile.h"
 #include "mame_layer.h"
 #include "menu.h"
@@ -954,28 +953,20 @@ void neogeo_cmc50_m1_decrypt(void *contextPtr, running_machine *machine)
 {
 	UINT8* rom = memory_region(machine, "audiocrypt");
 	size_t rom_size = 0x80000;
-	//size_t rom_size = memory_region_length(machine, "audiocrypt");;
 	UINT8* rom2 = memory_region(machine, "audiocpu");
-
 	UINT8* buffer = alloc_array_or_die(UINT8, rom_size);
 
-	UINT32 i;
-
-	UINT16 key=generate_cs16(rom,0x10000);
+	UINT16 key = generate_cs16(rom,0x10000);
 
 	/* TODO don't open it 2 times... */
 	load_cmc50_table(contextPtr);
-	//printf("key %04x\n",key);
 
-	for (i=0; i<rom_size; i++)
+	for (size_t i = 0;  i < rom_size; i++)
 	{
 		buffer[i] = rom[m1_address_scramble(i,key)];
 	}
 
-	memcpy(rom,buffer,rom_size);
-
-	memcpy(rom2,rom,0x10000);
-	memcpy(rom2+0x10000,rom,0x80000);
+	memcpy(rom2, buffer, rom_size);
 
 	#if 0
 	{

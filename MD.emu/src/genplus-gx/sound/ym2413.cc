@@ -27,9 +27,8 @@ to do:
 
 /** EkeEke (2011): removed multiple chips support and cleaned code for Genesis Plus GX **/
 
-#include <math.h>
-
 #include "shared.h"
+#include <cmath>
 
 /* compiler dependence */
 #define INLINE static __inline__

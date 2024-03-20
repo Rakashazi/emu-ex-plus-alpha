@@ -6,6 +6,8 @@
 #ifndef _SN76489_H_
 #define _SN76489_H_
 
+#include <genplus-config.h>
+
 /* Function prototypes */
 
 extern void SN76489_Init(double PSGClockValue, int SamplingRate);

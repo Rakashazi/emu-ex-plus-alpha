@@ -43,6 +43,7 @@ uint32 mcycles_vdp;
 uint8 system_hw;
 void (*system_frame)(EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *);
 int (*audioUpdateFunc)(int16 *sb);
+Z80CPU<z80Desc> Z80;
 
 template <bool hasSegaCD = 0>
 static void system_frame_md(EmuEx::EmuSystemTaskContext, EmuEx::EmuVideo *);

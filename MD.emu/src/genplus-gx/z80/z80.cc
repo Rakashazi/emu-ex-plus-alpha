@@ -123,201 +123,296 @@
  *****************************************************************************/
 
 #include <imagine/logger/logger.h>
-#include <genplus-config.h>
 #include <imagine/util/ranges.hh>
-#include <string.h>
+#include <cstring>
 
-#include "z80.h"
+#include <z80conf.hh>
 
-
-static const unsigned CF = 0x01;
-static const unsigned NF = 0x02;
-static const unsigned PF = 0x04;
-static const unsigned VF = PF;
-static const unsigned XF = 0x08;
-static const unsigned HF = 0x10;
-static const unsigned YF = 0x20;
-static const unsigned ZF = 0x40;
-static const unsigned SF = 0x80;
-
-#define INLINE __attribute__((hot)) static
-
-// TODO: move global instance into Genesis code
-Z80CPU Z80;
+constexpr unsigned CF = 0x01;
+constexpr unsigned NF = 0x02;
+constexpr unsigned PF = 0x04;
+constexpr unsigned VF = PF;
+constexpr unsigned XF = 0x08;
+constexpr unsigned HF = 0x10;
+constexpr unsigned YF = 0x20;
+constexpr unsigned ZF = 0x40;
+constexpr unsigned SF = 0x80;
 
 #define LOG(x)
-#define CC(prefix,opcode) Z80.cycleCount += cc[Z80_TABLE_##prefix][opcode]
+#define CC(prefix,opcode) cycleCount += cc[Z80_TABLE_##prefix][opcode]
 
-static UINT32 EA = 0;
+static uint32_t EA = 0;
 
-static UINT8 SZ[256];       /* zero and sign flags */
-static UINT8 SZ_BIT[256];   /* zero, sign and parity/overflow (=zero) flags for BIT opcode */
-static UINT8 SZP[256];      /* zero, sign and parity flags */
-static UINT8 SZHV_inc[256]; /* zero, sign, half carry and overflow flags INC r8 */
-static UINT8 SZHV_dec[256]; /* zero, sign, half carry and overflow flags DEC r8 */
+struct FlagTables
+{
+	uint8_t SZ[256];       /* zero and sign flags */
+	uint8_t SZ_BIT[256];   /* zero, sign and parity/overflow (=zero) flags for BIT opcode */
+	uint8_t SZP[256];      /* zero, sign and parity flags */
+	uint8_t SZHV_inc[256]; /* zero, sign, half carry and overflow flags INC r8 */
+	uint8_t SZHV_dec[256]; /* zero, sign, half carry and overflow flags DEC r8 */
+	uint8_t SZHVC_add[2*256*256]; /* flags for ADD opcode */
+	uint8_t SZHVC_sub[2*256*256]; /* flags for SUB opcode */
+};
 
-static UINT8 SZHVC_add[2*256*256];
-static UINT8 SZHVC_sub[2*256*256];
+#define SZ flagTables.SZ
+#define SZ_BIT flagTables.SZ_BIT
+#define SZP flagTables.SZP
+#define SZHV_inc flagTables.SZHV_inc
+#define SZHV_dec flagTables.SZHV_dec
+#define SZHVC_add flagTables.SZHVC_add
+#define SZHVC_sub flagTables.SZHVC_sub
 
-#define PCD  Z80.pc.d
-#define PC Z80.pc.w.l
+constexpr auto makeFlagTables()
+{
+	FlagTables flagTables{};
+	uint8_t *padd = &SZHVC_add[  0*256];
+	uint8_t *padc = &SZHVC_add[256*256];
+	uint8_t *psub = &SZHVC_sub[  0*256];
+	uint8_t *psbc = &SZHVC_sub[256*256];
+	for (int oldval = 0; oldval < 256; oldval++)
+	{
+		for (int newval = 0; newval < 256; newval++)
+		{
+			/* add or adc w/o carry set */
+			int val = newval - oldval;
+			*padd = (newval) ? ((newval & 0x80) ? SF : 0) : ZF;
+			*padd |= (newval & (YF | XF));  /* undocumented flag bits 5+3 */
+			if( (newval & 0x0f) < (oldval & 0x0f) ) *padd |= HF;
+			if( newval < oldval ) *padd |= CF;
+			if( (val^oldval^0x80) & (val^newval) & 0x80 ) *padd |= VF;
+			padd++;
 
-#define SPD Z80.sp.d
-#define SP Z80.sp.w.l
+			/* adc with carry set */
+			val = newval - oldval - 1;
+			*padc = (newval) ? ((newval & 0x80) ? SF : 0) : ZF;
+			*padc |= (newval & (YF | XF));  /* undocumented flag bits 5+3 */
+			if( (newval & 0x0f) <= (oldval & 0x0f) ) *padc |= HF;
+			if( newval <= oldval ) *padc |= CF;
+			if( (val^oldval^0x80) & (val^newval) & 0x80 ) *padc |= VF;
+			padc++;
 
-#define AFD Z80.af.d
-#define AF Z80.af.w.l
-#define A Z80.af.b.h
-#define F Z80.af.b.l
+			/* cp, sub or sbc w/o carry set */
+			val = oldval - newval;
+			*psub = NF | ((newval) ? ((newval & 0x80) ? SF : 0) : ZF);
+			*psub |= (newval & (YF | XF));  /* undocumented flag bits 5+3 */
+			if( (newval & 0x0f) > (oldval & 0x0f) ) *psub |= HF;
+			if( newval > oldval ) *psub |= CF;
+			if( (val^oldval) & (oldval^newval) & 0x80 ) *psub |= VF;
+			psub++;
 
-#define BCD Z80.bc.d
-#define BC Z80.bc.w.l
-#define B Z80.bc.b.h
-#define C Z80.bc.b.l
+			/* sbc with carry set */
+			val = oldval - newval - 1;
+			*psbc = NF | ((newval) ? ((newval & 0x80) ? SF : 0) : ZF);
+			*psbc |= (newval & (YF | XF));  /* undocumented flag bits 5+3 */
+			if( (newval & 0x0f) >= (oldval & 0x0f) ) *psbc |= HF;
+			if( newval >= oldval ) *psbc |= CF;
+			if( (val^oldval) & (oldval^newval) & 0x80 ) *psbc |= VF;
+			psbc++;
+		}
+	}
+	for(auto i : IG::iotaCount(256))
+	{
+		int p = 0;
+		if( i&0x01 ) ++p;
+		if( i&0x02 ) ++p;
+		if( i&0x04 ) ++p;
+		if( i&0x08 ) ++p;
+		if( i&0x10 ) ++p;
+		if( i&0x20 ) ++p;
+		if( i&0x40 ) ++p;
+		if( i&0x80 ) ++p;
+		SZ[i] = i ? i & SF : ZF;
+		SZ[i] |= (i & (YF | XF));    /* undocumented flag bits 5+3 */
+		SZ_BIT[i] = i ? i & SF : ZF | PF;
+		SZ_BIT[i] |= (i & (YF | XF));  /* undocumented flag bits 5+3 */
+		SZP[i] = SZ[i] | ((p & 1) ? 0 : PF);
+		SZHV_inc[i] = SZ[i];
+		if( i == 0x80 ) SZHV_inc[i] |= VF;
+		if( (i & 0x0f) == 0x00 ) SZHV_inc[i] |= HF;
+		SZHV_dec[i] = SZ[i] | NF;
+		if( i == 0x7f ) SZHV_dec[i] |= VF;
+		if( (i & 0x0f) == 0x0f ) SZHV_dec[i] |= HF;
+	}
+	return flagTables;
+}
 
-#define DED Z80.de.d
-#define DE Z80.de.w.l
-#define D Z80.de.b.h
-#define E Z80.de.b.l
+constexpr FlagTables flagTables = makeFlagTables();
 
-#define HLD Z80.hl.d
-#define HL Z80.hl.w.l
-#define H Z80.hl.b.h
-#define L Z80.hl.b.l
+#define PCD  pc.d
+#define PC pc.w.l
 
-#define IXD Z80.ix.d
-#define IX Z80.ix.w.l
-#define HX Z80.ix.b.h
-#define LX Z80.ix.b.l
+#define SPD sp.d
+#define SP sp.w.l
 
-#define IYD Z80.iy.d
-#define IY Z80.iy.w.l
-#define HY Z80.iy.b.h
-#define LY Z80.iy.b.l
+#define AFD af.d
+#define AF af.w.l
+#define A af.b.h
+#define F af.b.l
 
-#define WZ   Z80.wz.w.l
-#define WZ_H Z80.wz.b.h
-#define WZ_L Z80.wz.b.l
+#define BCD bc.d
+#define BC bc.w.l
+#define B bc.b.h
+#define C bc.b.l
 
-#define I Z80.i
-#define R Z80.r
-#define R2 Z80.r2
-#define IM Z80.im
-#define IFF1 Z80.iff1
-#define IFF2 Z80.iff2
-#define HALT Z80.halt
+#define DED de.d
+#define DE de.w.l
+#define D de.b.h
+#define E de.b.l
 
-static const UINT16 cc_op[0x100] = {
-   4*15,10*15, 7*15, 6*15, 4*15, 4*15, 7*15, 4*15, 4*15,11*15, 7*15, 6*15, 4*15, 4*15, 7*15, 4*15,
-   8*15,10*15, 7*15, 6*15, 4*15, 4*15, 7*15, 4*15,12*15,11*15, 7*15, 6*15, 4*15, 4*15, 7*15, 4*15,
-   7*15,10*15,16*15, 6*15, 4*15, 4*15, 7*15, 4*15, 7*15,11*15,16*15, 6*15, 4*15, 4*15, 7*15, 4*15,
-   7*15,10*15,13*15, 6*15,11*15,11*15,10*15, 4*15, 7*15,11*15,13*15, 6*15, 4*15, 4*15, 7*15, 4*15,
-   4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 7*15, 4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 7*15, 4*15,
-   4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 7*15, 4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 7*15, 4*15,
-   4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 7*15, 4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 7*15, 4*15,
-   7*15, 7*15, 7*15, 7*15, 7*15, 7*15, 4*15, 7*15, 4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 7*15, 4*15,
-   4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 7*15, 4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 7*15, 4*15,
-   4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 7*15, 4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 7*15, 4*15,
-   4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 7*15, 4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 7*15, 4*15,
-   4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 7*15, 4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 4*15, 7*15, 4*15,
-   5*15,10*15,10*15,10*15,10*15,11*15, 7*15,11*15, 5*15,10*15,10*15, 0*15,10*15,17*15, 7*15,11*15,
-   5*15,10*15,10*15,11*15,10*15,11*15, 7*15,11*15, 5*15, 4*15,10*15,11*15,10*15, 0*15, 7*15,11*15,
-   5*15,10*15,10*15,19*15,10*15,11*15, 7*15,11*15, 5*15, 4*15,10*15, 4*15,10*15, 0*15, 7*15,11*15,
-   5*15,10*15,10*15, 4*15,10*15,11*15, 7*15,11*15, 5*15, 6*15,10*15, 4*15,10*15, 0*15, 7*15,11*15};
+#define HLD hl.d
+#define HL hl.w.l
+#define H hl.b.h
+#define L hl.b.l
 
-static const UINT16 cc_cb[0x100] = {
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15,12*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,12*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15,12*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,12*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15,12*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,12*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15,12*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,12*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,15*15, 8*15};
+#define IXD ix.d
+#define IX ix.w.l
+#define HX ix.b.h
+#define LX ix.b.l
 
-static const UINT16 cc_ed[0x100] = {
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,
-  12*15,12*15,15*15,20*15, 8*15,14*15, 8*15, 9*15,12*15,12*15,15*15,20*15, 8*15,14*15, 8*15, 9*15,
-  12*15,12*15,15*15,20*15, 8*15,14*15, 8*15, 9*15,12*15,12*15,15*15,20*15, 8*15,14*15, 8*15, 9*15,
-  12*15,12*15,15*15,20*15, 8*15,14*15, 8*15,18*15,12*15,12*15,15*15,20*15, 8*15,14*15, 8*15,18*15,
-  12*15,12*15,15*15,20*15, 8*15,14*15, 8*15, 8*15,12*15,12*15,15*15,20*15, 8*15,14*15, 8*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,
-  16*15,16*15,16*15,16*15, 8*15, 8*15, 8*15, 8*15,16*15,16*15,16*15,16*15, 8*15, 8*15, 8*15, 8*15,
-  16*15,16*15,16*15,16*15, 8*15, 8*15, 8*15, 8*15,16*15,16*15,16*15,16*15, 8*15, 8*15, 8*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15, 8*15};
+#define IYD iy.d
+#define IY iy.w.l
+#define HY iy.b.h
+#define LY iy.b.l
+
+#define WZ   wz.w.l
+#define WZ_H wz.b.h
+#define WZ_L wz.b.l
+
+#define I i
+#define R r
+#define R2 r2
+#define IM im
+#define IFF1 iff1
+#define IFF2 iff2
+#define HALT halt
+
+constexpr std::array<uint16_t, 0x100> base_cc_op = {
+   4,10, 7, 6, 4, 4, 7, 4, 4,11, 7, 6, 4, 4, 7, 4,
+   8,10, 7, 6, 4, 4, 7, 4,12,11, 7, 6, 4, 4, 7, 4,
+   7,10,16, 6, 4, 4, 7, 4, 7,11,16, 6, 4, 4, 7, 4,
+   7,10,13, 6,11,11,10, 4, 7,11,13, 6, 4, 4, 7, 4,
+   4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+   4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+   4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+   7, 7, 7, 7, 7, 7, 4, 7, 4, 4, 4, 4, 4, 4, 7, 4,
+   4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+   4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+   4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+   4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+   5,10,10,10,10,11, 7,11, 5,10,10, 0,10,17, 7,11,
+   5,10,10,11,10,11, 7,11, 5, 4,10,11,10, 0, 7,11,
+   5,10,10,19,10,11, 7,11, 5, 4,10, 4,10, 0, 7,11,
+   5,10,10, 4,10,11, 7,11, 5, 6,10, 4,10, 0, 7,11};
+
+constexpr std::array<uint16_t, 0x100> base_cc_cb = {
+   8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+   8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+   8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+   8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+   8, 8, 8, 8, 8, 8,12, 8, 8, 8, 8, 8, 8, 8,12, 8,
+   8, 8, 8, 8, 8, 8,12, 8, 8, 8, 8, 8, 8, 8,12, 8,
+   8, 8, 8, 8, 8, 8,12, 8, 8, 8, 8, 8, 8, 8,12, 8,
+   8, 8, 8, 8, 8, 8,12, 8, 8, 8, 8, 8, 8, 8,12, 8,
+   8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+   8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+   8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+   8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+   8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+   8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+   8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8,
+   8, 8, 8, 8, 8, 8,15, 8, 8, 8, 8, 8, 8, 8,15, 8};
+
+constexpr std::array<uint16_t, 0x100> base_cc_ed = {
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+  12,12,15,20, 8,14, 8, 9,12,12,15,20, 8,14, 8, 9,
+  12,12,15,20, 8,14, 8, 9,12,12,15,20, 8,14, 8, 9,
+  12,12,15,20, 8,14, 8,18,12,12,15,20, 8,14, 8,18,
+  12,12,15,20, 8,14, 8, 8,12,12,15,20, 8,14, 8, 8,
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+  16,16,16,16, 8, 8, 8, 8,16,16,16,16, 8, 8, 8, 8,
+  16,16,16,16, 8, 8, 8, 8,16,16,16,16, 8, 8, 8, 8,
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
 
 /* illegal combo should return 4 + cc_op[i] */
-static const UINT16 cc_xy[0x100] ={
-   8*15,14*15,11*15,10*15, 8*15, 8*15,11*15, 8*15, 8*15,15*15,11*15,10*15, 8*15, 8*15,11*15, 8*15,
-  12*15,14*15,11*15,10*15, 8*15, 8*15,11*15, 8*15,16*15,15*15,11*15,10*15, 8*15, 8*15,11*15, 8*15,
-  11*15,14*15,20*15,10*15, 9*15, 9*15,12*15, 8*15,11*15,15*15,20*15,10*15, 9*15, 9*15,12*15, 8*15,
-  11*15,14*15,17*15,10*15,23*15,23*15,19*15, 8*15,11*15,15*15,17*15,10*15, 8*15, 8*15,11*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 9*15, 9*15,19*15, 8*15, 8*15, 8*15, 8*15, 8*15, 9*15, 9*15,19*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 9*15, 9*15,19*15, 8*15, 8*15, 8*15, 8*15, 8*15, 9*15, 9*15,19*15, 8*15,
-   9*15, 9*15, 9*15, 9*15, 9*15, 9*15,19*15, 9*15, 9*15, 9*15, 9*15, 9*15, 9*15, 9*15,19*15, 9*15,
-  19*15,19*15,19*15,19*15,19*15,19*15, 8*15,19*15, 8*15, 8*15, 8*15, 8*15, 9*15, 9*15,19*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 9*15, 9*15,19*15, 8*15, 8*15, 8*15, 8*15, 8*15, 9*15, 9*15,19*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 9*15, 9*15,19*15, 8*15, 8*15, 8*15, 8*15, 8*15, 9*15, 9*15,19*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 9*15, 9*15,19*15, 8*15, 8*15, 8*15, 8*15, 8*15, 9*15, 9*15,19*15, 8*15,
-   8*15, 8*15, 8*15, 8*15, 9*15, 9*15,19*15, 8*15, 8*15, 8*15, 8*15, 8*15, 9*15, 9*15,19*15, 8*15,
-   9*15,14*15,14*15,14*15,14*15,15*15,11*15,15*15, 9*15,14*15,14*15, 0*15,14*15,21*15,11*15,15*15,
-   9*15,14*15,14*15,15*15,14*15,15*15,11*15,15*15, 9*15, 8*15,14*15,15*15,14*15, 4*15,11*15,15*15,
-   9*15,14*15,14*15,23*15,14*15,15*15,11*15,15*15, 9*15, 8*15,14*15, 8*15,14*15, 4*15,11*15,15*15,
-   9*15,14*15,14*15, 8*15,14*15,15*15,11*15,15*15, 9*15,10*15,14*15, 8*15,14*15, 4*15,11*15,15*15};
+constexpr std::array<uint16_t, 0x100> base_cc_xy ={
+   8,14,11,10, 8, 8,11, 8, 8,15,11,10, 8, 8,11, 8,
+  12,14,11,10, 8, 8,11, 8,16,15,11,10, 8, 8,11, 8,
+  11,14,20,10, 9, 9,12, 8,11,15,20,10, 9, 9,12, 8,
+  11,14,17,10,23,23,19, 8,11,15,17,10, 8, 8,11, 8,
+   8, 8, 8, 8, 9, 9,19, 8, 8, 8, 8, 8, 9, 9,19, 8,
+   8, 8, 8, 8, 9, 9,19, 8, 8, 8, 8, 8, 9, 9,19, 8,
+   9, 9, 9, 9, 9, 9,19, 9, 9, 9, 9, 9, 9, 9,19, 9,
+  19,19,19,19,19,19, 8,19, 8, 8, 8, 8, 9, 9,19, 8,
+   8, 8, 8, 8, 9, 9,19, 8, 8, 8, 8, 8, 9, 9,19, 8,
+   8, 8, 8, 8, 9, 9,19, 8, 8, 8, 8, 8, 9, 9,19, 8,
+   8, 8, 8, 8, 9, 9,19, 8, 8, 8, 8, 8, 9, 9,19, 8,
+   8, 8, 8, 8, 9, 9,19, 8, 8, 8, 8, 8, 9, 9,19, 8,
+   9,14,14,14,14,15,11,15, 9,14,14, 0,14,21,11,15,
+   9,14,14,15,14,15,11,15, 9, 8,14,15,14, 4,11,15,
+   9,14,14,23,14,15,11,15, 9, 8,14, 8,14, 4,11,15,
+   9,14,14, 8,14,15,11,15, 9,10,14, 8,14, 4,11,15};
 
-static const UINT16 cc_xycb[0x100] = {
-  23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,
-  23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,
-  23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,
-  23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,
-  20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,
-  20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,
-  20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,
-  20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,20*15,
-  23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,
-  23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,
-  23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,
-  23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,
-  23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,
-  23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,
-  23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,
-  23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15,23*15};
+constexpr std::array<uint16_t, 0x100> base_cc_xycb = {
+  23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+  23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+  23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+  23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+  20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,
+  20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,
+  20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,
+  20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,
+  23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+  23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+  23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+  23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+  23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+  23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+  23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
+  23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23};
 
 /* extra cycles if jr/jp/call taken and 'interrupt latency' on rst 0-7 */
-static const UINT16 cc_ex[0x100] = {
- 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15,
- 5*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15,  /* DJNZ */
- 5*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 5*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15,  /* JR NZ/JR Z */
- 5*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 5*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15,  /* JR NC/JR C */
- 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15,
- 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15,
- 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15,
- 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15,
- 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15,
- 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15,
- 0*15, 0*15, 4*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 0*15, 4*15, 0*15, 0*15, 0*15, 0*15, 0*15,  /* INI/IND (cycle-accurate I/O port reads) */
- 5*15, 5*15, 5*15, 5*15, 0*15, 0*15, 0*15, 0*15, 5*15, 5*15, 5*15, 5*15, 0*15, 0*15, 0*15, 0*15,  /* LDIR/CPIR/INIR/OTIR LDDR/CPDR/INDR/OTDR */
- 6*15, 0*15, 0*15, 0*15, 7*15, 0*15, 0*15, 2*15, 6*15, 0*15, 0*15, 0*15, 7*15, 0*15, 0*15, 2*15,
- 6*15, 0*15, 0*15, 0*15, 7*15, 0*15, 0*15, 2*15, 6*15, 0*15, 0*15, 0*15, 7*15, 0*15, 0*15, 2*15,
- 6*15, 0*15, 0*15, 0*15, 7*15, 0*15, 0*15, 2*15, 6*15, 0*15, 0*15, 0*15, 7*15, 0*15, 0*15, 2*15,
- 6*15, 0*15, 0*15, 0*15, 7*15, 0*15, 0*15, 2*15, 6*15, 0*15, 0*15, 0*15, 7*15, 0*15, 0*15, 2*15};
+constexpr std::array<uint16_t, 0x100> base_cc_ex = {
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /* DJNZ */
+ 5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0,  /* JR NZ/JR Z */
+ 5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0,  /* JR NC/JR C */
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+ 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0,  /* INI/IND (cycle-accurate I/O port reads) */
+ 5, 5, 5, 5, 0, 0, 0, 0, 5, 5, 5, 5, 0, 0, 0, 0,  /* LDIR/CPIR/INIR/OTIR LDDR/CPDR/INDR/OTDR */
+ 6, 0, 0, 0, 7, 0, 0, 2, 6, 0, 0, 0, 7, 0, 0, 2,
+ 6, 0, 0, 0, 7, 0, 0, 2, 6, 0, 0, 0, 7, 0, 0, 2,
+ 6, 0, 0, 0, 7, 0, 0, 2, 6, 0, 0, 0, 7, 0, 0, 2,
+ 6, 0, 0, 0, 7, 0, 0, 2, 6, 0, 0, 0, 7, 0, 0, 2};
 
-static const UINT16 *cc[6];
+constexpr std::array<uint16_t, 0x100> scaleCycleCounts(std::array<uint16_t, 0x100> cc, uint16_t scaler)
+{
+	for(auto &c : cc)
+	{
+		c *= scaler;
+	}
+	return cc;
+}
+
+constexpr std::array<uint16_t, 0x100> cc_op = scaleCycleCounts(base_cc_op, z80CycleCountScaler);
+constexpr std::array<uint16_t, 0x100> cc_cb = scaleCycleCounts(base_cc_cb, z80CycleCountScaler);
+constexpr std::array<uint16_t, 0x100> cc_ed = scaleCycleCounts(base_cc_ed, z80CycleCountScaler);
+constexpr std::array<uint16_t, 0x100> cc_xy = scaleCycleCounts(base_cc_xy, z80CycleCountScaler);
+constexpr std::array<uint16_t, 0x100> cc_xycb = scaleCycleCounts(base_cc_xycb, z80CycleCountScaler);
+constexpr std::array<uint16_t, 0x100> cc_ex = scaleCycleCounts(base_cc_ex, z80CycleCountScaler);
+
+constexpr const uint16_t *cc[6]{cc_op.data(), cc_cb.data(), cc_ed.data(), cc_xy.data(), cc_xycb.data(), cc_ex.data()};
 #define Z80_TABLE_dd  Z80_TABLE_xy
 #define Z80_TABLE_fd  Z80_TABLE_xy
 
@@ -343,27 +438,28 @@ static const UINT16 *cc[6];
 /***************************************************************
  * Input a byte from given I/O port
  ***************************************************************/
-#define IN(port) z80_readport(port)
+#define IN(port) readPort(port)
 
 /***************************************************************
  * Output a byte to given I/O port
  ***************************************************************/
-#define OUT(port,value) z80_writeport(port,value)
+#define OUT(port,value) writePort(port,value)
 
 /***************************************************************
  * Read a byte from given memory location
  ***************************************************************/
-#define RM(addr) z80_readmem(addr)
+#define RM(addr) readMem(addr)
 
 /***************************************************************
  * Write a byte to given memory location
  ***************************************************************/
-#define WM(addr,value) z80_writemem(addr,value)
+#define WM(addr,value) writeMem(addr,value)
 
 /***************************************************************
  * Read a word from given memory location
  ***************************************************************/
-INLINE void RM16( UINT32 addr, PAIR *r )
+template<Z80Desc desc>
+void Z80CPU<desc>::RM16(unsigned addr, PAIR *r)
 {
   r->b.l = RM(addr);
   r->b.h = RM((addr+1)&0xffff);
@@ -372,51 +468,50 @@ INLINE void RM16( UINT32 addr, PAIR *r )
 /***************************************************************
  * Write a word to given memory location
  ***************************************************************/
-INLINE void WM16( UINT32 addr, PAIR *r )
+template<Z80Desc desc>
+void Z80CPU<desc>::WM16(unsigned addr, PAIR *r)
 {
   WM(addr,r->b.l);
   WM((addr+1)&0xffff,r->b.h);
 }
 
-INLINE uint8_t cpu_readop(unsigned addr)
+template<Z80Desc desc>
+uint8_t Z80CPU<desc>::cpu_readop(unsigned addr)
 {
-	return z80_readmap[(addr) >> 10][(addr) & 0x03FF];
+	return readMap()[(addr) >> 10][(addr) & 0x03FF];
 }
 
-INLINE uint8_t cpu_readop_arg(unsigned addr)
+template<Z80Desc desc>
+uint8_t Z80CPU<desc>::cpu_readop_arg(unsigned addr)
 {
 	return cpu_readop(addr);
 }
 
-INLINE UINT8 ROP(void)
+template<Z80Desc desc>
+uint8_t Z80CPU<desc>::ROP()
 {
-	unsigned pc = PCD;
+	unsigned pc_ = PCD;
 	PC++;
-	return cpu_readop(pc);
+	return cpu_readop(pc_);
 }
 
-INLINE UINT8 ARG(void)
+template<Z80Desc desc>
+uint8_t Z80CPU<desc>::ARG()
 {
-  unsigned pc = PCD;
+  unsigned pc_ = PCD;
   PC++;
-  return cpu_readop_arg(pc);
+  return cpu_readop_arg(pc_);
 }
 
-INLINE UINT32 ARG16(void)
+template<Z80Desc desc>
+uint32_t Z80CPU<desc>::ARG16()
 {
-  unsigned pc = PCD;
+  unsigned pc_ = PCD;
   PC += 2;
-  return cpu_readop_arg(pc) | (cpu_readop_arg((pc+1)&0xffff) << 8);
+  return cpu_readop_arg(pc_) | (cpu_readop_arg((pc_+1)&0xffff) << 8);
 }
 
-#define EXEC(prefix,opcode)      \
-{                                \
-  unsigned op = opcode;          \
-  CC(prefix,op);                 \
-  (*Z80##prefix[op])();          \
-}
-
-#define EXEC_INLINE(prefix,opcode)  \
+#define EXEC(prefix,opcode)  \
 {                                   \
   unsigned op = opcode;             \
   CC(prefix,op);                    \
@@ -489,140 +584,22 @@ INLINE UINT32 ARG16(void)
   }                                                                                                                                   \
 }
 
-typedef void (*funcptr)(void);
-
-#define PROTOTYPES(tablename,prefix) \
-  INLINE void prefix##_00(void); INLINE void prefix##_01(void); INLINE void prefix##_02(void); INLINE void prefix##_03(void); \
-  INLINE void prefix##_04(void); INLINE void prefix##_05(void); INLINE void prefix##_06(void); INLINE void prefix##_07(void); \
-  INLINE void prefix##_08(void); INLINE void prefix##_09(void); INLINE void prefix##_0a(void); INLINE void prefix##_0b(void); \
-  INLINE void prefix##_0c(void); INLINE void prefix##_0d(void); INLINE void prefix##_0e(void); INLINE void prefix##_0f(void); \
-  INLINE void prefix##_10(void); INLINE void prefix##_11(void); INLINE void prefix##_12(void); INLINE void prefix##_13(void); \
-  INLINE void prefix##_14(void); INLINE void prefix##_15(void); INLINE void prefix##_16(void); INLINE void prefix##_17(void); \
-  INLINE void prefix##_18(void); INLINE void prefix##_19(void); INLINE void prefix##_1a(void); INLINE void prefix##_1b(void); \
-  INLINE void prefix##_1c(void); INLINE void prefix##_1d(void); INLINE void prefix##_1e(void); INLINE void prefix##_1f(void); \
-  INLINE void prefix##_20(void); INLINE void prefix##_21(void); INLINE void prefix##_22(void); INLINE void prefix##_23(void); \
-  INLINE void prefix##_24(void); INLINE void prefix##_25(void); INLINE void prefix##_26(void); INLINE void prefix##_27(void); \
-  INLINE void prefix##_28(void); INLINE void prefix##_29(void); INLINE void prefix##_2a(void); INLINE void prefix##_2b(void); \
-  INLINE void prefix##_2c(void); INLINE void prefix##_2d(void); INLINE void prefix##_2e(void); INLINE void prefix##_2f(void); \
-  INLINE void prefix##_30(void); INLINE void prefix##_31(void); INLINE void prefix##_32(void); INLINE void prefix##_33(void); \
-  INLINE void prefix##_34(void); INLINE void prefix##_35(void); INLINE void prefix##_36(void); INLINE void prefix##_37(void); \
-  INLINE void prefix##_38(void); INLINE void prefix##_39(void); INLINE void prefix##_3a(void); INLINE void prefix##_3b(void); \
-  INLINE void prefix##_3c(void); INLINE void prefix##_3d(void); INLINE void prefix##_3e(void); INLINE void prefix##_3f(void); \
-  INLINE void prefix##_40(void); INLINE void prefix##_41(void); INLINE void prefix##_42(void); INLINE void prefix##_43(void); \
-  INLINE void prefix##_44(void); INLINE void prefix##_45(void); INLINE void prefix##_46(void); INLINE void prefix##_47(void); \
-  INLINE void prefix##_48(void); INLINE void prefix##_49(void); INLINE void prefix##_4a(void); INLINE void prefix##_4b(void); \
-  INLINE void prefix##_4c(void); INLINE void prefix##_4d(void); INLINE void prefix##_4e(void); INLINE void prefix##_4f(void); \
-  INLINE void prefix##_50(void); INLINE void prefix##_51(void); INLINE void prefix##_52(void); INLINE void prefix##_53(void); \
-  INLINE void prefix##_54(void); INLINE void prefix##_55(void); INLINE void prefix##_56(void); INLINE void prefix##_57(void); \
-  INLINE void prefix##_58(void); INLINE void prefix##_59(void); INLINE void prefix##_5a(void); INLINE void prefix##_5b(void); \
-  INLINE void prefix##_5c(void); INLINE void prefix##_5d(void); INLINE void prefix##_5e(void); INLINE void prefix##_5f(void); \
-  INLINE void prefix##_60(void); INLINE void prefix##_61(void); INLINE void prefix##_62(void); INLINE void prefix##_63(void); \
-  INLINE void prefix##_64(void); INLINE void prefix##_65(void); INLINE void prefix##_66(void); INLINE void prefix##_67(void); \
-  INLINE void prefix##_68(void); INLINE void prefix##_69(void); INLINE void prefix##_6a(void); INLINE void prefix##_6b(void); \
-  INLINE void prefix##_6c(void); INLINE void prefix##_6d(void); INLINE void prefix##_6e(void); INLINE void prefix##_6f(void); \
-  INLINE void prefix##_70(void); INLINE void prefix##_71(void); INLINE void prefix##_72(void); INLINE void prefix##_73(void); \
-  INLINE void prefix##_74(void); INLINE void prefix##_75(void); INLINE void prefix##_76(void); INLINE void prefix##_77(void); \
-  INLINE void prefix##_78(void); INLINE void prefix##_79(void); INLINE void prefix##_7a(void); INLINE void prefix##_7b(void); \
-  INLINE void prefix##_7c(void); INLINE void prefix##_7d(void); INLINE void prefix##_7e(void); INLINE void prefix##_7f(void); \
-  INLINE void prefix##_80(void); INLINE void prefix##_81(void); INLINE void prefix##_82(void); INLINE void prefix##_83(void); \
-  INLINE void prefix##_84(void); INLINE void prefix##_85(void); INLINE void prefix##_86(void); INLINE void prefix##_87(void); \
-  INLINE void prefix##_88(void); INLINE void prefix##_89(void); INLINE void prefix##_8a(void); INLINE void prefix##_8b(void); \
-  INLINE void prefix##_8c(void); INLINE void prefix##_8d(void); INLINE void prefix##_8e(void); INLINE void prefix##_8f(void); \
-  INLINE void prefix##_90(void); INLINE void prefix##_91(void); INLINE void prefix##_92(void); INLINE void prefix##_93(void); \
-  INLINE void prefix##_94(void); INLINE void prefix##_95(void); INLINE void prefix##_96(void); INLINE void prefix##_97(void); \
-  INLINE void prefix##_98(void); INLINE void prefix##_99(void); INLINE void prefix##_9a(void); INLINE void prefix##_9b(void); \
-  INLINE void prefix##_9c(void); INLINE void prefix##_9d(void); INLINE void prefix##_9e(void); INLINE void prefix##_9f(void); \
-  INLINE void prefix##_a0(void); INLINE void prefix##_a1(void); INLINE void prefix##_a2(void); INLINE void prefix##_a3(void); \
-  INLINE void prefix##_a4(void); INLINE void prefix##_a5(void); INLINE void prefix##_a6(void); INLINE void prefix##_a7(void); \
-  INLINE void prefix##_a8(void); INLINE void prefix##_a9(void); INLINE void prefix##_aa(void); INLINE void prefix##_ab(void); \
-  INLINE void prefix##_ac(void); INLINE void prefix##_ad(void); INLINE void prefix##_ae(void); INLINE void prefix##_af(void); \
-  INLINE void prefix##_b0(void); INLINE void prefix##_b1(void); INLINE void prefix##_b2(void); INLINE void prefix##_b3(void); \
-  INLINE void prefix##_b4(void); INLINE void prefix##_b5(void); INLINE void prefix##_b6(void); INLINE void prefix##_b7(void); \
-  INLINE void prefix##_b8(void); INLINE void prefix##_b9(void); INLINE void prefix##_ba(void); INLINE void prefix##_bb(void); \
-  INLINE void prefix##_bc(void); INLINE void prefix##_bd(void); INLINE void prefix##_be(void); INLINE void prefix##_bf(void); \
-  INLINE void prefix##_c0(void); INLINE void prefix##_c1(void); INLINE void prefix##_c2(void); INLINE void prefix##_c3(void); \
-  INLINE void prefix##_c4(void); INLINE void prefix##_c5(void); INLINE void prefix##_c6(void); INLINE void prefix##_c7(void); \
-  INLINE void prefix##_c8(void); INLINE void prefix##_c9(void); INLINE void prefix##_ca(void); INLINE void prefix##_cb(void); \
-  INLINE void prefix##_cc(void); INLINE void prefix##_cd(void); INLINE void prefix##_ce(void); INLINE void prefix##_cf(void); \
-  INLINE void prefix##_d0(void); INLINE void prefix##_d1(void); INLINE void prefix##_d2(void); INLINE void prefix##_d3(void); \
-  INLINE void prefix##_d4(void); INLINE void prefix##_d5(void); INLINE void prefix##_d6(void); INLINE void prefix##_d7(void); \
-  INLINE void prefix##_d8(void); INLINE void prefix##_d9(void); INLINE void prefix##_da(void); INLINE void prefix##_db(void); \
-  INLINE void prefix##_dc(void); INLINE void prefix##_dd(void); INLINE void prefix##_de(void); INLINE void prefix##_df(void); \
-  INLINE void prefix##_e0(void); INLINE void prefix##_e1(void); INLINE void prefix##_e2(void); INLINE void prefix##_e3(void); \
-  INLINE void prefix##_e4(void); INLINE void prefix##_e5(void); INLINE void prefix##_e6(void); INLINE void prefix##_e7(void); \
-  INLINE void prefix##_e8(void); INLINE void prefix##_e9(void); INLINE void prefix##_ea(void); INLINE void prefix##_eb(void); \
-  INLINE void prefix##_ec(void); INLINE void prefix##_ed(void); INLINE void prefix##_ee(void); INLINE void prefix##_ef(void); \
-  INLINE void prefix##_f0(void); INLINE void prefix##_f1(void); INLINE void prefix##_f2(void); INLINE void prefix##_f3(void); \
-  INLINE void prefix##_f4(void); INLINE void prefix##_f5(void); INLINE void prefix##_f6(void); INLINE void prefix##_f7(void); \
-  INLINE void prefix##_f8(void); INLINE void prefix##_f9(void); INLINE void prefix##_fa(void); INLINE void prefix##_fb(void); \
-  INLINE void prefix##_fc(void); INLINE void prefix##_fd(void); INLINE void prefix##_fe(void); INLINE void prefix##_ff(void);
-#define OPFUNCTABLE(tablename,prefix) \
-static const funcptr tablename[0x100] = {  \
-  prefix##_00,prefix##_01,prefix##_02,prefix##_03,prefix##_04,prefix##_05,prefix##_06,prefix##_07, \
-  prefix##_08,prefix##_09,prefix##_0a,prefix##_0b,prefix##_0c,prefix##_0d,prefix##_0e,prefix##_0f, \
-  prefix##_10,prefix##_11,prefix##_12,prefix##_13,prefix##_14,prefix##_15,prefix##_16,prefix##_17, \
-  prefix##_18,prefix##_19,prefix##_1a,prefix##_1b,prefix##_1c,prefix##_1d,prefix##_1e,prefix##_1f, \
-  prefix##_20,prefix##_21,prefix##_22,prefix##_23,prefix##_24,prefix##_25,prefix##_26,prefix##_27, \
-  prefix##_28,prefix##_29,prefix##_2a,prefix##_2b,prefix##_2c,prefix##_2d,prefix##_2e,prefix##_2f, \
-  prefix##_30,prefix##_31,prefix##_32,prefix##_33,prefix##_34,prefix##_35,prefix##_36,prefix##_37, \
-  prefix##_38,prefix##_39,prefix##_3a,prefix##_3b,prefix##_3c,prefix##_3d,prefix##_3e,prefix##_3f, \
-  prefix##_40,prefix##_41,prefix##_42,prefix##_43,prefix##_44,prefix##_45,prefix##_46,prefix##_47, \
-  prefix##_48,prefix##_49,prefix##_4a,prefix##_4b,prefix##_4c,prefix##_4d,prefix##_4e,prefix##_4f, \
-  prefix##_50,prefix##_51,prefix##_52,prefix##_53,prefix##_54,prefix##_55,prefix##_56,prefix##_57, \
-  prefix##_58,prefix##_59,prefix##_5a,prefix##_5b,prefix##_5c,prefix##_5d,prefix##_5e,prefix##_5f, \
-  prefix##_60,prefix##_61,prefix##_62,prefix##_63,prefix##_64,prefix##_65,prefix##_66,prefix##_67, \
-  prefix##_68,prefix##_69,prefix##_6a,prefix##_6b,prefix##_6c,prefix##_6d,prefix##_6e,prefix##_6f, \
-  prefix##_70,prefix##_71,prefix##_72,prefix##_73,prefix##_74,prefix##_75,prefix##_76,prefix##_77, \
-  prefix##_78,prefix##_79,prefix##_7a,prefix##_7b,prefix##_7c,prefix##_7d,prefix##_7e,prefix##_7f, \
-  prefix##_80,prefix##_81,prefix##_82,prefix##_83,prefix##_84,prefix##_85,prefix##_86,prefix##_87, \
-  prefix##_88,prefix##_89,prefix##_8a,prefix##_8b,prefix##_8c,prefix##_8d,prefix##_8e,prefix##_8f, \
-  prefix##_90,prefix##_91,prefix##_92,prefix##_93,prefix##_94,prefix##_95,prefix##_96,prefix##_97, \
-  prefix##_98,prefix##_99,prefix##_9a,prefix##_9b,prefix##_9c,prefix##_9d,prefix##_9e,prefix##_9f, \
-  prefix##_a0,prefix##_a1,prefix##_a2,prefix##_a3,prefix##_a4,prefix##_a5,prefix##_a6,prefix##_a7, \
-  prefix##_a8,prefix##_a9,prefix##_aa,prefix##_ab,prefix##_ac,prefix##_ad,prefix##_ae,prefix##_af, \
-  prefix##_b0,prefix##_b1,prefix##_b2,prefix##_b3,prefix##_b4,prefix##_b5,prefix##_b6,prefix##_b7, \
-  prefix##_b8,prefix##_b9,prefix##_ba,prefix##_bb,prefix##_bc,prefix##_bd,prefix##_be,prefix##_bf, \
-  prefix##_c0,prefix##_c1,prefix##_c2,prefix##_c3,prefix##_c4,prefix##_c5,prefix##_c6,prefix##_c7, \
-  prefix##_c8,prefix##_c9,prefix##_ca,prefix##_cb,prefix##_cc,prefix##_cd,prefix##_ce,prefix##_cf, \
-  prefix##_d0,prefix##_d1,prefix##_d2,prefix##_d3,prefix##_d4,prefix##_d5,prefix##_d6,prefix##_d7, \
-  prefix##_d8,prefix##_d9,prefix##_da,prefix##_db,prefix##_dc,prefix##_dd,prefix##_de,prefix##_df, \
-  prefix##_e0,prefix##_e1,prefix##_e2,prefix##_e3,prefix##_e4,prefix##_e5,prefix##_e6,prefix##_e7, \
-  prefix##_e8,prefix##_e9,prefix##_ea,prefix##_eb,prefix##_ec,prefix##_ed,prefix##_ee,prefix##_ef, \
-  prefix##_f0,prefix##_f1,prefix##_f2,prefix##_f3,prefix##_f4,prefix##_f5,prefix##_f6,prefix##_f7, \
-  prefix##_f8,prefix##_f9,prefix##_fa,prefix##_fb,prefix##_fc,prefix##_fd,prefix##_fe,prefix##_ff  \
-}
-
-PROTOTYPES(Z80op,op);
-PROTOTYPES(Z80cb,cb);
-PROTOTYPES(Z80dd,dd);
-PROTOTYPES(Z80ed,ed);
-PROTOTYPES(Z80fd,fd);
-PROTOTYPES(Z80xycb,xycb);
-
-OPFUNCTABLE(Z80op,op);
-OPFUNCTABLE(Z80cb,cb);
-OPFUNCTABLE(Z80dd,dd);
-OPFUNCTABLE(Z80ed,ed);
-OPFUNCTABLE(Z80fd,fd);
-OPFUNCTABLE(Z80xycb,xycb);
-
-
 /***************************************************************
  * Calculate the effective address EA of an opcode using
  * IX+offset resp. IY+offset addressing.
  ***************************************************************/
-#define EAX   do { EA = (UINT32)(UINT16)(IX + (INT8)ARG()); WZ = EA; } while (0)
-#define EAY   do { EA = (UINT32)(UINT16)(IY + (INT8)ARG()); WZ = EA; } while (0)
+#define EAX   do { EA = (uint32_t)(uint16_t)(IX + (int8_t)ARG()); WZ = EA; } while (0)
+#define EAY   do { EA = (uint32_t)(uint16_t)(IY + (int8_t)ARG()); WZ = EA; } while (0)
 
 /***************************************************************
  * POP
  ***************************************************************/
-#define POP(DR) do { RM16( SPD, &Z80.DR ); SP += 2; } while (0)
+#define POP(DR) do { RM16( SPD, &DR ); SP += 2; } while (0)
 
 /***************************************************************
  * PUSH
  ***************************************************************/
-#define PUSH(SR) do { SP -= 2; WM16( SPD, &Z80.SR ); } while (0)
+#define PUSH(SR) do { SP -= 2; WM16( SPD, &SR ); } while (0)
 
 /***************************************************************
  * JP
@@ -651,7 +628,7 @@ OPFUNCTABLE(Z80xycb,xycb);
  * JR
  ***************************************************************/
 #define JR() {                                            \
-  INT8 arg = (INT8)ARG(); /* ARG() also increments PC */  \
+  int8_t arg = (int8_t)ARG(); /* ARG() also increments PC */  \
   PC += arg;        /* so don't do PC += ARG() */         \
   WZ = PC;                                                \
 }
@@ -770,19 +747,21 @@ OPFUNCTABLE(Z80xycb,xycb);
 /***************************************************************
  * INC  r8
  ***************************************************************/
-INLINE UINT8 INC(UINT8 value)
+template<Z80Desc desc>
+uint8_t Z80CPU<desc>::INC(uint8_t value)
 {
-  UINT8 res = value + 1;
+  uint8_t res = value + 1;
   F = (F & CF) | SZHV_inc[res];
-  return (UINT8)res;
+  return (uint8_t)res;
 }
 
 /***************************************************************
  * DEC  r8
  ***************************************************************/
-INLINE UINT8 DEC(UINT8 value)
+template<Z80Desc desc>
+uint8_t Z80CPU<desc>::DEC(uint8_t value)
 {
-  UINT8 res = value - 1;
+  uint8_t res = value - 1;
   F = (F & CF) | SZHV_dec[res];
   return res;
 }
@@ -806,8 +785,8 @@ INLINE UINT8 DEC(UINT8 value)
  * RLA
  ***************************************************************/
 #define RLA {                                       \
-  UINT8 res = (A << 1) | (F & CF);                  \
-  UINT8 c = (A & 0x80) ? CF : 0;                    \
+  uint8_t res = (A << 1) | (F & CF);                  \
+  uint8_t c = (A & 0x80) ? CF : 0;                    \
   F = (F & (SF | ZF | PF)) | c | (res & (YF | XF)); \
   A = res;                                          \
 }
@@ -816,8 +795,8 @@ INLINE UINT8 DEC(UINT8 value)
  * RRA
  ***************************************************************/
 #define RRA {                                       \
-  UINT8 res = (A >> 1) | (F << 7);                  \
-  UINT8 c = (A & 0x01) ? CF : 0;                    \
+  uint8_t res = (A >> 1) | (F << 7);                  \
+  uint8_t c = (A & 0x01) ? CF : 0;                    \
   F = (F & (SF | ZF | PF)) | c | (res & (YF | XF)); \
   A = res;                                          \
 }
@@ -826,7 +805,7 @@ INLINE UINT8 DEC(UINT8 value)
  * RRD
  ***************************************************************/
 #define RRD {                                       \
-  UINT8 n = RM(HL);                                 \
+  uint8_t n = RM(HL);                                 \
   WZ = HL+1;                                        \
   WM( HL, (n >> 4) | (A << 4) );                    \
   A = (A & 0xf0) | (n & 0x0f);                      \
@@ -837,7 +816,7 @@ INLINE UINT8 DEC(UINT8 value)
  * RLD
  ***************************************************************/
 #define RLD {                                       \
-  UINT8 n = RM(HL);                                 \
+  uint8_t n = RM(HL);                                 \
   WZ = HL+1;                                        \
   WM( HL, (n << 4) | (A & 0x0f) );                  \
   A = (A & 0xf0) | (n >> 4);                        \
@@ -849,8 +828,8 @@ INLINE UINT8 DEC(UINT8 value)
  ***************************************************************/
 #define ADD(value)                                  \
 {                                                   \
-  UINT32 ah = AFD & 0xff00;                         \
-  UINT32 res = (UINT8)((ah >> 8) + value);          \
+  uint32_t ah = AFD & 0xff00;                         \
+  uint32_t res = (uint8_t)((ah >> 8) + value);          \
   F = SZHVC_add[ah | res];                          \
   A = res;                                          \
 }
@@ -860,8 +839,8 @@ INLINE UINT8 DEC(UINT8 value)
  ***************************************************************/
 #define ADC(value)                                  \
 {                                                   \
-  UINT32 ah = AFD & 0xff00, c = AFD & 1;            \
-  UINT32 res = (UINT8)((ah >> 8) + value + c);      \
+  uint32_t ah = AFD & 0xff00, c = AFD & 1;            \
+  uint32_t res = (uint8_t)((ah >> 8) + value + c);      \
   F = SZHVC_add[(c << 16) | ah | res];              \
   A = res;                                          \
 }
@@ -871,8 +850,8 @@ INLINE UINT8 DEC(UINT8 value)
  ***************************************************************/
 #define SUB(value)                                  \
 {                                                   \
-  UINT32 ah = AFD & 0xff00;                         \
-  UINT32 res = (UINT8)((ah >> 8) - value);          \
+  uint32_t ah = AFD & 0xff00;                         \
+  uint32_t res = (uint8_t)((ah >> 8) - value);          \
   F = SZHVC_sub[ah | res];                          \
   A = res;                                          \
 }
@@ -882,8 +861,8 @@ INLINE UINT8 DEC(UINT8 value)
  ***************************************************************/
 #define SBC(value)                                  \
 {                                                   \
-  UINT32 ah = AFD & 0xff00, c = AFD & 1;            \
-  UINT32 res = (UINT8)((ah >> 8) - value - c);      \
+  uint32_t ah = AFD & 0xff00, c = AFD & 1;            \
+  uint32_t res = (uint8_t)((ah >> 8) - value - c);      \
   F = SZHVC_sub[(c<<16) | ah | res];                \
   A = res;                                          \
 }
@@ -892,7 +871,7 @@ INLINE UINT8 DEC(UINT8 value)
  * NEG
  ***************************************************************/
 #define NEG {                                       \
-  UINT8 value = A;                                  \
+  uint8_t value = A;                                  \
   A = 0;                                            \
   SUB(value);                                       \
 }
@@ -901,7 +880,7 @@ INLINE UINT8 DEC(UINT8 value)
  * DAA
  ***************************************************************/
 #define DAA {                                       \
-  UINT8 a = A;                                      \
+  uint8_t a = A;                                      \
   if (F & NF) {                                     \
     if ((F&HF) | ((A&0xf)>9)) a-=6;                 \
     if ((F&CF) | (A>0x99)) a-=0x60;                 \
@@ -942,8 +921,8 @@ INLINE UINT8 DEC(UINT8 value)
 #define CP(value)                                             \
 {                                                             \
   unsigned val = value;                                       \
-  UINT32 ah = AFD & 0xff00;                                   \
-  UINT32 res = (UINT8)((ah >> 8) - val);                      \
+  uint32_t ah = AFD & 0xff00;                                   \
+  uint32_t res = (uint8_t)((ah >> 8) - val);                      \
   F = (SZHVC_sub[ah | res] & ~(YF | XF)) | (val & (YF | XF)); \
 }
 
@@ -953,7 +932,7 @@ INLINE UINT8 DEC(UINT8 value)
 #define EX_AF                                       \
 {                                                   \
   PAIR tmp;                                         \
-  tmp = Z80.af; Z80.af = Z80.af2; Z80.af2 = tmp;    \
+  tmp = af; af = af2; af2 = tmp;    \
 }
 
 /***************************************************************
@@ -962,7 +941,7 @@ INLINE UINT8 DEC(UINT8 value)
 #define EX_DE_HL                                    \
 {                                                   \
   PAIR tmp;                                         \
-  tmp = Z80.de; Z80.de = Z80.hl; Z80.hl = tmp;      \
+  tmp = de; de = hl; hl = tmp;      \
 }
 
 /***************************************************************
@@ -971,9 +950,9 @@ INLINE UINT8 DEC(UINT8 value)
 #define EXX                                         \
 {                                                   \
   PAIR tmp;                                         \
-  tmp = Z80.bc; Z80.bc = Z80.bc2; Z80.bc2 = tmp;    \
-  tmp = Z80.de; Z80.de = Z80.de2; Z80.de2 = tmp;    \
-  tmp = Z80.hl; Z80.hl = Z80.hl2; Z80.hl2 = tmp;    \
+  tmp = bc; bc = bc2; bc2 = tmp;    \
+  tmp = de; de = de2; de2 = tmp;    \
+  tmp = hl; hl = hl2; hl2 = tmp;    \
 }
 
 /***************************************************************
@@ -983,9 +962,9 @@ INLINE UINT8 DEC(UINT8 value)
 {                                                   \
   PAIR tmp = { { 0, 0, 0, 0 } };                    \
   RM16( SPD, &tmp );                                \
-  WM16( SPD, &Z80.DR );                             \
-  Z80.DR = tmp;                                     \
-  WZ = Z80.DR.d;                                    \
+  WM16( SPD, &DR );                             \
+  DR = tmp;                                     \
+  WZ = DR.d;                                    \
 }
 
 
@@ -994,12 +973,12 @@ INLINE UINT8 DEC(UINT8 value)
  ***************************************************************/
 #define ADD16(DR,SR)                                \
 {                                                   \
-  UINT32 res = Z80.DR.d + Z80.SR.d;                 \
-  WZ = Z80.DR.d + 1;                                \
+  uint32_t res = DR.d + SR.d;                 \
+  WZ = DR.d + 1;                                \
   F = (F & (SF | ZF | VF)) |                        \
-    (((Z80.DR.d ^ res ^ Z80.SR.d) >> 8) & HF) |     \
+    (((DR.d ^ res ^ SR.d) >> 8) & HF) |     \
     ((res >> 16) & CF) | ((res >> 8) & (YF | XF));  \
-  Z80.DR.w.l = (UINT16)res;                         \
+  DR.w.l = (uint16_t)res;                         \
 }
 
 /***************************************************************
@@ -1007,14 +986,14 @@ INLINE UINT8 DEC(UINT8 value)
  ***************************************************************/
 #define ADC16(Reg)                                                      \
 {                                                                       \
-  UINT32 res = HLD + Z80.Reg.d + (F & CF);                              \
+  uint32_t res = HLD + Reg.d + (F & CF);                              \
   WZ = HL + 1;                                                          \
-  F = (((HLD ^ res ^ Z80.Reg.d) >> 8) & HF) |                           \
+  F = (((HLD ^ res ^ Reg.d) >> 8) & HF) |                           \
     ((res >> 16) & CF) |                                                \
     ((res >> 8) & (SF | YF | XF)) |                                     \
     ((res & 0xffff) ? 0 : ZF) |                                         \
-    (((Z80.Reg.d ^ HLD ^ 0x8000) & (Z80.Reg.d ^ res) & 0x8000) >> 13);  \
-  HL = (UINT16)res;                                                     \
+    (((Reg.d ^ HLD ^ 0x8000) & (Reg.d ^ res) & 0x8000) >> 13);  \
+  HL = (uint16_t)res;                                                     \
 }
 
 /***************************************************************
@@ -1022,20 +1001,21 @@ INLINE UINT8 DEC(UINT8 value)
  ***************************************************************/
 #define SBC16(Reg)                                      \
 {                                                       \
-  UINT32 res = HLD - Z80.Reg.d - (F & CF);              \
+  uint32_t res = HLD - Reg.d - (F & CF);              \
   WZ = HL + 1;                                          \
-  F = (((HLD ^ res ^ Z80.Reg.d) >> 8) & HF) | NF |      \
+  F = (((HLD ^ res ^ Reg.d) >> 8) & HF) | NF |      \
     ((res >> 16) & CF) |                                \
     ((res >> 8) & (SF | YF | XF)) |                     \
     ((res & 0xffff) ? 0 : ZF) |                         \
-    (((Z80.Reg.d ^ HLD) & (HLD ^ res) &0x8000) >> 13);  \
-  HL = (UINT16)res;                                     \
+    (((Reg.d ^ HLD) & (HLD ^ res) &0x8000) >> 13);  \
+  HL = (uint16_t)res;                                     \
 }
 
 /***************************************************************
  * RLC  r8
  ***************************************************************/
-INLINE UINT8 RLC(UINT8 value)
+template<Z80Desc desc>
+uint8_t Z80CPU<desc>::RLC(uint8_t value)
 {
   unsigned res = value;
   unsigned c = (res & 0x80) ? CF : 0;
@@ -1047,7 +1027,8 @@ INLINE UINT8 RLC(UINT8 value)
 /***************************************************************
  * RRC  r8
  ***************************************************************/
-INLINE UINT8 RRC(UINT8 value)
+template<Z80Desc desc>
+uint8_t Z80CPU<desc>::RRC(uint8_t value)
 {
   unsigned res = value;
   unsigned c = (res & 0x01) ? CF : 0;
@@ -1059,7 +1040,8 @@ INLINE UINT8 RRC(UINT8 value)
 /***************************************************************
  * RL  r8
  ***************************************************************/
-INLINE UINT8 RL(UINT8 value)
+template<Z80Desc desc>
+uint8_t Z80CPU<desc>::RL(uint8_t value)
 {
   unsigned res = value;
   unsigned c = (res & 0x80) ? CF : 0;
@@ -1071,7 +1053,8 @@ INLINE UINT8 RL(UINT8 value)
 /***************************************************************
  * RR  r8
  ***************************************************************/
-INLINE UINT8 RR(UINT8 value)
+template<Z80Desc desc>
+uint8_t Z80CPU<desc>::RR(uint8_t value)
 {
   unsigned res = value;
   unsigned c = (res & 0x01) ? CF : 0;
@@ -1083,7 +1066,8 @@ INLINE UINT8 RR(UINT8 value)
 /***************************************************************
  * SLA  r8
  ***************************************************************/
-INLINE UINT8 SLA(UINT8 value)
+template<Z80Desc desc>
+uint8_t Z80CPU<desc>::SLA(uint8_t value)
 {
   unsigned res = value;
   unsigned c = (res & 0x80) ? CF : 0;
@@ -1095,7 +1079,8 @@ INLINE UINT8 SLA(UINT8 value)
 /***************************************************************
  * SRA  r8
  ***************************************************************/
-INLINE UINT8 SRA(UINT8 value)
+template<Z80Desc desc>
+uint8_t Z80CPU<desc>::SRA(uint8_t value)
 {
   unsigned res = value;
   unsigned c = (res & 0x01) ? CF : 0;
@@ -1107,7 +1092,8 @@ INLINE UINT8 SRA(UINT8 value)
 /***************************************************************
  * SLL  r8
  ***************************************************************/
-INLINE UINT8 SLL(UINT8 value)
+template<Z80Desc desc>
+uint8_t Z80CPU<desc>::SLL(uint8_t value)
 {
   unsigned res = value;
   unsigned c = (res & 0x80) ? CF : 0;
@@ -1119,7 +1105,8 @@ INLINE UINT8 SLL(UINT8 value)
 /***************************************************************
  * SRL  r8
  ***************************************************************/
-INLINE UINT8 SRL(UINT8 value)
+template<Z80Desc desc>
+uint8_t Z80CPU<desc>::SRL(uint8_t value)
 {
   unsigned res = value;
   unsigned c = (res & 0x01) ? CF : 0;
@@ -1150,7 +1137,8 @@ INLINE UINT8 SRL(UINT8 value)
 /***************************************************************
  * RES  bit,r8
  ***************************************************************/
-INLINE UINT8 RES(UINT8 bit, UINT8 value)
+template<Z80Desc desc>
+uint8_t Z80CPU<desc>::RES(uint8_t bit, uint8_t value)
 {
   return value & ~(1<<bit);
 }
@@ -1158,7 +1146,8 @@ INLINE UINT8 RES(UINT8 bit, UINT8 value)
 /***************************************************************
  * SET  bit,r8
  ***************************************************************/
-INLINE UINT8 SET(UINT8 bit, UINT8 value)
+template<Z80Desc desc>
+uint8_t Z80CPU<desc>::SET(uint8_t bit, uint8_t value)
 {
   return value | (1<<bit);
 }
@@ -1167,7 +1156,7 @@ INLINE UINT8 SET(UINT8 bit, UINT8 value)
  * LDI
  ***************************************************************/
 #define LDI {                                           \
-  UINT8 io = RM(HL);                                    \
+  uint8_t io = RM(HL);                                    \
   WM( DE, io );                                         \
   F &= SF | ZF | CF;                                    \
   if( (A + io) & 0x02 ) F |= YF; /* bit 1 -> flag 5 */  \
@@ -1180,8 +1169,8 @@ INLINE UINT8 SET(UINT8 bit, UINT8 value)
  * CPI
  ***************************************************************/
 #define CPI {                                                 \
-  UINT8 val = RM(HL);                                         \
-  UINT8 res = A - val;                                        \
+  uint8_t val = RM(HL);                                         \
+  uint8_t res = A - val;                                        \
   WZ++;                                                       \
   HL++; BC--;                                                 \
   F = (F & CF) | (SZ[res]&~(YF|XF)) | ((A^val^res)&HF) | NF;  \
@@ -1196,7 +1185,7 @@ INLINE UINT8 SET(UINT8 bit, UINT8 value)
  ***************************************************************/
 #define INI {                                           \
   unsigned t;                                           \
-  UINT8 io = IN(BC);                                    \
+  uint8_t io = IN(BC);                                    \
   WZ = BC + 1;                                          \
   CC(ex,0xa2);                                          \
   B--;                                                  \
@@ -1206,7 +1195,7 @@ INLINE UINT8 SET(UINT8 bit, UINT8 value)
   t = (unsigned)((C + 1) & 0xff) + (unsigned)io;        \
   if( io & SF ) F |= NF;                                \
   if( t & 0x100 ) F |= HF | CF;                         \
-  F |= SZP[(UINT8)(t & 0x07) ^ B] & PF;                 \
+  F |= SZP[(uint8_t)(t & 0x07) ^ B] & PF;                 \
 }
 
 /***************************************************************
@@ -1214,7 +1203,7 @@ INLINE UINT8 SET(UINT8 bit, UINT8 value)
  ***************************************************************/
 #define OUTI {                                          \
   unsigned t;                                           \
-  UINT8 io = RM(HL);                                    \
+  uint8_t io = RM(HL);                                    \
   B--;                                                  \
   WZ = BC + 1;                                          \
   OUT( BC, io );                                        \
@@ -1223,14 +1212,14 @@ INLINE UINT8 SET(UINT8 bit, UINT8 value)
   t = (unsigned)L + (unsigned)io;                       \
   if( io & SF ) F |= NF;                                \
   if( t & 0x100 ) F |= HF | CF;                         \
-  F |= SZP[(UINT8)(t & 0x07) ^ B] & PF;                 \
+  F |= SZP[(uint8_t)(t & 0x07) ^ B] & PF;                 \
 }
 
 /***************************************************************
  * LDD
  ***************************************************************/
 #define LDD {                                           \
-  UINT8 io = RM(HL);                                    \
+  uint8_t io = RM(HL);                                    \
   WM( DE, io );                                         \
   F &= SF | ZF | CF;                                    \
   if( (A + io) & 0x02 ) F |= YF; /* bit 1 -> flag 5 */  \
@@ -1243,8 +1232,8 @@ INLINE UINT8 SET(UINT8 bit, UINT8 value)
  * CPD
  ***************************************************************/
 #define CPD {                                                 \
-  UINT8 val = RM(HL);                                         \
-  UINT8 res = A - val;                                        \
+  uint8_t val = RM(HL);                                         \
+  uint8_t res = A - val;                                        \
   WZ--;                                                       \
   HL--; BC--;                                                 \
   F = (F & CF) | (SZ[res]&~(YF|XF)) | ((A^val^res)&HF) | NF;  \
@@ -1259,7 +1248,7 @@ INLINE UINT8 SET(UINT8 bit, UINT8 value)
  ***************************************************************/
 #define IND {                                           \
   unsigned t;                                           \
-  UINT8 io = IN(BC);                                    \
+  uint8_t io = IN(BC);                                    \
   WZ = BC - 1;                                          \
   CC(ex,0xaa);                                          \
   B--;                                                  \
@@ -1269,7 +1258,7 @@ INLINE UINT8 SET(UINT8 bit, UINT8 value)
   t = ((unsigned)(C - 1) & 0xff) + (unsigned)io;        \
   if( io & SF ) F |= NF;                                \
   if( t & 0x100 ) F |= HF | CF;                         \
-  F |= SZP[(UINT8)(t & 0x07) ^ B] & PF;                 \
+  F |= SZP[(uint8_t)(t & 0x07) ^ B] & PF;                 \
 }
 
 /***************************************************************
@@ -1277,7 +1266,7 @@ INLINE UINT8 SET(UINT8 bit, UINT8 value)
  ***************************************************************/
 #define OUTD {                                          \
   unsigned t;                                           \
-  UINT8 io = RM(HL);                                    \
+  uint8_t io = RM(HL);                                    \
   B--;                                                  \
   WZ = BC - 1;                                          \
   OUT( BC, io );                                        \
@@ -1286,7 +1275,7 @@ INLINE UINT8 SET(UINT8 bit, UINT8 value)
   t = (unsigned)L + (unsigned)io;                       \
   if( io & SF ) F |= NF;                                \
   if( t & 0x100 ) F |= HF | CF;                         \
-  F |= SZP[(UINT8)(t & 0x07) ^ B] & PF;                 \
+  F |= SZP[(uint8_t)(t & 0x07) ^ B] & PF;                 \
 }
 
 /***************************************************************
@@ -1386,10 +1375,10 @@ INLINE UINT8 SET(UINT8 bit, UINT8 value)
  ***************************************************************/
 #define EI {            \
   IFF1 = IFF2 = 1;      \
-  Z80.after_ei = TRUE;  \
+  after_ei = true;  \
 }
 
-#define OP(prefix,opcode)  inline void prefix##_##opcode(void)
+#define OP(prefix,opcode) template<Z80Desc desc> void Z80CPU<desc>::prefix##_##opcode()
 
 /**********************************************************
  * opcodes with CB prefix
@@ -2023,7 +2012,7 @@ OP(dd,1f) { illegal_1(); op_1f();                             } /* DB   DD      
 
 OP(dd,20) { illegal_1(); op_20();                             } /* DB   DD       */
 OP(dd,21) { IX = ARG16();                                     } /* LD   IX,w     */
-OP(dd,22) { EA = ARG16(); WM16( EA, &Z80.ix ); WZ = EA+1;     } /* LD   (w),IX   */
+OP(dd,22) { EA = ARG16(); WM16( EA, &ix ); WZ = EA+1;     } /* LD   (w),IX   */
 OP(dd,23) { IX++;                                             } /* INC  IX       */
 OP(dd,24) { HX = INC(HX);                                     } /* INC  HX       */
 OP(dd,25) { HX = DEC(HX);                                     } /* DEC  HX       */
@@ -2032,7 +2021,7 @@ OP(dd,27) { illegal_1(); op_27();                             } /* DB   DD      
 
 OP(dd,28) { illegal_1(); op_28();                             } /* DB   DD       */
 OP(dd,29) { ADD16(ix,ix);                                     } /* ADD  IX,IX    */
-OP(dd,2a) { EA = ARG16(); RM16( EA, &Z80.ix ); WZ = EA+1;     } /* LD   IX,(w)   */
+OP(dd,2a) { EA = ARG16(); RM16( EA, &ix ); WZ = EA+1;     } /* LD   IX,(w)   */
 OP(dd,2b) { IX--;                                             } /* DEC  IX       */
 OP(dd,2c) { LX = INC(LX);                                     } /* INC  LX       */
 OP(dd,2d) { LX = DEC(LX);                                     } /* DEC  LX       */
@@ -2314,7 +2303,7 @@ OP(fd,1f) { illegal_1(); op_1f();                             } /* DB   FD      
 
 OP(fd,20) { illegal_1(); op_20();                             } /* DB   FD       */
 OP(fd,21) { IY = ARG16();                                     } /* LD   IY,w     */
-OP(fd,22) { EA = ARG16(); WM16( EA, &Z80.iy ); WZ = EA+1;     } /* LD   (w),IY   */
+OP(fd,22) { EA = ARG16(); WM16( EA, &iy ); WZ = EA+1;     } /* LD   (w),IY   */
 OP(fd,23) { IY++;                                             } /* INC  IY       */
 OP(fd,24) { HY = INC(HY);                                     } /* INC  HY       */
 OP(fd,25) { HY = DEC(HY);                                     } /* DEC  HY       */
@@ -2323,7 +2312,7 @@ OP(fd,27) { illegal_1(); op_27();                             } /* DB   FD      
 
 OP(fd,28) { illegal_1(); op_28();                             } /* DB   FD       */
 OP(fd,29) { ADD16(iy,iy);                                     } /* ADD  IY,IY    */
-OP(fd,2a) { EA = ARG16(); RM16( EA, &Z80.iy ); WZ = EA+1;     } /* LD   IY,(w)   */
+OP(fd,2a) { EA = ARG16(); RM16( EA, &iy ); WZ = EA+1;     } /* LD   IY,(w)   */
 OP(fd,2b) { IY--;                                             } /* DEC  IY       */
 OP(fd,2c) { LY = INC(LY);                                     } /* INC  LY       */
 OP(fd,2d) { LY = DEC(LY);                                     } /* DEC  LY       */
@@ -2650,7 +2639,7 @@ OP(ed,3f) { illegal_2();                                      } /* DB   ED      
 OP(ed,40) { B = IN(BC); F = (F & CF) | SZP[B];                } /* IN   B,(C)   */
 OP(ed,41) { OUT(BC, B);                                       } /* OUT  (C),B   */
 OP(ed,42) { SBC16( bc );                                      } /* SBC  HL,BC   */
-OP(ed,43) { EA = ARG16(); WM16( EA, &Z80.bc ); WZ = EA+1;     } /* LD   (w),BC  */
+OP(ed,43) { EA = ARG16(); WM16( EA, &bc ); WZ = EA+1;     } /* LD   (w),BC  */
 OP(ed,44) { NEG;                                              } /* NEG          */
 OP(ed,45) { RETN;                                             } /* RETN;        */
 OP(ed,46) { IM = 0;                                           } /* IM   0       */
@@ -2659,7 +2648,7 @@ OP(ed,47) { LD_I_A;                                           } /* LD   I,A     
 OP(ed,48) { C = IN(BC); F = (F & CF) | SZP[C];                } /* IN   C,(C)   */
 OP(ed,49) { OUT(BC, C);                                       } /* OUT  (C),C   */
 OP(ed,4a) { ADC16( bc );                                      } /* ADC  HL,BC   */
-OP(ed,4b) { EA = ARG16(); RM16( EA, &Z80.bc ); WZ = EA+1;     } /* LD   BC,(w)  */
+OP(ed,4b) { EA = ARG16(); RM16( EA, &bc ); WZ = EA+1;     } /* LD   BC,(w)  */
 OP(ed,4c) { NEG;                                              } /* NEG          */
 OP(ed,4d) { RETI;                                             } /* RETI         */
 OP(ed,4e) { IM = 0;                                           } /* IM   0       */
@@ -2668,7 +2657,7 @@ OP(ed,4f) { LD_R_A;                                           } /* LD   R,A     
 OP(ed,50) { D = IN(BC); F = (F & CF) | SZP[D];                } /* IN   D,(C)   */
 OP(ed,51) { OUT(BC, D);                                       } /* OUT  (C),D   */
 OP(ed,52) { SBC16( de );                                      } /* SBC  HL,DE   */
-OP(ed,53) { EA = ARG16(); WM16( EA, &Z80.de ); WZ = EA+1;     } /* LD   (w),DE  */
+OP(ed,53) { EA = ARG16(); WM16( EA, &de ); WZ = EA+1;     } /* LD   (w),DE  */
 OP(ed,54) { NEG;                                              } /* NEG          */
 OP(ed,55) { RETN;                                             } /* RETN;        */
 OP(ed,56) { IM = 1;                                           } /* IM   1       */
@@ -2677,7 +2666,7 @@ OP(ed,57) { LD_A_I;                                           } /* LD   A,I     
 OP(ed,58) { E = IN(BC); F = (F & CF) | SZP[E];                } /* IN   E,(C)   */
 OP(ed,59) { OUT(BC, E);                                       } /* OUT  (C),E   */
 OP(ed,5a) { ADC16( de );                                      } /* ADC  HL,DE   */
-OP(ed,5b) { EA = ARG16(); RM16( EA, &Z80.de ); WZ = EA+1;     } /* LD   DE,(w)  */
+OP(ed,5b) { EA = ARG16(); RM16( EA, &de ); WZ = EA+1;     } /* LD   DE,(w)  */
 OP(ed,5c) { NEG;                                              } /* NEG          */
 OP(ed,5d) { RETI;                                             } /* RETI         */
 OP(ed,5e) { IM = 2;                                           } /* IM   2       */
@@ -2686,7 +2675,7 @@ OP(ed,5f) { LD_A_R;                                           } /* LD   A,R     
 OP(ed,60) { H = IN(BC); F = (F & CF) | SZP[H];                } /* IN   H,(C)   */
 OP(ed,61) { OUT(BC, H);                                       } /* OUT  (C),H   */
 OP(ed,62) { SBC16( hl );                                      } /* SBC  HL,HL   */
-OP(ed,63) { EA = ARG16(); WM16( EA, &Z80.hl ); WZ = EA+1;     } /* LD   (w),HL  */
+OP(ed,63) { EA = ARG16(); WM16( EA, &hl ); WZ = EA+1;     } /* LD   (w),HL  */
 OP(ed,64) { NEG;                                              } /* NEG          */
 OP(ed,65) { RETN;                                             } /* RETN;        */
 OP(ed,66) { IM = 0;                                           } /* IM   0       */
@@ -2695,16 +2684,16 @@ OP(ed,67) { RRD;                                              } /* RRD  (HL)    
 OP(ed,68) { L = IN(BC); F = (F & CF) | SZP[L];                } /* IN   L,(C)   */
 OP(ed,69) { OUT(BC, L);                                       } /* OUT  (C),L   */
 OP(ed,6a) { ADC16( hl );                                      } /* ADC  HL,HL   */
-OP(ed,6b) { EA = ARG16(); RM16( EA, &Z80.hl ); WZ = EA+1;     } /* LD   HL,(w)  */
+OP(ed,6b) { EA = ARG16(); RM16( EA, &hl ); WZ = EA+1;     } /* LD   HL,(w)  */
 OP(ed,6c) { NEG;                                              } /* NEG          */
 OP(ed,6d) { RETI;                                             } /* RETI         */
 OP(ed,6e) { IM = 0;                                           } /* IM   0       */
 OP(ed,6f) { RLD;                                              } /* RLD  (HL)    */
 
-OP(ed,70) { UINT8 res = IN(BC); F = (F & CF) | SZP[res];      } /* IN   0,(C)   */
+OP(ed,70) { uint8_t res = IN(BC); F = (F & CF) | SZP[res];      } /* IN   0,(C)   */
 OP(ed,71) { OUT(BC, 0);                                       } /* OUT  (C),0   */
 OP(ed,72) { SBC16( sp );                                      } /* SBC  HL,SP   */
-OP(ed,73) { EA = ARG16(); WM16( EA, &Z80.sp ); WZ = EA+1;     } /* LD   (w),SP  */
+OP(ed,73) { EA = ARG16(); WM16( EA, &sp ); WZ = EA+1;     } /* LD   (w),SP  */
 OP(ed,74) { NEG;                                              } /* NEG          */
 OP(ed,75) { RETN;                                             } /* RETN;        */
 OP(ed,76) { IM = 1;                                           } /* IM   1       */
@@ -2713,7 +2702,7 @@ OP(ed,77) { illegal_2();                                      } /* DB   ED,77   
 OP(ed,78) { A = IN(BC); F = (F & CF) | SZP[A]; WZ = BC+1;     } /* IN   E,(C)   */
 OP(ed,79) { OUT(BC, A); WZ = BC + 1;                          } /* OUT  (C),A   */
 OP(ed,7a) { ADC16( sp );                                      } /* ADC  HL,SP   */
-OP(ed,7b) { EA = ARG16(); RM16( EA, &Z80.sp ); WZ = EA+1; } /* LD   SP,(w)  */
+OP(ed,7b) { EA = ARG16(); RM16( EA, &sp ); WZ = EA+1; } /* LD   SP,(w)  */
 OP(ed,7c) { NEG;                                              } /* NEG          */
 OP(ed,7d) { RETI;                                             } /* RETI         */
 OP(ed,7e) { IM = 2;                                           } /* IM   2       */
@@ -2905,7 +2894,7 @@ OP(op,1f) { RRA;                                                                
 
 OP(op,20) { JR_COND( !(F & ZF), 0x20 );                                                                    } /* JR   NZ,o        */
 OP(op,21) { HL = ARG16();                                                                                  } /* LD   HL,w        */
-OP(op,22) { EA = ARG16(); WM16( EA, &Z80.hl ); WZ = EA+1;                                                  } /* LD   (w),HL      */
+OP(op,22) { EA = ARG16(); WM16( EA, &hl ); WZ = EA+1;                                                  } /* LD   (w),HL      */
 OP(op,23) { HL++;                                                                                          } /* INC  HL          */
 OP(op,24) { H = INC(H);                                                                                    } /* INC  H           */
 OP(op,25) { H = DEC(H);                                                                                    } /* DEC  H           */
@@ -2914,7 +2903,7 @@ OP(op,27) { DAA;                                                                
 
 OP(op,28) { JR_COND( F & ZF, 0x28 );                                                                       } /* JR   Z,o         */
 OP(op,29) { ADD16(hl, hl);                                                                                 } /* ADD  HL,HL       */
-OP(op,2a) { EA = ARG16(); RM16( EA, &Z80.hl ); WZ = EA+1;                                                  } /* LD   HL,(w)      */
+OP(op,2a) { EA = ARG16(); RM16( EA, &hl ); WZ = EA+1;                                                  } /* LD   HL,(w)      */
 OP(op,2b) { HL--;                                                                                          } /* DEC  HL          */
 OP(op,2c) { L = INC(L);                                                                                    } /* INC  L           */
 OP(op,2d) { L = DEC(L);                                                                                    } /* DEC  L           */
@@ -3155,9 +3144,10 @@ OP(op,fd) { R++; EXEC(fd,ROP());                                                
 OP(op,fe) { CP(ARG());                                                                                     } /* CP   n           */
 OP(op,ff) { RST(0x38);                                                                                     } /* RST  7           */
 
-void Z80CPU::setNmiLine(unsigned int state)
+template<Z80Desc desc>
+void Z80CPU<desc>::setNmiLine(unsigned int state)
 {
-	if (Z80.nmi_state == CLEAR_LINE && state != CLEAR_LINE)
+	if (nmi_state == CLEAR_LINE && state != CLEAR_LINE)
 	{
 		LOG(("Z80 #%d take NMI\n", cpu_getactivecpu()));
 		LEAVE_HALT;      /* Check if processor was halted */
@@ -3167,13 +3157,14 @@ void Z80CPU::setNmiLine(unsigned int state)
 		PCD = 0x0066;
 		WZ=PCD;
 
-		cycleCount += 11*15;
+		cycleCount += 11 * z80CycleCountScaler;
 	}
 
-	Z80.nmi_state = state;
+	nmi_state = state;
 }
 
-void Z80CPU::reset(void)
+template<Z80Desc desc>
+void Z80CPU<desc>::reset()
 {
 	PC = 0x0000;
 	I = 0;
@@ -3183,17 +3174,13 @@ void Z80CPU::reset(void)
 	IFF1 = IFF2 = 0;
 	HALT = 0;
 
-	Z80.after_ei = FALSE;
+	after_ei = false;
 
 	WZ=PCD;
 }
 
-INLINE int z80_irq_callback (int param)
-{
-  return 0xFF;
-}
-
-INLINE void take_interrupt(Z80CPU &Z80)
+template<Z80Desc desc>
+void Z80CPU<desc>::takeInterrupt()
 {
   /* Check if processor was halted */
   LEAVE_HALT;
@@ -3210,22 +3197,22 @@ INLINE void take_interrupt(Z80CPU &Z80)
     PUSH( pc );
     PCD = 0x0038;
     /* RST $38 + 'interrupt latency' cycles */
-    Z80.cycleCount += cc[Z80_TABLE_op][0xff] + cc[Z80_TABLE_ex][0xff];
+    cycleCount += cc[Z80_TABLE_op][0xff] + cc[Z80_TABLE_ex][0xff];
   }
   else
   {
     /* call back the cpu interface to retrieve the vector */
-  	int irq_vector = z80_irq_callback(0);
+  	int irq_vector = irqCallback(0);
 
-    /* Interrupt mode 2. Call [Z80.i:databyte] */
+    /* Interrupt mode 2. Call [i:databyte] */
     if( IM == 2 )
     {
       irq_vector = (irq_vector & 0xff) | (I << 8);
       PUSH( pc );
-      RM16( irq_vector, &Z80.pc );
+      RM16( irq_vector, &pc );
       LOG(("Z80 #%d IM2 [$%04x] = $%04x\n",cpu_getactivecpu() , irq_vector, PCD));
         /* CALL $xxxx + 'interrupt latency' cycles */
-      Z80.cycleCount += cc[Z80_TABLE_op][0xcd] + cc[Z80_TABLE_ex][0xff];
+      cycleCount += cc[Z80_TABLE_op][0xcd] + cc[Z80_TABLE_ex][0xff];
     }
     else
     {
@@ -3239,18 +3226,18 @@ INLINE void take_interrupt(Z80CPU &Z80)
         PUSH( pc );
         PCD = irq_vector & 0xffff;
            /* CALL $xxxx + 'interrupt latency' cycles */
-        Z80.cycleCount += cc[Z80_TABLE_op][0xcd] + cc[Z80_TABLE_ex][0xff];
+        cycleCount += cc[Z80_TABLE_op][0xcd] + cc[Z80_TABLE_ex][0xff];
           break;
         case 0xc30000:  /* jump */
         PCD = irq_vector & 0xffff;
           /* JP $xxxx + 2 cycles */
-        Z80.cycleCount += cc[Z80_TABLE_op][0xc3] + cc[Z80_TABLE_ex][0xff];
+        cycleCount += cc[Z80_TABLE_op][0xc3] + cc[Z80_TABLE_ex][0xff];
           break;
         default:    /* rst (or other opcodes?) */
         PUSH( pc );
         PCD = irq_vector & 0x0038;
           /* RST $xx + 2 cycles */
-        Z80.cycleCount += cc[Z80_TABLE_op][0xff] + cc[Z80_TABLE_ex][0xff];
+        cycleCount += cc[Z80_TABLE_op][0xff] + cc[Z80_TABLE_ex][0xff];
           break;
       }
     }
@@ -3258,290 +3245,34 @@ INLINE void take_interrupt(Z80CPU &Z80)
   WZ=PCD;
 }
 
-// Doesn't seem to improve performance yet, try again after refactoring global Z80 object
-//#define Z80_COMPUTED_GOTO_EXEC
-
-#ifdef Z80_COMPUTED_GOTO_EXEC
-static unsigned processNextOpcode(Z80CPU &cpu, unsigned &cycles)
+template<Z80Desc desc>
+void Z80CPU<desc>::run(int cycles)
 {
-	if(cpu.cycleCount < cycles)
-	{
-		if(cpu.irq_state && IFF1 && !cpu.after_ei)
-		{
-			take_interrupt(cpu);
-			if(cpu.cycleCount >= cycles) return 0x100;
-		}
-		cpu.after_ei = FALSE;
-		R++;
-	  unsigned opcode = ROP();
-	  CC(op,opcode);
-	  return opcode;
-	}
-	return 0x100; // break out of jump table
-}
-
-#define DISPATCH goto *opL[processNextOpcode(Z80, cycles)]
-#endif
-
-void Z80CPU::run(unsigned int cycles)
-{
-	//logMsg("loop %d to %d, %d", Z80.cycleCount, cycles, cycles - Z80.cycleCount);
-
-	#ifdef Z80_COMPUTED_GOTO_EXEC
-	static const void *opL[] =
-	{
-		&&OPL_00, &&OPL_01, &&OPL_02, &&OPL_03,
-		&&OPL_04, &&OPL_05, &&OPL_06, &&OPL_07,
-		&&OPL_08, &&OPL_09, &&OPL_0a, &&OPL_0b,
-		&&OPL_0c, &&OPL_0d, &&OPL_0e, &&OPL_0f,
-		&&OPL_10, &&OPL_11, &&OPL_12, &&OPL_13,
-		&&OPL_14, &&OPL_15, &&OPL_16, &&OPL_17,
-		&&OPL_18, &&OPL_19, &&OPL_1a, &&OPL_1b,
-		&&OPL_1c, &&OPL_1d, &&OPL_1e, &&OPL_1f,
-		&&OPL_20, &&OPL_21, &&OPL_22, &&OPL_23,
-		&&OPL_24, &&OPL_25, &&OPL_26, &&OPL_27,
-		&&OPL_28, &&OPL_29, &&OPL_2a, &&OPL_2b,
-		&&OPL_2c, &&OPL_2d, &&OPL_2e, &&OPL_2f,
-		&&OPL_30, &&OPL_31, &&OPL_32, &&OPL_33,
-		&&OPL_34, &&OPL_35, &&OPL_36, &&OPL_37,
-		&&OPL_38, &&OPL_39, &&OPL_3a, &&OPL_3b,
-		&&OPL_3c, &&OPL_3d, &&OPL_3e, &&OPL_3f,
-		&&OPL_40, &&OPL_41, &&OPL_42, &&OPL_43,
-		&&OPL_44, &&OPL_45, &&OPL_46, &&OPL_47,
-		&&OPL_48, &&OPL_49, &&OPL_4a, &&OPL_4b,
-		&&OPL_4c, &&OPL_4d, &&OPL_4e, &&OPL_4f,
-		&&OPL_50, &&OPL_51, &&OPL_52, &&OPL_53,
-		&&OPL_54, &&OPL_55, &&OPL_56, &&OPL_57,
-		&&OPL_58, &&OPL_59, &&OPL_5a, &&OPL_5b,
-		&&OPL_5c, &&OPL_5d, &&OPL_5e, &&OPL_5f,
-		&&OPL_60, &&OPL_61, &&OPL_62, &&OPL_63,
-		&&OPL_64, &&OPL_65, &&OPL_66, &&OPL_67,
-		&&OPL_68, &&OPL_69, &&OPL_6a, &&OPL_6b,
-		&&OPL_6c, &&OPL_6d, &&OPL_6e, &&OPL_6f,
-		&&OPL_70, &&OPL_71, &&OPL_72, &&OPL_73,
-		&&OPL_74, &&OPL_75, &&OPL_76, &&OPL_77,
-		&&OPL_78, &&OPL_79, &&OPL_7a, &&OPL_7b,
-		&&OPL_7c, &&OPL_7d, &&OPL_7e, &&OPL_7f,
-		&&OPL_80, &&OPL_81, &&OPL_82, &&OPL_83,
-		&&OPL_84, &&OPL_85, &&OPL_86, &&OPL_87,
-		&&OPL_88, &&OPL_89, &&OPL_8a, &&OPL_8b,
-		&&OPL_8c, &&OPL_8d, &&OPL_8e, &&OPL_8f,
-		&&OPL_90, &&OPL_91, &&OPL_92, &&OPL_93,
-		&&OPL_94, &&OPL_95, &&OPL_96, &&OPL_97,
-		&&OPL_98, &&OPL_99, &&OPL_9a, &&OPL_9b,
-		&&OPL_9c, &&OPL_9d, &&OPL_9e, &&OPL_9f,
-		&&OPL_a0, &&OPL_a1, &&OPL_a2, &&OPL_a3,
-		&&OPL_a4, &&OPL_a5, &&OPL_a6, &&OPL_a7,
-		&&OPL_a8, &&OPL_a9, &&OPL_aa, &&OPL_ab,
-		&&OPL_ac, &&OPL_ad, &&OPL_ae, &&OPL_af,
-		&&OPL_b0, &&OPL_b1, &&OPL_b2, &&OPL_b3,
-		&&OPL_b4, &&OPL_b5, &&OPL_b6, &&OPL_b7,
-		&&OPL_b8, &&OPL_b9, &&OPL_ba, &&OPL_bb,
-		&&OPL_bc, &&OPL_bd, &&OPL_be, &&OPL_bf,
-		&&OPL_c0, &&OPL_c1, &&OPL_c2, &&OPL_c3,
-		&&OPL_c4, &&OPL_c5, &&OPL_c6, &&OPL_c7,
-		&&OPL_c8, &&OPL_c9, &&OPL_ca, &&OPL_cb,
-		&&OPL_cc, &&OPL_cd, &&OPL_ce, &&OPL_cf,
-		&&OPL_d0, &&OPL_d1, &&OPL_d2, &&OPL_d3,
-		&&OPL_d4, &&OPL_d5, &&OPL_d6, &&OPL_d7,
-		&&OPL_d8, &&OPL_d9, &&OPL_da, &&OPL_db,
-		&&OPL_dc, &&OPL_dd, &&OPL_de, &&OPL_df,
-		&&OPL_e0, &&OPL_e1, &&OPL_e2, &&OPL_e3,
-		&&OPL_e4, &&OPL_e5, &&OPL_e6, &&OPL_e7,
-		&&OPL_e8, &&OPL_e9, &&OPL_ea, &&OPL_eb,
-		&&OPL_ec, &&OPL_ed, &&OPL_ee, &&OPL_ef,
-		&&OPL_f0, &&OPL_f1, &&OPL_f2, &&OPL_f3,
-		&&OPL_f4, &&OPL_f5, &&OPL_f6, &&OPL_f7,
-		&&OPL_f8, &&OPL_f9, &&OPL_fa, &&OPL_fb,
-		&&OPL_fc, &&OPL_fd, &&OPL_fe, &&OPL_ff,
-		&&DONE,
-	};
-
-	DISPATCH;
-	OPL_00:op_00();DISPATCH; OPL_01:op_01();DISPATCH; OPL_02:op_02();DISPATCH; OPL_03:op_03();DISPATCH;
-	OPL_04:op_04();DISPATCH; OPL_05:op_05();DISPATCH; OPL_06:op_06();DISPATCH; OPL_07:op_07();DISPATCH;
-	OPL_08:op_08();DISPATCH; OPL_09:op_09();DISPATCH; OPL_0a:op_0a();DISPATCH; OPL_0b:op_0b();DISPATCH;
-	OPL_0c:op_0c();DISPATCH; OPL_0d:op_0d();DISPATCH; OPL_0e:op_0e();DISPATCH; OPL_0f:op_0f();DISPATCH;
-	OPL_10:op_10();DISPATCH; OPL_11:op_11();DISPATCH; OPL_12:op_12();DISPATCH; OPL_13:op_13();DISPATCH;
-	OPL_14:op_14();DISPATCH; OPL_15:op_15();DISPATCH; OPL_16:op_16();DISPATCH; OPL_17:op_17();DISPATCH;
-	OPL_18:op_18();DISPATCH; OPL_19:op_19();DISPATCH; OPL_1a:op_1a();DISPATCH; OPL_1b:op_1b();DISPATCH;
-	OPL_1c:op_1c();DISPATCH; OPL_1d:op_1d();DISPATCH; OPL_1e:op_1e();DISPATCH; OPL_1f:op_1f();DISPATCH;
-	OPL_20:op_20();DISPATCH; OPL_21:op_21();DISPATCH; OPL_22:op_22();DISPATCH; OPL_23:op_23();DISPATCH;
-	OPL_24:op_24();DISPATCH; OPL_25:op_25();DISPATCH; OPL_26:op_26();DISPATCH; OPL_27:op_27();DISPATCH;
-	OPL_28:op_28();DISPATCH; OPL_29:op_29();DISPATCH; OPL_2a:op_2a();DISPATCH; OPL_2b:op_2b();DISPATCH;
-	OPL_2c:op_2c();DISPATCH; OPL_2d:op_2d();DISPATCH; OPL_2e:op_2e();DISPATCH; OPL_2f:op_2f();DISPATCH;
-	OPL_30:op_30();DISPATCH; OPL_31:op_31();DISPATCH; OPL_32:op_32();DISPATCH; OPL_33:op_33();DISPATCH;
-	OPL_34:op_34();DISPATCH; OPL_35:op_35();DISPATCH; OPL_36:op_36();DISPATCH; OPL_37:op_37();DISPATCH;
-	OPL_38:op_38();DISPATCH; OPL_39:op_39();DISPATCH; OPL_3a:op_3a();DISPATCH; OPL_3b:op_3b();DISPATCH;
-	OPL_3c:op_3c();DISPATCH; OPL_3d:op_3d();DISPATCH; OPL_3e:op_3e();DISPATCH; OPL_3f:op_3f();DISPATCH;
-	OPL_40:op_40();DISPATCH; OPL_41:op_41();DISPATCH; OPL_42:op_42();DISPATCH; OPL_43:op_43();DISPATCH;
-	OPL_44:op_44();DISPATCH; OPL_45:op_45();DISPATCH; OPL_46:op_46();DISPATCH; OPL_47:op_47();DISPATCH;
-	OPL_48:op_48();DISPATCH; OPL_49:op_49();DISPATCH; OPL_4a:op_4a();DISPATCH; OPL_4b:op_4b();DISPATCH;
-	OPL_4c:op_4c();DISPATCH; OPL_4d:op_4d();DISPATCH; OPL_4e:op_4e();DISPATCH; OPL_4f:op_4f();DISPATCH;
-	OPL_50:op_50();DISPATCH; OPL_51:op_51();DISPATCH; OPL_52:op_52();DISPATCH; OPL_53:op_53();DISPATCH;
-	OPL_54:op_54();DISPATCH; OPL_55:op_55();DISPATCH; OPL_56:op_56();DISPATCH; OPL_57:op_57();DISPATCH;
-	OPL_58:op_58();DISPATCH; OPL_59:op_59();DISPATCH; OPL_5a:op_5a();DISPATCH; OPL_5b:op_5b();DISPATCH;
-	OPL_5c:op_5c();DISPATCH; OPL_5d:op_5d();DISPATCH; OPL_5e:op_5e();DISPATCH; OPL_5f:op_5f();DISPATCH;
-	OPL_60:op_60();DISPATCH; OPL_61:op_61();DISPATCH; OPL_62:op_62();DISPATCH; OPL_63:op_63();DISPATCH;
-	OPL_64:op_64();DISPATCH; OPL_65:op_65();DISPATCH; OPL_66:op_66();DISPATCH; OPL_67:op_67();DISPATCH;
-	OPL_68:op_68();DISPATCH; OPL_69:op_69();DISPATCH; OPL_6a:op_6a();DISPATCH; OPL_6b:op_6b();DISPATCH;
-	OPL_6c:op_6c();DISPATCH; OPL_6d:op_6d();DISPATCH; OPL_6e:op_6e();DISPATCH; OPL_6f:op_6f();DISPATCH;
-	OPL_70:op_70();DISPATCH; OPL_71:op_71();DISPATCH; OPL_72:op_72();DISPATCH; OPL_73:op_73();DISPATCH;
-	OPL_74:op_74();DISPATCH; OPL_75:op_75();DISPATCH; OPL_76:op_76();DISPATCH; OPL_77:op_77();DISPATCH;
-	OPL_78:op_78();DISPATCH; OPL_79:op_79();DISPATCH; OPL_7a:op_7a();DISPATCH; OPL_7b:op_7b();DISPATCH;
-	OPL_7c:op_7c();DISPATCH; OPL_7d:op_7d();DISPATCH; OPL_7e:op_7e();DISPATCH; OPL_7f:op_7f();DISPATCH;
-	OPL_80:op_80();DISPATCH; OPL_81:op_81();DISPATCH; OPL_82:op_82();DISPATCH; OPL_83:op_83();DISPATCH;
-	OPL_84:op_84();DISPATCH; OPL_85:op_85();DISPATCH; OPL_86:op_86();DISPATCH; OPL_87:op_87();DISPATCH;
-	OPL_88:op_88();DISPATCH; OPL_89:op_89();DISPATCH; OPL_8a:op_8a();DISPATCH; OPL_8b:op_8b();DISPATCH;
-	OPL_8c:op_8c();DISPATCH; OPL_8d:op_8d();DISPATCH; OPL_8e:op_8e();DISPATCH; OPL_8f:op_8f();DISPATCH;
-	OPL_90:op_90();DISPATCH; OPL_91:op_91();DISPATCH; OPL_92:op_92();DISPATCH; OPL_93:op_93();DISPATCH;
-	OPL_94:op_94();DISPATCH; OPL_95:op_95();DISPATCH; OPL_96:op_96();DISPATCH; OPL_97:op_97();DISPATCH;
-	OPL_98:op_98();DISPATCH; OPL_99:op_99();DISPATCH; OPL_9a:op_9a();DISPATCH; OPL_9b:op_9b();DISPATCH;
-	OPL_9c:op_9c();DISPATCH; OPL_9d:op_9d();DISPATCH; OPL_9e:op_9e();DISPATCH; OPL_9f:op_9f();DISPATCH;
-	OPL_a0:op_a0();DISPATCH; OPL_a1:op_a1();DISPATCH; OPL_a2:op_a2();DISPATCH; OPL_a3:op_a3();DISPATCH;
-	OPL_a4:op_a4();DISPATCH; OPL_a5:op_a5();DISPATCH; OPL_a6:op_a6();DISPATCH; OPL_a7:op_a7();DISPATCH;
-	OPL_a8:op_a8();DISPATCH; OPL_a9:op_a9();DISPATCH; OPL_aa:op_aa();DISPATCH; OPL_ab:op_ab();DISPATCH;
-	OPL_ac:op_ac();DISPATCH; OPL_ad:op_ad();DISPATCH; OPL_ae:op_ae();DISPATCH; OPL_af:op_af();DISPATCH;
-	OPL_b0:op_b0();DISPATCH; OPL_b1:op_b1();DISPATCH; OPL_b2:op_b2();DISPATCH; OPL_b3:op_b3();DISPATCH;
-	OPL_b4:op_b4();DISPATCH; OPL_b5:op_b5();DISPATCH; OPL_b6:op_b6();DISPATCH; OPL_b7:op_b7();DISPATCH;
-	OPL_b8:op_b8();DISPATCH; OPL_b9:op_b9();DISPATCH; OPL_ba:op_ba();DISPATCH; OPL_bb:op_bb();DISPATCH;
-	OPL_bc:op_bc();DISPATCH; OPL_bd:op_bd();DISPATCH; OPL_be:op_be();DISPATCH; OPL_bf:op_bf();DISPATCH;
-	OPL_c0:op_c0();DISPATCH; OPL_c1:op_c1();DISPATCH; OPL_c2:op_c2();DISPATCH; OPL_c3:op_c3();DISPATCH;
-	OPL_c4:op_c4();DISPATCH; OPL_c5:op_c5();DISPATCH; OPL_c6:op_c6();DISPATCH; OPL_c7:op_c7();DISPATCH;
-	OPL_c8:op_c8();DISPATCH; OPL_c9:op_c9();DISPATCH; OPL_ca:op_ca();DISPATCH; OPL_cb:op_cb();DISPATCH;
-	OPL_cc:op_cc();DISPATCH; OPL_cd:op_cd();DISPATCH; OPL_ce:op_ce();DISPATCH; OPL_cf:op_cf();DISPATCH;
-	OPL_d0:op_d0();DISPATCH; OPL_d1:op_d1();DISPATCH; OPL_d2:op_d2();DISPATCH; OPL_d3:op_d3();DISPATCH;
-	OPL_d4:op_d4();DISPATCH; OPL_d5:op_d5();DISPATCH; OPL_d6:op_d6();DISPATCH; OPL_d7:op_d7();DISPATCH;
-	OPL_d8:op_d8();DISPATCH; OPL_d9:op_d9();DISPATCH; OPL_da:op_da();DISPATCH; OPL_db:op_db();DISPATCH;
-	OPL_dc:op_dc();DISPATCH; OPL_dd:op_dd();DISPATCH; OPL_de:op_de();DISPATCH; OPL_df:op_df();DISPATCH;
-	OPL_e0:op_e0();DISPATCH; OPL_e1:op_e1();DISPATCH; OPL_e2:op_e2();DISPATCH; OPL_e3:op_e3();DISPATCH;
-	OPL_e4:op_e4();DISPATCH; OPL_e5:op_e5();DISPATCH; OPL_e6:op_e6();DISPATCH; OPL_e7:op_e7();DISPATCH;
-	OPL_e8:op_e8();DISPATCH; OPL_e9:op_e9();DISPATCH; OPL_ea:op_ea();DISPATCH; OPL_eb:op_eb();DISPATCH;
-	OPL_ec:op_ec();DISPATCH; OPL_ed:op_ed();DISPATCH; OPL_ee:op_ee();DISPATCH; OPL_ef:op_ef();DISPATCH;
-	OPL_f0:op_f0();DISPATCH; OPL_f1:op_f1();DISPATCH; OPL_f2:op_f2();DISPATCH; OPL_f3:op_f3();DISPATCH;
-	OPL_f4:op_f4();DISPATCH; OPL_f5:op_f5();DISPATCH; OPL_f6:op_f6();DISPATCH; OPL_f7:op_f7();DISPATCH;
-	OPL_f8:op_f8();DISPATCH; OPL_f9:op_f9();DISPATCH; OPL_fa:op_fa();DISPATCH; OPL_fb:op_fb();DISPATCH;
-	OPL_fc:op_fc();DISPATCH; OPL_fd:op_fd();DISPATCH; OPL_fe:op_fe();DISPATCH; OPL_ff:op_ff();DISPATCH;
-	DONE: return;
-	#else
 	while(cycleCount < cycles)
 	{
 		// check for IRQs before each instruction
-		if(Z80.irq_state && IFF1 && !Z80.after_ei)
+		if(irq_state && IFF1 && !after_ei)
 		{
-			take_interrupt(*this);
+			takeInterrupt();
 			if (cycleCount >= cycles) return;
 		}
-
-		after_ei = FALSE;
+		after_ei = false;
 		R++;
-		EXEC_INLINE(op,ROP());
-	}
-	#endif
-}
-
-// TODO: pre-calculate
-void Z80CPU::staticInit()
-{
-	int oldval, newval, val;
-	UINT8 *padd, *padc, *psub, *psbc;
-
-	padd = &SZHVC_add[  0*256];
-	padc = &SZHVC_add[256*256];
-	psub = &SZHVC_sub[  0*256];
-	psbc = &SZHVC_sub[256*256];
-	for (oldval = 0; oldval < 256; oldval++)
-	{
-		for (newval = 0; newval < 256; newval++)
-		{
-			/* add or adc w/o carry set */
-			val = newval - oldval;
-			*padd = (newval) ? ((newval & 0x80) ? SF : 0) : ZF;
-			*padd |= (newval & (YF | XF));  /* undocumented flag bits 5+3 */
-			if( (newval & 0x0f) < (oldval & 0x0f) ) *padd |= HF;
-			if( newval < oldval ) *padd |= CF;
-			if( (val^oldval^0x80) & (val^newval) & 0x80 ) *padd |= VF;
-			padd++;
-
-			/* adc with carry set */
-			val = newval - oldval - 1;
-			*padc = (newval) ? ((newval & 0x80) ? SF : 0) : ZF;
-			*padc |= (newval & (YF | XF));  /* undocumented flag bits 5+3 */
-			if( (newval & 0x0f) <= (oldval & 0x0f) ) *padc |= HF;
-			if( newval <= oldval ) *padc |= CF;
-			if( (val^oldval^0x80) & (val^newval) & 0x80 ) *padc |= VF;
-			padc++;
-
-			/* cp, sub or sbc w/o carry set */
-			val = oldval - newval;
-			*psub = NF | ((newval) ? ((newval & 0x80) ? SF : 0) : ZF);
-			*psub |= (newval & (YF | XF));  /* undocumented flag bits 5+3 */
-			if( (newval & 0x0f) > (oldval & 0x0f) ) *psub |= HF;
-			if( newval > oldval ) *psub |= CF;
-			if( (val^oldval) & (oldval^newval) & 0x80 ) *psub |= VF;
-			psub++;
-
-			/* sbc with carry set */
-			val = oldval - newval - 1;
-			*psbc = NF | ((newval) ? ((newval & 0x80) ? SF : 0) : ZF);
-			*psbc |= (newval & (YF | XF));  /* undocumented flag bits 5+3 */
-			if( (newval & 0x0f) >= (oldval & 0x0f) ) *psbc |= HF;
-			if( newval >= oldval ) *psbc |= CF;
-			if( (val^oldval) & (oldval^newval) & 0x80 ) *psbc |= VF;
-			psbc++;
-		}
-	}
-
-	for(auto i : IG::iotaCount(256))
-	{
-		int p = 0;
-		if( i&0x01 ) ++p;
-		if( i&0x02 ) ++p;
-		if( i&0x04 ) ++p;
-		if( i&0x08 ) ++p;
-		if( i&0x10 ) ++p;
-		if( i&0x20 ) ++p;
-		if( i&0x40 ) ++p;
-		if( i&0x80 ) ++p;
-		SZ[i] = i ? i & SF : ZF;
-		SZ[i] |= (i & (YF | XF));    /* undocumented flag bits 5+3 */
-		SZ_BIT[i] = i ? i & SF : ZF | PF;
-		SZ_BIT[i] |= (i & (YF | XF));  /* undocumented flag bits 5+3 */
-		SZP[i] = SZ[i] | ((p & 1) ? 0 : PF);
-		SZHV_inc[i] = SZ[i];
-		if( i == 0x80 ) SZHV_inc[i] |= VF;
-		if( (i & 0x0f) == 0x00 ) SZHV_inc[i] |= HF;
-		SZHV_dec[i] = SZ[i] | NF;
-		if( i == 0x7f ) SZHV_dec[i] |= VF;
-		if( (i & 0x0f) == 0x0f ) SZHV_dec[i] |= HF;
+		EXEC(op,ROP());
 	}
 }
 
-void Z80CPU::init(/*const void *config, int (*irqcallback)(int)*/)
+template<Z80Desc desc>
+void Z80CPU<desc>::init(/*const void *config, int (*irqcallback)(int)*/)
 {
-	int i, p;
-
-	staticInit();
-
 	/* Initialize Regs */
-	memset(this, 0, sizeof(Z80_Regs));
+	static_cast<Z80_Regs&>(*this) = {};
 
 	/* Reset registers to their initial values (NB: should be random on real hardware) */
 	AF = BC = DE = HL = 0;
 	F = ZF; /* Zero flag is set */
 	IX = IY = 0xffff; /* IX and IY are FFFF after a reset! (from MAME) */
 	SP = 0xdfff;  /* required by some SMS games that don't initialize SP */
-
-	/* setup cycle tables */
-	cc[Z80_TABLE_op] = cc_op;
-	cc[Z80_TABLE_cb] = cc_cb;
-	cc[Z80_TABLE_ed] = cc_ed;
-	cc[Z80_TABLE_xy] = cc_xy;
-	cc[Z80_TABLE_xycb] = cc_xycb;
-	cc[Z80_TABLE_ex] = cc_ex;
 }
 
-void Z80CPU::exit(void)
-{
-
-}
+template class Z80CPU<z80Desc>;

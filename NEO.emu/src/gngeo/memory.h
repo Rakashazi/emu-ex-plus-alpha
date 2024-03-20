@@ -19,21 +19,12 @@
 #ifndef _MEMORY_H_
 #define _MEMORY_H_
 
-#ifdef HAVE_CONFIG_H
 #include <gngeo-config.h>
-#endif
-
-//#include "SDL.h"
-//#include "SDL_endian.h"
 #include "video.h"
 #include "ym2610/2610intf.h"
 #include "state.h"
 #include "roms.h"
 #include <imagine/util/mayAliasInt.h>
-
-#ifdef GP2X
-#include "gp2x.h"
-#endif
 
 #define READ_WORD(a)          (*(uint16a*)(a))
 #define WRITE_WORD(a,d)       (*(uint16a*)(a) = (d))
