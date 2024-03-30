@@ -119,6 +119,6 @@ constexpr InputComponentDesc rewindUIComponents{"Rewind One State", rewindUIKeys
 
 std::string_view toString(AppKeyCode);
 
-constexpr const char *playerNumStrings[] {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
+constexpr std::array playerNumStrings{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
 
 }

@@ -16,6 +16,7 @@
 #include <emuframework/TouchConfigView.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/AppKeyCode.hh>
+#include <emuframework/viewUtils.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/gfx/RendererCommands.hh>
@@ -80,21 +81,14 @@ public:
 			{"Custom Value", attach,
 				[this](const Input::Event &e)
 				{
-					app().pushAndShowNewCollectValueInputView<float>(attachParams(), e, "Input 1.0 to 3.0", "",
-						[this](EmuApp &app, auto val)
+					pushAndShowNewCollectValueRangeInputView<float, 1, 3>(attachParams(), e, "Input 1.0 to 3.0", "",
+						[this](CollectTextInputView &, auto val)
 						{
 							int scaledIntVal = val * 100.0;
-							if(elem.dPad()->setDeadzone(renderer(), scaledIntVal, window()))
-							{
-								deadzone.setSelected(MenuId{scaledIntVal}, *this);
-								dismissPrevious();
-								return true;
-							}
-							else
-							{
-								app.postErrorMessage("Value not in range");
-								return false;
-							}
+							elem.dPad()->setDeadzone(renderer(), scaledIntVal, window());
+							deadzone.setSelected(MenuId{scaledIntVal}, *this);
+							dismissPrevious();
+							return true;
 						});
 					return false;
 				}, {.id = defaultMenuId}
@@ -124,23 +118,16 @@ public:
 			{"Custom Value", attach,
 				[this](const Input::Event &e)
 				{
-					app().pushAndShowNewCollectValueInputView<float>(attachParams(), e, "Input 0 to 99.0", "",
-						[this](EmuApp &app, auto val)
+					pushAndShowNewCollectValueRangeInputView<float, 0, 99>(attachParams(), e, "Input 0 to 99.0", "",
+						[this](CollectTextInputView &, auto val)
 						{
 							val = 100. - val;
 							int scaledIntVal = val * 10.0;
 							val /= 100.;
-							if(elem.dPad()->setDiagonalSensitivity(renderer(), val))
-							{
-								diagonalSensitivity.setSelected(MenuId{scaledIntVal}, *this);
-								dismissPrevious();
-								return true;
-							}
-							else
-							{
-								app.postErrorMessage("Value not in range");
-								return false;
-							}
+							elem.dPad()->setDiagonalSensitivity(renderer(), val);
+							diagonalSensitivity.setSelected(MenuId{scaledIntVal}, *this);
+							dismissPrevious();
+							return true;
 						});
 					return false;
 				}, {.id = defaultMenuId}
@@ -443,8 +430,8 @@ public:
 			{"Custom Value", attach,
 				[this](const Input::Event &e)
 				{
-					app().pushAndShowNewCollectValueRangeInputView<int, 0, 8>(attachParams(), e, "Input 0 to 8", "",
-						[this](EmuApp &app, auto val)
+					pushAndShowNewCollectValueRangeInputView<int, 0, 8>(attachParams(), e, "Input 0 to 8", "",
+						[this](CollectTextInputView &, auto val)
 						{
 							elem.buttonGroup()->setSpacing(val, window());
 							vCtrl.place();
@@ -504,8 +491,8 @@ public:
 			{touchCtrlExtraBtnSizeMenuName[3], attach, {.id = touchCtrlExtraBtnSizeMenuVal[3]}},
 			{"Custom Value", attach, [this](const Input::Event &e)
 				{
-					app().pushAndShowNewCollectValueRangeInputView<int, 0, 30>(attachParams(), e, "Input 0 to 30", "",
-						[this](EmuApp &app, auto val)
+					pushAndShowNewCollectValueRangeInputView<int, 0, 30>(attachParams(), e, "Input 0 to 30", "",
+						[this](CollectTextInputView &, auto val)
 						{
 							elem.buttonGroup()->layout.xPadding = val;
 							vCtrl.place();
@@ -545,8 +532,8 @@ public:
 			{touchCtrlExtraBtnSizeMenuName[3], attach, {.id = touchCtrlExtraBtnSizeMenuVal[3]}},
 			{"Custom Value", attach, [this](const Input::Event &e)
 				{
-					app().pushAndShowNewCollectValueRangeInputView<int, 0, 30>(attachParams(), e, "Input 0 to 30", "",
-						[this](EmuApp &app, auto val)
+					pushAndShowNewCollectValueRangeInputView<int, 0, 30>(attachParams(), e, "Input 0 to 30", "",
+						[this](CollectTextInputView &, auto val)
 						{
 							elem.buttonGroup()->layout.yPadding = val;
 							vCtrl.place();
@@ -828,21 +815,14 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl):
 		{"Custom Value", attach,
 			[this](const Input::Event &e)
 			{
-				app().pushAndShowNewCollectValueInputView<float>(attachParams(), e, "Input 3.0 to 30.0", "",
-					[this](EmuApp &app, auto val)
+				pushAndShowNewCollectValueRangeInputView<float, 3, 30>(attachParams(), e, "Input 3.0 to 30.0", "",
+					[this](CollectTextInputView &, auto val)
 					{
 						int scaledIntVal = val * 100.0;
-						if(vController.setButtonSize(scaledIntVal))
-						{
-							size.setSelected(MenuId{scaledIntVal}, *this);
-							dismissPrevious();
-							return true;
-						}
-						else
-						{
-							app.postErrorMessage("Value not in range");
-							return false;
-						}
+						vController.setButtonSize(scaledIntVal);
+						size.setSelected(MenuId{scaledIntVal}, *this);
+						dismissPrevious();
+						return true;
 					});
 				return false;
 			}, {.id = defaultMenuId}

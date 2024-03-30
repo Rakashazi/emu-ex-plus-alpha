@@ -17,6 +17,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuViewController.hh>
 #include <emuframework/EmuOptions.hh>
+#include <emuframework/viewUtils.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <format>
@@ -55,21 +56,14 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		{"Custom Value", attach,
 			[this](const Input::Event &e)
 			{
-				app().pushAndShowNewCollectValueInputView<float>(attachParams(), e, "Input 2.0 to 10.0", "",
-					[this](EmuApp &app, auto val)
+				pushAndShowNewCollectValueRangeInputView<float, 2, 10>(attachParams(), e, "Input 2.0 to 10.0", "",
+					[this](CollectTextInputView &, auto val)
 					{
 						int scaledIntVal = val * 1000.0;
-						if(app.setFontSize(scaledIntVal))
-						{
-							fontSize.setSelected(MenuId{scaledIntVal}, *this);
-							dismissPrevious();
-							return true;
-						}
-						else
-						{
-							app.postErrorMessage("Value not in range");
-							return false;
-						}
+						app().setFontSize(scaledIntVal);
+						fontSize.setSelected(MenuId{scaledIntVal}, *this);
+						dismissPrevious();
+						return true;
 					});
 				return false;
 			}, {.id = defaultMenuId}
@@ -217,11 +211,11 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		"Max Recent Content Items", std::to_string(app().recentContent.maxRecentContent), attach,
 		[this](const Input::Event &e)
 		{
-			app().pushAndShowNewCollectValueRangeInputView<int, 1, 100>(attachParams(), e,
+			pushAndShowNewCollectValueRangeInputView<int, 1, 100>(attachParams(), e,
 				"Input 1 to 100", std::to_string(app().recentContent.maxRecentContent),
-				[this](EmuApp &app, auto val)
+				[this](CollectTextInputView &, auto val)
 				{
-					app.recentContent.maxRecentContent = val;
+					app().recentContent.maxRecentContent = val;
 					maxRecentContent.set2ndName(std::to_string(val));
 					return true;
 				});
@@ -279,11 +273,11 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		"Set Window Size", attach,
 		[this](const Input::Event &e)
 		{
-			app().pushAndShowNewCollectValuePairRangeInputView<int, 320, 8192, 240, 8192>(attachParams(), e,
+			pushAndShowNewCollectValuePairRangeInputView<int, 320, 8192, 240, 8192>(attachParams(), e,
 				"Input Width & Height", "",
-				[this](EmuApp &app, auto val)
+				[this](CollectTextInputView &, auto val)
 				{
-					app.emuWindow().setSize({val.first, val.second});
+					app().emuWindow().setSize({val.first, val.second});
 					return true;
 				});
 		}

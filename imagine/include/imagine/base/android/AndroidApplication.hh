@@ -88,7 +88,7 @@ public:
 	bool openDocumentTreeIntent(JNIEnv *, jobject baseActivity, SystemDocumentPickerDelegate);
 	bool openDocumentIntent(JNIEnv *, jobject baseActivity, SystemDocumentPickerDelegate);
 	bool createDocumentIntent(JNIEnv *, jobject baseActivity, SystemDocumentPickerDelegate);
-	FrameTimer makeFrameTimer(Screen &);
+	void emplaceFrameTimer(FrameTimer&, Screen&, bool useVariableTime = {});
 	bool requestPermission(ApplicationContext, Permission);
 	UniqueFileDescriptor openFileUriFd(JNIEnv *, jobject baseActivity, CStringView uri, OpenFlags oFlags = {}) const;
 	bool fileUriExists(JNIEnv *, jobject baseActivity, CStringView uri) const;

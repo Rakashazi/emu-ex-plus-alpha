@@ -58,7 +58,7 @@ public:
 	~XApplication();
 	FDEventSource makeXDisplayConnection(EventLoop);
 	::_XDisplay *xDisplay() const;
-	FrameTimer makeFrameTimer(Screen &);
+	void emplaceFrameTimer(FrameTimer&, Screen&, bool useVariableTime = {});
 	void initPerWindowInputData(unsigned long xWin);
 	void runX11Events(_XDisplay *);
 	void runX11Events();
@@ -66,6 +66,7 @@ public:
 	void setXdnd(unsigned long win, bool on);
 	std::string inputKeyString(Input::Key rawKey, uint32_t modifiers) const;
 	void setWindowCursor(unsigned long xWin, bool on);
+	SupportedFrameTimer supportedFrameTimerType() const { return supportedFrameTimer; }
 
 private:
 	::_XDisplay *dpy{};

@@ -66,15 +66,15 @@ void BaseWindow::attachDrawEvent()
 		});
 }
 
-FrameTimeSource Window::evalFrameTimeSource(FrameTimeSource clock) const
+FrameTimeSource Window::evalFrameTimeSource(FrameTimeSource src) const
 {
-	return clock == FrameTimeSource::Unset ? defaultFrameTimeSource() : clock;
+	return src == FrameTimeSource::Unset ? defaultFrameTimeSource() : src;
 }
 
-bool Window::addOnFrame(OnFrameDelegate del, FrameTimeSource clock, int priority)
+bool Window::addOnFrame(OnFrameDelegate del, FrameTimeSource src, int priority)
 {
-	clock = evalFrameTimeSource(clock);
-	if(clock == FrameTimeSource::Screen)
+	src = evalFrameTimeSource(src);
+	if(src != FrameTimeSource::Renderer)
 	{
 		return screen()->addOnFrame(del);
 	}
@@ -91,10 +91,10 @@ bool Window::addOnFrame(OnFrameDelegate del, FrameTimeSource clock, int priority
 	}
 }
 
-bool Window::removeOnFrame(OnFrameDelegate del, FrameTimeSource clock)
+bool Window::removeOnFrame(OnFrameDelegate del, FrameTimeSource src)
 {
-	clock = evalFrameTimeSource(clock);
-	if(clock == FrameTimeSource::Screen)
+	src = evalFrameTimeSource(src);
+	if(src != FrameTimeSource::Renderer)
 	{
 		return screen()->removeOnFrame(del);
 	}
@@ -112,7 +112,18 @@ bool Window::moveOnFrame(Window &srcWin, OnFrameDelegate del, FrameTimeSource sr
 
 FrameTimeSource Window::defaultFrameTimeSource() const
 {
-	return screen()->supportsTimestamps() ? FrameTimeSource::Screen : FrameTimeSource::Renderer;
+	return screen()->supportsTimestamps() ? FrameTimeSource::Screen :
+		(Config::envIsAndroid ? FrameTimeSource::Renderer : FrameTimeSource::Timer);
+}
+
+void Window::configureFrameTimeSource(FrameTimeSource src)
+{
+	src = evalFrameTimeSource(src);
+	log.info("configuring for frame time source:{}", wise_enum::to_string(src));
+	if(src != FrameTimeSource::Renderer)
+	{
+		screen()->setVariableFrameTime(src == FrameTimeSource::Timer);
+	}
 }
 
 void Window::resetAppData()

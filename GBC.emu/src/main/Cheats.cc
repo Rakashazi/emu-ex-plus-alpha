@@ -20,6 +20,7 @@
 #include <imagine/logger/logger.h>
 #include <emuframework/Cheats.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/viewUtils.hh>
 #include "EmuCheatViews.hh"
 #include "MainSystem.hh"
 #include <main/Cheats.hh>
@@ -177,19 +178,19 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 		attach,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e,
+			pushAndShowNewCollectValueInputView<const char*>(attachParams(), e,
 				"Input xxxxxxxx (GS) or xxx-xxx-xxx (GG) code", cheat->code,
-				[this](EmuApp &app, auto str)
+				[this](CollectTextInputView&, auto str)
 				{
 					if(!strIsGGCode(str) && !strIsGSCode(str))
 					{
-						app.postMessage(true, "Invalid format");
+						app().postMessage(true, "Invalid format");
 						postDraw();
 						return false;
 					}
 					cheat->code = IG::toUpperCase<decltype(cheat->code)>(str);
 					writeCheatFile(system());
-					static_cast<GbcSystem&>(app.system()).applyCheats();
+					static_cast<GbcSystem&>(app().system()).applyCheats();
 					ggCode.set2ndName(str);
 					ggCode.compile();
 					postDraw();
@@ -233,7 +234,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		"Add Game Genie / GameShark Code", attach,
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			app().pushAndShowNewCollectTextInputView(attachParams(), e,
+			pushAndShowNewCollectTextInputView(attachParams(), e,
 				"Input xxxxxxxx (GS) or xxx-xxx-xxx (GG) code", "",
 				[this](CollectTextInputView &view, const char *str)
 				{
@@ -259,7 +260,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						onCheatListChanged();
 						writeCheatFile(system());
 						view.dismiss();
-						app().pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
+						pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
 							[this](CollectTextInputView &view, const char *str)
 							{
 								if(str)

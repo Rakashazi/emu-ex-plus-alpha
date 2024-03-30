@@ -85,24 +85,23 @@ IG::PixelFormat EmuApp::videoEffectPixelFormat() const
 	return windowPixelFormat();
 }
 
-bool EmuApp::setVideoZoom(uint8_t val)
+bool EmuApp::setContentScale(uint8_t val)
 {
-	if(!imageZoom.set(val))
+	if(!contentScale.set(val))
 		return false;
-	log.info("set video zoom:{}", imageZoom.value());
-	videoLayer.setZoom(val);
+	log.info("set content scale:{}", contentScale.value());
+	videoLayer.scale = val;
 	viewController().placeEmuViews();
 	viewController().postDrawToEmuWindows();
 	return true;
 }
 
-bool EmuApp::setViewportZoom(uint8_t val)
+bool EmuApp::setMenuScale(int8_t val)
 {
-	if(!viewportZoom.set(val))
+	if(!menuScale.set(val))
 		return false;
-	log.info("set viewport zoom:{}", viewportZoom.value());
-	auto &win = appContext().mainWindow();
-	viewController().updateMainWindowViewport(win, makeViewport(win), renderer.task());
+	log.info("set menu scale:{}", menuScale.value());
+	viewController().placeElements();
 	viewController().postDrawToEmuWindows();
 	return true;
 }

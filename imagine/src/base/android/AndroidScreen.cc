@@ -111,8 +111,7 @@ void AndroidApplication::initScreens(JNIEnv *env, jobject baseActivity, jclass b
 	jEnumDisplays(env, baseActivity, (jlong)nActivity);
 }
 
-AndroidScreen::AndroidScreen(ApplicationContext ctx, InitParams params):
-	frameTimer{ctx.application().makeFrameTimer(*static_cast<Screen*>(this))}
+AndroidScreen::AndroidScreen(ApplicationContext ctx, InitParams params)
 {
 	auto [env, aDisplay, metrics, id, refreshRate, presentationDeadline, rotation] = params;
 	assert(aDisplay);
@@ -150,7 +149,7 @@ AndroidScreen::AndroidScreen(ApplicationContext ctx, InitParams params):
 		else
 			reliableFrameRate = false;
 	}
-	frameTimer.setFrameRate(static_cast<Screen*>(this)->frameRate());
+	ctx.application().emplaceFrameTimer(frameTimer, *static_cast<Screen*>(this));
 	updateSupportedFrameRates(ctx, env);
 
 	// DisplayMetrics
@@ -239,6 +238,13 @@ void Screen::unpostFrameTimer()
 	frameTimer.cancel();
 }
 
+void Screen::setVariableFrameTime(bool useVariableTime)
+{
+	if(!shouldUpdateFrameTimer(frameTimer, useVariableTime))
+		return;
+	application().emplaceFrameTimer(frameTimer, *static_cast<Screen*>(this), useVariableTime);
+}
+
 void Screen::setFrameInterval(int interval)
 {
 	// TODO
@@ -253,7 +259,7 @@ bool Screen::supportsFrameInterval()
 
 bool Screen::supportsTimestamps() const
 {
-		return !std::holds_alternative<SimpleFrameTimer>(frameTimer);
+	return appContext().androidSDK() >= 16;
 }
 
 void Screen::setFrameRate(FrameRate rate)

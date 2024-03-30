@@ -14,6 +14,7 @@
 	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
+#include <emuframework/viewUtils.hh>
 #include <main/Cheats.hh>
 #include <z80.hh>
 #include "EmuCheatViews.hh"
@@ -531,8 +532,8 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_, Ref
 		attach,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, cheat->code,
-				[this](EmuApp &, auto str)
+			pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, cheat->code,
+				[this](CollectTextInputView&, auto str)
 				{
 					cheat->code = IG::toUpperCase<decltype(cheat->code)>(str);
 					if(!decodeCheat(cheat->code.data(), cheat->address, cheat->data, cheat->origData))
@@ -605,7 +606,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		"Add Game Genie / Action Replay Code", attach,
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			app().pushAndShowNewCollectTextInputView(attachParams(), e, emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, "",
+			pushAndShowNewCollectTextInputView(attachParams(), e, emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, "",
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
@@ -635,7 +636,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						onCheatListChanged();
 						writeCheatFile(system());
 						view.dismiss();
-						app().pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
+						pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
 							[this](CollectTextInputView &view, const char *str)
 							{
 								if(str)

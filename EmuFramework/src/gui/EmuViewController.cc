@@ -78,14 +78,6 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 	emuView.setLayoutInputView(&inputView);
 }
 
-void EmuViewController::pushAndShowMainMenu(ViewAttachParams viewAttach, EmuVideoLayer &videoLayer,
-	EmuAudio &emuAudio)
-{
-	auto mainMenu = EmuApp::makeView(viewAttach, EmuApp::ViewID::MAIN_MENU);
-	static_cast<MainMenuView*>(mainMenu.get())->setAudioVideo(emuAudio, videoLayer);
-	viewStack.pushAndShow(std::move(mainMenu));
-}
-
 static bool shouldExitFromViewRootWithoutPrompt(const Input::KeyEvent &e)
 {
 	return e.map() == Input::Map::SYSTEM && (Config::envIsAndroid || Config::envIsLinux);
@@ -231,6 +223,7 @@ void EmuViewController::showEmulationView(FrameTimeConfig frameTimeConfig)
 		return;
 	viewStack.top().onHide();
 	showingEmulation = true;
+	emuView.window().configureFrameTimeSource(app().frameTimeSource);
 	configureWindowForEmulation(emuView.window(), frameTimeConfig, true);
 	if(emuView.window() != inputView.window())
 		inputView.postDraw();
@@ -244,6 +237,7 @@ void EmuViewController::showMenuView(bool updateTopView)
 	if(!showingEmulation)
 		return;
 	showingEmulation = false;
+	emuView.window().configureFrameTimeSource(FrameTimeSource::Unset);
 	presentTime = {};
 	inputView.setSystemGestureExclusion(false);
 	configureWindowForEmulation(emuView.window(), {}, false);
@@ -272,7 +266,16 @@ void EmuViewController::placeElements()
 	auto &winData = app().mainWindowData();
 	emuView.manager().setTableXIndentToDefault(appContext().mainWindow());
 	placeEmuViews();
-	viewStack.place(winData.contentBounds(), winData.windowBounds());
+	WRect contentBounds = winData.contentBounds();
+	WRect windowBounds = winData.windowBounds();
+	if(app().menuScale != 100)
+	{
+		float scaler = app().menuScale / 100.f;
+		contentBounds *= scaler;
+		contentBounds.setPos(winData.contentBounds().pos(C2DO), C2DO);
+		windowBounds = contentBounds;
+	}
+	viewStack.place(contentBounds, windowBounds);
 }
 
 void EmuViewController::updateMainWindowViewport(IG::Window &win, IG::Viewport viewport, Gfx::RendererTask &task)
@@ -426,7 +429,7 @@ void EmuViewController::showSystemActionsView(ViewAttachParams attach, const Inp
 	app().showUI();
 	if(!viewStack.contains("System Actions"))
 	{
-		viewStack.pushAndShow(EmuApp::makeView(attach, EmuApp::ViewID::SYSTEM_ACTIONS), e);
+		viewStack.pushAndShow(app().makeView(attach, EmuApp::ViewID::SYSTEM_ACTIONS), e);
 	}
 }
 

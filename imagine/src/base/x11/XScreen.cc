@@ -26,8 +26,7 @@
 namespace IG
 {
 
-XScreen::XScreen(ApplicationContext ctx, InitParams params):
-	frameTimer{ctx.application().makeFrameTimer(*static_cast<Screen*>(this))}
+XScreen::XScreen(ApplicationContext ctx, InitParams params)
 {
 	auto *xScreen = (::Screen*)params.xScreen;
 	assert(xScreen);
@@ -78,7 +77,7 @@ XScreen::XScreen(ApplicationContext ctx, InitParams params):
 	}
 	logMsg("screen:%p %dx%d (%dx%dmm) %.2fHz", xScreen,
 		WidthOfScreen(xScreen), HeightOfScreen(xScreen), (int)xMM, (int)yMM, frameRate_);
-	frameTimer.setFrameRate(frameRate_);
+	ctx.application().emplaceFrameTimer(frameTimer, *static_cast<Screen*>(this));
 }
 
 void *XScreen::nativeObject() const
@@ -173,13 +172,20 @@ bool Screen::supportsFrameInterval()
 
 bool Screen::supportsTimestamps() const
 {
-	return !std::holds_alternative<SimpleFrameTimer>(frameTimer);
+	return application().supportedFrameTimerType() != SupportedFrameTimer::SIMPLE;
 }
 
 std::span<const FrameRate> Screen::supportedFrameRates() const
 {
 	// TODO
 	return {&frameRate_, 1};
+}
+
+void Screen::setVariableFrameTime(bool useVariableTime)
+{
+	if(!shouldUpdateFrameTimer(frameTimer, useVariableTime))
+		return;
+	application().emplaceFrameTimer(frameTimer, *static_cast<Screen*>(this), useVariableTime);
 }
 
 }

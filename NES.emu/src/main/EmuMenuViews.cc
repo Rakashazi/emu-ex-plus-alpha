@@ -23,6 +23,7 @@
 #include <emuframework/SystemOptionView.hh>
 #include <emuframework/SystemActionsView.hh>
 #include <emuframework/FilePicker.hh>
+#include <emuframework/viewUtils.hh>
 #include "EmuCheatViews.hh"
 #include "MainApp.hh"
 #include <imagine/gui/AlertView.hh>
@@ -237,9 +238,9 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		"Extra Lines Per Frame", std::to_string(postrenderscanlines), attachParams(),
 		[this](const Input::Event &e)
 		{
-			app().pushAndShowNewCollectValueRangeInputView<int, 0, maxExtraLinesPerFrame>(attachParams(), e,
+			pushAndShowNewCollectValueRangeInputView<int, 0, maxExtraLinesPerFrame>(attachParams(), e,
 				"Input 0 to 30000", std::to_string(postrenderscanlines),
-				[this](EmuApp &app, auto val)
+				[this](CollectTextInputView&, auto val)
 				{
 					system().sessionOptionSet();
 					postrenderscanlines = val;
@@ -254,9 +255,9 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		"Vertical Blank Line Multiplier", std::to_string(vblankscanlines), attachParams(),
 		[this](const Input::Event &e)
 		{
-			app().pushAndShowNewCollectValueRangeInputView<int, 0, maxVBlankMultiplier>(attachParams(), e,
+			pushAndShowNewCollectValueRangeInputView<int, 0, maxVBlankMultiplier>(attachParams(), e,
 				"Input 0 to 16", std::to_string(vblankscanlines),
-				[this](EmuApp &app, auto val)
+				[this](CollectTextInputView&, auto val)
 				{
 					system().sessionOptionSet();
 					vblankscanlines = val;
@@ -444,7 +445,7 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 	};
 
 public:
-	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
+	CustomVideoOptionView(ViewAttachParams attach, EmuVideoLayer &layer): VideoOptionView{attach, layer, true}
 	{
 		loadStockItems();
 		item.emplace_back(&systemSpecificHeading);
@@ -553,7 +554,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 	};
 
 public:
-	CustomAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
+	CustomAudioOptionView(ViewAttachParams attach, EmuAudio& audio): AudioOptionView{attach, audio, true}
 	{
 		loadStockItems();
 		item.emplace_back(&quality);
@@ -803,8 +804,8 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 	switch(id)
 	{
 		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
-		case ViewID::VIDEO_OPTIONS: return std::make_unique<CustomVideoOptionView>(attach);
-		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
+		case ViewID::VIDEO_OPTIONS: return std::make_unique<CustomVideoOptionView>(attach, videoLayer);
+		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach, audio);
 		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
 		case ViewID::FILE_PATH_OPTIONS: return std::make_unique<CustomFilePathOptionView>(attach);
 		case ViewID::EDIT_CHEATS: return std::make_unique<EmuEditCheatListView>(attach);

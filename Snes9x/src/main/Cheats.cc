@@ -3,6 +3,7 @@
 #include <imagine/logger/logger.h>
 #include <emuframework/Cheats.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/viewUtils.hh>
 #include "EmuCheatViews.hh"
 #include "MainSystem.hh"
 #include <cheats.h>
@@ -220,14 +221,14 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 		attach,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 6-digit hex", addrStr.data(),
-				[this](EmuApp &app, auto str)
+			pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 6-digit hex", addrStr.data(),
+				[this](CollectTextInputView&, auto str)
 				{
 					unsigned a = strtoul(str, nullptr, 16);
 					if(a > 0xFFFFFF)
 					{
 						logMsg("addr 0x%X too large", a);
-						app.postMessage(true, "Invalid input");
+						app().postMessage(true, "Invalid input");
 						return false;
 					}
 					addrStr = a ? str : "0";
@@ -256,13 +257,13 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 		attach,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 2-digit hex", valueStr.data(),
-				[this](EmuApp &app, const char *str)
+			pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 2-digit hex", valueStr.data(),
+				[this](CollectTextInputView&, const char *str)
 				{
 					unsigned a = strtoul(str, nullptr, 16);
 					if(a > 0xFF)
 					{
-						app.postMessage(true, "value must be <= FF");
+						app().postMessage(true, "value must be <= FF");
 						return false;
 					}
 					valueStr = a ? str : "0";
@@ -295,7 +296,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 		attach,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			app().pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex or blank", savedStr.data(),
+			pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex or blank", savedStr.data(),
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
@@ -414,7 +415,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 				app().postMessage(true, "Too many cheats, delete some first");
 				return;
 			}
-			app().pushAndShowNewCollectTextInputView(attachParams(), e,
+			pushAndShowNewCollectTextInputView(attachParams(), e,
 				"Input xxxx-xxxx (GG), xxxxxxxx (AR), or GF code", "",
 				[this](CollectTextInputView &view, const char *str)
 				{
@@ -431,7 +432,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						onCheatListChanged();
 						writeCheatsFile(system());
 						view.dismiss();
-						app().pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
+						pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
 							[this, idx](CollectTextInputView &view, const char *str)
 							{
 								if(str)

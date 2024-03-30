@@ -4,6 +4,7 @@
 #include <emuframework/DataPathSelectView.hh>
 #include <emuframework/UserPathSelectView.hh>
 #include <emuframework/SystemActionsView.hh>
+#include <emuframework/viewUtils.hh>
 #include "EmuCheatViews.hh"
 #include "MainApp.hh"
 #include <imagine/util/format.hh>
@@ -51,7 +52,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 	};
 
 public:
-	CustomAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
+	CustomAudioOptionView(ViewAttachParams attach, EmuAudio &audio): AudioOptionView{attach, audio, true}
 	{
 		loadStockItems();
 		item.emplace_back(&dspInterpolation);
@@ -197,8 +198,8 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		{"Custom Value", attachParams(),
 			[this](Input::Event e)
 			{
-				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 5 to 250", "",
-					[this](EmuApp &app, auto val)
+				pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 5 to 250", "",
+					[this](CollectTextInputView&, auto val)
 					{
 						if(system().optionSuperFXClockMultiplier.isValid(val))
 						{
@@ -209,7 +210,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 						}
 						else
 						{
-							app.postErrorMessage("Value not in range");
+							app().postErrorMessage("Value not in range");
 							return false;
 						}
 					});
@@ -405,7 +406,7 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 	switch(id)
 	{
 		#ifndef SNES9X_VERSION_1_4
-		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
+		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach, audio);
 		#endif
 		case ViewID::FILE_PATH_OPTIONS: return std::make_unique<CustomFilePathOptionView>(attach);
 		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);

@@ -37,7 +37,7 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_TOUCH_CONTROL_CENTER_BTN_POS = 22, CFGKEY_TOUCH_CONTROL_TRIGGER_BTN_POS = 23,
 	CFGKEY_TOUCH_CONTROL_MENU_POS = 24, CFGKEY_TOUCH_CONTROL_FF_POS = 25,
 	CFGKEY_RECENT_CONTENT = 26, CFGKEY_GL_SYNC_HACK = 27, CFGKEY_PAUSE_UNFOCUSED = 28,
-	CFGKEY_IMAGE_ZOOM = 29, CFGKEY_TOUCH_CONTROL_IMG_PIXELS = 30, CFGKEY_SOUND_RATE = 31,
+	CFGKEY_CONTENT_SCALE = 29, CFGKEY_TOUCH_CONTROL_IMG_PIXELS = 30, CFGKEY_SOUND_RATE = 31,
 	CFGKEY_NOTIFICATION_ICON = 32, CFGKEY_ICADE = 33, CFGKEY_TITLE_BAR = 34,
 	CFGKEY_BACK_NAVIGATION = 35, CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU = 36,
 	CFGKEY_TOUCH_CONTROL_DIAGONAL_SENSITIVITY = 37,
@@ -56,7 +56,7 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_INPUT_KEY_CONFIGS = 60, CFGKEY_INPUT_DEVICE_CONFIGS = 61,
 	CFGKEY_CONFIRM_OVERWRITE_STATE = 62, CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE = 63,
 	CFGKEY_AUDIO_SOLO_MIX = 64, CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH = 65,
-	CFGKEY_TOUCH_CONTROL_SCALED_COORDINATES = 66, CFGKEY_VIEWPORT_ZOOM = 67,
+	CFGKEY_TOUCH_CONTROL_SCALED_COORDINATES = 66, CFGKEY_MENU_SCALE = 67,
 	CFGKEY_VCONTROLLER_LAYOUT_POS = 68, CFGKEY_MOGA_INPUT_SYSTEM = 69,
 	CFGKEY_FAST_MODE_SPEED = 70, CFGKEY_SHOW_BUNDLED_GAMES = 71,
 	CFGKEY_IMAGE_EFFECT = 72, CFGKEY_SHOW_ON_2ND_SCREEN = 73,
@@ -97,7 +97,7 @@ enum class InEmuTristate : uint8_t
 	Off, InEmu, On
 };
 
-constexpr unsigned optionImageZoomIntegerOnly = 255, optionImageZoomIntegerOnlyY = 254;
+constexpr unsigned optionContentScaleIntegerOnly = 255, optionContentScaleIntegerOnlyY = 254;
 
 constexpr const char *optionSavePathDefaultToken = ":DEFAULT:";
 
@@ -114,13 +114,13 @@ constexpr bool isValidFontSize(const auto &v)
 	return v >= 2000 && v <= 10000;
 }
 
-constexpr bool optionImageZoomIsValid(const auto &v)
+constexpr bool optionContentScaleIsValid(const auto &v)
 {
-	return v == optionImageZoomIntegerOnly || v == optionImageZoomIntegerOnlyY
+	return v == optionContentScaleIntegerOnly || v == optionContentScaleIntegerOnlyY
 		|| (v >= 10 && v <= 200);
 }
 
-constexpr bool optionViewportZoomIsValid(const auto &v)
+constexpr bool optionMenuScaleIsValid(const auto &v)
 {
 	return v >= 50 && v <= 100;
 }

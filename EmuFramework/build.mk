@@ -35,6 +35,7 @@ gui/EmuView.cc \
 gui/EmuViewController.cc \
 gui/FilePathOptionView.cc \
 gui/FilePicker.cc \
+gui/FrameTimingView.cc \
 gui/GUIOptionView.cc \
 gui/InputManagerView.cc \
 gui/LoadProgressView.cc \

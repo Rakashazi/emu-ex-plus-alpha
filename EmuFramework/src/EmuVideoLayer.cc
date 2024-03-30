@@ -46,12 +46,11 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, E
 	if(sys.hasContent() && video.size().x)
 	{
 		auto viewportAspectRatio = displayRect.xSize() / (float)displayRect.ySize();
-		auto zoom = zoom_;
 		auto contentSize = video.size();
 		if(isSideways(rotation))
 			std::swap(contentSize.x, contentSize.y);
 		contentRect_ = {};
-		if(zoom == optionImageZoomIntegerOnly || zoom == optionImageZoomIntegerOnlyY)
+		if(scale == optionContentScaleIntegerOnly || scale == optionContentScaleIntegerOnlyY)
 		{
 			int x = contentSize.x, y = contentSize.y;
 
@@ -99,13 +98,13 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, E
 			contentRect_.x2 = x * scaleFactor;
 			contentRect_.y2 = y * scaleFactor;
 		}
-		if(zoom <= 200 || zoom == optionImageZoomIntegerOnlyY)
+		if(scale <= 200 || scale == optionContentScaleIntegerOnlyY)
 		{
 			auto aR = evalAspectRatio(viewportAspectRatio < 1.f ? portraitAspectRatio : landscapeAspectRatio)
 				* sys.videoAspectRatioScale();
 			if(isSideways(rotation))
 				aR = 1. / aR;
-			if(zoom == optionImageZoomIntegerOnlyY)
+			if(scale == optionContentScaleIntegerOnlyY)
 			{
 				// get width from previously calculated pixel height
 				float width = contentRect_.ySize() * (float)aR;
@@ -124,9 +123,9 @@ void EmuVideoLayer::place(IG::WindowRect viewRect, IG::WindowRect displayRect, E
 				}
 				contentRect_.x2 = size.x;
 				contentRect_.y2 = size.y;
-				if(zoom != 100)
+				if(scale != 100)
 				{
-					auto scaler = zoom / 100.f;
+					auto scaler = scale / 100.f;
 					contentRect_.x2 *= scaler;
 					contentRect_.y2 *= scaler;
 				}

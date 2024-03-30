@@ -19,6 +19,7 @@
 #include <emuframework/EmuViewController.hh>
 #include <emuframework/AppKeyCode.hh>
 #include <emuframework/EmuOptions.hh>
+#include <emuframework/viewUtils.hh>
 #include "../InputDeviceData.hh"
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/gui/TextTableView.hh>
@@ -563,12 +564,12 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 				app().postMessage(2, "Can't rename a built-in profile");
 				return;
 			}
-			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input name", devConf.keyConf(inputManager).name,
-				[this](EmuApp &app, auto str)
+			pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input name", devConf.keyConf(inputManager).name,
+				[this](CollectTextInputView &, auto str)
 				{
 					if(customKeyConfigsContainName(inputManager.customKeyConfigs, str))
 					{
-						app.postErrorMessage("Another profile is already using this name");
+						app().postErrorMessage("Another profile is already using this name");
 						postDraw();
 						return false;
 					}
@@ -590,12 +591,12 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 				{
 					.onYes = [this](const Input::Event &e)
 					{
-						app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input name", "",
-							[this](EmuApp &app, auto str)
+						pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input name", "",
+							[this](CollectTextInputView &, auto str)
 							{
 								if(customKeyConfigsContainName(inputManager.customKeyConfigs, str))
 								{
-									app.postErrorMessage("Another profile is already using this name");
+									app().postErrorMessage("Another profile is already using this name");
 									return false;
 								}
 								devConf.setKeyConfCopiedFromExisting(inputManager, str);

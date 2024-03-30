@@ -21,6 +21,7 @@
 #include <emuframework/AudioOptionView.hh>
 #include <emuframework/VideoOptionView.hh>
 #include <emuframework/SystemActionsView.hh>
+#include <emuframework/viewUtils.hh>
 #undef Debugger
 #include "MainApp.hh"
 #include <imagine/util/format.hh>
@@ -63,7 +64,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 	};
 
 public:
-	CustomAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
+	CustomAudioOptionView(ViewAttachParams attach, EmuAudio& audio): AudioOptionView{attach, audio, true}
 	{
 		loadStockItems();
 		item.emplace_back(&resampleQuality);
@@ -99,7 +100,7 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 	}
 
 public:
-	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
+	CustomVideoOptionView(ViewAttachParams attach, EmuVideoLayer &layer): VideoOptionView{attach, layer, true}
 	{
 		loadStockItems();
 		item.emplace_back(&systemSpecificHeading);
@@ -257,8 +258,8 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 		{"Custom Value", attachParams(),
 			[this](const Input::Event &e)
 			{
-				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 1 to 20", "",
-					[this](EmuApp &app, auto val)
+				pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 1 to 20", "",
+					[this](CollectTextInputView&, auto val)
 					{
 						if(system().optionPaddleDigitalSensitivity.isValid(val))
 						{
@@ -269,7 +270,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionVi
 						}
 						else
 						{
-							app.postErrorMessage("Value not in range");
+							app().postErrorMessage("Value not in range");
 							return false;
 						}
 					});
@@ -419,8 +420,8 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
-		case ViewID::VIDEO_OPTIONS: return std::make_unique<CustomVideoOptionView>(attach);
+		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach, audio);
+		case ViewID::VIDEO_OPTIONS: return std::make_unique<CustomVideoOptionView>(attach, videoLayer);
 		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
 		default: return nullptr;
 	}

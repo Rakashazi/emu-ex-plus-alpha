@@ -30,10 +30,11 @@ class EmuAudio;
 class AudioOptionView : public TableView, public EmuAppHelper<AudioOptionView>
 {
 public:
-	AudioOptionView(ViewAttachParams attach, bool customMenu = false);
+	AudioOptionView(ViewAttachParams attach, EmuAudio&, bool customMenu = false);
 	void loadStockItems();
 
 protected:
+	EmuAudio &audio;
 	BoolMenuItem snd;
 	BoolMenuItem soundDuringFastSlowMode;
 	TextMenuItem soundVolumeItem[4];

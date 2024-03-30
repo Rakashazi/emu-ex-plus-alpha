@@ -22,6 +22,7 @@
 #include <emuframework/StateSlotView.hh>
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/BundledGamesView.hh>
+#include <emuframework/viewUtils.hh>
 #include "AutosaveSlotView.hh"
 #include "ResetAlertView.hh"
 #include <imagine/gui/TextEntry.hh>
@@ -57,7 +58,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 		{
 			if(system().hasContent())
 			{
-				pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::LIST_CHEATS), e);
+				pushAndShow(app().makeView(attachParams(), EmuApp::ViewID::LIST_CHEATS), e);
 			}
 		}
 	},
@@ -138,11 +139,11 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 				// shortcuts to bundled games not yet supported
 				return;
 			}
-			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Shortcut Name", system().contentDisplayName(),
-				[this](EmuApp &app, auto str)
+			pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Shortcut Name", system().contentDisplayName(),
+				[this](CollectTextInputView &, auto str)
 				{
-					appContext().addLauncherIcon(str, app.system().contentLocation());
-					app.postMessage(2, false, std::format("Added shortcut:\n{}", str));
+					appContext().addLauncherIcon(str, system().contentLocation());
+					app().postMessage(2, false, std::format("Added shortcut:\n{}", str));
 					return true;
 				});
 		}

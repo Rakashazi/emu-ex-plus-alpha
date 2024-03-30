@@ -16,6 +16,7 @@
 #include "AutosaveSlotView.hh"
 #include <emuframework/EmuApp.hh>
 #include <imagine/gui/AlertView.hh>
+#include <emuframework/viewUtils.hh>
 #include <format>
 
 namespace EmuEx
@@ -48,18 +49,18 @@ public:
 			"Rename", attach,
 			[this](const Input::Event &e)
 			{
-				app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e,
+				pushAndShowNewCollectValueInputView<const char*>(attachParams(), e,
 					"Input name", slotName,
-					[this](EmuApp &app, auto str)
+					[this](CollectTextInputView &, auto str)
 					{
-						if(appContext().fileUriExists(app.system().contentLocalSaveDirectory(str)))
+						if(appContext().fileUriExists(system().contentLocalSaveDirectory(str)))
 						{
-							app.postErrorMessage("A save slot with that name already exists");
+							app().postErrorMessage("A save slot with that name already exists");
 							return false;
 						}
-						if(!app.autosaveManager.renameSlot(slotName, str))
+						if(!app().autosaveManager.renameSlot(slotName, str))
 						{
-							app.postErrorMessage("Error renaming save slot");
+							app().postErrorMessage("Error renaming save slot");
 							return false;
 						}
 						srcView.updateItem(slotName, str);
@@ -148,21 +149,21 @@ AutosaveSlotView::AutosaveSlotView(ViewAttachParams attach):
 	{
 		"Create New Save Slot", attach, [this](const Input::Event &e)
 		{
-			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e,
-				"Save Slot Name", "", [this](EmuApp &app, auto str_)
+			pushAndShowNewCollectValueInputView<const char*>(attachParams(), e,
+				"Save Slot Name", "", [this](CollectTextInputView &, auto str_)
 			{
 				std::string_view name{str_};
-				if(appContext().fileUriExists(app.system().contentLocalSaveDirectory(name)))
+				if(appContext().fileUriExists(app().system().contentLocalSaveDirectory(name)))
 				{
-					app.postErrorMessage("A save slot with that name already exists");
+					app().postErrorMessage("A save slot with that name already exists");
 					return false;
 				}
-				if(!app.autosaveManager.setSlot(name))
+				if(!app().autosaveManager.setSlot(name))
 				{
-					app.postErrorMessage("Error creating save slot");
+					app().postErrorMessage("Error creating save slot");
 					return false;
 				}
-				app.showEmulation();
+				app().showEmulation();
 				refreshItems();
 				return true;
 			});

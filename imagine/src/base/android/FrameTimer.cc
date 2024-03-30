@@ -31,22 +31,29 @@
 namespace IG
 {
 
-FrameTimer AndroidApplication::makeFrameTimer(Screen &screen)
+void AndroidApplication::emplaceFrameTimer(FrameTimer &t, Screen &screen, bool useVariableTime)
 {
-	return visit(overloaded
+	if(useVariableTime)
 	{
-		[&](JavaChoreographer &c)
+		t.emplace<SimpleFrameTimer>(screen);
+	}
+	else
+	{
+		return visit(overloaded
 		{
-			return FrameTimer{std::in_place_type<JavaChoreographerFrameTimer>, c};
-		},
-		[&](NativeChoreographer &c)
-		{
-			if(c)
-				return FrameTimer{std::in_place_type<NativeChoreographerFrameTimer>, c};
-			else // no choreographer
-				return FrameTimer{std::in_place_type<SimpleFrameTimer>, screen};
-		},
-	}, choreographer);
+			[&](JavaChoreographer &c)
+			{
+				t.emplace<JavaChoreographerFrameTimer>(c);
+			},
+			[&](NativeChoreographer &c)
+			{
+				if(c)
+					t.emplace<NativeChoreographerFrameTimer>(c);
+				else // no choreographer
+					t.emplace<SimpleFrameTimer>(screen);
+			},
+		}, choreographer);
+	}
 }
 
 void AndroidApplication::initChoreographer(JNIEnv *env, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK)

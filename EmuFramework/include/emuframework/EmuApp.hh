@@ -29,8 +29,6 @@
 #include <emuframework/RewindManager.hh>
 #include <imagine/input/inputDefs.hh>
 #include <imagine/gui/ViewManager.hh>
-#include <imagine/gui/TextEntry.hh>
-#include <imagine/gui/MenuItem.hh>
 #include <imagine/gui/ToastView.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/base/ApplicationContext.hh>
@@ -107,11 +105,6 @@ struct AssetDesc
 	constexpr auto filename() const { return assetFilename[fileIdx()]; }
 };
 
-enum class ScanValueMode
-{
-	NORMAL, ALLOW_BLANK
-};
-
 WISE_ENUM_CLASS((ImageChannel, uint8_t),
 	All,
 	Red,
@@ -182,11 +175,6 @@ public:
 	void reloadSystem(EmuSystemCreateParams params = {});
 	void onSystemCreated();
 	void promptSystemReloadDueToSetOption(ViewAttachParams, const Input::Event &, EmuSystemCreateParams params = {});
-	void pushAndShowNewCollectTextInputView(ViewAttachParams, const Input::Event &,
-		const char *msgText, const char *initialContent, CollectTextInputView::OnTextDelegate);
-	void pushAndShowNewYesNoAlertView(ViewAttachParams, const Input::Event &,
-		const char *label, const char *choice1, const char *choice2,
-		TextMenuItem::SelectDelegate onYes, TextMenuItem::SelectDelegate onNo);
 	void pushAndShowModalView(std::unique_ptr<View> v, const Input::Event &);
 	void pushAndShowModalView(std::unique_ptr<View> v);
 	void popModalViews();
@@ -219,7 +207,7 @@ public:
 	FS::PathString validSearchPath(const FS::PathString &) const;
 	static void updateLegacySavePath(IG::ApplicationContext, CStringView path);
 	auto screenshotDirectory() const { return system().userPath(userScreenshotPath); }
-	static std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);
+	std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);
 	bool handleKeyInput(KeyInfo, const Input::Event &srcEvent);
 	bool handleAppActionKeyInput(InputAction, const Input::Event &srcEvent);
 	void handleSystemKeyInput(KeyInfo, Input::Action, uint32_t metaState = 0, SystemKeyInputFlags flags = {});
@@ -244,7 +232,7 @@ public:
 	Gfx::TextureSpan asset(AssetID) const;
 	Gfx::TextureSpan asset(AssetDesc) const;
 	VController &defaultVController() { return inputManager.vController; }
-	static std::unique_ptr<View> makeView(ViewAttachParams, ViewID);
+	std::unique_ptr<View> makeView(ViewAttachParams, ViewID);
 	std::unique_ptr<YesNoAlertView> makeCloseContentView();
 	void applyOSNavStyle(IG::ApplicationContext, bool inEmu);
 	void setCPUNeedsLowLatency(IG::ApplicationContext, bool needed);
@@ -290,8 +278,8 @@ public:
 	float videoAspectRatio() const;
 	float defaultVideoAspectRatio() const;
 	IG::PixelFormat videoEffectPixelFormat() const;
-	bool setVideoZoom(uint8_t val);
-	bool setViewportZoom(uint8_t val);
+	bool setContentScale(uint8_t val);
+	bool setMenuScale(int8_t val);
 	bool supportsShowOnSecondScreen(ApplicationContext ctx) { return ctx.androidSDK() >= 17; }
 	void setContentRotation(IG::Rotation);
 	void updateVideoContentRotation();
@@ -361,132 +349,11 @@ public:
 		postMessage(secs, true, IG_forward(msg));
 	}
 
-	template <std::same_as<const char*> T>
-	static std::pair<T, int> scanValue(const char *str, ScanValueMode mode)
-	{
-		return {str, mode == ScanValueMode::ALLOW_BLANK || strlen(str) ? 1 : 0};
-	}
-
-	template <std::integral T>
-	static std::pair<T, int> scanValue(const char *str, ScanValueMode)
-	{
-		int val;
-		int items = sscanf(str, "%d", &val);
-		return {val, items};
-	}
-
-	template <std::floating_point T>
-	static std::pair<T, int> scanValue(const char *str, ScanValueMode)
-	{
-		T val, denom;
-		int items = sscanf(str, std::is_same_v<T, double> ? "%lf /%lf" : "%f /%f", &val, &denom);
-		if(items > 1 && denom != 0)
-		{
-			val /= denom;
-		}
-		return {val, items};
-	}
-
-	template <class T>
-	requires std::same_as<T, std::pair<float, float>> || std::same_as<T, std::pair<double, double>>
-	static std::pair<T, int> scanValue(const char *str, ScanValueMode)
-	{
-		// special case for getting a fraction
-		using PairValue = typename T::first_type;
-		PairValue val, denom{};
-		int items = sscanf(str, std::is_same_v<PairValue, double> ? "%lf /%lf" : "%f /%f", &val, &denom);
-		if(denom == 0)
-		{
-			denom = 1.;
-		}
-		return {{val, denom}, items};
-	}
-
-	template <class T>
-	requires std::same_as<T, std::pair<int, int>>
-	static std::pair<T, int> scanValue(const char *str, ScanValueMode)
-	{
-		using PairValue = typename T::first_type;
-		PairValue val, val2{};
-		int items = sscanf(str, "%d %d", &val, &val2);
-		return {{val, val2}, items};
-	}
-
-	template<class T, ScanValueMode mode = ScanValueMode::NORMAL>
-	void pushAndShowNewCollectValueInputView(ViewAttachParams attach, const Input::Event &e,
-		CStringView msgText, CStringView initialContent, IG::Callable<bool, EmuApp&, T> auto &&collectedValueFunc)
-	{
-		pushAndShowNewCollectTextInputView(attach, e, msgText, initialContent,
-			[collectedValueFunc](CollectTextInputView &view, const char *str)
-			{
-				if(!str)
-				{
-					view.dismiss();
-					return false;
-				}
-				auto &app = get(view.appContext());
-				auto [val, items] = scanValue<T>(str, mode);
-				if(items <= 0)
-				{
-					app.postErrorMessage("Enter a value");
-					return true;
-				}
-				else if(!collectedValueFunc(app, val))
-				{
-					return true;
-				}
-				else
-				{
-					view.dismiss();
-					return false;
-				}
-			});
-	}
-
-	template<class T, T low, T high>
-	void pushAndShowNewCollectValueRangeInputView(ViewAttachParams attach, const Input::Event &e,
-		CStringView msgText, CStringView initialContent, IG::Callable<bool, EmuApp&, T> auto &&collectedValueFunc)
-	{
-		pushAndShowNewCollectValueInputView<T>(attach, e, msgText, initialContent,
-			[collectedValueFunc](EmuApp &app, auto val)
-			{
-				if(val >= low && val <= high)
-				{
-					return collectedValueFunc(app, val);
-				}
-				else
-				{
-					app.postErrorMessage("Value not in range");
-					return false;
-				}
-			});
-	}
-
-	template<class T, T low, T high, T low2, T high2>
-	void pushAndShowNewCollectValuePairRangeInputView(ViewAttachParams attach, const Input::Event &e,
-		CStringView msgText, CStringView initialContent, Callable<bool, EmuApp&, std::pair<T, T>> auto &&collectedValueFunc)
-	{
-		pushAndShowNewCollectValueInputView<std::pair<T, T>>(attach, e, msgText, initialContent,
-			[collectedValueFunc](EmuApp &app, auto val)
-			{
-				if(val.first >= low && val.first <= high && val.second >= low2 && val.second <= high2)
-				{
-					return collectedValueFunc(app, val);
-				}
-				else
-				{
-					app.postErrorMessage("Values not in range");
-					return false;
-				}
-			});
-	}
-
 protected:
 	IG::FontManager fontManager;
 	mutable Gfx::Renderer renderer;
 	ViewManager viewManager;
 public:
-	IG::Audio::Manager audioManager;
 	EmuAudio audio;
 	EmuVideo video;
 	EmuVideoLayer videoLayer;
@@ -542,8 +409,8 @@ public:
 		PropertyDesc<bool>{.defaultValue = true, .mutableDefault = true}> showsBluetoothScan;
 	Property<PixelFormatID, CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT,
 		PropertyDesc<PixelFormatID>{.defaultValue = PIXEL_NONE, .isValid = imageEffectPixelFormatIsValid}> imageEffectPixelFormat;
-	Property<int8_t, CFGKEY_VIEWPORT_ZOOM, PropertyDesc<int8_t>{.defaultValue = 100, .isValid = optionViewportZoomIsValid}> viewportZoom;
-	Property<uint8_t, CFGKEY_IMAGE_ZOOM, PropertyDesc<uint8_t>{.defaultValue = 100, .isValid = optionImageZoomIsValid}> imageZoom;
+	Property<int8_t, CFGKEY_MENU_SCALE, PropertyDesc<int8_t>{.defaultValue = 100, .isValid = optionMenuScaleIsValid}> menuScale;
+	Property<uint8_t, CFGKEY_CONTENT_SCALE, PropertyDesc<uint8_t>{.defaultValue = 100, .isValid = optionContentScaleIsValid}> contentScale;
 	ConditionalProperty<Config::BASE_MULTI_WINDOW && Config::BASE_MULTI_SCREEN, bool, CFGKEY_SHOW_ON_2ND_SCREEN> showOnSecondScreen;
 	Property<Gfx::TextureBufferMode, CFGKEY_TEXTURE_BUFFER_MODE> textureBufferMode;
 	Property<Rotation, CFGKEY_CONTENT_ROTATION,

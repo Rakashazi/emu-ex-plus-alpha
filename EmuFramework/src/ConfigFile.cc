@@ -59,8 +59,8 @@ void EmuApp::saveConfigFile(FileIO &io)
 	writeConfigHeader(io);
 	recentContent.writeConfig(io);
 	writeOptionValueIfNotDefault(io, imageEffectPixelFormat);
-	writeOptionValueIfNotDefault(io, viewportZoom);
-	writeOptionValueIfNotDefault(io, imageZoom);
+	writeOptionValueIfNotDefault(io, menuScale);
+	writeOptionValueIfNotDefault(io, contentScale);
 	writeOptionValueIfNotDefault(io, fontSize);
 	writeOptionValueIfNotDefault(io, showsBluetoothScan);
 	writeOptionValueIfNotDefault(io, showsNotificationIcon);
@@ -78,7 +78,7 @@ void EmuApp::saveConfigFile(FileIO &io)
 	writeOptionValueIfNotDefault(io, menuOrientation);
 	writeOptionValue(io, CFGKEY_BACK_NAVIGATION, viewManager.needsBackControlOption());
 	writeOptionValue(io, CFGKEY_SWAPPED_GAMEPAD_CONFIM, swappedConfirmKeysOption());
-	writeOptionValue(io, CFGKEY_AUDIO_SOLO_MIX, audioManager.soloMixOption());
+	writeOptionValue(io, CFGKEY_AUDIO_SOLO_MIX, audio.manager.soloMixOption());
 	writeOptionValue(io, CFGKEY_WINDOW_PIXEL_FORMAT, windowDrawablePixelFormatOption());
 	writeOptionValue(io, CFGKEY_VIDEO_COLOR_SPACE, windowDrawableColorSpaceOption());
 	writeOptionValue(io, CFGKEY_RENDER_PIXEL_FORMAT, renderPixelFormatOption());
@@ -196,8 +196,8 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_FONT_Y_SIZE: return readOptionValue(io, fontSize);
 				case CFGKEY_GAME_ORIENTATION: return readOptionValue(io, emuOrientation);
 				case CFGKEY_MENU_ORIENTATION: return readOptionValue(io, menuOrientation);
-				case CFGKEY_IMAGE_ZOOM: return readOptionValue(io, imageZoom);
-				case CFGKEY_VIEWPORT_ZOOM: return readOptionValue(io, viewportZoom);
+				case CFGKEY_CONTENT_SCALE: return readOptionValue(io, contentScale);
+				case CFGKEY_MENU_SCALE: return readOptionValue(io, menuScale);
 				case CFGKEY_SHOW_ON_2ND_SCREEN: return readOptionValue(io, showOnSecondScreen);
 				case CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT: return readOptionValue(io, imageEffectPixelFormat);
 				case CFGKEY_RENDER_PIXEL_FORMAT:
@@ -241,7 +241,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 					return used(presentationTimeMode) ? readOptionValue(io, presentationTimeMode, [](auto m){return m <= lastEnum<PresentationTimeMode>;}) : false;
 				case CFGKEY_FRAME_CLOCK: return readOptionValue(io, frameTimeSource);
 				case CFGKEY_AUDIO_SOLO_MIX:
-					audioManager.setSoloMix(readOptionValue<bool>(io));
+					audio.manager.setSoloMix(readOptionValue<bool>(io));
 					return true;
 				case CFGKEY_SAVE_PATH:
 					return readStringOptionValue<FS::PathString>(io, [&](auto &&path){system().setUserSaveDirectory(path);});

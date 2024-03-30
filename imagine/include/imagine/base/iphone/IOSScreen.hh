@@ -18,6 +18,8 @@
 #include <imagine/config/defs.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/base/baseDefs.hh>
+#include <imagine/base/SimpleFrameTimer.hh>
+#include <imagine/base/FrameTimerInterface.hh>
 
 #ifdef __OBJC__
 #import <UIKit/UIKit.h>
@@ -28,6 +30,15 @@ namespace IG
 {
 
 class ApplicationContext;
+
+// TODO: add FrameTimer interface for CADisplayLink
+using FrameTimerVariant = std::variant<SimpleFrameTimer>;
+
+class FrameTimer : public FrameTimerInterface<FrameTimerVariant>
+{
+public:
+	using FrameTimerInterface::FrameTimerInterface;
+};
 
 class IOSScreen
 {

@@ -15,6 +15,7 @@
 
 #include <emuframework/Cheats.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/viewUtils.hh>
 #include "EmuCheatViews.hh"
 #include "MainSystem.hh"
 #include <imagine/fs/FS.hh>
@@ -105,7 +106,7 @@ void EmuEditCheatListView::addNewCheat(int isGSv3)
 		app().postMessage(true, "Too many cheats, delete some first");
 		return;
 	}
-	app().pushAndShowNewCollectTextInputView(attachParams(), {},
+	pushAndShowNewCollectTextInputView(attachParams(), {},
 		isGSv3 ? "Input xxxxxxxx yyyyyyyy" : "Input xxxxxxxx yyyyyyyy (GS) or xxxxxxxx yyyy (AR)", "",
 		[this, isGSv3](CollectTextInputView &view, const char *str)
 		{
@@ -133,7 +134,7 @@ void EmuEditCheatListView::addNewCheat(int isGSv3)
 				onCheatListChanged();
 				writeCheatFile(system());
 				view.dismiss();
-				app().pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
+				pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
 					[this](CollectTextInputView &view, const char *str)
 					{
 						if(str)

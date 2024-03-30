@@ -59,11 +59,12 @@ public:
 	void setFormat(PixelFormat);
 	PixelFormat pixelFormat() const;
 	bool operator ==(Window const &rhs) const;
-	bool addOnFrame(OnFrameDelegate del, FrameTimeSource src = {}, int priority = 0);
-	bool removeOnFrame(OnFrameDelegate del, FrameTimeSource src = {});
+	bool addOnFrame(OnFrameDelegate, FrameTimeSource src = {}, int priority = 0);
+	bool removeOnFrame(OnFrameDelegate, FrameTimeSource src = {});
 	bool moveOnFrame(Window &srcWin, OnFrameDelegate, FrameTimeSource src = {});
 	FrameTimeSource defaultFrameTimeSource() const;
 	FrameTimeSource evalFrameTimeSource(FrameTimeSource) const;
+	void configureFrameTimeSource(FrameTimeSource);
 	void resetAppData();
 	void resetRendererData();
 	bool isMainWindow() const;

@@ -42,7 +42,7 @@ BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 		"Add/Edit", attach,
 		[this](const Input::Event &e)
 		{
-			auto editCheatsView = EmuApp::makeView(attachParams(), EmuApp::ViewID::EDIT_CHEATS);
+			auto editCheatsView = app().makeView(attachParams(), EmuApp::ViewID::EDIT_CHEATS);
 			static_cast<BaseEditCheatListView*>(editCheatsView.get())->setOnCheatListChanged(
 				[this]()
 				{

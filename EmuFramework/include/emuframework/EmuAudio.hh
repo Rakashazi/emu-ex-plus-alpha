@@ -16,6 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/audio/OutputStream.hh>
+#include <imagine/audio/Manager.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/vmem/RingBuffer.hh>
 #include <imagine/util/used.hh>
@@ -55,7 +56,7 @@ public:
 		MULTI_UNDERRUN
 	};
 
-	EmuAudio(const IG::Audio::Manager &audioManager);
+	EmuAudio(IG::ApplicationContext);
 	void open();
 	void start(FloatSeconds bufferDuration);
 	void stop();
@@ -81,9 +82,9 @@ public:
 	void writeConfig(FileIO &) const;
 	bool readConfig(MapIO &, unsigned key);
 
+	IG::Audio::Manager manager;
 protected:
 	IG::Audio::OutputStream audioStream;
-	const IG::Audio::Manager &audioManager;
 	RingBuffer rBuff;
 	SteadyClockTimePoint lastUnderrunTime{};
 	double speedMultiplier{1.};

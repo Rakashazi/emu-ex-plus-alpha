@@ -23,6 +23,7 @@
 #include <emuframework/TouchConfigView.hh>
 #include <emuframework/BundledGamesView.hh>
 #include "RecentContentView.hh"
+#include "FrameTimingView.hh"
 #include <emuframework/EmuOptions.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/base/ApplicationContext.hh>
@@ -40,10 +41,10 @@ constexpr SystemLogger log{"AppMenus"};
 class OptionCategoryView : public TableView, public EmuAppHelper<OptionCategoryView>
 {
 public:
-	OptionCategoryView(ViewAttachParams attach, EmuAudio &audio, EmuVideoLayer &videoLayer);
+	OptionCategoryView(ViewAttachParams attach);
 
 protected:
-	TextMenuItem subConfig[7];
+	TextMenuItem subConfig[8];
 };
 
 static void onScanStatus(EmuApp &app, unsigned status, int arg);
@@ -81,7 +82,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 		{
 			if(!system().hasContent())
 				return;
-			pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::SYSTEM_ACTIONS), e);
+			pushAndShow(app().makeView(attachParams(), EmuApp::ViewID::SYSTEM_ACTIONS), e);
 		}
 	},
 	recentGames
@@ -108,7 +109,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 		"Options", attach,
 		[this](const Input::Event &e)
 		{
-			pushAndShow(makeView<OptionCategoryView>(*audio, *videoLayer), e);
+			pushAndShow(makeView<OptionCategoryView>(), e);
 		}
 	},
 	onScreenInputManager
@@ -332,12 +333,6 @@ void MainMenuView::loadStandardItems()
 	item.emplace_back(&exitApp);
 }
 
-void MainMenuView::setAudioVideo(EmuAudio &audio_, EmuVideoLayer &videoLayer_)
-{
-	audio = &audio_;
-	videoLayer = &videoLayer_;
-}
-
 void MainMenuView::reloadItems()
 {
 	item.clear();
@@ -345,7 +340,7 @@ void MainMenuView::reloadItems()
 	loadStandardItems();
 }
 
-OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio, EmuVideoLayer &videoLayer):
+OptionCategoryView::OptionCategoryView(ViewAttachParams attach):
 	TableView
 	{
 		"Options",
@@ -356,40 +351,45 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio,
 	subConfig
 	{
 		{
-			"Video", attach,
-			[this, &videoLayer](const Input::Event &e)
+			"Frame Timing", attach,
+			[this](const Input::Event &e)
 			{
-				auto view = EmuApp::makeView(attachParams(), EmuApp::ViewID::VIDEO_OPTIONS);
-				static_cast<VideoOptionView*>(view.get())->setEmuVideoLayer(videoLayer);
-				pushAndShow(std::move(view), e);
+				pushAndShow(makeView<FrameTimingView>(), e);
+			}
+		},
+		{
+			"Video", attach,
+			[this](const Input::Event &e)
+			{
+				pushAndShow(app().makeView(attachParams(), EmuApp::ViewID::VIDEO_OPTIONS), e);
 			}
 		},
 		{
 			"Audio", attach,
-			[this, &audio](const Input::Event &e)
+			[this](const Input::Event &e)
 			{
-				pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::AUDIO_OPTIONS), e);
+				pushAndShow(app().makeView(attachParams(), EmuApp::ViewID::AUDIO_OPTIONS), e);
 			}
 		},
 		{
 			"System", attach,
 			[this](const Input::Event &e)
 			{
-				pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::SYSTEM_OPTIONS), e);
+				pushAndShow(app().makeView(attachParams(), EmuApp::ViewID::SYSTEM_OPTIONS), e);
 			}
 		},
 		{
 			"File Paths", attach,
 			[this](const Input::Event &e)
 			{
-				pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::FILE_PATH_OPTIONS), e);
+				pushAndShow(app().makeView(attachParams(), EmuApp::ViewID::FILE_PATH_OPTIONS), e);
 			}
 		},
 		{
 			"GUI", attach,
 			[this](const Input::Event &e)
 			{
-				pushAndShow(EmuApp::makeView(attachParams(), EmuApp::ViewID::GUI_OPTIONS), e);
+				pushAndShow(app().makeView(attachParams(), EmuApp::ViewID::GUI_OPTIONS), e);
 			}
 		},
 		{

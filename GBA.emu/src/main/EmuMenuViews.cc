@@ -20,6 +20,7 @@
 #include <emuframework/UserPathSelectView.hh>
 #include <emuframework/SystemActionsView.hh>
 #include <emuframework/DataPathSelectView.hh>
+#include <emuframework/viewUtils.hh>
 #include "EmuCheatViews.hh"
 #include "MainApp.hh"
 #include <imagine/gui/AlertView.hh>
@@ -255,8 +256,8 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 				"Custom Value", attachParams(),
 				[this, gbVol](Input::Event e)
 				{
-					app().pushAndShowNewCollectValueRangeInputView<int, 0, 100>(attachParams(), e, "Input 0 to 100", "",
-						[this, gbVol](EmuApp &app, auto val)
+					pushAndShowNewCollectValueRangeInputView<int, 0, 100>(attachParams(), e, "Input 0 to 100", "",
+						[this, gbVol](CollectTextInputView&, auto val)
 						{
 							soundSetVolume(gGba, val / 100.f, gbVol);
 							size_t idx = gbVol ? 1 : 0;
@@ -335,8 +336,8 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 			"Custom Value", attachParams(),
 			[this](Input::Event e)
 			{
-				app().pushAndShowNewCollectValueRangeInputView<int, 0, 100>(attachParams(), e, "Input 0 to 100", "",
-					[this](EmuApp &app, auto val)
+				pushAndShowNewCollectValueRangeInputView<int, 0, 100>(attachParams(), e, "Input 0 to 100", "",
+					[this](CollectTextInputView&, auto val)
 					{
 						soundSetFiltering(gGba, val / 100.f);
 						filteringLevel.setSelected(MenuId{val}, *this);
@@ -373,7 +374,7 @@ class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<Custo
 	};
 
 public:
-	CustomAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
+	CustomAudioOptionView(ViewAttachParams attach, EmuAudio& audio): AudioOptionView{attach, audio, true}
 	{
 		loadStockItems();
 		item.emplace_back(&filtering);
@@ -415,8 +416,8 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<Cus
 		{"Custom Value",  attachParams(),
 			[this](Input::Event e)
 			{
-				app().pushAndShowNewCollectValueRangeInputView<int, 0, 50000>(attachParams(), e, "Input 0 to 50000", "",
-					[this](EmuApp &app, auto val)
+				pushAndShowNewCollectValueRangeInputView<int, 0, 50000>(attachParams(), e, "Input 0 to 50000", "",
+					[this](CollectTextInputView&, auto val)
 					{
 						system().lightSensorScaleLux = val;
 						lightSensorScale.setSelected(MenuId{val}, *this);
@@ -536,7 +537,7 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 	{
 		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
 		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
-		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
+		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach, audio);
 		case ViewID::FILE_PATH_OPTIONS: return std::make_unique<CustomFilePathOptionView>(attach);
 		case ViewID::EDIT_CHEATS: return std::make_unique<EmuEditCheatListView>(attach);
 		case ViewID::LIST_CHEATS: return std::make_unique<EmuCheatsView>(attach);

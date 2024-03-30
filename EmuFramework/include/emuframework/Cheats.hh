@@ -16,6 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuAppHelper.hh>
+#include <emuframework/viewUtils.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <vector>
@@ -73,9 +74,9 @@ public:
 			IG_forward(cheatName), attach,
 			[this](const Input::Event &e)
 			{
-				app().template pushAndShowNewCollectValueInputView<const char*>(attachParams(), e,
+				pushAndShowNewCollectValueInputView<const char*>(attachParams(), e,
 					"Input description", static_cast<CheatViewImpl*>(this)->cheatNameString(),
-					[this](EmuApp &, auto str)
+					[this](CollectTextInputView&, auto str)
 					{
 						name.compile(str);
 						static_cast<CheatViewImpl*>(this)->renamed(str);

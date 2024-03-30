@@ -50,11 +50,8 @@ public:
 	bool usingLinearFilter() const { return useLinearFilter; }
 	void setBrightness(Gfx::Vec3);
 	void onVideoFormatChanged(IG::PixelFormat effectFmt);
-	EmuVideo &emuVideo() const { return video; }
 	Gfx::ColorSpace colorSpace() const { return colSpace; }
 	bool srgbColorSpace() const { return colSpace == Gfx::ColorSpace::SRGB; }
-	void setZoom(uint8_t val) { zoom_ = val; }
-	auto zoom() const { return zoom_; }
 	void setRotation(IG::Rotation);
 	float evalAspectRatio(float aR);
 	bool readConfig(MapIO &, unsigned key);
@@ -65,10 +62,10 @@ public:
 		return contentRect_;
 	}
 
+	EmuVideo &video;
 private:
 	VideoImageOverlay vidImgOverlay;
 	IG::StaticArrayList<VideoImageEffect*, 1> effects;
-	EmuVideo &video;
 	VideoImageEffect userEffect;
 	Gfx::ITexQuads quad;
 	Gfx::TextureSpan texture;
@@ -84,7 +81,9 @@ private:
 	ImageEffectId userEffectId{};
 	ImageOverlayId userOverlayEffectId{};
 	Gfx::ColorSpace colSpace{};
-	uint8_t zoom_{100};
+public:
+	uint8_t scale{100};
+private:
 	IG::Rotation rotation{};
 	bool useLinearFilter{true};
 

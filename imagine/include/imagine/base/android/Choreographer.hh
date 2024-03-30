@@ -64,9 +64,9 @@ template <class ChoreographerBase>
 class ChoreographerFrameTimer final
 {
 public:
+	constexpr ChoreographerFrameTimer() = default;
 	ChoreographerFrameTimer(ChoreographerBase &choreographer):
-		choreographerPtr{&choreographer}
-	{}
+		choreographerPtr{&choreographer} {}
 	void scheduleVSync() { choreographerPtr->scheduleVSync(); }
 	void cancel() {}
 	void setFrameRate(FrameRate) {}

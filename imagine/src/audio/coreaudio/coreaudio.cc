@@ -37,6 +37,8 @@ CAOutputStream::CAOutputStream()
 		.componentSubType = kAudioUnitSubType_DefaultOutput,
 		#endif
 		.componentManufacturer = kAudioUnitManufacturer_Apple,
+		.componentFlags{},
+		.componentFlagsMask{}
 	};
 	AudioComponent defaultOutput = AudioComponentFindNext(nullptr, &defaultOutputDescription);
 	assert(defaultOutput);

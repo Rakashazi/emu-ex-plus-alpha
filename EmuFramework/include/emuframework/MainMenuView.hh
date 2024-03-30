@@ -36,15 +36,12 @@ public:
 	void onShow() final;
 	void loadFileBrowserItems();
 	void loadStandardItems();
-	void setAudioVideo(EmuAudio &audio, EmuVideoLayer &videoLayer);
 	virtual void reloadItems();
 
 	static constexpr int STANDARD_ITEMS = 15;
 	static constexpr int MAX_SYSTEM_ITEMS = 5;
 
 protected:
-	EmuAudio *audio{};
-	EmuVideoLayer *videoLayer{};
 	TextMenuItem loadGame;
 	TextMenuItem systemActions;
 	TextMenuItem recentGames;

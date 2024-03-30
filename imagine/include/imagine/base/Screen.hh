@@ -49,6 +49,7 @@ public:
 	bool removeOnFrame(OnFrameDelegate);
 	bool containsOnFrame(OnFrameDelegate) const;
 	size_t onFrameDelegates() const;
+	void setVariableFrameTime(bool);
 	FrameParams makeFrameParams(SteadyClockTimePoint timestamp) const;
 	bool frameRateIsReliable() const;
 	FrameRate frameRate() const;
@@ -76,6 +77,7 @@ private:
 	void unpostFrame();
 	void postFrameTimer();
 	void unpostFrameTimer();
+	bool shouldUpdateFrameTimer(const FrameTimer&, bool newVariableFrameTimeValue);
 };
 
 }

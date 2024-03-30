@@ -48,6 +48,7 @@ SimpleFrameTimer::SimpleFrameTimer(Screen &screen, EventLoop loop):
 			return true;
 		}
 	},
+	interval{fromHz<Nanoseconds>(screen.frameRate())},
 	eventLoop{loop} {}
 
 void SimpleFrameTimer::scheduleVSync()

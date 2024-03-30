@@ -248,6 +248,7 @@ struct WindowConfig;
 class ApplicationContext;
 class Application;
 struct ApplicationInitParams;
+class FrameTimer;
 
 using WindowContainer = std::vector<std::unique_ptr<Window>>;
 using ScreenContainer = std::vector<std::unique_ptr<Screen>>;

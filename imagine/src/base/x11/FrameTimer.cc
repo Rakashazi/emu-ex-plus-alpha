@@ -21,15 +21,22 @@
 namespace IG
 {
 
-FrameTimer XApplication::makeFrameTimer(Screen &screen)
+void XApplication::emplaceFrameTimer(FrameTimer &t, Screen &screen, bool useVariableTime)
 {
-	switch(supportedFrameTimer)
+	if(useVariableTime)
 	{
-		default: return FrameTimer{std::in_place_type<SimpleFrameTimer>, screen};
-		#if CONFIG_PACKAGE_LIBDRM
-		case SupportedFrameTimer::DRM: return FrameTimer{std::in_place_type<DRMFrameTimer>, screen};
-		#endif
-		case SupportedFrameTimer::FBDEV: return FrameTimer{std::in_place_type<FBDevFrameTimer>, screen};
+		t.emplace<SimpleFrameTimer>(screen);
+	}
+	else
+	{
+		switch(supportedFrameTimer)
+		{
+			default: t.emplace<SimpleFrameTimer>(screen); break;
+			#if CONFIG_PACKAGE_LIBDRM
+			case SupportedFrameTimer::DRM: t.emplace<DRMFrameTimer>(screen); break;
+			#endif
+			case SupportedFrameTimer::FBDEV: t.emplace<FBDevFrameTimer>(screen); break;
+		}
 	}
 }
 

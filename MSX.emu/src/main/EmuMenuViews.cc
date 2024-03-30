@@ -19,6 +19,7 @@
 #include <emuframework/DataPathSelectView.hh>
 #include <emuframework/SystemActionsView.hh>
 #include <emuframework/FilePicker.hh>
+#include <emuframework/viewUtils.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/fs/FS.hh>
@@ -725,8 +726,8 @@ protected:
 			TextMenuItem{"Custom Value", attachParams(),
 				[this, type = (uint8_t)type, idx](Input::Event e)
 				{
-					app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
-						[this, type, idx](EmuApp &app, auto val)
+					pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
+						[this, type, idx](CollectTextInputView&, auto val)
 						{
 							if(val >= 0 && val <= 100)
 							{
@@ -737,7 +738,7 @@ protected:
 							}
 							else
 							{
-								app.postErrorMessage("Value not in range");
+								app().postErrorMessage("Value not in range");
 								return false;
 							}
 						});
@@ -798,8 +799,8 @@ protected:
 			TextMenuItem{"Custom Value", attachParams(),
 				[this, type = (uint8_t)type, idx](Input::Event e)
 				{
-					app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
-						[this, type, idx](EmuApp &app, auto val)
+					pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
+						[this, type, idx](CollectTextInputView&, auto val)
 						{
 							if(val >= 0 && val <= 100)
 							{
@@ -810,7 +811,7 @@ protected:
 							}
 							else
 							{
-								app.postErrorMessage("Value not in range");
+								app().postErrorMessage("Value not in range");
 								return false;
 							}
 						});
@@ -895,7 +896,7 @@ protected:
 class CustomAudioOptionView : public AudioOptionView
 {
 public:
-	CustomAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
+	CustomAudioOptionView(ViewAttachParams attach, EmuAudio& audio): AudioOptionView{attach, audio, true}
 	{
 		loadStockItems();
 		item.emplace_back(&mixer);
@@ -918,7 +919,7 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 	{
 		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
 		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
-		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
+		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach, audio);
 		case ViewID::FILE_PATH_OPTIONS: return std::make_unique<CustomFilePathOptionView>(attach);
 		default: return nullptr;
 	}

@@ -19,6 +19,7 @@
 #include <imagine/logger/logger.h>
 #include <emuframework/Cheats.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/viewUtils.hh>
 #include "EmuCheatViews.hh"
 #include <fceu/driver.h>
 #include <fceu/cheat.h>
@@ -98,14 +99,14 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 		attachParams(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 4-digit hex", addrStr,
-				[this](EmuApp &app, auto str)
+			pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 4-digit hex", addrStr,
+				[this](CollectTextInputView&, auto str)
 				{
 					unsigned a = strtoul(str, nullptr, 16);
 					if(a > 0xFFFF)
 					{
 						logMsg("addr 0x%X too large", a);
-						app.postMessage(true, "Invalid input");
+						app().postMessage(true, "Invalid input");
 						postDraw();
 						return false;
 					}
@@ -125,14 +126,14 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 		attachParams(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 2-digit hex", valueStr,
-				[this](EmuApp &app, auto str)
+			pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 2-digit hex", valueStr,
+				[this](CollectTextInputView&, auto str)
 				{
 					unsigned a = strtoul(str, nullptr, 16);
 					if(a > 0xFF)
 					{
 						logMsg("val 0x%X too large", a);
-						app.postMessage(true, "Invalid input");
+						app().postMessage(true, "Invalid input");
 						postDraw();
 						return false;
 					}
@@ -152,7 +153,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 		attachParams(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			app().pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex or blank", compStr.data(),
+			pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex or blank", compStr.data(),
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
@@ -190,12 +191,12 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 		attachParams(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input Game Genie code", ggCodeStr,
-				[this](EmuApp &app, auto str)
+			pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input Game Genie code", ggCodeStr,
+				[this](CollectTextInputView&, auto str)
 				{
 					if(!isValidGGCodeLen(str))
 					{
-						app.postMessage(true, "Invalid, must be 6 or 8 digits");
+						app().postMessage(true, "Invalid, must be 6 or 8 digits");
 						return false;
 					}
 					ggCodeStr = str;
@@ -325,7 +326,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		"Add Game Genie Code", attachParams(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			app().pushAndShowNewCollectTextInputView(attachParams(), e, "Input Game Genie code", "",
+			pushAndShowNewCollectTextInputView(attachParams(), e, "Input Game Genie code", "",
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
@@ -354,7 +355,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						logMsg("added new cheat, %d total", fceuCheats);
 						FCEU_FlushGameCheats(nullptr, 0, false);
 						view.dismiss();
-						app().pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
+						pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
 							[this](CollectTextInputView &view, const char *str)
 							{
 								if(str)
@@ -384,7 +385,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		"Add RAM Patch", attachParams(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			app().pushAndShowNewCollectTextInputView(attachParams(), e, "Input description", "",
+			pushAndShowNewCollectTextInputView(attachParams(), e, "Input description", "",
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)

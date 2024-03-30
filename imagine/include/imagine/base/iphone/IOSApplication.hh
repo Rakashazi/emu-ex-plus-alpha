@@ -26,8 +26,8 @@ class Window;
 struct ApplicationInitParams
 {
 	void *uiAppPtr;
-	int argc;
-	char **argv;
+	int argc{};
+	char **argv{};
 
 	constexpr CommandArgs commandArgs() const
 	{

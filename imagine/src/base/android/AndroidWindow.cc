@@ -240,12 +240,8 @@ NativeWindow Window::nativeObject() const
 
 void Window::setIntendedFrameRate(FrameRate rate)
 {
-	if(appContext().androidSDK() < 30)
-	{
-		screen()->setFrameRate(rate);
-		return;
-	}
-	if(!nWin) [[unlikely]]
+	screen()->setFrameRate(rate);
+	if(appContext().androidSDK() < 30 || !nWin)
 		return;
 	if(!ANativeWindow_setFrameRate) [[unlikely]]
 	{

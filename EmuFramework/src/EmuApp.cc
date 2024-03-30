@@ -93,8 +93,7 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	Application{initParams},
 	fontManager{ctx},
 	renderer{ctx},
-	audioManager{ctx},
-	audio{audioManager},
+	audio{ctx},
 	videoLayer{video, defaultVideoAspectRatio()},
 	inputManager{ctx},
 	vibrationManager{ctx},
@@ -411,7 +410,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 	if(auto launchGame = parseCommandArgs(initParams.commandArgs());
 		launchGame)
 		system().setInitialLoadPath(launchGame);
-	audioManager.setMusicVolumeControlHint();
+	audio.manager.setMusicVolumeControlHint();
 	if(!renderer.supportsColorSpace())
 		windowDrawableConf.colorSpace = {};
 	applyOSNavStyle(ctx, false);
@@ -419,7 +418,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 	ctx.addOnResume(
 		[this](IG::ApplicationContext ctx, bool focused)
 		{
-			audioManager.startSession();
+			audio.manager.startSession();
 			audio.open();
 			return true;
 		});
@@ -437,7 +436,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 				}
 			}
 			audio.close();
-			audioManager.endSession();
+			audio.manager.endSession();
 			saveConfigFile(ctx);
 			saveSystemOptions();
 			#ifdef CONFIG_INPUT_BLUETOOTH
@@ -479,7 +478,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			}
 			auto &screen = *win.screen();
 			winData.viewController.placeElements();
-			winData.viewController.pushAndShowMainMenu(viewAttach, videoLayer, audio);
+			winData.viewController.pushAndShow(makeView(viewAttach, ViewID::MAIN_MENU));
 			configureSecondaryScreens();
 			video.setOnFormatChanged(
 				[this, &viewController = winData.viewController](EmuVideo &)
@@ -492,7 +491,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			videoLayer.setRendererTask(renderer.task());
 			applyRenderPixelFormat();
 			videoLayer.updateEffect(system(), videoEffectPixelFormat());
-			videoLayer.setZoom(imageZoom);
+			videoLayer.scale = contentScale;
 			system().onFrameUpdate = [this](FrameParams params)
 			{
 				emuSystemTask.updateFrameParams(params);
@@ -732,15 +731,7 @@ bool EmuApp::advanceFrames(FrameParams frameParams, EmuSystemTask *taskPtr)
 
 IG::Viewport EmuApp::makeViewport(const IG::Window &win) const
 {
-	IG::WindowRect viewRect = layoutBehindSystemUI ? win.bounds() : win.contentBounds();
-	if(viewportZoom != 100)
-	{
-		WPt viewCenter{viewRect.xSize() / 2, viewRect.ySize() / 2};
-		viewRect -= viewCenter;
-		viewRect *= viewportZoom / 100.f;
-		viewRect += viewCenter;
-	}
-	return win.viewport(viewRect);
+	return win.viewport(layoutBehindSystemUI ? win.bounds() : win.contentBounds());
 }
 
 void WindowData::updateWindowViewport(const IG::Window &win, IG::Viewport viewport, const IG::Gfx::Renderer &r)
@@ -873,7 +864,6 @@ void EmuApp::startEmulation()
 	emuSystemTask.start();
 	setCPUNeedsLowLatency(appContext(), true);
 	system().start(*this);
-	log.info("timestamp source:{}", wise_enum::to_string(effectiveFrameTimeSource()));
 	addOnFrameDelayed();
 }
 
@@ -895,26 +885,13 @@ void EmuApp::pauseEmulation()
 	system().pause(*this);
 	setRunSpeed(1.);
 	videoLayer.setBrightness(videoBrightnessRGB * pausedVideoBrightnessScale);
-	viewController().emuWindow().setDrawEventPriority();
+	emuWindow().setDrawEventPriority();
 	removeOnFrame();
 }
 
 bool EmuApp::hasArchiveExtension(std::string_view name)
 {
 	return FS::hasArchiveExtension(name);
-}
-
-void EmuApp::pushAndShowNewCollectTextInputView(ViewAttachParams attach, const Input::Event &e, const char *msgText,
-	const char *initialContent, CollectTextInputView::OnTextDelegate onText)
-{
-	pushAndShowModalView(std::make_unique<CollectTextInputView>(attach, msgText, initialContent,
-		collectTextCloseAsset(), onText), e);
-}
-
-void EmuApp::pushAndShowNewYesNoAlertView(ViewAttachParams attach, const Input::Event &e, const char *label,
-	const char *choice1, const char *choice2, TextMenuItem::SelectDelegate onYes, TextMenuItem::SelectDelegate onNo)
-{
-	pushAndShowModalView(std::make_unique<YesNoAlertView>(attach, label, choice1, choice2, YesNoAlertView::Delegates{onYes, onNo}), e);
 }
 
 void EmuApp::pushAndShowModalView(std::unique_ptr<View> v, const Input::Event &e)
@@ -1949,8 +1926,8 @@ std::unique_ptr<View> EmuApp::makeView(ViewAttachParams attach, ViewID id)
 	{
 		case ViewID::MAIN_MENU: return std::make_unique<MainMenuView>(attach);
 		case ViewID::SYSTEM_ACTIONS: return std::make_unique<SystemActionsView>(attach);
-		case ViewID::VIDEO_OPTIONS: return std::make_unique<VideoOptionView>(attach);
-		case ViewID::AUDIO_OPTIONS: return std::make_unique<AudioOptionView>(attach);
+		case ViewID::VIDEO_OPTIONS: return std::make_unique<VideoOptionView>(attach, videoLayer);
+		case ViewID::AUDIO_OPTIONS: return std::make_unique<AudioOptionView>(attach, audio);
 		case ViewID::SYSTEM_OPTIONS: return std::make_unique<SystemOptionView>(attach);
 		case ViewID::FILE_PATH_OPTIONS: return std::make_unique<FilePathOptionView>(attach);
 		case ViewID::GUI_OPTIONS: return std::make_unique<GUIOptionView>(attach);
@@ -1994,5 +1971,26 @@ EmuApp &EmuApp::get(IG::ApplicationContext ctx)
 EmuApp &gApp() { return *gAppPtr; }
 
 IG::ApplicationContext gAppContext() { return gApp().appContext(); }
+
+void pushAndShowModalView(std::unique_ptr<View> v, const Input::Event &e)
+{
+	v->appContext().applicationAs<EmuApp>().viewController().pushAndShowModal(std::move(v), e, false);
+}
+
+void pushAndShowNewYesNoAlertView(ViewAttachParams attach, const Input::Event &e, const char *label,
+	const char *choice1, const char *choice2, TextMenuItem::SelectDelegate onYes, TextMenuItem::SelectDelegate onNo)
+{
+	attach.appContext().applicationAs<EmuApp>().pushAndShowModalView(std::make_unique<YesNoAlertView>(attach, label, choice1, choice2, YesNoAlertView::Delegates{onYes, onNo}), e);
+}
+
+Gfx::TextureSpan collectTextCloseAsset(ApplicationContext ctx)
+{
+	return ctx.applicationAs<const EmuApp>().collectTextCloseAsset();
+}
+
+void postErrorMessage(ApplicationContext ctx, std::string_view s)
+{
+	ctx.applicationAs<EmuApp>().postErrorMessage(s);
+}
 
 }

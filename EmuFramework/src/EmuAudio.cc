@@ -71,9 +71,9 @@ static void stopAudioStats()
 	#endif
 }
 
-EmuAudio::EmuAudio(const IG::Audio::Manager &audioManager):
-	audioManager{audioManager},
-	defaultRate{EmuSystem::forcedSoundRate ? EmuSystem::forcedSoundRate : audioManager.nativeRate()},
+EmuAudio::EmuAudio(ApplicationContext ctx):
+	manager{ctx},
+	defaultRate{EmuSystem::forcedSoundRate ? EmuSystem::forcedSoundRate : manager.nativeRate()},
 	rate_{defaultRate} {}
 
 size_t EmuAudio::framesFree() const
@@ -153,7 +153,7 @@ void EmuAudio::open()
 {
 	close();
 	if(isEnabled())
-		audioStream.setApi(audioManager, outputAPI());
+		audioStream.setApi(manager, outputAPI());
 }
 
 void EmuAudio::start(FloatSeconds bufferDuration)
@@ -172,7 +172,7 @@ void EmuAudio::start(FloatSeconds bufferDuration)
 	{
 		resizeAudioBuffer(targetBufferFillBytes);
 		audioWriteState = AudioWriteState::BUFFER;
-		IG::Audio::Format outputFormat{inputFormat.rate, audioManager.nativeSampleFormat(), inputFormat.channels};
+		IG::Audio::Format outputFormat{inputFormat.rate, manager.nativeSampleFormat(), inputFormat.channels};
 		IG::Audio::OutputStreamConfig outputConf
 		{
 			outputFormat,

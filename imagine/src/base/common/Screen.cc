@@ -138,6 +138,12 @@ void Screen::unpostFrame()
 	unpostFrameTimer();
 }
 
+bool Screen::shouldUpdateFrameTimer(const FrameTimer& frameTimer, bool newVariableFrameTimeValue)
+{
+	return (newVariableFrameTimeValue && !std::holds_alternative<SimpleFrameTimer>(frameTimer)) ||
+		(!newVariableFrameTimeValue && std::holds_alternative<SimpleFrameTimer>(frameTimer));
+}
+
 [[gnu::weak]] SteadyClockTime Screen::presentationDeadline() const { return {}; }
 
 

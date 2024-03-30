@@ -29,35 +29,25 @@ class EmuVideoLayer;
 class EmuVideo;
 enum class ImageEffectId : uint8_t;
 enum class ImageChannel : uint8_t;
-enum class VideoSystem: uint8_t;
 
 class VideoOptionView : public TableView, public EmuAppHelper<VideoOptionView>
 {
 public:
-	VideoOptionView(ViewAttachParams attach, bool customMenu = false);
+	VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLayer, bool customMenu = false);
 	void place() final;
 	void loadStockItems();
-	void setEmuVideoLayer(EmuVideoLayer &videoLayer);
 
 protected:
 	static constexpr int MAX_ASPECT_RATIO_ITEMS = 5;
-	EmuVideoLayer *videoLayer{};
-
+	EmuVideoLayer &videoLayer;
 	StaticArrayList<TextMenuItem, 5> textureBufferModeItem;
 	MultiChoiceMenuItem textureBufferMode;
-	TextMenuItem frameIntervalItem[5];
-	MultiChoiceMenuItem frameInterval;
-	TextMenuItem frameRateItems[4];
-	VideoSystem activeVideoSystem{};
-	MultiChoiceMenuItem frameRate;
-	MultiChoiceMenuItem frameRatePAL;
-	ConditionalMember<enableFrameTimeStats, BoolMenuItem> frameTimeStats;
 	StaticArrayList<TextMenuItem, MAX_ASPECT_RATIO_ITEMS> aspectRatioItem;
 	MultiChoiceMenuItem aspectRatio;
-	TextMenuItem zoomItem[6];
-	MultiChoiceMenuItem zoom;
-	TextMenuItem viewportZoomItem[4];
-	MultiChoiceMenuItem viewportZoom;
+	TextMenuItem contentScaleItems[6];
+	MultiChoiceMenuItem contentScale;
+	TextMenuItem menuScaleItems[4];
+	MultiChoiceMenuItem menuScale;
 	TextMenuItem contentRotationItem[5];
 	MultiChoiceMenuItem contentRotation;
 	TextMenuItem placeVideo;
@@ -74,19 +64,8 @@ protected:
 	MultiChoiceMenuItem windowPixelFormat;
 	ConditionalMember<Config::envIsLinux && Config::BASE_MULTI_WINDOW, BoolMenuItem> secondDisplay;
 	ConditionalMember<Config::BASE_MULTI_SCREEN && Config::BASE_MULTI_WINDOW, BoolMenuItem> showOnSecondScreen;
-	TextMenuItem imageBuffersItem[3];
-	MultiChoiceMenuItem imageBuffers;
-	TextMenuItem frameClockItems[3];
-	MultiChoiceMenuItem frameClock;
-	ConditionalMember<Gfx::supportsPresentModes, TextMenuItem> presentModeItems[3];
-	ConditionalMember<Gfx::supportsPresentModes, MultiChoiceMenuItem> presentMode;
 	TextMenuItem renderPixelFormatItem[3];
 	MultiChoiceMenuItem renderPixelFormat;
-	ConditionalMember<Config::multipleScreenFrameRates, std::vector<TextMenuItem>> screenFrameRateItems;
-	ConditionalMember<Config::multipleScreenFrameRates, MultiChoiceMenuItem> screenFrameRate;
-	ConditionalMember<Gfx::supportsPresentationTime, TextMenuItem> presentationTimeItems[3];
-	ConditionalMember<Gfx::supportsPresentationTime, MultiChoiceMenuItem> presentationTime;
-	BoolMenuItem blankFrameInsertion;
 	TextMenuItem brightnessItem[2];
 	TextMenuItem redItem[2];
 	TextMenuItem greenItem[2];
@@ -95,14 +74,11 @@ protected:
 	MultiChoiceMenuItem red;
 	MultiChoiceMenuItem green;
 	MultiChoiceMenuItem blue;
-	TextHeadingMenuItem visualsHeading;
-	TextHeadingMenuItem screenShapeHeading;
 	TextHeadingMenuItem colorLevelsHeading;
 	TextHeadingMenuItem advancedHeading;
 	TextHeadingMenuItem systemSpecificHeading;
-	StaticArrayList<MenuItem*, 41> item;
+	StaticArrayList<MenuItem*, 32> item;
 
-	bool onFrameTimeChange(VideoSystem vidSys, SteadyClockTime time);
 	TextMenuItem::SelectDelegate setVideoBrightnessCustomDel(ImageChannel);
 	void setAllColorLevelsSelected(MenuId);
 	EmuVideo &emuVideo() const;
