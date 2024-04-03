@@ -107,6 +107,9 @@ typedef struct neo_mem {
 } neo_mem;
 
 extern neo_mem memory;
+extern uint8_t pvcMem[0x2000];
+extern bool hasPvc;
+extern uint16_t neogeo_rng;
 
 /* video related */
 //extern int irq2start, irq2control;

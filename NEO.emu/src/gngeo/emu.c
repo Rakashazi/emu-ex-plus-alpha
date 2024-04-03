@@ -80,6 +80,7 @@ void neogeo_reset(void) {
 	memset(memory.ram, 0 , sizeof(memory.ram));
 	memset(memory.z80_ram, 0 , sizeof(memory.z80_ram));
 	memcpy(memory.rom.cpu_m68k.p, memory.rom.bios_m68k.p, 0x80);
+	memset(pvcMem, 0 , sizeof(pvcMem));
 	memory.current_vector=0;
 	memory.vid.current_line = 0;
 	init_timer();
@@ -87,11 +88,6 @@ void neogeo_reset(void) {
 	sound_code = 0;
 	pending_command = 0;
 	result_code = 0;
-#ifdef ENABLE_940T
-	shared_ctl->sound_code = sound_code;
-	shared_ctl->pending_command = pending_command;
-	shared_ctl->result_code = result_code;
-#endif
 	if (memory.rom.cpu_m68k.size > 0x100000)
 		cpu_68k_bankswitch(0x100000);
 	else
@@ -107,15 +103,7 @@ void init_sound(void)
 }
 
 void init_neo(void) {
-#ifdef ENABLE_940T
-	int z80_overclk = CF_VAL(cf_get_item_by_name("z80clock"));
-#endif
-
 	//neogeo_init_save_state();
-
-#ifdef GP2X
-	gp2x_ram_ptr_reset();
-#endif
 
 	cpu_68k_init();
 //	neogeo_reset();

@@ -381,11 +381,6 @@ void cpu_68k_interrupt(int a) {
 	MyCyclone.irq=a;
 }
 
-void cpu_68k_bankswitch(Uint32 address) {
-	//printf("Bankswitch %08x\n",address);
-	bankaddress = address;
-}
-
 void cpu_68k_disassemble(int pc, int nb_instr) {
 	/* TODO */
 }

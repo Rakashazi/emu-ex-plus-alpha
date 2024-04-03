@@ -414,7 +414,10 @@ CLINK ROM_DEF *res_load_drv(void *contextPtr, const char *name)
 	io.read(drv->longname, 128);
 	drv->year = io.get<uint32_t>(); // TODO: LE byte-swap on uint32_t reads
 	for(auto i : iotaCount(10))
+	{
 		drv->romsize[i] = io.get<uint32_t>();
+		//EmuEx::log.debug("ROM region:{} size:{:X}", i, drv->romsize[i]);
+	}
 	drv->nb_romfile = io.get<uint32_t>();
 	for(auto i : iotaCount(drv->nb_romfile))
 	{
@@ -424,6 +427,8 @@ CLINK ROM_DEF *res_load_drv(void *contextPtr, const char *name)
 		drv->rom[i].dest = io.get<uint32_t>();
 		drv->rom[i].size = io.get<uint32_t>();
 		drv->rom[i].crc = io.get<uint32_t>();
+		//EmuEx::log.debug("ROM file:{} region:{}, src:{:X} dest:{:X} size:{:X} crc:{:X}", drv->rom[i].filename,
+		//	drv->rom[i].region, drv->rom[i].src, drv->rom[i].dest, drv->rom[i].size, drv->rom[i].crc);
 	}
 	return drv;
 }

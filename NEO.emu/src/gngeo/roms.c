@@ -167,7 +167,6 @@ static int init_kof99(void *contextPtr, GAME_ROMS *r) {
 		kof99_decrypt_68k(r);
 		kof99_neogeo_gfx_decrypt(contextPtr, r, 0x00);
 	}
-	neogeo_fix_bank_type = 0;
 	memory.bksw_offset = bankoffset_kof99;
 	memory.bksw_unscramble = scramblecode_kof99;
 	memory.sma_rng_addr = 0xF8FA;
@@ -283,7 +282,6 @@ static int init_kof2000n(void *contextPtr, GAME_ROMS *r) {
 }
 
 static int init_kof2001(void *contextPtr, GAME_ROMS *r) {
-	neogeo_fix_bank_type = 1;
 	if (need_decrypt) {
 		kof2000_neogeo_gfx_decrypt(contextPtr, r, 0x1e);
 		neogeo_cmc50_m1_decrypt(contextPtr, r);
@@ -341,51 +339,42 @@ static int init_ms4plus(void *contextPtr, GAME_ROMS *r) {
 }
 
 static int init_ganryu(void *contextPtr, GAME_ROMS *r) {
-	neogeo_fix_bank_type = 1;
 	if (need_decrypt) kof99_neogeo_gfx_decrypt(contextPtr, r, 0x07);
 	return 0;
 }
 
 static int init_s1945p(void *contextPtr, GAME_ROMS *r) {
-	neogeo_fix_bank_type = 1;
 	if (need_decrypt) kof99_neogeo_gfx_decrypt(contextPtr, r, 0x05);
 	return 0;
 }
 
 static int init_preisle2(void *contextPtr, GAME_ROMS *r) {
-	neogeo_fix_bank_type = 1;
 	if (need_decrypt) kof99_neogeo_gfx_decrypt(contextPtr, r, 0x9f);
 	return 0;
 }
 
 static int init_bangbead(void *contextPtr, GAME_ROMS *r) {
-	neogeo_fix_bank_type = 1;
 	if (need_decrypt) kof99_neogeo_gfx_decrypt(contextPtr, r, 0xf8);
 	return 0;
 }
 
 static int init_nitd(void *contextPtr, GAME_ROMS *r) {
-	neogeo_fix_bank_type = 1;
 	if (need_decrypt) kof99_neogeo_gfx_decrypt(contextPtr, r, 0xff);
 	return 0;
 }
 
 static int init_zupapa(void *contextPtr, GAME_ROMS *r) {
-	neogeo_fix_bank_type = 1;
 	if (need_decrypt) kof99_neogeo_gfx_decrypt(contextPtr, r, 0xbd);
 	return 0;
 }
 
 static int init_sengoku3(void *contextPtr, GAME_ROMS *r) {
-	neogeo_fix_bank_type = 1;
 	if (need_decrypt) kof99_neogeo_gfx_decrypt(contextPtr, r, 0xfe);
 	return 0;
 }
 
 static int init_kof98(void *contextPtr, GAME_ROMS *r) {
 	if (need_decrypt) kof98_decrypt_68k(r);
-
-	//install_kof98_protection(r);
 	return 0;
 }
 
@@ -395,7 +384,6 @@ static int init_rotd(void *contextPtr, GAME_ROMS *r) {
 		neogeo_cmc50_m1_decrypt(contextPtr, r);
 		kof2000_neogeo_gfx_decrypt(contextPtr, r, 0x3f);
 	}
-	neogeo_fix_bank_type = 0;
 	return 0;
 }
 
@@ -415,8 +403,8 @@ static int init_kof2002b(void *contextPtr, GAME_ROMS *r) {
 		kof2002_decrypt_68k(r);
 		neo_pcm2_swap(r, 0);
 		neogeo_cmc50_m1_decrypt(contextPtr, r);
-		//kof2002b_gfx_decrypt(r, r->tiles.p,0x4000000);
-		//kof2002b_gfx_decrypt(r, r->game_sfix.p,0x20000);
+		kof2002b_gfx_decrypt(r, r->tiles.p,0x4000000);
+		kof2002b_gfx_decrypt(r, r->game_sfix.p,0x20000);
 	}
 	return 0;
 }
@@ -509,7 +497,6 @@ static int init_pnyaa(void *contextPtr, GAME_ROMS *r) {
 		neogeo_cmc50_m1_decrypt(contextPtr, r);
 		kof2000_neogeo_gfx_decrypt(contextPtr, r, 0x2e);
 	}
-	neogeo_fix_bank_type = 1;
 	return 0;
 }
 
@@ -520,8 +507,7 @@ static int init_mslug5(void *contextPtr, GAME_ROMS *r) {
 		neogeo_cmc50_m1_decrypt(contextPtr, r);
 		kof2000_neogeo_gfx_decrypt(contextPtr, r, 0x19);
 	}
-	neogeo_fix_bank_type = 1;
-	//install_pvc_protection(r);
+	hasPvc = true;
 	return 0;
 }
 
@@ -548,8 +534,7 @@ static int init_ms5pcb(void *contextPtr, GAME_ROMS *r) {
 		svcpcb_s1data_decrypt(r);
 		neo_pcm2_swap(r, 2);
 	}
-	neogeo_fix_bank_type = 2;
-	//install_pvc_protection(r);
+	hasPvc = true;
 	return 0;
 }
 
@@ -557,12 +542,10 @@ static int init_ms5plus(void *contextPtr, GAME_ROMS *r) {
 	/* TODO: Bootleg */
 	if (need_decrypt) {
 		cmc50_neogeo_gfx_decrypt(contextPtr, r, 0x19);
+		neogeo_cmc50_m1_decrypt(contextPtr, r);
 		neo_pcm2_swap(r, 2);
-		//neogeo_bootleg_sx_decrypt(r, 1);
+		neogeo_bootleg_sx_decrypt(r, 1);
 	}
-	neogeo_fix_bank_type = 1;
-
-	//install_ms5plus_protection(r);
 	return 0;
 }
 
@@ -573,7 +556,6 @@ static int init_samsho5(void *contextPtr, GAME_ROMS *r) {
 		neogeo_cmc50_m1_decrypt(contextPtr, r);
 		kof2000_neogeo_gfx_decrypt(contextPtr, r, 0x0f);
 	}
-	neogeo_fix_bank_type = 0;
 	return 0;
 }
 
@@ -584,7 +566,42 @@ static int init_samsh5sp(void *contextPtr, GAME_ROMS *r) {
 		neogeo_cmc50_m1_decrypt(contextPtr, r);
 		kof2000_neogeo_gfx_decrypt(contextPtr, r, 0x0d);
 	}
-	neogeo_fix_bank_type = 0;
+	return 0;
+}
+
+static int init_svc(void *contextPtr, GAME_ROMS *r) {
+	if (need_decrypt) {
+		svc_px_decrypt(r);
+		neo_pcm2_swap(r, 3);
+		neogeo_cmc50_m1_decrypt(contextPtr, r);
+		kof2000_neogeo_gfx_decrypt(contextPtr, r, 0x57);
+	}
+	neogeo_fix_bank_type = 2;
+	hasPvc = true;
+	return 0;
+}
+
+static int init_kof2003(void *contextPtr, GAME_ROMS *r) {
+	if (need_decrypt) {
+		kof2003_decrypt_68k(r);
+		neo_pcm2_swap(r, 5);
+		neogeo_cmc50_m1_decrypt(contextPtr, r);
+		kof2000_neogeo_gfx_decrypt(contextPtr, r, 0x9d);
+	}
+	neogeo_fix_bank_type = 2;
+	hasPvc = true;
+	return 0;
+}
+
+static int init_kof2003h(void *contextPtr, GAME_ROMS *r) {
+	if (need_decrypt) {
+		kof2003h_decrypt_68k(r);
+		neo_pcm2_swap(r, 5);
+		neogeo_cmc50_m1_decrypt(contextPtr, r);
+		kof2000_neogeo_gfx_decrypt(contextPtr, r, 0x9d);
+	}
+	neogeo_fix_bank_type = 2;
+	hasPvc = true;
 	return 0;
 }
 
@@ -609,16 +626,6 @@ static DRIVER_INIT(svcpcb) {
 	svcpcb_s1data_decrypt(machine);
 	neo_pcm2_swap(machine, 3);
 	neogeo_fixed_layer_bank_type = 2;
-	DRIVER_INIT_CALL(neogeo);
-	install_pvc_protection(machine);
-}
-
-static DRIVER_INIT(svc) {
-	svc_px_decrypt(machine);
-	neo_pcm2_swap(machine, 3);
-	neogeo_fixed_layer_bank_type = 2;
-	neogeo_cmc50_m1_decrypt(machine);
-	kof2000_neogeo_gfx_decrypt(machine, 0x57);
 	DRIVER_INIT_CALL(neogeo);
 	install_pvc_protection(machine);
 }
@@ -652,15 +659,6 @@ static DRIVER_INIT(svcsplus) {
 	svcsplus_px_hack(machine);
 	DRIVER_INIT_CALL(neogeo);
 	install_pvc_protection(machine);
-}
-
-static DRIVER_INIT(samsho5) {
-	samsho5_decrypt_68k(machine);
-	neo_pcm2_swap(machine, 4);
-	neogeo_fixed_layer_bank_type = 1;
-	neogeo_cmc50_m1_decrypt(machine);
-	kof2000_neogeo_gfx_decrypt(machine, 0x0f);
-	DRIVER_INIT_CALL(neogeo);
 }
 
 static DRIVER_INIT(samsho5b) {
@@ -700,26 +698,6 @@ static DRIVER_INIT(kf2k3pcb) {
 			(read16_space_func) SMH_BANK(6)); // 512k bios
 }
 
-static DRIVER_INIT(kof2003) {
-	kof2003_decrypt_68k(machine);
-	neo_pcm2_swap(machine, 5);
-	neogeo_fixed_layer_bank_type = 2;
-	neogeo_cmc50_m1_decrypt(machine);
-	kof2000_neogeo_gfx_decrypt(machine, 0x9d);
-	DRIVER_INIT_CALL(neogeo);
-	install_pvc_protection(machine);
-}
-
-static DRIVER_INIT(kof2003h) {
-	kof2003h_decrypt_68k(machine);
-	neo_pcm2_swap(machine, 5);
-	neogeo_fixed_layer_bank_type = 2;
-	neogeo_cmc50_m1_decrypt(machine);
-	kof2000_neogeo_gfx_decrypt(machine, 0x9d);
-	DRIVER_INIT_CALL(neogeo);
-	install_pvc_protection(machine);
-}
-
 static DRIVER_INIT(kf2k3bl) {
 	cmc50_neogeo_gfx_decrypt(machine, 0x9d);
 	neo_pcm2_swap(machine, 5);
@@ -744,15 +722,6 @@ static DRIVER_INIT(kf2k3upl) {
 	neogeo_bootleg_sx_decrypt(machine, 2);
 	DRIVER_INIT_CALL(neogeo);
 	kf2k3upl_install_protection(machine);
-}
-
-static DRIVER_INIT(samsh5sp) {
-	samsh5sp_decrypt_68k(machine);
-	neo_pcm2_swap(machine, 6);
-	neogeo_fixed_layer_bank_type = 1;
-	neogeo_cmc50_m1_decrypt(machine);
-	kof2000_neogeo_gfx_decrypt(machine, 0x0d);
-	DRIVER_INIT_CALL(neogeo);
 }
 
 static DRIVER_INIT(jockeygp) {
@@ -837,6 +806,7 @@ struct roms_init_func {
 	{ "kof2000", init_kof2000},
 	{ "kof2000n", init_kof2000n},
 	{ "kof2001", init_kof2001},
+	{ "kof2001h", init_kof2001},
 	{ "mslug4", init_mslug4},
 	{ "ms4plus", init_ms4plus},
 	{ "ganryu", init_ganryu},
@@ -853,13 +823,18 @@ struct roms_init_func {
 	{ "kf2k2pls", init_kf2k2pls},
 	{ "kf2k2mp", init_kf2k2mp},
 	{ "kof2km2", init_kof2km2},
+	{ "kof2003", init_kof2003},
+	{ "kof2003h", init_kof2003h},
 	{ "matrim", init_matrim},
 	{ "pnyaa", init_pnyaa},
 	{ "mslug5", init_mslug5},
+	{ "mslug5h", init_mslug5},
 	{ "ms5pcb", init_ms5pcb},
 	{ "ms5plus", init_ms5plus},
 	{ "samsho5", init_samsho5},
+	{ "samsho5h", init_samsho5},
 	{ "samsh5sp", init_samsh5sp},
+	{ "svc", init_svc},
 	{ NULL, NULL}
 };
 
@@ -942,21 +917,44 @@ static int zip_seek_current_file(struct ZFILE *gz, Uint32 offset) {
 
 static int read_counter;
 
-static int read_data_i(struct ZFILE *gz, ROM_REGION *r, Uint32 dest, Uint32 size) {
-	Uint8 *p = r->p + dest;
+static int read_data_i(struct ZFILE *gz, ROM_REGION *r, uint32_t dest, uint32_t size) {
+	uint8_t *p = r->p + dest;
 	if (r->p == NULL || r->size < (dest & ~0x1) + (size * 2)) {
 		logMsg("Region not allocated or not big enough %08x %08x", r->size,
 				dest + (size * 2));
 		return -1;
 	}
-	Uint8 *buf = malloc(size);
-	Uint32 c = gn_unzip_fread(gz, buf, size);
-	if (c <= 0) {
+	uint8_t *buf = malloc(size);
+	int c = gn_unzip_fread(gz, buf, size);
+	if (c <= 0)
+	{
 		free(buf);
 		return 0;
 	}
-	for (Uint32 i = 0; i < c; i++) {
+	for(size_t i = 0; i < c; i++)
+	{
 		//printf("%d %d\n",i,c);
+		*p = buf[i];
+		p += 2;
+	}
+	free(buf);
+	read_counter += c;
+	gn_update_pbar(read_counter);
+	return 0;
+}
+
+static int read_data_i16(struct ZFILE *gz, ROM_REGION *r, uint32_t dest, uint32_t size)
+{
+	uint16_t *p = (uint16_t*)(r->p + dest);
+	uint16_t *buf = malloc(size);
+	int c = gn_unzip_fread(gz, (uint8_t*)buf, size);
+	if (c <= 0)
+	{
+		free(buf);
+		return 0;
+	}
+	for(size_t i = 0; i < c / 2; i++)
+	{
 		*p = buf[i];
 		p += 2;
 	}
@@ -981,7 +979,7 @@ static int read_data_p(struct ZFILE *gz, ROM_REGION *r, Uint32 dest, Uint32 size
 }
 
 static int load_region(struct PKZIP *pz, GAME_ROMS *r, int region, Uint32 src,
-		Uint32 dest, Uint32 size, Uint32 crc, char *filename) {
+		Uint32 dest, Uint32 size, Uint32 crc, char *filename, bool interleaved68kRom) {
 	int rc;
 	int badcrc = 0;
 	struct ZFILE *gz;
@@ -1016,7 +1014,13 @@ static int load_region(struct PKZIP *pz, GAME_ROMS *r, int region, Uint32 src,
 			read_data_p(gz, &r->cpu_z80c, dest, size);
 			break;
 		case REGION_MAIN_CPU_CARTRIDGE:
-			read_data_p(gz, &r->cpu_m68k, dest, size);
+			if(interleaved68kRom && dest <= 2)
+			{
+				logMsg("loading interleaved 68K ROM");
+				read_data_i16(gz, &r->cpu_m68k, dest, size);
+			}
+			else
+				read_data_p(gz, &r->cpu_m68k, dest, size);
 			break;
 		case REGION_FIXED_LAYER_CARTRIDGE:
 			read_data_p(gz, &r->game_sfix, dest, size);
@@ -1163,6 +1167,7 @@ static int init_roms(void *contextPtr, GAME_ROMS *r) {
 	memory.bksw_unscramble = NULL;
 	memory.bksw_offset = NULL;
 	memory.sma_rng_addr = 0;
+	hasPvc = false;
 
 	while (init_func_table[i].name) {
 		//printf("INIT ROM ? %s %s\n",init_func_table[i].name,r->info.name);
@@ -1221,7 +1226,6 @@ bool dr_load_bios(void *contextPtr, GAME_ROMS *r, char romerror[1024]) {
 			r->bios_sfix.p = gn_unzip_file_malloc(pz, "sfix.sfix", 0xc2ea0cfd,
 					&r->bios_sfix.size);
 			if (r->bios_sfix.p == NULL) {
-				//sprintf(romerror, "Couldn't find sfix.sfx nor sfix.sfix, please check your bios");
 				sprintf(romerror, "sfix.sfix missing or invalid, make sure it's in your neogeo.zip");
 				return false;
 			}
@@ -1231,6 +1235,7 @@ bool dr_load_bios(void *contextPtr, GAME_ROMS *r, char romerror[1024]) {
 	convert_all_char(memory.rom.bios_sfix.p, 0x20000, memory.fix_board_usage);
 
 	if (!(r->info.flags & HAS_CUSTOM_CPU_BIOS)) {
+		logMsg("opening 68K BIOS");
 		if (conf.system == SYS_UNIBIOS) {
 			if(!loadUnibios(r, "uni-bios_2_3.rom", 0x27664eb5, pz, rpath, romerror))
 			{
@@ -1368,6 +1373,7 @@ int dr_load_roms(void *contextPtr, GAME_ROMS *r, char *rom_path, char *name, cha
 	//printf("year %d\n",drv->year);
 	//return;
 
+	bool interleaved68kRom = drv->rom[1].region == 8 && drv->rom[1].dest == 2;
 	strcpy(r->info.name, drv->name);
 	strcpy(r->info.longname, drv->longname);
 	r->info.year = drv->year;
@@ -1410,11 +1416,11 @@ int dr_load_roms(void *contextPtr, GAME_ROMS *r, char *rom_path, char *name, cha
 		allocate_region(&r->bios_audio, drv->romsize[REGION_AUDIO_CPU_BIOS],
 				REGION_AUDIO_CPU_BIOS);
 	}
-	if (drv->romsize[REGION_FIXED_LAYER_BIOS] != 0) {
-		r->info.flags |= HAS_CUSTOM_SFIX_BIOS;
-		allocate_region(&r->bios_sfix, drv->romsize[REGION_FIXED_LAYER_BIOS],
-				REGION_FIXED_LAYER_BIOS);
-	}
+//	if (drv->romsize[REGION_FIXED_LAYER_BIOS] != 0) {
+//		r->info.flags |= HAS_CUSTOM_SFIX_BIOS;
+//		allocate_region(&r->bios_sfix, drv->romsize[REGION_FIXED_LAYER_BIOS],
+//				REGION_FIXED_LAYER_BIOS);
+//	}
 
 	/* Now, load the roms */
 	read_counter = 0;
@@ -1423,17 +1429,21 @@ int dr_load_roms(void *contextPtr, GAME_ROMS *r, char *rom_path, char *name, cha
 		romsize += drv->rom[i].size;
 	gn_init_pbar(PBAR_ACTION_LOADROM, romsize);
 	for (i = 0; i < (int)drv->nb_romfile; i++) {
-		//		gn_update_pbar(i, drv->nb_romfile);
+		if(drv->rom[i].region == REGION_FIXED_LAYER_BIOS)
+		{
+			logMsg("skipping BIOS SFIX defined in driver");
+			continue;
+		}
 		if (load_region(gz, r, drv->rom[i].region, drv->rom[i].src,
 				drv->rom[i].dest, drv->rom[i].size, drv->rom[i].crc,
-				drv->rom[i].filename) != 0) {
+				drv->rom[i].filename, interleaved68kRom) != 0) {
 			/* File not found in the roms, try the parent */
 			if (gzp) {
 				int region = drv->rom[i].region;
 				int pi;
 				pi = load_region(gzp, r, drv->rom[i].region, drv->rom[i].src,
 						drv->rom[i].dest, drv->rom[i].size, drv->rom[i].crc,
-						drv->rom[i].filename);
+						drv->rom[i].filename, interleaved68kRom);
 				DEBUG_LOG("From parent %d", pi);
 				if (pi && (region != 5 && region != 0 && region != 7)) {
 					sprintf(romerror, "File check for %s failed, ROM set not compatible",
@@ -1461,11 +1471,6 @@ int dr_load_roms(void *contextPtr, GAME_ROMS *r, char *rom_path, char *name, cha
 	if (r->adpcmb.size == 0) {
 		r->adpcmb.p = r->adpcma.p;
 		r->adpcmb.size = r->adpcma.size;
-#ifdef ENABLE_940T
-		shared_data->pcmbufb = (Uint8*) (r->adpcmb.p - gp2x_ram);
-		logMsg("SOUND2 code: %08x\n", (Uint32) shared_data->pcmbufb);
-		shared_data->pcmbufb_size = r->adpcmb.size;
-#endif
 	}
 
 	memory.fix_game_usage = r->gfix_usage.p; //malloc(r->game_sfix.size >> 5);
@@ -1873,7 +1878,6 @@ void dr_free_roms(GAME_ROMS *r) {
 	}
 	free_region(&r->game_sfix);
 
-#ifndef ENABLE_940T
 	free_region(&r->cpu_z80);
 	free_region(&r->bios_audio);
 	if (r->adpcmb.p != r->adpcma.p)
@@ -1884,7 +1888,6 @@ void dr_free_roms(GAME_ROMS *r) {
 	}
 
 	free_region(&r->adpcma);
-#endif
 
 	free_region(&r->bios_m68k);
 	free_region(&r->bios_sfix);

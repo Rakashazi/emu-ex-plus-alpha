@@ -106,6 +106,7 @@ CLINK void cpu_68k_init(void)
 				return mem68k_fetch_bk_normal_word(addr)&0xFFFF;
 			};
 	}
+
 	mm68k.memory_map[0x2f].write8 =
 		[](unsigned int addr, unsigned int data)
 		{
@@ -319,12 +320,6 @@ CLINK void cpu_68k_init(void)
 CLINK void cpu_68k_reset(void)
 {
 	m68k_pulse_reset(mm68k);
-}
-
-CLINK void cpu_68k_bankswitch(Uint32 address)
-{
-	//logMsg("bank switch:0x%X", address);
-	bankaddress = address;
 }
 
 CLINK int cpu_68k_run(Uint32 nb_cycle)

@@ -123,6 +123,10 @@ void makeState(MapIO &io, int mode)
 	ym2610_mkstate(&io, mode);
 	timer_mkstate(&io, mode);
 	pd4990a_mkstate(&io, mode);
+	if(hasPvc)
+	{
+		mkstate_data(io, pvcMem, sizeof(pvcMem), mode);
+	}
 }
 
 }

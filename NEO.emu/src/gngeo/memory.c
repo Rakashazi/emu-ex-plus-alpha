@@ -16,19 +16,12 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA. 
  */
 
-#ifdef HAVE_CONFIG_H
 #include <gngeo-config.h>
-#endif
-
 #include "emu.h"
 #include "video.h"
 #include "memory.h"
 #include "pd4990a.h"
 #include <imagine/logger/logger.h>
-
-#ifdef GP2X
-#include "ym2610-940/940shared.h"
-#endif
 
 Uint8 (*mem68k_fetch_bksw_byte)(Uint32);
 Uint16 (*mem68k_fetch_bksw_word)(Uint32);
@@ -38,6 +31,9 @@ void (*mem68k_store_bksw_word)(Uint32,Uint16);
 void (*mem68k_store_bksw_long)(Uint32,Uint32);
 
 neo_mem memory;
+uint8_t pvcMem[0x2000];
+bool hasPvc = 0;
+uint16_t neogeo_rng = 0x2345;
 
 Uint8 *current_pal;
 Uint32 *current_pc_pal;
@@ -105,7 +101,6 @@ void write_irq2pos(Uint32 data) {
 	}
 }
 
-#ifndef ENABLE_940T
 /* Z80 IO port handler */
 Uint8 z80_port_read(Uint16 PortNo)
 {
@@ -189,7 +184,6 @@ void z80_port_write(Uint16 PortNb, Uint8 Value)
 		break;
 	}
 }
-#endif
 
 /* Protection hack */
 Uint16 protection_9a37(Uint32 addr) {
@@ -199,14 +193,17 @@ Uint16 protection_9a37(Uint32 addr) {
 /* fetching function */
 /**** INVALID FETCHING ****/
 Uint8 mem68k_fetch_invalid_byte(Uint32 addr) {
+	logWarn("Invalid read byte @ %X", addr);
 	return 0xF0;
 }
 
 Uint16 mem68k_fetch_invalid_word(Uint32 addr) {
+	logWarn("Invalid read word @ %X", addr);
 	return 0xF0F0;
 }
 
 Uint32 mem68k_fetch_invalid_long(Uint32 addr) {
+	logWarn("Invalid read long @ %X", addr);
 	return 0xF0F0F0F0;
 }
 
@@ -308,26 +305,19 @@ Uint8 mem68k_fetch_video_byte(Uint32 addr) {
 			break;
 		}
 	}
-//	addr &= 0xFFFF;
-//	if (addr == 0xe)
-//		return 0xff;
-	return 0xFF;
+	return mem68k_fetch_invalid_byte(addr);
 }
 
 Uint16 mem68k_fetch_video_word(Uint32 addr) {
 	//printf("mem68k_fetch_video_word %08x\n",addr);
 	addr &= 0x7;
-	/*
-	 if (addr==0x00)
-	 return vptr;
-	 */
 	if (addr == 0x00 || addr == 0x02 || addr == 0x0a)
 		return memory.vid.rbuf;//READ_WORD(&memory.vid.ram[memory.vid.vptr << 1]);
 	if (addr == 0x04)
 		return memory.vid.modulo;
 	if (addr == 0x06)
 		return read_neo_control();
-	return 0;
+	return mem68k_fetch_invalid_word(addr);
 }
 LONG_FETCH(mem68k_fetch_video)
 ;
@@ -344,17 +334,17 @@ Uint8 mem68k_fetch_ctl1_byte(Uint32 addr) {
 		return (conf.test_switch ? 0x00 : 0x80);
 	}
 
-	return 0;
+	return mem68k_fetch_invalid_byte(addr);
 }
 
 Uint16 mem68k_fetch_ctl1_word(Uint32 addr) {
 	//  printf("mem68k_fetch_ctl1_word\n");
-	return 0;
+	return mem68k_fetch_invalid_word(addr);;
 }
 
 Uint32 mem68k_fetch_ctl1_long(Uint32 addr) {
 	//  printf("mem68k_fetch_ctl1_long\n");
-	return 0;
+	return mem68k_fetch_invalid_long(addr);
 }
 
 Uint8 mem68k_fetch_ctl2_byte(Uint32 addr) {
@@ -362,15 +352,15 @@ Uint8 mem68k_fetch_ctl2_byte(Uint32 addr) {
 		return memory.intern_p2;
 	if ((addr & 0xFFFF) == 0x01)
 		return 0xFF;
-	return 0;
+	return mem68k_fetch_invalid_byte(addr);
 }
 
 Uint16 mem68k_fetch_ctl2_word(Uint32 addr) {
-	return 0;
+	return mem68k_fetch_invalid_word(addr);
 }
 
 Uint32 mem68k_fetch_ctl2_long(Uint32 addr) {
-	return 0;
+	return mem68k_fetch_invalid_long(addr);
 }
 
 Uint8 mem68k_fetch_ctl3_byte(Uint32 addr) {
@@ -386,11 +376,11 @@ Uint16 mem68k_fetch_ctl3_word(Uint32 addr) {
 	 if ((addr & 0xFFFF) == 0x0)
 	 return memory.intern_start | 0xFF00;
 	 */
-	return 0;
+	return mem68k_fetch_invalid_word(addr);
 }
 
 Uint32 mem68k_fetch_ctl3_long(Uint32 addr) {
-	return 0;
+	return mem68k_fetch_invalid_long(addr);
 }
 
 Uint8 mem68k_fetch_coin_byte(Uint32 addr) {
@@ -409,15 +399,15 @@ Uint8 mem68k_fetch_coin_byte(Uint32 addr) {
 			res &= 0x7f;
 		return res;
 	}
-	return 0;
+	return mem68k_fetch_invalid_byte(addr);
 }
 
 Uint16 mem68k_fetch_coin_word(Uint32 addr) {
-	return 0;
+	return mem68k_fetch_invalid_word(addr);
 }
 
 Uint32 mem68k_fetch_coin_long(Uint32 addr) {
-	return 0;
+	return mem68k_fetch_invalid_long(addr);
 }
 
 /**** MEMCARD ****/
@@ -766,12 +756,21 @@ void mem68k_store_memcrd_long(Uint32 addr, Uint32 data) {
 }
 
 /**** bankswitchers ****/
-static Uint16 neogeo_rng = 0x2345;
 
-Uint16 sma_random(void) {
-	Uint16 old = neogeo_rng;
+void cpu_68k_bankswitch(uint32_t addr)
+{
+	if(bankaddress != addr)
+	{
+		//logMsg("bank switch:%X", addr);
+	}
+	bankaddress = addr;
+}
 
-	Uint16 newbit = ((neogeo_rng >> 2) ^ (neogeo_rng >> 3) ^ (neogeo_rng >> 5)
+static uint16_t sma_random()
+{
+	uint16_t old = neogeo_rng;
+
+	uint16_t newbit = ((neogeo_rng >> 2) ^ (neogeo_rng >> 3) ^ (neogeo_rng >> 5)
 			^ (neogeo_rng >> 6) ^ (neogeo_rng >> 7) ^ (neogeo_rng >> 11)
 			^ (neogeo_rng >> 12) ^ (neogeo_rng >> 15)) & 1;
 
@@ -781,70 +780,145 @@ Uint16 sma_random(void) {
 }
 
 /* Normal bankswitcher */
-Uint8 mem68k_fetch_bk_normal_byte(Uint32 addr) {
-	addr &= 0xFFFFF;
-    if (memory.bksw_unscramble) { /* SMA prot & random number generator */
-        Uint32 a=addr&0xFFFFE;
-		if (a == 0xfe446) {
-			//printf("Prot reading B %08x\n", addr);
-			return (addr&0x1?0x9a:0x37);
-		}
-		if (memory.sma_rng_addr && addr>=0xfff00 &&
-            (((a & 0xFF) == (memory.sma_rng_addr & 0xFF)) || 
-             ((a & 0xFF) == memory.sma_rng_addr >> 8))) {
-            //printf("SMA_Random B %08x\n",addr);
-			return (addr&0x1?sma_random()>>8:sma_random()&0xFF);
-        }
+Uint8 mem68k_fetch_bk_normal_byte(uint32_t addr)
+{
+	addr &= 0xfffff;
+	if(hasPvc && addr >= 0xfe000)
+	{
+		//logMsg("PVC RB:%X", addr);
+		return READ_BYTE_ROM((uint8_t*)pvcMem + (addr & 0x1fff));
 	}
-	return (READ_BYTE_ROM(memory.rom.cpu_m68k.p + bankaddress + addr));
+	else if(memory.bksw_unscramble)
+	{ /* SMA prot & random number generator */
+		uint32_t a = addr & 0xffffe;
+		if(a == 0xfe446)
+		{
+			//printf("Prot reading B %08x\n", addr);
+			return addr & 0x1 ? 0x9a : 0x37;
+		}
+		if(memory.sma_rng_addr && addr >= 0xfff00 &&
+			(((a & 0xff) == (memory.sma_rng_addr & 0xff)) ||
+			((a & 0xff) == memory.sma_rng_addr >> 8)))
+		{
+			//printf("SMA_Random B %08x\n",addr);
+			return addr & 0x1 ? sma_random() >> 8 : sma_random() & 0xff;
+		}
+	}
+	return READ_BYTE_ROM(memory.rom.cpu_m68k.p + bankaddress + addr);
 }
 
-Uint16 mem68k_fetch_bk_normal_word(Uint32 addr) {
+uint16_t mem68k_fetch_bk_normal_word(uint32_t addr)
+{
 	addr &= 0xFFFFF;
-	if (memory.bksw_unscramble) { /* SMA prot & random number generator */
-		if (addr == 0xfe446) {
+	if(hasPvc && addr >= 0xFE000)
+	{
+		//logMsg("PVC RW:%X", addr);
+		return READ_WORD_ROM((uint8_t*)pvcMem + (addr & 0x1FFE));
+	}
+	else if(memory.bksw_unscramble)
+	{ /* SMA prot & random number generator */
+		if(addr == 0xfe446)
+		{
 			//printf("Prot reading W %08x\n", addr);
 			return 0x9a37;
 		}
-		if (memory.sma_rng_addr && addr>=0xfff00 &&
-            (((addr & 0xFF) == (memory.sma_rng_addr & 0xFF)) || 
-             ((addr & 0xFF) == memory.sma_rng_addr >> 8))) {
-            //printf("SMA_Random W %08x\n",addr);
+		if(memory.sma_rng_addr && addr>=0xfff00 &&
+			(((addr & 0xff) == (memory.sma_rng_addr & 0xff)) ||
+			((addr & 0xff) == memory.sma_rng_addr >> 8)))
+		{
+			//printf("SMA_Random W %08x\n",addr);
 			return sma_random();
-        }
+		}
 	}
-	return (READ_WORD_ROM(memory.rom.cpu_m68k.p + bankaddress + addr));
+	return READ_WORD_ROM(memory.rom.cpu_m68k.p + bankaddress + addr);
 }
 
 LONG_FETCH(mem68k_fetch_bk_normal)
 ;
 
-static void bankswitch(Uint32 address, Uint8 data) {
-
-	if (memory.rom.cpu_m68k.size <= 0x100000)
+static void bankswitch(uint32_t address, uint8_t data)
+{
+	if(address < 0x2ffff0 || memory.rom.cpu_m68k.size <= 0x100000)
 		return;
-
-	if (address >= 0x2FFFF0) {
-		data = data & 0x7;
-		bankaddress = (data + 1) * 0x100000;
-	} else
-		return;
-
-	if (bankaddress >= memory.rom.cpu_m68k.size)
-		bankaddress = 0x100000;
-	cpu_68k_bankswitch(bankaddress);
+	data = data & 0x7;
+	uint32_t newBank = (data + 1) * 0x100000;
+	if(newBank >= memory.rom.cpu_m68k.size)
+		newBank = 0x100000;
+	cpu_68k_bankswitch(newBank);
 }
 
-void mem68k_store_bk_normal_byte(Uint32 addr, Uint8 data) {
-	//if (addr<0x2FFFF0)
-	//printf("bankswitch_b %x %x\n", addr, data);
-	bankswitch(addr, data);
+void pvcPalletteUnpack()
+{
+	//logMsg("pal unpack");
+	uint8_t b1 = pvcMem[0x1fe1];
+	uint8_t b2 = pvcMem[0x1fe0];
+	pvcMem[0x1fe2] = ((b2 & 0xf) << 1) | ((b1 >> 4) & 1);
+	pvcMem[0x1fe3] = (((b2 >> 4) & 0xf) << 1) | ((b1 >> 5) & 1);
+	pvcMem[0x1fe4] = ((b1 & 0xf) << 1) | ((b1 >> 6) & 1);
+	pvcMem[0x1fe5] = b1 >> 7;
 }
 
-void mem68k_store_bk_normal_word(Uint32 addr, Uint16 data) {
-	//if (addr<0x2FFFF0) 
-    //printf("bankswitch_w %x %x\n",addr,data);
-	if (memory.bksw_unscramble && (addr & 0xFF) == memory.bksw_unscramble[0]) {
+void pvcPallettePack()
+{
+	//logMsg("pal pack");
+	uint8_t b1 = pvcMem[0x1fe9];
+	uint8_t b2 = pvcMem[0x1fe8];
+	uint8_t b3 = pvcMem[0x1feb];
+	uint8_t b4 = pvcMem[0x1fea];
+	pvcMem[0x1fec] = (b2 >> 1) | ((b1 >> 1) << 4);
+	pvcMem[0x1fed] = (b4 >> 1) | ((b2 & 1) << 4) | ((b1 & 1) << 5) | ((b4 & 1) << 6) | ((b3 & 1) << 7);
+}
+
+static void pvcBankswitch()
+{
+	uint32_t newBank  = (pvcMem[0x1ff3] << 16) | (pvcMem[0x1ff2] << 8) | pvcMem[0x1ff1];
+	newBank += 0x100000;
+	cpu_68k_bankswitch(newBank);
+	pvcMem[0x1ff0]  = 0xa0;
+	pvcMem[0x1ff1] &= 0xfe;
+	pvcMem[0x1ff3] &= 0x7f;
+}
+
+static void handlePvcWrite(uint32_t addr)
+{
+	if(addr >= 0x2fffe0 && addr <= 0x2fffe1)
+		pvcPalletteUnpack();
+	else if(addr >= 0x2fffe8 && addr <= 0x2fffeb)
+		pvcPallettePack();
+	else if(addr >= 0x2ffff0 && addr <= 0x2ffff3)
+		pvcBankswitch();
+}
+
+void mem68k_store_bk_normal_byte(uint32_t addr, uint8_t data)
+{
+	if(hasPvc)
+	{
+		if(addr < 0x2fe000)
+			return;
+		//logMsg("PVC WB:%X:%X", addr, data);
+		WRITE_BYTE_ROM((uint8_t*)pvcMem + (addr & 0x1fff), data);
+		handlePvcWrite(addr);
+	}
+	else
+	{
+		bankswitch(addr, data);
+	}
+}
+
+void mem68k_store_bk_normal_word(uint32_t addr, uint16_t data)
+{
+	if(hasPvc)
+	{
+		if(addr < 0x2fe000)
+			return;
+		//logMsg("PVC WW:%X:%X", addr, data);
+		WRITE_WORD_ROM((uint8_t*)pvcMem + (addr & 0x1ffe), data);
+		handlePvcWrite(addr);
+	}
+	else if(memory.bksw_unscramble)
+	{
+		if(addr < 0x2ffc00 || (addr & 0xff) != memory.bksw_unscramble[0])
+			return;
 		/* unscramble bank number */
 		data = 
             (((data >> memory.bksw_unscramble[1]) & 1) << 0) + 
@@ -853,11 +927,12 @@ void mem68k_store_bk_normal_word(Uint32 addr, Uint16 data) {
             (((data	>> memory.bksw_unscramble[4]) & 1) << 3) + 
             (((data	>> memory.bksw_unscramble[5]) & 1) << 4) + 
             (((data	>> memory.bksw_unscramble[6]) & 1) << 5);
-
-		bankaddress = 0x100000 + memory.bksw_offset[data];
-		cpu_68k_bankswitch(bankaddress);
-	} else
+		cpu_68k_bankswitch(0x100000 + memory.bksw_offset[data]);
+	}
+	else
+	{
 		bankswitch(addr, data);
+	}
 }
 
 LONG_STORE(mem68k_store_bk_normal)
