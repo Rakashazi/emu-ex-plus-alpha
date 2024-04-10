@@ -49,6 +49,7 @@ void EmuInputView::place()
 void EmuInputView::resetInput()
 {
 	vController->resetInput();
+	vController->updateAltSpeedModeInput({}, false);
 	speedToggleActive = false;
 }
 

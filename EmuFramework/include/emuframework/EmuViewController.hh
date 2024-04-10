@@ -102,6 +102,7 @@ public:
 	void onHide();
 	void movePopupToWindow(IG::Window &win);
 	void moveEmuViewToWindow(IG::Window &win);
+	View &top() const { return viewStack.top(); }
 
 public:
 	EmuView emuView;

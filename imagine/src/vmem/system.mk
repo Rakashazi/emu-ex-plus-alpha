@@ -9,6 +9,4 @@ else
  $(error unsupported ENV_KERNEL)
 endif
 
-SRC += vmem/pageSize.cc vmem/RingBuffer.cc
-
 endif

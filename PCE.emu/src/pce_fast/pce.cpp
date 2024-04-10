@@ -26,6 +26,7 @@
 #include <mednafen/hw_misc/arcade_card/arcade_card.h>
 #include <mednafen/mempatcher.h>
 #include <mednafen/cdrom/CDInterface.h>
+#include <imagine/util/string.h>
 
 namespace MDFN_IEN_PCE_FAST
 {
@@ -254,7 +255,7 @@ static MDFN_COLD void Load(GameFile* gf)
 
    crc = HuC_Load(gf->stream);
 
-   if(gf->ext == "sgx")
+   if(IG::equalsCaseless(gf->ext, "sgx"))
     IsSGX = true;
    else
    {

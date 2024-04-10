@@ -247,13 +247,13 @@ FS::AssetDirectoryIterator ApplicationContext::openAssetDirectory(CStringView pa
 
 [[gnu::weak]] bool ApplicationContext::hasSystemPathPicker() const { return false; }
 
-[[gnu::weak]] bool ApplicationContext::showSystemPathPicker(SystemDocumentPickerDelegate) { return false; }
+[[gnu::weak]] bool ApplicationContext::showSystemPathPicker() { return false; }
 
 [[gnu::weak]] bool ApplicationContext::hasSystemDocumentPicker() const { return false; }
 
-[[gnu::weak]] bool ApplicationContext::showSystemDocumentPicker(SystemDocumentPickerDelegate) { return false; }
+[[gnu::weak]] bool ApplicationContext::showSystemDocumentPicker() { return false; }
 
-[[gnu::weak]] bool ApplicationContext::showSystemCreateDocumentPicker(SystemDocumentPickerDelegate) { return false; }
+[[gnu::weak]] bool ApplicationContext::showSystemCreateDocumentPicker() { return false; }
 
 [[gnu::weak]] FileIO ApplicationContext::openFileUri(CStringView uri, OpenFlags openFlags) const
 {
@@ -283,6 +283,11 @@ FS::AssetDirectoryIterator ApplicationContext::openAssetDirectory(CStringView pa
 [[gnu::weak]] FS::FileString ApplicationContext::fileUriDisplayName(CStringView uri) const
 {
 	return FS::displayName(uri);
+}
+
+[[gnu::weak]] FS::file_type ApplicationContext::fileUriType(CStringView uri) const
+{
+	return FS::status(uri).type();
 }
 
 [[gnu::weak]] bool ApplicationContext::removeFileUri(CStringView uri) const

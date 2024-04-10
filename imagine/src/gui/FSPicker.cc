@@ -354,15 +354,7 @@ void FSPicker::pushFileLocationsView(const Input::Event &e)
 		view->appendItem("Browse For Folder",
 			[this](View &view, const Input::Event &e)
 			{
-				if(!appContext().showSystemPathPicker(
-					[this, &view](CStringView uri, CStringView displayName)
-					{
-						view.dismiss();
-						if(mode_ == Mode::DIR)
-							onSelectPath_.callCopy(*this, uri, displayName, appContext().defaultInputEvent());
-						else
-							changeDirByInput(uri, appContext().rootPathInfo(uri), appContext().defaultInputEvent(), DepthMode::reset);
-					}))
+				if(!appContext().showSystemPathPicker())
 				{
 					setEmptyPath(failedSystemPickerMsg);
 					view.dismiss();
@@ -374,11 +366,7 @@ void FSPicker::pushFileLocationsView(const Input::Event &e)
 		view->appendItem("Browse For File",
 			[this](View &view, const Input::Event &e)
 			{
-				if(!appContext().showSystemDocumentPicker(
-					[this, &view](CStringView uri, CStringView displayName)
-					{
-						onSelectPath_.callCopy(*this, uri, displayName, appContext().defaultInputEvent());
-					}))
+				if(!appContext().showSystemDocumentPicker())
 				{
 					setEmptyPath(failedSystemPickerMsg);
 					view.dismiss();
@@ -429,6 +417,27 @@ void FSPicker::pushFileLocationsView(const Input::Event &e)
 			pushAndShow(std::move(textInputView), e);
 		});
 	pushAndShow(std::move(view), e);
+}
+
+bool FSPicker::onDocumentPicked(const DocumentPickerEvent& e)
+{
+	if(appContext().fileUriType(e.uri) == FS::file_type::directory)
+	{
+		if(mode_ == Mode::DIR)
+		{
+			onSelectPath_.callCopy(*this, e.uri, e.displayName, appContext().defaultInputEvent());
+		}
+		else
+		{
+			popTo(*this);
+			changeDirByInput(e.uri, appContext().rootPathInfo(e.uri), appContext().defaultInputEvent(), DepthMode::reset);
+		}
+	}
+	else
+	{
+		onSelectPath_.callCopy(*this, e.uri, e.displayName, appContext().defaultInputEvent());
+	}
+	return true;
 }
 
 Gfx::GlyphTextureSet &FSPicker::face()

@@ -67,6 +67,7 @@ public:
 					{
 						if(!onFileChange(path, FS::file_type::directory))
 							return;
+						picker.popTo();
 						picker.dismissPrevious();
 						picker.dismiss();
 					});
@@ -92,7 +93,7 @@ public:
 						}
 						if(!onFileChange(path, FS::file_type::regular))
 							return;
-						picker.popTo(picker);
+						picker.popTo();
 						picker.dismissPrevious();
 						picker.dismiss();
 					});

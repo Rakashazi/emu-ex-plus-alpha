@@ -81,13 +81,14 @@ public:
 	void endIdleByUserActivity(ApplicationContext);
 	void setSysUIStyle(JNIEnv *, jobject baseActivity, int32_t androidSDK, SystemUIStyleFlags);
 	bool hasDisplayCutout() const { return deviceFlags.displayCutout; }
+	bool hasSustainedPerformanceMode() const { return deviceFlags.hasSustainedPerformanceMode; }
 	bool hasFocus() const;
 	void addNotification(JNIEnv *, jobject baseActivity, const char *onShow, const char *title, const char *message);
 	void removePostedNotifications(JNIEnv *, jobject baseActivity);
 	void handleIntent(ApplicationContext);
-	bool openDocumentTreeIntent(JNIEnv *, jobject baseActivity, SystemDocumentPickerDelegate);
-	bool openDocumentIntent(JNIEnv *, jobject baseActivity, SystemDocumentPickerDelegate);
-	bool createDocumentIntent(JNIEnv *, jobject baseActivity, SystemDocumentPickerDelegate);
+	bool openDocumentTreeIntent(JNIEnv*, ANativeActivity*, jobject baseActivity);
+	bool openDocumentIntent(JNIEnv*, ANativeActivity*, jobject baseActivity);
+	bool createDocumentIntent(JNIEnv*, ANativeActivity*, jobject baseActivity);
 	void emplaceFrameTimer(FrameTimer&, Screen&, bool useVariableTime = {});
 	bool requestPermission(ApplicationContext, Permission);
 	UniqueFileDescriptor openFileUriFd(JNIEnv *, jobject baseActivity, CStringView uri, OpenFlags oFlags = {}) const;
@@ -95,6 +96,7 @@ public:
 	WallClockTimePoint fileUriLastWriteTime(JNIEnv *, jobject baseActivity, CStringView uri) const;
 	std::string fileUriFormatLastWriteTimeLocal(JNIEnv *, jobject baseActivity, CStringView uri) const;
 	FS::FileString fileUriDisplayName(JNIEnv *, jobject baseActivity, CStringView uri) const;
+	FS::file_type fileUriType(JNIEnv*, jobject baseActivity, CStringView uri) const;
 	bool removeFileUri(JNIEnv *, jobject baseActivity, CStringView uri, bool isDir) const;
 	bool renameFileUri(JNIEnv *, jobject baseActivity, CStringView oldUri, CStringView newUri) const;
 	bool createDirectoryUri(JNIEnv *, jobject baseActivity, CStringView uri) const;
@@ -126,7 +128,8 @@ private:
 		uint8_t
 		permanentMenuKey:1{},
 		displayCutout:1{},
-		handleRotationAnimation:1{};
+		handleRotationAnimation:1{},
+		hasSustainedPerformanceMode:1{};
 	};
 
 	struct InputDeviceListenerImpl
@@ -158,13 +161,13 @@ private:
 	JNI::InstMethod<jstring(jstring)> uriLastModified;
 	JNI::InstMethod<jlong(jstring)> uriLastModifiedTime;
 	JNI::InstMethod<jstring(jstring)> uriDisplayName;
+	JNI::InstMethod<jint(jstring)> uriFileType;
 	JNI::InstMethod<jboolean(jstring, jboolean)> deleteUri;
 	JNI::InstMethod<jboolean(jlong, jstring)> listUriFiles;
 	JNI::InstMethod<jboolean(jstring)> createDirUri;
 	JNI::InstMethod<jboolean(jstring, jstring)> renameUri;
 	JNI::ClassMethod<jstring(jlong)> jFormatDateTime;
 	std::variant<InputDeviceListenerImpl, INotifyImpl> inputDeviceChangeImpl;
-	SystemDocumentPickerDelegate onSystemDocumentPicker;
 	SystemOrientationChangedDelegate onSystemOrientationChanged;
 	Timer userActivityCallback{"userActivityCallback"};
 	using ProcessInputFunc = void (AndroidApplication::*)(AInputQueue *);
@@ -197,7 +200,7 @@ private:
 	void processInputWithGetEvent(AInputQueue *);
 	void processInputWithHasEvents(AInputQueue *);
 	void processInputCommon(AInputQueue *inputQueue, AInputEvent* event);
-	void handleDocumentIntentResult(const char *uri, const char *name);
+	void handleDocumentIntentResult(ApplicationContext, const char* uri, const char* name);
 };
 
 using ApplicationImpl = AndroidApplication;

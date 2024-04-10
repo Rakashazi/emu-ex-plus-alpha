@@ -74,6 +74,8 @@ bool ViewController::moveFocusToNextView(const Input::Event &, _2DOrigin)
 	return false;
 };
 
+View* ViewController::parentView(View&) { return {}; }
+
 std::optional<bool> ViewManager::needsBackControlOption() const
 {
 	if(!needsBackControlIsMutable || needsBackControl == needsBackControlDefault)
@@ -120,6 +122,8 @@ void View::popTo(View &v)
 	assumeExpr(controller_);
 	controller_->popTo(v);
 }
+
+void View::popTo() { popTo(*this); }
 
 void View::dismiss(bool refreshLayout)
 {
@@ -231,6 +235,12 @@ std::u16string_view View::name() const
 	return u"";
 }
 
+bool View::onDocumentPicked(const DocumentPickerEvent& e)
+{
+	auto vPtr = parentView();
+	return vPtr ? vPtr->onDocumentPicked(e) : false;
+}
+
 std::u16string View::nameString(const MenuItem &item)
 {
 	return item.text().string();
@@ -248,6 +258,13 @@ bool View::moveFocusToNextView(const Input::Event &e, _2DOrigin direction)
 	if(!controller_)
 		return false;
 	return controller_->moveFocusToNextView(e, direction);
+}
+
+View* View::parentView()
+{
+	if(!controller_)
+		return {};
+	return controller_->parentView(*this);
 }
 
 void View::setWindow(Window *w)

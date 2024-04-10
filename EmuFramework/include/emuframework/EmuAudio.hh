@@ -18,7 +18,7 @@
 #include <imagine/audio/OutputStream.hh>
 #include <imagine/audio/Manager.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/vmem/RingBuffer.hh>
+#include <imagine/util/container/RingBuffer.hh>
 #include <imagine/util/used.hh>
 #include <memory>
 #include <atomic>
@@ -78,14 +78,14 @@ public:
 	void setEnabledDuringAltSpeed(bool on);
 	bool isEnabledDuringAltSpeed() const;
 	IG::Audio::Format format() const;
-	explicit operator bool() const { return bool(rBuff); }
+	explicit operator bool() const { return bool(rBuff.capacity()); }
 	void writeConfig(FileIO &) const;
 	bool readConfig(MapIO &, unsigned key);
 
 	IG::Audio::Manager manager;
 protected:
 	IG::Audio::OutputStream audioStream;
-	RingBuffer rBuff;
+	RingBuffer<uint8_t, RingBufferConf{.mirrored = true}> rBuff;
 	SteadyClockTimePoint lastUnderrunTime{};
 	double speedMultiplier{1.};
 	size_t targetBufferFillBytes{};

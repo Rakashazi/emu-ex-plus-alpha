@@ -70,6 +70,7 @@ public:
 	void goUpDirectory(const Input::Event &);
 	void pushFileLocationsView(const Input::Event &);
 	void setShowHiddenFiles(bool);
+	bool onDocumentPicked(const DocumentPickerEvent&) override;
 
 protected:
 	struct FileEntry

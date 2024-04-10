@@ -199,11 +199,6 @@ bool BaseApplication::containsOnExit(ExitDelegate del) const
 	return onExit_.contains(del);
 }
 
-void BaseApplication::dispatchOnInterProcessMessage(ApplicationContext ctx, const char *filename)
-{
-	onEvent.callCopy(ctx, InterProcessMessageEvent{filename});
-}
-
 void BaseApplication::dispatchOnScreenChange(ApplicationContext ctx, Screen &s, ScreenChange change)
 {
 	onEvent(ctx, ScreenChangeEvent{s, change});

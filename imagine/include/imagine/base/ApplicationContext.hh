@@ -170,16 +170,17 @@ public:
 	// path/file access using OS-specific URIs such as those in the Android Storage Access Framework,
 	// backwards compatible with regular file system paths, all thread-safe except for picker functions
 	bool hasSystemPathPicker() const;
-	bool showSystemPathPicker(SystemDocumentPickerDelegate);
+	bool showSystemPathPicker();
 	bool hasSystemDocumentPicker() const;
-	bool showSystemDocumentPicker(SystemDocumentPickerDelegate);
-	bool showSystemCreateDocumentPicker(SystemDocumentPickerDelegate);
+	bool showSystemDocumentPicker();
+	bool showSystemCreateDocumentPicker();
 	FileIO openFileUri(CStringView uri, OpenFlags oFlags = {}) const;
 	UniqueFileDescriptor openFileUriFd(CStringView uri, OpenFlags oFlags = {}) const;
 	bool fileUriExists(CStringView uri) const;
 	WallClockTimePoint fileUriLastWriteTime(CStringView uri) const;
 	std::string fileUriFormatLastWriteTimeLocal(CStringView uri) const;
 	FS::FileString fileUriDisplayName(CStringView uri) const;
+	FS::file_type fileUriType(CStringView uri) const;
 	bool removeFileUri(CStringView uri) const;
 	bool renameFileUri(CStringView oldUri, CStringView newUri) const;
 	bool createDirectoryUri(CStringView uri) const;

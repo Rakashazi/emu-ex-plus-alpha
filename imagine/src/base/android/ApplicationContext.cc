@@ -183,6 +183,13 @@ FS::FileString ApplicationContext::fileUriDisplayName(CStringView uri) const
 	return application().fileUriDisplayName(thisThreadJniEnv(), baseActivityObject(), uri);
 }
 
+FS::file_type ApplicationContext::fileUriType(CStringView uri) const
+{
+	if(androidSDK() < 19 || !isUri(uri))
+		return FS::status(uri).type();
+	return application().fileUriType(thisThreadJniEnv(), baseActivityObject(), uri);
+}
+
 bool ApplicationContext::removeFileUri(CStringView uri) const
 {
 	if(androidSDK() < 19 || !isUri(uri))
@@ -322,7 +329,7 @@ bool ApplicationContext::hasTranslucentSysUI() const
 
 bool ApplicationContext::hasDisplayCutout() const { return application().hasDisplayCutout(); }
 
-bool ApplicationContext::hasSustainedPerformanceMode() const { return androidSDK() >= 24; }
+bool ApplicationContext::hasSustainedPerformanceMode() const { return androidSDK() >= 24 && application().hasSustainedPerformanceMode(); }
 
 void ApplicationContext::setSustainedPerformanceMode(bool on)
 {
@@ -427,21 +434,21 @@ void ApplicationContext::openURL(CStringView url) const
 
 bool ApplicationContext::hasSystemPathPicker() const { return androidSDK() >= 21; }
 
-bool ApplicationContext::showSystemPathPicker(SystemDocumentPickerDelegate del)
+bool ApplicationContext::showSystemPathPicker()
 {
-	return application().openDocumentTreeIntent(mainThreadJniEnv(), baseActivityObject(), del);
+	return application().openDocumentTreeIntent(mainThreadJniEnv(), act, baseActivityObject());
 }
 
 bool ApplicationContext::hasSystemDocumentPicker() const { return androidSDK() >= 19; }
 
-bool ApplicationContext::showSystemDocumentPicker(SystemDocumentPickerDelegate del)
+bool ApplicationContext::showSystemDocumentPicker()
 {
-	return application().openDocumentIntent(mainThreadJniEnv(), baseActivityObject(), del);
+	return application().openDocumentIntent(mainThreadJniEnv(), act, baseActivityObject());
 }
 
-bool ApplicationContext::showSystemCreateDocumentPicker(SystemDocumentPickerDelegate del)
+bool ApplicationContext::showSystemCreateDocumentPicker()
 {
-	return application().createDocumentIntent(mainThreadJniEnv(), baseActivityObject(), del);
+	return application().createDocumentIntent(mainThreadJniEnv(), act, baseActivityObject());
 }
 
 void ApplicationContext::setAcceptIPC(bool on, const char *) { application().acceptsIntents = on; }

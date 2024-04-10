@@ -40,24 +40,6 @@ public:
 		resize(size);
 	}
 
-	VMemArray(VMemArray &&o) noexcept
-	{
-		*this = std::move(o);
-	}
-
-	VMemArray &operator=(VMemArray &&o) noexcept
-	{
-		freeStorage();
-		data_ = std::exchange(o.data_, {});
-		size_ = std::exchange(o.size_, 0);
-		return *this;
-	}
-
-	~VMemArray()
-	{
-		freeStorage();
-	}
-
 	// Iterators (STL API)
 	iterator begin() { return data(); }
 	iterator end() { return data() + size(); }
@@ -73,15 +55,15 @@ public:
 	const_reverse_iterator crend() const { return rend(); }
 
 	// Capacity (STL API)
-	size_t size() const { return size_; }
+	size_t size() const { return buff.get_deleter().size; }
 	bool empty() const { return !size(); };
 	size_t max_size() const { return size(); }
 
-	void resize(size_t size)
+	void resize(size_t size_)
 	{
-		if(size == size_)
+		if(size_ == size())
 			return;
-		allocateStorage(size);
+		allocateStorage(size_);
 	}
 
 	// Element Access (STL API)
@@ -94,8 +76,8 @@ public:
 		return (*this)[idx];
 	}
 
-	T *data() { return data_; }
-	const T *data() const { return data_; }
+	T *data() { return buff.get(); }
+	const T *data() const { return buff.get(); }
 
 	T& operator[] (size_t idx) { return data()[idx]; }
 	const T& operator[] (size_t idx) const { return data()[idx]; }
@@ -107,31 +89,12 @@ public:
 	}
 
 private:
-	T *data_{};
-	size_t size_ = 0;
-
-	void freeStorage()
-	{
-		if(!size_)
-			return;
-		for(auto &o : *this) // run all destructors
-		{
-			o.~T();
-		}
-		freeVMemObjects(data_, size_);
-		data_ = {};
-		size_ = 0;
-	}
+	UniqueVPtr<T> buff;
 
 	void allocateStorage(size_t size)
 	{
-		freeStorage();
-		if(!size)
-			return;
-		data_ = allocVMemObjects<T>(size);
-		if(!data_) [[unlikely]]
-			return;
-		size_= size;
+		buff.reset();
+		buff = makeUniqueVPtr<T>(size);
 	}
 
 };

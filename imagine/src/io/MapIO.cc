@@ -22,7 +22,7 @@
 #include <cstring>
 #if defined __linux__ || defined __APPLE__
 #include <sys/mman.h>
-#include <imagine/vmem/pageSize.hh>
+#include <imagine/vmem/memory.hh>
 #endif
 
 namespace IG
@@ -78,7 +78,7 @@ void MapIO::advise(off_t offset, size_t bytes, Advice advice)
 	auto span = subSpan(offset, bytes);
 	if(!span.data())
 		return;
-	void *pageSrcAddr = roundDownToPageSize(span.data());
+	void *pageSrcAddr = truncPageSize(span.data());
 	bytes = span.size_bytes() + (uintptr_t(span.data()) - uintptr_t(pageSrcAddr)); // add extra bytes from rounding down to page size
 	if(madvise(pageSrcAddr, bytes, adviceToMAdv(advice)) != 0)
 	{

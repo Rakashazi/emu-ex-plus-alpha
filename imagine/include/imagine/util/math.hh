@@ -20,6 +20,8 @@
 #include <concepts>
 #include <numbers>
 #include <cmath>
+#include <bit>
+#include <type_traits>
 
 namespace IG
 {
@@ -130,10 +132,11 @@ constexpr auto makeEvenRoundedDown(std::integral auto x)
 	return isEven(x) ? x : x-1;
 }
 
-constexpr bool isPowerOf2(std::integral auto x)
+template<std::integral T>
+constexpr bool isPowerOf2(T x)
 {
-	return x && !( (x-1) & x );
-	// return ((x != 0) && ((x & (~x + 1)) == x)); // alternate method
+	assumeExpr(x >= 0);
+	return std::has_single_bit(std::make_unsigned_t<T>(x));
 }
 
 constexpr auto alignRoundedUp(std::unsigned_integral auto addr, unsigned int align)

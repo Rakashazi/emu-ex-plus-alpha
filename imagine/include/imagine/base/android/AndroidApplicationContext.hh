@@ -39,7 +39,6 @@ public:
 	constexpr AndroidApplicationContext() = default;
 	constexpr AndroidApplicationContext(ANativeActivity *act):act{act} {}
 	constexpr ANativeActivity *aNativeActivityPtr() const { return act; }
-	void setApplicationPtr(auto *appPtr) { act->instance = appPtr; }
 	Application &application() const { return *static_cast<Application*>(act->instance); }
 	JNIEnv *mainThreadJniEnv() const;
 	JNIEnv *thisThreadJniEnv() const;

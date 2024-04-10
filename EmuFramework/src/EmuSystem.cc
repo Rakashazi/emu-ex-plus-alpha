@@ -508,6 +508,8 @@ FS::FileString EmuSystem::contentDisplayNameForPathDefaultImpl(CStringView path)
 void EmuSystem::setInitialLoadPath(CStringView path)
 {
 	assert(contentName_.empty());
+	if(!path)
+		return;
 	contentLocation_ = path;
 }
 

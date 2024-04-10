@@ -31,6 +31,7 @@
 #include <mednafen/hash/md5.h>
 #include <mednafen/FileStream.h>
 #include <mednafen/sound/OwlResampler.h>
+#include <imagine/util/string.h>
 
 #include <zlib.h>
 
@@ -377,7 +378,7 @@ static MDFN_COLD void Load(GameFile* gf)
 
    crc = HuC_Load(gf->stream, MDFN_GetSettingB("pce.disable_bram_hucard"));
 
-   if(gf->ext == "sgx")
+   if(IG::equalsCaseless(gf->ext, "sgx"))
     IsSGX = true;
    else
    {

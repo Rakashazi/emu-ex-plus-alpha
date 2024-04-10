@@ -110,10 +110,13 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
 			subtype_ = Subtype::XPERIA_PLAY;
 		}
 		else if((Config::MACHINE_IS_GENERIC_ARMV7 && name == "sii9234_rcp")
-			|| name.contains("MHLRCP" ) || name.contains("Button Jack"))
+			|| name.contains("MHLRCP" ) || name.contains("Button Jack")
+			|| (Config::MACHINE_IS_GENERIC_AARCH64 && name.starts_with("uinput-")))
 		{
 			// sii9234_rcp on Samsung devices like Galaxy S2, may claim to be a gamepad & full keyboard
 			// but has only special function keys
+			// uinput-* devices like uinput-fpc and uinput-fortsense are actually finger-print sensors
+			// that incorrectly claim to be gamepads
 			log.info("ignoring extra device bits");
 			src = 0;
 			isGamepad = false;

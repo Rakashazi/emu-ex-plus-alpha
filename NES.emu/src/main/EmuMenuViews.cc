@@ -324,9 +324,12 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 		videoSystemItem
 	};
 
-	static constexpr const char *firebrandXPalPath = "Smooth (FBX).pal";
-	static constexpr const char *wavebeamPalPath = "Wavebeam.pal";
-	static constexpr const char *classicPalPath = "Classic (FBX).pal";
+	static constexpr auto digitalPrimePalPath = "Digital Prime (FBX).pal";
+	static constexpr auto smoothPalPath = "Smooth V2 (FBX)";
+	static constexpr auto magnumPalPath = "Magnum (FBX)";
+	static constexpr auto classicPalPath = "Classic (FBX).pal";
+	static constexpr auto wavebeamPalPath = "Wavebeam.pal";
+	static constexpr auto lightfulPalPath = "Lightful.pal";
 
 	void setPalette(IG::ApplicationContext ctx, IG::CStringView palPath)
 	{
@@ -339,17 +342,20 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 		app.renderSystemFramebuffer();
 	}
 
-	constexpr uint32_t defaultPaletteCustomFileIdx()
+	constexpr size_t defaultPaletteCustomFileIdx()
 	{
 		return lastIndex(defaultPalItem);
 	}
 
-	TextMenuItem defaultPalItem[5]
+	TextMenuItem defaultPalItem[8]
 	{
 		{"FCEUX", attachParams(), [this](){ setPalette(appContext(), ""); }},
-		{"FirebrandX", attachParams(), [this]() { setPalette(appContext(), firebrandXPalPath); }},
+		{"Digital Prime (FBX)", attachParams(), [this]() { setPalette(appContext(), digitalPrimePalPath); }},
+		{"Smooth V2 (FBX)", attachParams(), [this]() { setPalette(appContext(), smoothPalPath); }},
+		{"Magnum (FBX)", attachParams(), [this]() { setPalette(appContext(), magnumPalPath); }},
+		{"Classic (FBX)", attachParams(), [this]() { setPalette(appContext(), classicPalPath); }},
 		{"Wavebeam", attachParams(), [this]() { setPalette(appContext(), wavebeamPalPath); }},
-		{"Classic", attachParams(), [this]() { setPalette(appContext(), classicPalPath); }},
+		{"Lightful", attachParams(), [this]() { setPalette(appContext(), lightfulPalPath); }},
 		{"Custom File", attachParams(), [this](TextMenuItem &, View &, Input::Event e)
 			{
 				auto fsFilter = [](std::string_view name)
@@ -376,16 +382,14 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 		"Default Palette", attachParams(),
 		[this]()
 		{
-			if(system().defaultPalettePath.empty())
-				return 0;
-			if(system().defaultPalettePath == firebrandXPalPath)
-				return 1;
-			else if(system().defaultPalettePath == wavebeamPalPath)
-				return 2;
-			else if(system().defaultPalettePath == classicPalPath)
-				return 3;
-			else
-				return (int)defaultPaletteCustomFileIdx();
+			if(system().defaultPalettePath.empty()) return 0;
+			if(system().defaultPalettePath == digitalPrimePalPath) return 1;
+			if(system().defaultPalettePath == smoothPalPath) return 2;
+			if(system().defaultPalettePath == magnumPalPath) return 3;
+			if(system().defaultPalettePath == classicPalPath) return 4;
+			if(system().defaultPalettePath == wavebeamPalPath) return 5;
+			if(system().defaultPalettePath == lightfulPalPath) return 6;
+			return (int)defaultPaletteCustomFileIdx();
 		}(),
 		defaultPalItem,
 		{

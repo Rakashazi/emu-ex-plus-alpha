@@ -31,10 +31,9 @@
 #include "vdp2_common.h"
 #include "vdp2_render.h"
 #include <imagine/thread/Thread.hh>
+#include <imagine/util/container/RingBuffer.hh>
 
 #include <atomic>
-
-#define VDP2_QUEUE_ATOMIC_WAIT
 
 namespace MDFN_IEN_SS
 {
@@ -3212,15 +3211,8 @@ struct WQ_Entry
  uint32 Arg32;
 };
 
-static std::array<WQ_Entry, 0x80000> WQ;
-static size_t WQ_ReadPos{}, WQ_WritePos{};
-static std::atomic_int_least32_t WQ_InCount{};
-static std::atomic_int_least32_t DrawCounter{};
-#ifndef VDP2_QUEUE_ATOMIC_WAIT
-static bool DoBusyWait;
-static MThreading::Sem* WakeupSem;
-static bool DoWakeupIfNecessary;
-#endif
+static IG::RingBuffer<WQ_Entry, IG::RingBufferConf{.fixedSize = 0x2000}> WQ;
+static std::atomic_int_least32_t DrawCounter;
 
 template<class T>
 static void atomicWait(const std::atomic<T> &val, T oldVal)
@@ -3244,21 +3236,7 @@ static void atomicWaitForValue(const std::atomic<T> &val, T wantedVal)
 
 static INLINE void WWQ(uint16 command, uint32 arg32 = 0, uint16 arg16 = 0)
 {
-#ifdef VDP2_QUEUE_ATOMIC_WAIT
- atomicWait(WQ_InCount, int(WQ.size()));
-#else
- while(MDFN_UNLIKELY(WQ_InCount.load(std::memory_order_acquire) == WQ.size()))
-  Time::SleepMS(1);
-#endif
-
- WQ_Entry* wqe = &WQ[WQ_WritePos];
-
- wqe->Command = command;
- wqe->Arg16 = arg16;
- wqe->Arg32 = arg32;
-
- WQ_WritePos = (WQ_WritePos + 1) % WQ.size();
- WQ_InCount.fetch_add(1, std::memory_order_release);
+ WQ.push({command, arg16, arg32});
 }
 
 static int RThreadEntry(void* data)
@@ -3268,34 +3246,9 @@ static int RThreadEntry(void* data)
 
  while(MDFN_LIKELY(Running))
  {
-#ifdef VDP2_QUEUE_ATOMIC_WAIT
-	 atomicWait(WQ_InCount, 0);
-#else
-  while(MDFN_UNLIKELY(WQ_InCount.load(std::memory_order_acquire) == 0))
-  {
-   if(!DoBusyWait)
-    MThreading::Sem_TimedWait(WakeupSem, 1);
-   else
-   {
-#ifdef MDFN_SS_BUSYWAIT_PAUSE
-    asm volatile("pause\n\tpause\n\tpause\n\tpause\n\tpause\n\tpause\n\tpause\n\t");
-#else
-    for(int i = 1000; i; i--)
-    {
-     #ifdef _MSC_VER
-     __nop();
-     #else
-     asm volatile("nop\n\t");
-     #endif
-    }
-#endif
-   }
-  }
-#endif
-  //
-  //
-  //
-  WQ_Entry* wqe = &WQ[WQ_ReadPos];
+  WQ_Entry entry = WQ.pop();
+  WQ_Entry* wqe = &entry;
+  WQ.notifyRead();
 
   switch(wqe->Command)
   {
@@ -3312,9 +3265,7 @@ static int RThreadEntry(void* data)
 	DrawLine((uint16)wqe->Arg32, wqe->Arg32 >> 16, wqe->Arg16);
 	//
 	DrawCounter.fetch_sub(1, std::memory_order_release);
-#ifdef VDP2_QUEUE_ATOMIC_WAIT
 	DrawCounter.notify_all();
-#endif
 	break;
 
    case COMMAND_RESET:
@@ -3325,12 +3276,6 @@ static int RThreadEntry(void* data)
 	UserLayerEnableMask = wqe->Arg32;
 	break;
 
-#ifndef VDP2_QUEUE_ATOMIC_WAIT
-   case COMMAND_SET_BUSYWAIT:
-	DoBusyWait = wqe->Arg32;
-	break;
-#endif
-
    case COMMAND_EXIT:
 	Running = false;
 	break;
@@ -3338,11 +3283,6 @@ static int RThreadEntry(void* data)
   //
   //
   //
-  WQ_ReadPos = (WQ_ReadPos + 1) % WQ.size();
-  WQ_InCount.fetch_sub(1, std::memory_order_release);
-#ifdef VDP2_QUEUE_ATOMIC_WAIT
-  WQ_InCount.notify_all();
-#endif
  }
 
  return 0;
@@ -3362,14 +3302,7 @@ void VDP2REND_Init(const bool IsPAL, const uint64 affinity)
  UserLayerEnableMask = ~0U;
  Clock28M = false;
  //
- WQ_ReadPos = 0;
- WQ_WritePos = 0;
- WQ_InCount.store(0, std::memory_order_release); 
  DrawCounter.store(0, std::memory_order_release);
-
-#ifndef VDP2_QUEUE_ATOMIC_WAIT
- WakeupSem = MThreading::Sem_Create();
-#endif
  RThread = MThreading::Thread_Create(RThreadEntry, NULL, "MDFN VDP2 Render");
  if(affinity)
   MThreading::Thread_SetAffinity(RThread, affinity);
@@ -3437,21 +3370,11 @@ void VDP2REND_Kill(void)
  if(RThread != NULL)
  {
   WWQ(COMMAND_EXIT);
-#ifdef VDP2_QUEUE_ATOMIC_WAIT
-  WQ_InCount.notify_all();
-#endif
+  WQ.notifyWrite();
   MThreading::Thread_Wait(RThread, NULL);
   RThread = NULL;
   RThreadId = {};
  }
-
-#ifndef VDP2_QUEUE_ATOMIC_WAIT
- if(WakeupSem != NULL)
- {
-  MThreading::Sem_Destroy(WakeupSem);
-  WakeupSem = NULL;
- }
-#endif
 }
 
 void VDP2REND_StartFrame(EmulateSpecStruct* espec_arg, const bool clock28m, const int SurfInterlaceField)
@@ -3478,17 +3401,7 @@ void VDP2REND_StartFrame(EmulateSpecStruct* espec_arg, const bool clock28m, cons
 
 void VDP2REND_EndFrame(void)
 {
-#ifdef VDP2_QUEUE_ATOMIC_WAIT
  atomicWaitForValue(DrawCounter, 0);
-#else
- while(MDFN_UNLIKELY(DrawCounter.load(std::memory_order_acquire) != 0))
- {
-  //fprintf(stderr, "SLEEEEP\n");
-  //Time::SleepMS(1);
- }
-
- WWQ(COMMAND_SET_BUSYWAIT, false);
-#endif
 
  if(NextOutLine < VisibleLines)
  {
@@ -3534,33 +3447,7 @@ void VDP2REND_DrawLine(const int vdp2_line, const uint32 crt_line, const bool fi
   WWQ(COMMAND_DRAW_LINE, ((uint16)vdp2_line << 16) | out_line, field);
   //
   //
-#ifdef VDP2_QUEUE_ATOMIC_WAIT
-  if(crt_line >= bwthresh)
-  {
-   WQ_InCount.notify_all();
-  }
-  else if(crt_line < bwthresh && (wdcq + 1) >= 64)
-  {
-  	WQ_InCount.notify_all();
-  }
-#else
-  if(crt_line == bwthresh)
-  {
-   WWQ(COMMAND_SET_BUSYWAIT, true);
-   MThreading::Sem_Post(WakeupSem);
-  }
-  else if(crt_line < bwthresh)
-  {
-   if(wdcq == 0)
-    DoWakeupIfNecessary = true;
-   else if((wdcq + 1) >= 64 && DoWakeupIfNecessary)
-   {
-    //printf("Post Wakeup: %3d --- crt_line=%3d\n", wdcq + 1, crt_line);
-    MThreading::Sem_Post(WakeupSem);
-    DoWakeupIfNecessary = false;
-   }
-  }
-#endif
+  WQ.notifyWrite();
 
   NextOutLine = crt_line + 1;
  }
@@ -3594,13 +3481,8 @@ void VDP2REND_Write16_DB(uint32 A, uint16 DB)
 
 void VDP2REND_StateAction(StateMem* sm, const unsigned load, const bool data_only, uint16 (&rr)[0x100], uint16 (&cr)[2048], uint16 (&vr)[262144])
 {
-#ifdef VDP2_QUEUE_ATOMIC_WAIT
- WQ_InCount.notify_all();
- atomicWaitForValue(WQ_InCount, 0);
-#else
- while(MDFN_UNLIKELY(WQ_InCount.load(std::memory_order_acquire) != 0))
-  Time::SleepMS(1);
-#endif
+ WQ.notifyWrite();
+ WQ.waitForSize(0);
  //
  //
  //

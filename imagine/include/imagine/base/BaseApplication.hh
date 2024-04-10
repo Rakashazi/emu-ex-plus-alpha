@@ -88,8 +88,6 @@ public:
 	bool screensArePosted() const;
 	void setActiveForAllScreens(bool active);
 
-	void dispatchOnInterProcessMessage(ApplicationContext, const char *filename);
-
 	// Input functions
 	void startKeyRepeatTimer(Input::KeyEvent);
 	void cancelKeyRepeatTimer();

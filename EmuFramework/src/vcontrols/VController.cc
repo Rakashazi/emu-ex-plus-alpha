@@ -153,7 +153,6 @@ void VController::resetInput()
 		}
 	}
 	dragTracker.reset();
-	updateAltSpeedModeInput({}, false);
 }
 
 void VController::updateAltSpeedModeInput(AltSpeedMode mode, bool on)

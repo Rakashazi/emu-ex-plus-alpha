@@ -26,6 +26,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
+import android.os.PowerManager;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewConfiguration;
@@ -85,26 +86,33 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	int deviceFlags()
 	{
 		// keep in sync with AndroidApplication.hh
-		final int PERMANENT_MENU_KEY_BIT = 1;
-		final int DISPLAY_CUTOUT_BIT = 1 << 1;
-		final int HANDLE_ROTATION_ANIMATION_BIT = 1 << 2;
+		final int permanentMenuKeyBit = 1;
+		final int displayCutoutBit = 1 << 1;
+		final int handleRotationAnimationBit = 1 << 2;
+		final int sustainedPerformanceModeBit = 1 << 3;
 		int flags = 0;
 		if(android.os.Build.VERSION.SDK_INT >= 14)
 		{
 			if(ViewConfiguration.get(this).hasPermanentMenuKey())
-				flags |= PERMANENT_MENU_KEY_BIT;
+				flags |= permanentMenuKeyBit;
 		}
 		if(android.os.Build.VERSION.SDK_INT >= 29)
 		{
 			DisplayCutout cutout = defaultDpy.getCutout();
 			if(cutout != null)
-				flags |= DISPLAY_CUTOUT_BIT;
+				flags |= displayCutoutBit;
 		}
 		if(android.os.Build.VERSION.SDK_INT <= 10)
 		{
 			// Use our on rotation animation on Gingerbread OS versions
 			if(!android.os.Build.DISPLAY.contains("cyano")) // CM7 provides its own animation
-				flags |= HANDLE_ROTATION_ANIMATION_BIT;
+				flags |= handleRotationAnimationBit;
+		}
+		if(android.os.Build.VERSION.SDK_INT >= 24)
+		{
+			PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
+			if(powerManager.isSustainedPerformanceModeSupported())
+				flags |= sustainedPerformanceModeBit;
 		}
 		return flags;
 	}
@@ -695,6 +703,19 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		if(android.os.Build.VERSION.SDK_INT < 19)
 			return null;
 		return ContentResolverUtils.uriDisplayName(getContentResolver(), uriStr);
+	}
+
+	int uriFileType(String uriStr)
+	{
+		// enum values are defined in FSDefs.hh
+		if(android.os.Build.VERSION.SDK_INT < 19)
+			return 0;
+		String t =  ContentResolverUtils.uriMimeType(getContentResolver(), uriStr);
+		if(t.isEmpty())
+			return -1; // not found
+		if(t.equals(DocumentsContract.Document.MIME_TYPE_DIR))
+			return 2;
+		return 1; // regular file
 	}
 
 	boolean deleteUri(String uriStr, boolean isDir)

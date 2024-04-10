@@ -44,6 +44,7 @@ public:
 					[=](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)
 					{
 						onPathChange(path);
+						picker.popTo();
 						picker.dismissPrevious();
 						picker.dismiss();
 					});

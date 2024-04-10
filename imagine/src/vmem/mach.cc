@@ -19,75 +19,65 @@
 #include <imagine/logger/logger.h>
 #include <mach/mach.h>
 #include <mach/vm_map.h>
+#include <mach/machine/vm_param.h>
 
 namespace IG
 {
 
 constexpr SystemLogger log{"VMem"};
+uintptr_t pageSize = PAGE_SIZE;
 
-void *allocVMem(size_t size)
+std::span<uint8_t> vAlloc(size_t bytes)
 {
-	if(Config::DEBUG_BUILD && size != adjustVMemAllocSize(size))
-	{
-		log.error("size:{} is not a multiple of page size", size);
-	}
 	vm_address_t addr;
-	if(vm_allocate(mach_task_self(), &addr, size, VM_FLAGS_ANYWHERE) != KERN_SUCCESS) [[unlikely]]
+	if(vm_allocate(mach_task_self(), &addr, bytes, VM_FLAGS_ANYWHERE) != KERN_SUCCESS) [[unlikely]]
 	{
 		log.error("error in vm_allocate");
-		return nullptr;
+		return {};
 	}
-	return (void*)addr;
+	return {reinterpret_cast<uint8_t*>(addr), bytes};
 }
 
-void freeVMem(void *vMemPtr, size_t size)
+void vFree(std::span<uint8_t> buff)
 {
-	if(!vMemPtr)
+	if(!buff.data())
 		return;
-	if(vm_deallocate(mach_task_self(), (vm_address_t)vMemPtr, size) != KERN_SUCCESS)
+	if(vm_deallocate(mach_task_self(), vm_address_t(buff.data()), buff.size()) != KERN_SUCCESS)
 	{
-		log.warn("error in vm_deallocate");
+		log.error("error in vm_deallocate");
 	}
 }
 
-size_t adjustVMemAllocSize(size_t size)
+std::span<uint8_t> vAllocMirrored(size_t bytes)
 {
-	return round_page(size);
-}
-
-void *allocMirroredBuffer(size_t size)
-{
+	assert(bytes == roundPageSize(bytes));
 	// allocate enough pages for the buffer + the mirrored pages
-	vm_address_t addr = (vm_address_t)allocVMem(size * 2);
-	if(!addr) [[unlikely]]
+	auto buff = vAlloc(bytes * 2);
+	if(!buff.data()) [[unlikely]]
 	{
-		return nullptr;
+		return {};
 	}
 	#ifdef __ARM_ARCH_6K__
 	// VM_FLAGS_OVERWRITE isn't supported on iOS <= 4.2.1 (the max deployment target for ARMv6)
 	// so deallocate the 2nd half of the buffer first. This introduces a race condition but the
 	// chance of it causing a problem is very low.
-	if(vm_deallocate(mach_task_self(), addr + size, size) != KERN_SUCCESS)
+	if(vm_deallocate(mach_task_self(), (vm_address_t)buff.data() + bytes, bytes) != KERN_SUCCESS)
 	{
 		log.warn("error in vm_deallocate for 2nd half, buffer may not stay in sync");
 	}
 	#endif
 	vm_prot_t currProtect, maxProtect;
-	vm_address_t mirrorAddr = addr + size;
-	if(vm_remap(mach_task_self(), &mirrorAddr, size, 0,
-		VM_FLAGS_FIXED | VM_FLAGS_OVERWRITE, mach_task_self(), addr,
-		0, &currProtect, &maxProtect, VM_INHERIT_COPY) != KERN_SUCCESS)
+	vm_address_t mirrorAddr = vm_address_t(buff.data()) + bytes;
+	if(vm_remap(mach_task_self(), &mirrorAddr, bytes, 0,
+		VM_FLAGS_FIXED | VM_FLAGS_OVERWRITE,
+		mach_task_self(), vm_address_t(buff.data()), 0,
+		&currProtect, &maxProtect, VM_INHERIT_COPY) != KERN_SUCCESS)
 	{
 		log.error("error in vm_remap");
-		freeMirroredBuffer((void*)addr, size);
-		return nullptr;
+		vFree(buff);
+		return {};
 	}
-	return (void*)addr;
-}
-
-void freeMirroredBuffer(void *vMemPtr, size_t size)
-{
-	freeVMem(vMemPtr, size * 2);
+	return buff;
 }
 
 }

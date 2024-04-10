@@ -33,9 +33,21 @@ constexpr bool containsAny(std::string_view s, auto &&...substrs)
 }
 
 [[nodiscard]]
+constexpr bool equalsToLower(char lhs, char rhs)
+{
+	return tolower<char>(lhs) == tolower<char>(rhs);
+}
+
+[[nodiscard]]
 constexpr bool endsWithAnyCaseless(std::string_view s, std::convertible_to<std::string_view> auto &&...endings)
 {
-	return (ends_with(s, std::string_view{IG_forward(endings)}, std::ranges::equal_to{}, tolower<char>, tolower<char>) || ...);
+	return (ends_with(s, std::string_view{IG_forward(endings)}, equalsToLower) || ...);
+}
+
+[[nodiscard]]
+constexpr bool equalsCaseless(std::string_view lhs, std::string_view rhs)
+{
+	return std::ranges::equal(lhs, rhs, equalsToLower);
 }
 
 template <class String = std::string>
@@ -65,6 +77,24 @@ constexpr std::string_view withoutDotExtension(std::string_view s)
 constexpr std::string_view withoutDotExtension(std::convertible_to<std::string_view> auto &&s)
 {
 	return withoutDotExtension(std::string_view{IG_forward(s)});
+}
+
+[[nodiscard]]
+constexpr std::string_view dotExtension(std::string_view s)
+{
+	auto dotOffset = s.rfind('.');
+	if(dotOffset != s.npos)
+	{
+		s.remove_prefix(dotOffset + 1);
+		return s;
+	}
+	return {};
+}
+
+[[nodiscard]]
+constexpr std::string_view dotExtension(std::convertible_to<std::string_view> auto &&s)
+{
+	return dotExtension(std::string_view{IG_forward(s)});
 }
 
 [[nodiscard]]

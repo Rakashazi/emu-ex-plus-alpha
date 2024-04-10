@@ -223,6 +223,8 @@ static std::vector<std::string> m3uFilenames(auto &io)
 	auto in = IStream<MapIO>{MapIO{io}};
 	for(std::string line; std::getline(in, line);)
 	{
+		if(line.back() == '\r') // ignore CR on Windows text files
+			line.pop_back();
 		filenames.emplace_back(std::move(line));
 		if(filenames.size() > 15)
 			break;

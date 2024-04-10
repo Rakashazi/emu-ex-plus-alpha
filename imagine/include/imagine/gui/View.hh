@@ -45,6 +45,7 @@ class Application;
 class View;
 class ViewManager;
 class MenuItem;
+struct DocumentPickerEvent;
 
 class ViewController
 {
@@ -61,6 +62,7 @@ public:
 	virtual void dismissView(int idx, bool refreshLayout = true) = 0;
 	virtual bool inputEvent(const Input::Event &e);
 	virtual bool moveFocusToNextView(const Input::Event &e, _2DOrigin direction);
+	virtual View* parentView(View&);
 };
 
 class View
@@ -91,6 +93,7 @@ public:
 	virtual void onAddedToController(ViewController *c, const Input::Event &e);
 	virtual void setFocus(bool focused);
 	virtual std::u16string_view name() const;
+	virtual bool onDocumentPicked(const DocumentPickerEvent&);
 
 	void setViewRect(WindowRect viewRect, WindowRect displayRect);
 	void setViewRect(WindowRect viewRect);
@@ -113,8 +116,10 @@ public:
 	void pushAndShow(std::unique_ptr<View> v, const Input::Event &e, bool needsNavView = true, bool isModal = false);
 	void pushAndShowModal(std::unique_ptr<View> v, const Input::Event &e, bool needsNavView = false);
 	void popTo(View &v);
+	void popTo();
 	void show();
 	bool moveFocusToNextView(const Input::Event &e, _2DOrigin direction);
+	View* parentView();
 	void setWindow(Window *w);
 	void onDismiss();
 	void setController(ViewController *c, const Input::Event &e);

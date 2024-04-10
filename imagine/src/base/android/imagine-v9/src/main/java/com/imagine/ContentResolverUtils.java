@@ -142,6 +142,11 @@ final class ContentResolverUtils
 		return uriDisplayName(resolver, Uri.parse(uriStr));
 	}
 
+	static String uriMimeType(ContentResolver resolver, String uriStr)
+	{
+		return queryString(resolver, Uri.parse(uriStr), DocumentsContract.Document.COLUMN_MIME_TYPE);
+	}
+
 	static boolean deleteUri(ContentResolver resolver, String uriStr, boolean isDir)
 	{
 		try

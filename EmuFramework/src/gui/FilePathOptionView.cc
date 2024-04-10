@@ -81,6 +81,7 @@ FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu)
 							}
 							system().setUserSaveDirectory(path);
 							onSavePathChange(path);
+							picker.popTo();
 							dismissPrevious();
 							picker.dismiss();
 						});
@@ -129,6 +130,7 @@ FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu)
 										EmuApp::updateLegacySavePath(ctx, path);
 										system().setUserSaveDirectory(path);
 										onSavePathChange(path);
+										picker.popTo();
 										dismissPrevious();
 										picker.dismiss();
 									});

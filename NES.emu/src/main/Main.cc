@@ -204,21 +204,24 @@ void NesSystem::setDefaultPalette(ApplicationContext ctx, CStringView palPath)
 		FCEU_setDefaultPalettePtr(nullptr);
 		return;
 	}
-	log.info("setting default palette with path:{}", palPath);
-	if(palPath[0] != '/' && !isUri(palPath))
+	try
 	{
-		// load as asset
-		IO io = ctx.openAsset(FS::pathString("palette", palPath), {.accessHint = IOAccessHint::All});
-		if(!io)
-			return;
-		setDefaultPalette(io);
+		log.info("setting default palette with path:{}", palPath);
+		if(palPath[0] != '/' && !isUri(palPath))
+		{
+			// load as asset
+			IO io = ctx.openAsset(FS::pathString("palette", palPath), {.accessHint = IOAccessHint::All});
+			setDefaultPalette(io);
+		}
+		else
+		{
+			IO io = ctx.openFileUri(palPath, {.accessHint = IOAccessHint::All});
+			setDefaultPalette(io);
+		}
 	}
-	else
+	catch(...)
 	{
-		IO io = ctx.openFileUri(palPath, {.test = true, .accessHint = IOAccessHint::All});
-		if(!io)
-			return;
-		setDefaultPalette(io);
+		FCEU_setDefaultPalettePtr(nullptr);
 	}
 }
 

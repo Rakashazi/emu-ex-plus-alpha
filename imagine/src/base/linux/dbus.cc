@@ -20,6 +20,7 @@
 #include <imagine/base/EventLoop.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
 
 namespace IG
@@ -68,7 +69,7 @@ static guint setOpenPathListener(LinuxApplication &app, GDBusConnection *bus, co
 			gchar *openPath;
 			g_variant_get(param, "(s)", &openPath);
 			auto &app = *static_cast<Application*>(userData);
-			app.onEvent(ApplicationContext{app}, InterProcessMessageEvent{openPath});
+			app.onEvent(ApplicationContext{app}, DocumentPickerEvent{openPath, FS::displayName(openPath)});
 		},
 		&app,
 		nullptr);

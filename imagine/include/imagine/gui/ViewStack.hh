@@ -73,6 +73,7 @@ public:
 	void popTo(View &v) override;
 	void popTo(int idx);
 	void show();
+	View* parentView(View& v) override;
 	View &top() const;
 	View &viewAtIdx(int idx) const;
 	int viewIdx(View &v) const;

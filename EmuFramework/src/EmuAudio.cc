@@ -144,7 +144,7 @@ void EmuAudio::resizeAudioBuffer(size_t targetBufferFillBytes)
 	if(Config::DEBUG_BUILD && rBuff.capacity() != oldCapacity)
 	{
 		log.info("created audio buffer:{} frames ({}), fill target:{} frames ({})",
-			format().bytesToFrames(rBuff.freeSpace()), format().bytesToTime(rBuff.freeSpace()),
+			format().bytesToFrames(rBuff.capacity()), format().bytesToTime(rBuff.capacity()),
 			format().bytesToFrames(targetBufferFillBytes), format().bytesToTime(targetBufferFillBytes));
 	}
 }
@@ -186,15 +186,15 @@ void EmuAudio::start(FloatSeconds bufferDuration)
 				if(audioWriteState == AudioWriteState::ACTIVE)
 				{
 					IG::Audio::Format inputFormat = {{}, inputSampleFormat, channels};
-					auto framesReady = inputFormat.bytesToFrames(rBuff.size());
-					auto const framesToRead = std::min(frames, framesReady);
-					auto frameEndAddr = (char*)outputFormat.copyFrames(samples, rBuff.readAddr(), framesToRead, inputFormat, currentVolume);
-					rBuff.commitRead(inputFormat.framesToBytes(framesToRead));
+					auto span = rBuff.beginRead(inputFormat.framesToBytes(frames));
+					auto const framesToRead = inputFormat.bytesToFrames(span.size());
+					auto frameEndAddr = (char*)outputFormat.copyFrames(samples, span.data(), framesToRead, inputFormat, currentVolume);
+					rBuff.endRead(span);
 					if(framesToRead < frames) [[unlikely]]
 					{
 						auto padFrames = frames - framesToRead;
 						std::fill_n(frameEndAddr, outputFormat.framesToBytes(padFrames), 0);
-						//log.info("underrun, {} bytes ready out of {}", bytesReady, bytes);
+						//log.warn("underrun, {} bytes ready out of {}", span.size, inputFormat.framesToBytes(frames));
 						auto now = SteadyClock::now();
 						if(now - lastUnderrunTime < IG::Seconds(1))
 						{
@@ -253,7 +253,7 @@ void EmuAudio::close()
 {
 	stop();
 	audioStream.reset();
-	rBuff = {};
+	rBuff.reset();
 }
 
 void EmuAudio::flush()
@@ -271,7 +271,7 @@ void EmuAudio::writeFrames(const void *samples, size_t framesToWrite)
 {
 	if(!framesToWrite) [[unlikely]]
 		return;
-	assumeExpr(rBuff);
+	assumeExpr(rBuff.capacity());
 	auto inputFormat = format();
 	switch(audioWriteState)
 	{
@@ -297,26 +297,29 @@ void EmuAudio::writeFrames(const void *samples, size_t framesToWrite)
 		framesToWrite = std::max(framesToWrite, 1zu);
 	}
 	auto bytes = inputFormat.framesToBytes(framesToWrite);
-	auto freeBytes = rBuff.freeSpace();
-	if(bytes <= freeBytes)
 	{
-		if(sampleFrames != framesToWrite)
+		auto span = rBuff.beginWrite(bytes);
+		if(bytes <= span.size())
 		{
-			simpleResample(rBuff.writeAddr(), framesToWrite, samples, sampleFrames, inputFormat);
-			rBuff.commitWrite(bytes);
+			if(sampleFrames != framesToWrite)
+			{
+				simpleResample(span.data(), framesToWrite, samples, sampleFrames, inputFormat);
+			}
+			else
+			{
+				copy_n(static_cast<const uint8_t*>(samples), bytes, span.data());
+			}
 		}
-		else
-			rBuff.writeUnchecked(samples, bytes);
-	}
-	else
-	{
-		log.info("overrun, only {} out of {} bytes free", freeBytes, bytes);
-		#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
-		audioStats.overruns++;
-		#endif
-		auto freeFrames = inputFormat.bytesToFrames(freeBytes);
-		simpleResample(rBuff.writeAddr(), freeFrames, samples, sampleFrames, inputFormat);
-		rBuff.commitWrite(freeBytes);
+		else // not enough space for write
+		{
+			log.info("overrun, only {} out of {} bytes free", span.size(), bytes);
+			#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
+			audioStats.overruns++;
+			#endif
+			auto freeFrames = inputFormat.bytesToFrames(span.size());
+			simpleResample(span.data(), freeFrames, samples, sampleFrames, inputFormat);
+		}
+		rBuff.endWrite(span);
 	}
 	if(audioWriteState == AudioWriteState::BUFFER && shouldStartAudioWrites(bytes))
 	{

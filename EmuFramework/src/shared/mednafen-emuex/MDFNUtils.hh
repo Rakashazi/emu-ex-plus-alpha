@@ -132,7 +132,7 @@ inline void loadContent(EmuSystem &sys, Mednafen::MDFNGI &mdfnGameInfo, IO &io, 
 	stream->setSize(size);
 	MDFNFILE fp(&NVFS, std::move(stream));
 	GameFile gf{&NVFS, std::string{sys.contentDirectory()}, {}, fp.stream(),
-		std::string{withoutDotExtension(sys.contentFileName())},
+		std::string{dotExtension(sys.contentFileName())},
 		std::string{sys.contentName()}};
 	mdfnGameInfo.Load(&gf);
 }

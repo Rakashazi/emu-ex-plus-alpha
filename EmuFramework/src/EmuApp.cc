@@ -114,10 +114,10 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	{
 		visit(overloaded
 		{
-			[&](InterProcessMessageEvent &e)
+			[&](DocumentPickerEvent& e)
 			{
-				log.info("got IPC path:{}", e.filename);
-				system().setInitialLoadPath(e.filename);
+				log.info("document picked with URI:{}", e.uri);
+				system().setInitialLoadPath(e.uri);
 			},
 			[](auto &) {}
 		}, appEvent);
@@ -407,9 +407,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 	system().onOptionsLoaded();
 	loadSystemOptions();
 	updateLegacySavePathOnStoragePath(ctx, system());
-	if(auto launchGame = parseCommandArgs(initParams.commandArgs());
-		launchGame)
-		system().setInitialLoadPath(launchGame);
+	system().setInitialLoadPath(parseCommandArgs(initParams.commandArgs()));
 	audio.manager.setMusicVolumeControlHint();
 	if(!renderer.supportsColorSpace())
 		windowDrawableConf.colorSpace = {};
@@ -540,10 +538,12 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			{
 				visit(overloaded
 				{
-					[&](InterProcessMessageEvent &e)
+					[&](DocumentPickerEvent& e)
 					{
-						log.info("got IPC path:{}", e.filename);
-						handleOpenFileCommand(e.filename);
+						log.info("document picked with URI:{}", e.uri);
+						if(viewController().top().onDocumentPicked(e))
+							return;
+						handleOpenFileCommand(e.uri);
 					},
 					[&](ScreenChangeEvent &e)
 					{
@@ -807,7 +807,7 @@ void EmuApp::handleOpenFileCommand(CStringView path)
 		postErrorMessage(std::format("Can't access path name for:\n{}", path));
 		return;
 	}
-	if(!IG::isUri(path) && FS::status(path).type() == FS::file_type::directory)
+	if(appContext().fileUriType(path) == FS::file_type::directory)
 	{
 		log.info("changing to dir {} from external command", path);
 		showUI(false);
@@ -817,12 +817,14 @@ void EmuApp::handleOpenFileCommand(CStringView path)
 			FilePicker::forLoading(attachParams(), appContext().defaultInputEvent()),
 			appContext().defaultInputEvent(),
 			false);
-		return;
 	}
-	log.info("opening file {} from external command", path);
-	showUI();
-	viewController().popToRoot();
-	onSelectFileFromPicker({}, path, name, Input::KeyEvent{}, {}, attachParams());
+	else
+	{
+		log.info("opening file {} from external command", path);
+		showUI();
+		viewController().popToRoot();
+		onSelectFileFromPicker({}, path, name, Input::KeyEvent{}, {}, attachParams());
+	}
 }
 
 void EmuApp::runBenchmarkOneShot(EmuVideo &video)

@@ -15,10 +15,10 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/vmem/memory.hh>
-#include <imagine/vmem/pageSize.hh>
 #include <imagine/util/utility.h>
 #include <imagine/logger/logger.h>
 #include <sys/mman.h>
+#include <unistd.h>
 
 #if defined __ANDROID__ && ANDROID_MIN_API <= 24
 #define NEEDS_MREMAP_SYSCALL
@@ -39,65 +39,53 @@ namespace IG
 {
 
 constexpr SystemLogger log{"VMem"};
+uintptr_t pageSize = sysconf(_SC_PAGESIZE);
 
-static void *allocVMem(size_t size, bool shared)
+static std::span<uint8_t> vAlloc(size_t bytes, bool shared)
 {
-	if(Config::DEBUG_BUILD && size != adjustVMemAllocSize(size))
-	{
-		log.error("size:{} is not a multiple of page size", size);
-	}
 	int flags = (shared ? MAP_SHARED : MAP_PRIVATE) | MAP_ANONYMOUS;
-	void *buff = mmap(nullptr, size, PROT_READ | PROT_WRITE, flags, -1, 0);
+	void *buff = mmap(nullptr, bytes, PROT_READ | PROT_WRITE, flags, -1, 0);
 	if(buff == MAP_FAILED) [[unlikely]]
 	{
 		log.error("error in mmap");
-		return nullptr;
+		return {};
 	}
-	return buff;
+	return {static_cast<uint8_t*>(buff), bytes};
 }
 
-void *allocVMem(size_t size)
+std::span<uint8_t> vAlloc(size_t bytes)
 {
-	return allocVMem(size, false);
+	return vAlloc(bytes, false);
 }
 
-void freeVMem(void *vMemPtr, size_t size)
+void vFree(std::span<uint8_t> buff)
 {
-	if(!vMemPtr)
+	if(!buff.data())
 		return;
-	if(munmap(vMemPtr, size) == -1)
+	if(munmap(buff.data(), buff.size_bytes()) == -1)
 	{
-		log.warn("error in unmap");
+		log.error("error in unmap");
 	}
 }
 
-size_t adjustVMemAllocSize(size_t size)
+std::span<uint8_t> vAllocMirrored(size_t bytes)
 {
-	return roundUpToPageSize(size);
-}
-
-void *allocMirroredBuffer(size_t size)
-{
+	assert(bytes == roundPageSize(bytes));
 	// allocate enough pages for the buffer + the mirrored pages
-	char *buff = (char*)allocVMem(size * 2, true);
-	if(!buff) [[unlikely]]
+	auto buff = vAlloc(bytes * 2, true);
+	if(!buff.data()) [[unlikely]]
 	{
-		return nullptr;
+		return {};
 	}
 	// pass 0 to old_size to create a mirror of the buffer in the 2nd half of the mapping
-	auto mirror = mremap(buff, 0, size, MREMAP_MAYMOVE | MREMAP_FIXED, buff + size);
+	auto mirror = mremap(buff.data(), 0, bytes, MREMAP_MAYMOVE | MREMAP_FIXED, buff.data() + bytes);
 	if(mirror == MAP_FAILED) [[unlikely]]
 	{
 		log.error("error in mremap");
-		freeMirroredBuffer(buff, size);
-		return nullptr;
+		vFree(buff);
+		return {};
 	}
 	return buff;
-}
-
-void freeMirroredBuffer(void *vMemPtr, size_t size)
-{
-	freeVMem(vMemPtr, size * 2);
 }
 
 }

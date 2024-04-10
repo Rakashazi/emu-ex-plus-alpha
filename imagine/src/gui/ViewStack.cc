@@ -345,6 +345,14 @@ void ViewStack::show()
 		top().show();
 }
 
+View* ViewStack::parentView(View& v)
+{
+	auto idx = viewIdx(v);
+	if(idx <= 0)
+		return {};
+	return view[idx - 1].ptr.get();
+}
+
 View &ViewStack::top() const
 {
 	assumeExpr(view.size());

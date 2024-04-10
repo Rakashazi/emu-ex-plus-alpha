@@ -175,6 +175,12 @@ FS::FileString AndroidApplication::fileUriDisplayName(JNIEnv *env, jobject baseA
 	return FS::FileString{JNI::StringChars{env, uriDisplayName(env, baseActivity, env->NewStringUTF(uri))}};
 }
 
+FS::file_type AndroidApplication::fileUriType(JNIEnv* env, jobject baseActivity, CStringView uri) const
+{
+	return FS::file_type(uriFileType(env, baseActivity, env->NewStringUTF(uri)));
+}
+
+
 bool AndroidApplication::removeFileUri(JNIEnv *env, jobject baseActivity, CStringView uri, bool isDir) const
 {
 	log.info("removing {} URI:{}", isDir ? "directory" : "file", uri);
@@ -331,6 +337,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 		uriLastModified = {env, baseActivity, "uriLastModified", "(Ljava/lang/String;)Ljava/lang/String;"};
 		uriLastModifiedTime = {env, baseActivity, "uriLastModifiedTime", "(Ljava/lang/String;)J"};
 		uriDisplayName = {env, baseActivity, "uriDisplayName", "(Ljava/lang/String;)Ljava/lang/String;"};
+		uriFileType = {env, baseActivity, "uriFileType", "(Ljava/lang/String;)I"};
 		deleteUri = {env, baseActivity, "deleteUri", "(Ljava/lang/String;Z)Z"};
 		if(androidSDK >= 21)
 		{
@@ -407,11 +414,12 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 				(void*)
 				+[](JNIEnv* env, jobject, jlong nUserData, jstring jUri, jstring jDisplayName)
 				{
-					auto &app = *((AndroidApplication*)nUserData);
+					ApplicationContext ctx{reinterpret_cast<ANativeActivity*>(nUserData)};
+					auto &app = ctx.application();
 					auto uri = JNI::StringChars{env, jUri};
 					auto name = JNI::StringChars{env, jDisplayName};
 					log.info("picked URI:{} name:{}", uri.data(), name.data());
-					app.handleDocumentIntentResult(uri, name);
+					app.handleDocumentIntentResult(ctx, uri, name);
 				}
 			},
 			{
@@ -635,37 +643,34 @@ void AndroidApplication::handleIntent(ApplicationContext ctx)
 	{
 		const char *intentDataPathStr = env->GetStringUTFChars(intentDataPathJStr, nullptr);
 		log.info("got intent with path:{}", intentDataPathStr);
-		onEvent(ctx, InterProcessMessageEvent{intentDataPathStr});
+		onEvent(ctx, DocumentPickerEvent{intentDataPathStr, ctx.fileUriDisplayName(intentDataPathStr)});
 		env->ReleaseStringUTFChars(intentDataPathJStr, intentDataPathStr);
 	}
 }
 
-bool AndroidApplication::openDocumentTreeIntent(JNIEnv *env, jobject baseActivity, SystemDocumentPickerDelegate del)
+bool AndroidApplication::openDocumentTreeIntent(JNIEnv* env, ANativeActivity* nActivity, jobject baseActivity)
 {
-	onSystemDocumentPicker = del;
 	JNI::InstMethod<jboolean(jlong)> jOpenDocumentTree{env, env->GetObjectClass(baseActivity), "openDocumentTree", "(J)Z"};
-	return jOpenDocumentTree(env, baseActivity, (jlong)this);
+	return jOpenDocumentTree(env, baseActivity, (jlong)nActivity);
 }
 
-bool AndroidApplication::openDocumentIntent(JNIEnv *env, jobject baseActivity, SystemDocumentPickerDelegate del)
+bool AndroidApplication::openDocumentIntent(JNIEnv* env, ANativeActivity* nActivity, jobject baseActivity)
 {
-	onSystemDocumentPicker = del;
 	JNI::InstMethod<jboolean(jlong)> jOpenDocument{env, env->GetObjectClass(baseActivity), "openDocument", "(J)Z"};
-	return jOpenDocument(env, baseActivity, (jlong)this);
+	return jOpenDocument(env, baseActivity, (jlong)nActivity);
 }
 
-bool AndroidApplication::createDocumentIntent(JNIEnv *env, jobject baseActivity, SystemDocumentPickerDelegate del)
+bool AndroidApplication::createDocumentIntent(JNIEnv* env, ANativeActivity* nActivity, jobject baseActivity)
 {
-	onSystemDocumentPicker = del;
 	JNI::InstMethod<jboolean(jlong)> jCreateDocument{env, env->GetObjectClass(baseActivity), "createDocument", "(J)Z"};
-	return jCreateDocument(env, baseActivity, (jlong)this);
+	return jCreateDocument(env, baseActivity, (jlong)nActivity);
 }
 
-void AndroidApplication::handleDocumentIntentResult(const char *uri, const char *name)
+void AndroidApplication::handleDocumentIntentResult(ApplicationContext ctx, const char *uri, const char *name)
 {
 	if(isRunning())
 	{
-		std::exchange(onSystemDocumentPicker, {})(uri, name);
+		onEvent(ctx, DocumentPickerEvent{uri, name});
 	}
 	else
 	{
@@ -673,7 +678,7 @@ void AndroidApplication::handleDocumentIntentResult(const char *uri, const char 
 		addOnResume(
 			[uriCopy = strdup(uri), nameCopy = strdup(name)](ApplicationContext ctx, bool focused)
 			{
-				std::exchange(ctx.application().onSystemDocumentPicker, {})(uriCopy, nameCopy);
+				ctx.application().onEvent(ctx, DocumentPickerEvent{uriCopy, nameCopy});
 				::free(nameCopy);
 				::free(uriCopy);
 				return false;
