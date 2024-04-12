@@ -13,8 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "TableView"
-
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/ViewManager.hh>
 #include <imagine/gui/MenuItem.hh>
@@ -30,6 +28,8 @@
 
 namespace IG
 {
+
+constexpr SystemLogger log{"TableView"};
 
 size_t TableView::cells() const
 {
@@ -77,30 +77,41 @@ void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	cmds.setClipTest(true);
 	auto y = viewRect().yPos(LT2DO);
 	auto x = viewRect().xPos(LT2DO);
-	int startYCell = std::min(scrollOffset() / yCellSize, (int)cells_);
-	size_t endYCell = std::clamp(startYCell + visibleCells, 0, (int)cells_);
+	ssize_t startYCell = std::min(ssize_t(scrollOffset() / yCellSize), cells_);
+	ssize_t endYCell = std::clamp(startYCell + visibleCells, 0z, cells_);
 	if(startYCell < 0)
 	{
 		// skip non-existent cells
 		y += -startYCell * yCellSize;
 		startYCell = 0;
 	}
-	//logMsg("draw cells [%d,%d)", startYCell, (int)endYCell);
+	//log.debug("draw cells:[{},{})", startYCell, endYCell);
 	y -= scrollOffset() % yCellSize;
 
 	// draw separators
 	int yStart = y;
 	cmds.basicEffect().disableTexture(cmds);
 	int selectedCellY = INT_MAX;
+	if(cells_ > 1)
 	{
+		cmds.basicEffect().setModelView(cmds, Gfx::Mat4::ident());
+		cmds.set(BlendMode::OFF);
+		cmds.setColor(ColorName::WHITE);
+		cmds.setVertexArray(separatorQuads);
+		cmds.setVertexBuffer(separatorQuads);
 		StaticArrayList<IColQuad, maxSeparators> vRect;
 		const auto headingColor = PackedColor::format.build(.4, .4, .4, 1.);
 		const auto regularColor = PackedColor::format.build(.2, .2, .2, 1.);
 		auto regularYSize = std::max(1, window().heightMMInPixels(.2));
 		auto headingYSize = std::max(2, window().heightMMInPixels(.4));
-		for(size_t i = startYCell; i < endYCell; i++)
+		auto drawSeparators = [](Gfx::RendererCommands &__restrict__ cmds, const auto &vRect)
 		{
-			if((int)i == selected)
+			cmds.vertexBufferData(0, vRect.data(), vRect.size() * sizeof(IColQuad));
+			cmds.drawQuads(0, vRect.size());
+		};
+		for(ssize_t i = startYCell; i < endYCell; i++)
+		{
+			if(i == selected)
 			{
 				selectedCellY = y;
 			}
@@ -117,18 +128,15 @@ void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 				vRect.emplace_back(IColQuad::InitParams{.bounds = rect, .color = color});
 			}
 			y += yCellSize;
-			if(vRect.size() == vRect.capacity()) [[unlikely]]
-				break;
+			if(vRect.size() == vRect.capacity())
+			{
+				drawSeparators(cmds, vRect);
+				vRect.clear();
+			}
 		}
 		if(vRect.size())
 		{
-			cmds.basicEffect().setModelView(cmds, Gfx::Mat4::ident());
-			cmds.set(BlendMode::OFF);
-			cmds.setColor(ColorName::WHITE);
-			cmds.setVertexArray(separatorQuads);
-			cmds.setVertexBuffer(separatorQuads);
-			cmds.vertexBufferData(0, vRect.data(), vRect.size() * sizeof(IColQuad));
-			cmds.drawQuads(0, vRect.size());
+			drawSeparators(cmds, vRect);
 		}
 	}
 
@@ -150,7 +158,7 @@ void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	// draw elements
 	y = yStart;
 	auto xIndent = manager().tableXIndentPx;
-	for(size_t i = startYCell; i < endYCell; i++)
+	for(ssize_t i = startYCell; i < endYCell; i++)
 	{
 		auto rect = IG::makeWindowRectRel({x, y}, {viewRect().xSize(), yCellSize});
 		drawElement(cmds, i, item(*this, i), rect, xIndent);
@@ -164,7 +172,7 @@ void TableView::place()
 	auto cells_ = items(*this);
 	for(auto i : iotaCount(cells_))
 	{
-		//logMsg("compile item %d", i);
+		//log.debug("compile item:{}", i);
 		item(*this, i).compile();
 	}
 	if(cells_)
@@ -329,7 +337,7 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 			{
 				if(!hasFocus)
 				{
-					logMsg("gained focus from key input");
+					log.info("gained focus from key input");
 					hasFocus = true;
 					if(selected != -1)
 					{
@@ -337,7 +345,7 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 						return true;
 					}
 				}
-				//logMsg("move up %d", selected);
+				//log.debug("move up:{}", selected);
 				if(selected == -1)
 					selected = prevSelectableElement(cells_ - 1, cells_);
 				else
@@ -358,7 +366,7 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 						}
 					}
 				}
-				logMsg("up, selected %d", selected);
+				log.info("up, selected:{}", selected);
 				postDraw();
 				movedSelected = true;
 				return true;
@@ -395,7 +403,7 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 						}
 					}
 				}
-				logMsg("down, selected %d", selected);
+				log.info("down, selected:{}", selected);
 				postDraw();
 				movedSelected = true;
 				return true;
@@ -404,7 +412,7 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 			{
 				if(selected != -1)
 				{
-					logDMsg("entry %d pushed", selected);
+					//log.debug("entry:{} pushed", selected);
 					selectedIsActivated = true;
 					onSelectElement(e, selected, item(*this, selected));
 				}
@@ -416,7 +424,7 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 					selected = cells_ - 1;
 				else
 					selected = std::clamp(selected - visibleCells, 0, (int)cells_ - 1);
-				logMsg("selected %d", selected);
+				log.info("selected:{}", selected);
 				postDraw();
 				movedSelected = true;
 				return true;
@@ -427,7 +435,7 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 					selected = 0;
 				else
 					selected = std::clamp(selected + visibleCells, 0, (int)cells_ - 1);
-				logMsg("selected %d", selected);
+				log.info("selected:{}", selected);
 				postDraw();
 				movedSelected = true;
 				return true;
@@ -440,7 +448,7 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 				return false;
 			if(!pointIsInView(motionEv.pos()) || !(motionEv.key() & Input::Pointer::LBUTTON))
 			{
-				//logMsg("cursor not in table");
+				//log.info("cursor not in table");
 				return false;
 			}
 			int i = ((motionEv.pos().y + scrollOffset()) - viewRect().y) / yCellSize;
@@ -452,7 +460,7 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 			auto &it = item(*this, i);
 			if(motionEv.pushed())
 			{
-				//logMsg("input pushed on cell %d", i);
+				//log.info("input pushed on cell:{}", i);
 				hasFocus = true;
 				if(i >= 0 && i < cells_ && elementIsSelectable(it))
 				{
@@ -462,14 +470,14 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 			}
 			else if(motionEv.isOff()) // TODO, need to check that Input::PUSHED was sent on entry
 			{
-				//logMsg("input released on cell %d", i);
+				//log.info("input released on cell:{}", i);
 				if(i >= 0 && i < cells_ && selected == i && elementIsSelectable(it))
 				{
 					postDraw();
 					selected = -1;
 					if(!motionEv.canceled())
 					{
-						logDMsg("entry %d pushed", i);
+						//log.debug("entry:{} pushed", i);
 						selectedIsActivated = true;
 						onSelectElement(e, i, it);
 					}

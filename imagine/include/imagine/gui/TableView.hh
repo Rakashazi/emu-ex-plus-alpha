@@ -87,7 +87,7 @@ public:
 	void setItemsDelegate(ItemsDelegate items_ = [](const TableView &){ return 0; }) { items = items_; }
 
 protected:
-	static constexpr size_t maxSeparators = 30;
+	static constexpr size_t maxSeparators = 32;
 	ItemsDelegate items{};
 	ItemDelegate item{};
 	SelectElementDelegate selectElementDel{};
