@@ -107,4 +107,10 @@ inline UniqueVPtr<T> makeUniqueMirroredVPtr(size_t size)
 	return {buff.data(), VPtrDeleter<T>{buff.size()}};
 }
 
+template<class T>
+inline void resetVPtr(UniqueVPtr<T> &ptr)
+{
+	ptr = {nullptr, VPtrDeleter<T>{}};
+}
+
 }

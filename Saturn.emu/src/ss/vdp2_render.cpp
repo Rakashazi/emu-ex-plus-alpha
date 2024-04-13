@@ -3211,32 +3211,11 @@ struct WQ_Entry
  uint32 Arg32;
 };
 
-static IG::RingBuffer<WQ_Entry, IG::RingBufferConf{.fixedSize = 0x2000}> WQ;
-static std::atomic_int_least32_t DrawCounter;
-
-template<class T>
-static void atomicWait(const std::atomic<T> &val, T oldVal)
-{
- if(MDFN_UNLIKELY(val.load(std::memory_order_acquire) == oldVal))
- {
-  //fprintf(stderr, "waiting for change from:%d\n", oldVal);
-  val.wait(oldVal, std::memory_order_acquire);
- }
-}
-
-template<class T>
-static void atomicWaitForValue(const std::atomic<T> &val, T wantedVal)
-{
- for(auto c = val.load(std::memory_order_acquire); c != wantedVal; c = val.load(std::memory_order_acquire))
- {
-  //fprintf(stderr, "waiting for value\n");
-  val.wait(c, std::memory_order_acquire);
- }
-}
+static IG::RingBuffer<WQ_Entry, IG::RingBufferConf{.fixedSize = 0x4000}> WQ;
 
 static INLINE void WWQ(uint16 command, uint32 arg32 = 0, uint16 arg16 = 0)
 {
- WQ.push({command, arg16, arg32});
+ WQ.push({command, arg16, arg32}, IG::RingBufferRWFlags{.blocking = true, .notifyOnBlock = true});
 }
 
 static int RThreadEntry(void* data)
@@ -3246,9 +3225,8 @@ static int RThreadEntry(void* data)
 
  while(MDFN_LIKELY(Running))
  {
-  WQ_Entry entry = WQ.pop();
+  WQ_Entry entry = WQ.pop(IG::RingBufferRWFlags{.blocking = true});
   WQ_Entry* wqe = &entry;
-  WQ.notifyRead();
 
   switch(wqe->Command)
   {
@@ -3264,8 +3242,6 @@ static int RThreadEntry(void* data)
 	//for(unsigned i = 0; i < 2; i++)
 	DrawLine((uint16)wqe->Arg32, wqe->Arg32 >> 16, wqe->Arg16);
 	//
-	DrawCounter.fetch_sub(1, std::memory_order_release);
-	DrawCounter.notify_all();
 	break;
 
    case COMMAND_RESET:
@@ -3283,6 +3259,8 @@ static int RThreadEntry(void* data)
   //
   //
   //
+
+  WQ.notifyRead();
  }
 
  return 0;
@@ -3302,7 +3280,7 @@ void VDP2REND_Init(const bool IsPAL, const uint64 affinity)
  UserLayerEnableMask = ~0U;
  Clock28M = false;
  //
- DrawCounter.store(0, std::memory_order_release);
+ WQ.clear();
  RThread = MThreading::Thread_Create(RThreadEntry, NULL, "MDFN VDP2 Render");
  if(affinity)
   MThreading::Thread_SetAffinity(RThread, affinity);
@@ -3401,7 +3379,8 @@ void VDP2REND_StartFrame(EmulateSpecStruct* espec_arg, const bool clock28m, cons
 
 void VDP2REND_EndFrame(void)
 {
- atomicWaitForValue(DrawCounter, 0);
+ WQ.notifyWrite();
+ WQ.waitForSize(0);
 
  if(NextOutLine < VisibleLines)
  {
@@ -3443,7 +3422,6 @@ void VDP2REND_DrawLine(const int vdp2_line, const uint32 crt_line, const bool fi
   if(espec->InterlaceOn)
    out_line = (out_line << 1) | espec->InterlaceField;
 
-  auto wdcq = DrawCounter.fetch_add(1, std::memory_order_release);
   WWQ(COMMAND_DRAW_LINE, ((uint16)vdp2_line << 16) | out_line, field);
   //
   //

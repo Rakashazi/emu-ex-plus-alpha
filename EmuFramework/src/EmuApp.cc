@@ -541,7 +541,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 					[&](DocumentPickerEvent& e)
 					{
 						log.info("document picked with URI:{}", e.uri);
-						if(viewController().top().onDocumentPicked(e))
+						if(!viewController().isShowingEmulation() && viewController().top().onDocumentPicked(e))
 							return;
 						handleOpenFileCommand(e.uri);
 					},

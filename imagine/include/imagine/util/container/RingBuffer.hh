@@ -36,6 +36,12 @@ struct RingBufferConf
 	size_t fixedSize{};
 };
 
+struct RingBufferRWFlags
+{
+	bool blocking:1{};
+	bool notifyOnBlock:1{};
+};
+
 struct RingBufferIdxPair
 {
 	size_t read{}, write{};
@@ -46,6 +52,7 @@ class RingBuffer
 {
 public:
 	using IdxPair = RingBufferIdxPair;
+	using RWFlags = RingBufferRWFlags;
 	static constexpr bool isFixedSize = conf.fixedSize;
 
 	struct RWSpan : public std::span<T>
@@ -98,23 +105,30 @@ public:
 	bool full() const { return size() == capacity(); }
 
 	[[nodiscard]]
-	RWSpan beginRead(size_t s)
+	RWSpan beginRead(size_t s, RWFlags flags = {})
 	{
 		IdxPair idxs{.read = readIdx.load(std::memory_order_relaxed), .write = writeIdx.load(std::memory_order_acquire)};
+		if(flags.blocking && empty(idxs))
+		{
+			if(flags.notifyOnBlock)
+				notifyWrite();
+			writeIdx.wait(idxs.write, std::memory_order_acquire);
+			idxs.write = writeIdx.load(std::memory_order_acquire);
+		}
 		s = std::min(s, size(idxs));
-		std::span<T> span{&buff[idxs.read], s};
+		std::span<T> span{&buff[wrapIdx(idxs.read)], s};
 		assertAddrRange(span);
 		return {span, idxs};
 	}
 
 	void endRead(RWSpan span)
 	{
-		readIdx.store(wrapSize(span.idxs.read + span.size()), std::memory_order_release);
+		readIdx.store(span.idxs.read + span.size(), std::memory_order_release);
 	}
 
-	size_t read(std::span<T> buff)
+	size_t read(std::span<T> buff, RWFlags flags = {})
 	{
-		auto span = beginRead(buff.size());
+		auto span = beginRead(buff.size(), flags);
 		copy_n(span.data(), span.size(), buff.data());
 		endRead(span);
 		return span.size();
@@ -129,14 +143,12 @@ public:
 		return std::optional<T>{tmp};
 	}
 
-	T pop()
+	T pop(RWFlags flags = {})
 	{
-		IdxPair idxs = loadIdxs();
-		if(empty(idxs))
-			writeIdx.wait(idxs.write, std::memory_order_relaxed);
 		T tmp;
-		read({&tmp, 1});
-		return tmp;
+		if(read({&tmp, 1}, flags))
+			return tmp;
+		return {};
 	}
 
 	void notifyRead()
@@ -145,39 +157,38 @@ public:
 	}
 
 	[[nodiscard]]
-	RWSpan beginWrite(size_t s)
+	RWSpan beginWrite(size_t s, RWFlags flags = {})
 	{
 		IdxPair idxs{.read = readIdx.load(std::memory_order_acquire), .write = writeIdx.load(std::memory_order_relaxed)};
+		if(flags.blocking && !freeSpace(idxs))
+		{
+			if(flags.notifyOnBlock)
+				notifyRead();
+			readIdx.wait(idxs.read, std::memory_order_acquire);
+			idxs.read = readIdx.load(std::memory_order_acquire);
+		}
 		s = std::min(s, freeSpace(idxs));
-		std::span<T> span{&buff[idxs.write], s};
+		std::span<T> span{&buff[wrapIdx(idxs.write)], s};
 		assertAddrRange(span);
 		return {span, idxs};
 	}
 
 	void endWrite(RWSpan span)
 	{
-		writeIdx.store(wrapSize(span.idxs.write + span.size()), std::memory_order_release);
+		writeIdx.store(span.idxs.write + span.size(), std::memory_order_release);
 	}
 
-	size_t write(std::span<const T> buff)
+	size_t write(std::span<const T> buff, RWFlags flags = {})
 	{
-		auto span = beginWrite(buff.size());
+		auto span = beginWrite(buff.size(), flags);
 		copy_n(buff.data(), span.size(), span.data());
 		endWrite(span);
 		return span.size();
 	}
 
-	bool tryPush(const T& val)
+	bool push(const T& val, RWFlags flags = {})
 	{
-		return write({&val, 1});
-	}
-
-	void push(const T& val)
-	{
-		IdxPair idxs = loadIdxs();
-		if(!freeSpace(idxs))
-			readIdx.wait(idxs.read, std::memory_order_relaxed);
-		write({&val, 1});
+		return write({&val, 1}, flags);
 	}
 
 	void notifyWrite()
@@ -192,7 +203,7 @@ public:
 			return newCapacity;
 		size_t oldSize = size();
 		auto newBuff = allocBuffer(newCapacity);
-		if(newCapacity > oldSize) // maintain buffer content if increasing size
+		if(oldSize && newCapacity > oldSize) // maintain buffer content if increasing size
 		{
 			copy_n(buff.get(), oldSize, newBuff.get());
 		}
@@ -204,14 +215,18 @@ public:
 		return newCapacity;
 	}
 
-	void reset() requires(!isFixedSize) { buff.reset(); }
+	void reset() requires(!isFixedSize)
+	{
+		resetVPtr(buff);
+		clear();
+	}
 
 	void waitForSize(size_t s)
 	{
 		IdxPair idxs = loadIdxs();
 		while(size(idxs) != s)
 		{
-			readIdx.wait(idxs.read, std::memory_order_relaxed);
+			readIdx.wait(idxs.read, std::memory_order_acquire);
 			idxs = loadIdxs();
 		}
 	}
@@ -232,12 +247,17 @@ private:
 
 	size_t wrapSize(size_t s) const
 	{
+		return s & (capacity() | (capacity() - 1));
+	}
+
+	size_t wrapIdx(size_t s) const
+	{
 		return s & (capacity() - 1);
 	}
 
 	IdxPair loadIdxs() const
 	{
-		return {.read = readIdx.load(std::memory_order_relaxed), .write = writeIdx.load(std::memory_order_relaxed)};
+		return {.read = readIdx.load(std::memory_order_acquire), .write = writeIdx.load(std::memory_order_acquire)};
 	}
 
 	size_t bufferCapacity() const requires(!isFixedSize)  { return buff.get_deleter().size; }
