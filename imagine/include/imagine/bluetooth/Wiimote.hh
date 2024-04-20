@@ -15,14 +15,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/bluetooth/sys.hh>
-#include <imagine/input/inputDefs.hh>
+#include <imagine/bluetooth/BluetoothInputDevice.hh>
+#include <imagine/bluetooth/BluetoothAdapter.hh>
 #include <imagine/input/Axis.hh>
 
 namespace IG
 {
-
-class ErrorCode;
 
 struct WiimoteExtDevice : public Input::BaseDevice
 {
@@ -41,9 +39,9 @@ public:
 
 	Wiimote(ApplicationContext, BluetoothAddr);
 	~Wiimote();
-	ErrorCode open(BluetoothAdapter &, Input::Device &) final;
+	bool open(BluetoothAdapter &, Input::Device &) final;
 	bool dataHandler(Input::Device &, const char *data, size_t size);
-	uint32_t statusHandler(Input::Device &, BluetoothSocket &, uint32_t status);
+	uint32_t statusHandler(Input::Device &, BluetoothSocket &, BluetoothSocketState status);
 	void requestStatus();
 	void setLEDs(uint8_t player);
 	void sendDataMode(uint8_t mode);
@@ -54,7 +52,8 @@ public:
 	static bool isSupportedClass(std::array<uint8_t, 3> devClass);
 
 private:
-	BluetoothSocketSys ctlSock, intSock;
+	BluetoothAdapter *btaPtr;
+	BluetoothSocket ctlSock, intSock;
 	int extension = EXT_NONE;
 	uint32_t function = FUNC_NONE;
 	Input::Axis axis[4];

@@ -506,14 +506,7 @@ public:
 		{
 			"IO Control",
 			attach,
-			[this](const TableView &) -> int
-			{
-				return item.size();
-			},
-			[this](const TableView &, int idx) -> MenuItem&
-			{
-				return *item[idx];
-			}
+			item
 		}
 	{
 		for(auto slot : iotaCount(2))

@@ -15,76 +15,68 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
-#include "BluetoothAdapter.hh"
+#include <imagine/bluetooth/defs.hh>
 #include <imagine/base/EventLoop.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <jni.h>
 #include <semaphore>
+#include <system_error>
 
 namespace IG
 {
 
 struct SocketStatusMessage;
-class ErrorCode;
 
-class AndroidBluetoothAdapter : public BluetoothAdapter
+class BluetoothPendingSocket {};
+
+class AndroidBluetoothAdapter
 {
 public:
-	constexpr AndroidBluetoothAdapter() = default;
-	static AndroidBluetoothAdapter *defaultAdapter(ApplicationContext);
-	bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) final;
-	void cancelScan() final;
-	void close() final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
-	void setL2capService(uint32_t psm, bool active) final;
+	void setL2capService(uint32_t psm, bool active);
 	#endif
-	State state() final;
-	void setActiveState(bool on, OnStateChangeDelegate onStateChange) final;
 	bool handleScanClass(uint32_t classInt);
 	void handleScanName(JNIEnv *env, jstring name, jstring addr);
-	void handleScanStatus(int status);
+	void handleScanStatus(BluetoothScanState status);
 	void handleTurnOnResult(bool success);
 	void sendSocketStatusMessage(const SocketStatusMessage &msg);
 	jobject openSocket(JNIEnv *env, const char *addrStr, int channel, bool isL2cap);
 
-private:
+protected:
 	jobject adapter{};
-	OnStateChangeDelegate turnOnD;
+	BTOnStateChangeDelegate turnOnD;
 	int statusPipe[2]{-1, -1};
-	bool scanCancelled = false;
-
-	bool openDefault(ApplicationContext);
+	bool scanCancelled{};
+	bool inDetect{};
 };
 
-class AndroidBluetoothSocket final: public BluetoothSocket
+using BluetoothAdapterImpl = AndroidBluetoothAdapter;
+
+class AndroidBluetoothSocket
 {
 public:
-	AndroidBluetoothSocket() {}
+	constexpr AndroidBluetoothSocket() = default;
 	AndroidBluetoothSocket(ApplicationContext ctx):ctx{ctx} {}
 	~AndroidBluetoothSocket();
-	IG::ErrorCode openL2cap(BluetoothAdapter &, BluetoothAddr, uint32_t psm) final;
-	IG::ErrorCode openRfcomm(BluetoothAdapter &, BluetoothAddr, uint32_t channel) final;
-	#ifdef CONFIG_BLUETOOTH_SERVER
-	IG::ErrorCode open(BluetoothAdapter &, BluetoothPendingSocket &socket) final;
-	#endif
 	void close();
-	IG::ErrorCode write(const void *data, size_t size) final;
-	void onStatusDelegateMessage(int arg);
+	void onStatusDelegateMessage(BluetoothAdapter&, BluetoothSocketState);
 
-private:
+protected:
 	jobject socket{}, outStream{};
 	ApplicationContext ctx{};
 	std::binary_semaphore connectSem{0};
 	FDEventSource fdSrc{};
 	int nativeFd = -1;
-	uint32_t channel = 0;
-	bool isClosing = false;
-	bool isL2cap = false;
-	bool isConnecting = false;
+	uint32_t channel{};
+	bool isClosing{};
+	bool isL2cap{};
+	bool isConnecting{};
 	BluetoothAddrString addrStr{};
 
-	IG::ErrorCode openSocket(BluetoothAdapter &, BluetoothAddr, uint32_t channel, bool l2cap);
+	void openSocket(BluetoothAdapter&, BluetoothAddr, uint32_t channel, bool l2cap);
 	bool readPendingData(int events);
 };
+
+using BluetoothSocketImpl = AndroidBluetoothSocket;
 
 }

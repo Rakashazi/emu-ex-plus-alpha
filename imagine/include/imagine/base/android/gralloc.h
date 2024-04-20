@@ -292,7 +292,8 @@ struct android_native_buffer_t
 {
 #ifdef __cplusplus
 	constexpr android_native_buffer_t() :
-		common{.magic = ANDROID_NATIVE_BUFFER_MAGIC, .version = sizeof(android_native_buffer_t)},
+		common{.magic = ANDROID_NATIVE_BUFFER_MAGIC, .version = sizeof(android_native_buffer_t),
+			.reserved{}, .incRef{}, .decRef{}},
 		width{0}, height{0}, stride{0}, format{0}, usage{0}, reserved{}, handle{}, reserved_proc{}
 	{}
 #endif

@@ -3211,21 +3211,20 @@ struct WQ_Entry
  uint32 Arg32;
 };
 
-static IG::RingBuffer<WQ_Entry, IG::RingBufferConf{.fixedSize = 0x4000}> WQ;
+static IG::RingBuffer<WQ_Entry, {.fixedSize = 0x4000}> WQ;
 
 static INLINE void WWQ(uint16 command, uint32 arg32 = 0, uint16 arg16 = 0)
 {
- WQ.push({command, arg16, arg32}, IG::RingBufferRWFlags{.blocking = true, .notifyOnBlock = true});
+ WQ.push({command, arg16, arg32}, {.blocking = true, .flushSize = 64});
 }
 
 static int RThreadEntry(void* data)
 {
- bool Running = true;
  RThreadId = IG::thisThreadId();
 
- while(MDFN_LIKELY(Running))
+ auto nextCommand = []() { return WQ.pop({.blocking = true}); };
+ for(WQ_Entry entry = nextCommand(); entry.Command != COMMAND_EXIT; entry = nextCommand())
  {
-  WQ_Entry entry = WQ.pop(IG::RingBufferRWFlags{.blocking = true});
   WQ_Entry* wqe = &entry;
 
   switch(wqe->Command)
@@ -3251,10 +3250,6 @@ static int RThreadEntry(void* data)
    case COMMAND_SET_LEM:
 	UserLayerEnableMask = wqe->Arg32;
 	break;
-
-   case COMMAND_EXIT:
-	Running = false;
-	break;
   }
   //
   //
@@ -3262,7 +3257,7 @@ static int RThreadEntry(void* data)
 
   WQ.notifyRead();
  }
-
+ WQ.notifyRead();
  return 0;
 }
 
@@ -3379,7 +3374,6 @@ void VDP2REND_StartFrame(EmulateSpecStruct* espec_arg, const bool clock28m, cons
 
 void VDP2REND_EndFrame(void)
 {
- WQ.notifyWrite();
  WQ.waitForSize(0);
 
  if(NextOutLine < VisibleLines)
@@ -3459,7 +3453,6 @@ void VDP2REND_Write16_DB(uint32 A, uint16 DB)
 
 void VDP2REND_StateAction(StateMem* sm, const unsigned load, const bool data_only, uint16 (&rr)[0x100], uint16 (&cr)[2048], uint16 (&vr)[262144])
 {
- WQ.notifyWrite();
  WQ.waitForSize(0);
  //
  //

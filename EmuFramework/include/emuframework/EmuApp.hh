@@ -39,6 +39,7 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/data-type/image/PixmapReader.hh>
 #include <imagine/data-type/image/PixmapWriter.hh>
+#include <imagine/bluetooth/BluetoothAdapter.hh>
 #include <imagine/font/Font.hh>
 #include <imagine/util/used.hh>
 #include <imagine/util/enum.hh>
@@ -49,7 +50,6 @@
 
 namespace IG
 {
-class BluetoothAdapter;
 class FileIO;
 class BasicNavView;
 class YesNoAlertView;
@@ -105,12 +105,6 @@ struct AssetDesc
 	constexpr auto filename() const { return assetFilename[fileIdx()]; }
 };
 
-WISE_ENUM_CLASS((ImageChannel, uint8_t),
-	All,
-	Red,
-	Green,
-	Blue);
-
 enum class AltSpeedMode
 {
 	fast, slow
@@ -123,11 +117,6 @@ WISE_ENUM_CLASS((PresentationTimeMode, uint8_t),
 WISE_ENUM_CLASS((CPUAffinityMode, uint8_t),
 	Auto, Any, Manual
 );
-
-struct SystemKeyInputFlags
-{
-	bool allowTurboModifier{true};
-};
 
 constexpr float menuVideoBrightnessScale = .25f;
 
@@ -208,10 +197,9 @@ public:
 	static void updateLegacySavePath(IG::ApplicationContext, CStringView path);
 	auto screenshotDirectory() const { return system().userPath(userScreenshotPath); }
 	std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);
-	bool handleKeyInput(KeyInfo, const Input::Event &srcEvent);
-	bool handleAppActionKeyInput(InputAction, const Input::Event &srcEvent);
-	void handleSystemKeyInput(KeyInfo, Input::Action, uint32_t metaState = 0, SystemKeyInputFlags flags = {});
-	void runTurboInputEvents();
+	bool handleKeyInput(KeyInfo i, const Input::Event &srcEvent) { return inputManager.handleKeyInput(*this, i, srcEvent); }
+	bool handleAppActionKeyInput(InputAction a, const Input::Event &srcEvent) { return inputManager.handleAppActionKeyInput(*this, a, srcEvent); }
+	void handleSystemKeyInput(KeyInfo i, Input::Action a, uint32_t metaState = 0, SystemKeyInputFlags flags = {}) { inputManager.handleSystemKeyInput(*this, i, a, metaState, flags); }
 	void resetInput();
 	void setRunSpeed(double speed);
 	void saveSessionOptions();
@@ -247,7 +235,6 @@ public:
 	FS::PathString makeNextScreenshotFilename();
 	bool mogaManagerIsActive() const { return bool(mogaManagerPtr); }
 	void setMogaManagerActive(bool on, bool notify);
-	BluetoothAdapter *bluetoothAdapter();
 	void closeBluetoothConnections();
 	ViewAttachParams attachParams();
 	auto &customKeyConfigList() { return inputManager.customKeyConfigs; };
@@ -272,8 +259,7 @@ public:
 	bool setWindowDrawableConfig(Gfx::DrawableConfig);
 	Gfx::DrawableConfig windowDrawableConfig() const { return windowDrawableConf; }
 	IG::PixelFormat windowPixelFormat() const;
-	void setRenderPixelFormat(std::optional<IG::PixelFormat>);
-	IG::PixelFormat renderPixelFormat() const { return renderPixelFmt; }
+	void setRenderPixelFormat(IG::PixelFormat);
 	bool setVideoAspectRatio(float val);
 	float videoAspectRatio() const;
 	float defaultVideoAspectRatio() const;
@@ -284,10 +270,6 @@ public:
 	void setContentRotation(IG::Rotation);
 	void updateVideoContentRotation();
 	void updateContentRotation();
-	float videoBrightness(ImageChannel) const;
-	const Gfx::Vec3 &videoBrightnessAsRGB() const { return videoBrightnessRGB; }
-	int videoBrightnessAsInt(ImageChannel ch) const { return videoBrightness(ch) * 100.f; }
-	void setVideoBrightness(float brightness, ImageChannel);
 	Gfx::PresentMode effectivePresentMode() const
 	{
 		if(frameTimeSource == FrameTimeSource::Renderer)
@@ -367,21 +349,21 @@ protected:
 	EmuSystemTask emuSystemTask{*this};
 	mutable Gfx::Texture assetBuffImg[wise_enum::size<AssetFileID>];
 	int savedAdvancedFrames{};
-	Gfx::Vec3 videoBrightnessRGB{1.f, 1.f, 1.f};
 	FS::PathString contentSearchPath_;
 	[[no_unique_address]] IG::Data::PixmapReader pixmapReader;
 	[[no_unique_address]] IG::Data::PixmapWriter pixmapWriter;
 	[[no_unique_address]] PerformanceHintManager perfHintManager;
 	[[no_unique_address]] PerformanceHintSession perfHintSession;
-	BluetoothAdapter *bta{};
 	ConditionalMember<MOGA_INPUT, std::unique_ptr<Input::MogaManager>> mogaManagerPtr;
 	Gfx::DrawableConfig windowDrawableConf;
-	IG::PixelFormat renderPixelFmt;
 	ConditionalMember<Config::TRANSLUCENT_SYSTEM_UI, bool> layoutBehindSystemUI{};
 	bool enableBlankFrameInsertion{};
 public:
+	BluetoothAdapter bluetoothAdapter;
 	RecentContent recentContent;
 	std::string userScreenshotPath;
+	Property<IG::PixelFormat, CFGKEY_RENDER_PIXEL_FORMAT,
+		PropertyDesc<IG::PixelFormat>{.isValid = renderPixelFormatIsValid}> renderPixelFormat;
 	ConditionalProperty<Config::cpuAffinity, CPUMask, CFGKEY_CPU_AFFINITY_MASK> cpuAffinityMask;
 	Property<int16_t, CFGKEY_FAST_MODE_SPEED,
 		PropertyDesc<int16_t>{.defaultValue = 800, .isValid = isValidFastSpeed}> fastModeSpeed;
@@ -410,7 +392,6 @@ public:
 	Property<PixelFormatID, CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT,
 		PropertyDesc<PixelFormatID>{.defaultValue = PIXEL_NONE, .isValid = imageEffectPixelFormatIsValid}> imageEffectPixelFormat;
 	Property<int8_t, CFGKEY_MENU_SCALE, PropertyDesc<int8_t>{.defaultValue = 100, .isValid = optionMenuScaleIsValid}> menuScale;
-	Property<uint8_t, CFGKEY_CONTENT_SCALE, PropertyDesc<uint8_t>{.defaultValue = 100, .isValid = optionContentScaleIsValid}> contentScale;
 	ConditionalProperty<Config::BASE_MULTI_WINDOW && Config::BASE_MULTI_SCREEN, bool, CFGKEY_SHOW_ON_2ND_SCREEN> showOnSecondScreen;
 	Property<Gfx::TextureBufferMode, CFGKEY_TEXTURE_BUFFER_MODE> textureBufferMode;
 	Property<Rotation, CFGKEY_CONTENT_ROTATION,
@@ -448,7 +429,6 @@ public:
 	void saveConfigFile(IG::ApplicationContext);
 	void saveConfigFile(FileIO &);
 	void initOptions(IG::ApplicationContext);
-	std::optional<IG::PixelFormat> renderPixelFormatOption() const;
 	void applyRenderPixelFormat();
 	std::optional<IG::PixelFormat> windowDrawablePixelFormatOption() const;
 	std::optional<Gfx::ColorSpace> windowDrawableColorSpaceOption() const;

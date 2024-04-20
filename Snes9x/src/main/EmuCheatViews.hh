@@ -42,6 +42,7 @@ public:
 	void renamed(std::string_view);
 
 private:
+	std::array<MenuItem*, 5> items;
 	DualTextMenuItem addr{}, value{}, saved{};
 	int idx = 0;
 	IG::StaticString<6> addrStr{};

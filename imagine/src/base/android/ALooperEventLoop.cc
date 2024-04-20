@@ -150,7 +150,11 @@ static const char *aLooperPollResultStr(int res)
 
 void EventLoop::run()
 {
-	int res = ALooper_pollAll(-1, nullptr, nullptr, nullptr);
+	int res;
+	do
+	{
+		res = ALooper_pollOnce(-1, nullptr, nullptr, nullptr);
+	} while(res == ALOOPER_POLL_CALLBACK);
 	if(res != ALOOPER_POLL_WAKE)
 		log.debug("ALooper_pollAll returned:{}", aLooperPollResultStr(res));
 }

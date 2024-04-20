@@ -26,7 +26,7 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/bluetooth/sys.hh>
+#include <imagine/bluetooth/BluetoothAdapter.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/variant.hh>
@@ -283,14 +283,6 @@ void InputManagerView::pushAndShowDeviceView(const Input::Device &dev, const Inp
 	pushAndShow(makeViewWithName<InputManagerDeviceView>(inputDevData(dev).displayName, *this, dev, inputManager), e);
 }
 
-#ifdef CONFIG_BLUETOOTH_SCAN_SECS
-static void setBTScanSecs(int secs)
-{
-	BluetoothAdapter::scanSecs = secs;
-	log.info("set bluetooth scan time {}", BluetoothAdapter::scanSecs);
-}
-#endif
-
 InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInputView *emuInputView_):
 	TableView{"General Input Options", attach, item},
 	mogaInputSystem
@@ -330,74 +322,33 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 			app().keepBluetoothActive = item.flipBoolValue(*this);
 		}
 	},
-	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
 	btScanSecsItem
 	{
-		{
-			"2secs", attach,
-			[this]()
-			{
-				setBTScanSecs(2);
-			}
-		},
-		{
-			"4secs", attach,
-			[this]()
-			{
-				setBTScanSecs(4);
-			}
-		},
-		{
-			"6secs", attach,
-			[this]()
-			{
-				setBTScanSecs(6);
-			}
-		},
-		{
-			"8secs", attach,
-			[this]()
-			{
-				setBTScanSecs(8);
-			}
-		},
-		{
-			"10secs", attach,
-			[this]()
-			{
-				setBTScanSecs(10);
-			}
-		}
+		{"2secs",  attach, MenuItem::Config{.id = 2}},
+		{"4secs",  attach, MenuItem::Config{.id = 4}},
+		{"6secs",  attach, MenuItem::Config{.id = 6}},
+		{"8secs",  attach, MenuItem::Config{.id = 8}},
+		{"10secs", attach, MenuItem::Config{.id = 10}}
 	},
 	btScanSecs
 	{
 		"Scan Time", attach,
-		[]()
+		MenuId{app().bluetoothAdapter.scanSecs},
+		btScanSecsItem,
+		MultiChoiceMenuItem::Config
 		{
-			switch(BluetoothAdapter::scanSecs)
-			{
-				default: return 0;
-				case 2: return 0;
-				case 4: return 1;
-				case 6: return 2;
-				case 8: return 3;
-				case 10: return 4;
-			}
-		}(),
-		btScanSecsItem
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().bluetoothAdapter.scanSecs = item.id; }
+		}
 	},
-	#endif
-	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 	btScanCache
 	{
 		"Cache Scan Results", attach,
-		BluetoothAdapter::scanCacheUsage(),
+		app().bluetoothAdapter.useScanCache,
 		[this](BoolMenuItem &item)
 		{
-			BluetoothAdapter::setScanCacheUsage(item.flipBoolValue(*this));
+			app().bluetoothAdapter.useScanCache = item.flipBoolValue(*this);
 		}
 	},
-	#endif
 	altGamepadConfirm
 	{
 		"Swap Confirm/Cancel Keys", attach,
@@ -431,12 +382,14 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 		{
 			item.emplace_back(&keepBtActive);
 		}
-		#ifdef CONFIG_BLUETOOTH_SCAN_SECS
-		item.emplace_back(&btScanSecs);
-		#endif
-		#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-		item.emplace_back(&btScanCache);
-		#endif
+		if(used(btScanSecs))
+		{
+			item.emplace_back(&btScanSecs);
+		}
+		if(used(btScanCache))
+		{
+			item.emplace_back(&btScanCache);
+		}
 	}
 }
 

@@ -15,14 +15,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/bluetooth/sys.hh>
-#include <imagine/input/inputDefs.hh>
+#include <imagine/bluetooth/BluetoothInputDevice.hh>
+#include <imagine/bluetooth/BluetoothAdapter.hh>
 #include <imagine/input/Axis.hh>
 
 namespace IG
 {
-
-class ErrorCode;
 
 struct Zeemote : public BluetoothInputDevice
 {
@@ -30,9 +28,9 @@ public:
 	static constexpr std::array<uint8_t, 3> btClass{0x84, 0x05, 0x00};
 
 	Zeemote(ApplicationContext ctx, BluetoothAddr addr);
-	ErrorCode open(BluetoothAdapter &, Input::Device &) final;
+	bool open(BluetoothAdapter &, Input::Device &) final;
 	void close();
-	uint32_t statusHandler(Input::Device &, BluetoothSocket &, uint32_t status);
+	uint32_t statusHandler(Input::Device&, BluetoothSocket&, BluetoothSocketState);
 	bool dataHandler(Input::Device &, const char *packet, size_t size);
 	const char *keyName(Input::Key k) const;
 	std::span<Input::Axis> motionAxes() { return axis; };
@@ -40,7 +38,7 @@ public:
 
 private:
 	static constexpr float axisScaler = 1./127.;
-	BluetoothSocketSys sock;
+	BluetoothSocket sock;
 	uint8_t inputBuffer[46]{};
 	bool prevBtnPush[4]{};
 	uint32_t inputBufferPos = 0;

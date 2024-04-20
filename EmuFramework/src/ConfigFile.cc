@@ -20,29 +20,13 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/fs/FS.hh>
-#include <imagine/bluetooth/sys.hh>
+#include <imagine/bluetooth/BluetoothAdapter.hh>
 #include <imagine/util/ScopeGuard.hh>
 
 namespace EmuEx
 {
 
 constexpr SystemLogger log{"ConfigFile"};
-
-constexpr bool windowPixelFormatIsValid(uint8_t val)
-{
-	switch(val)
-	{
-		case IG::PIXEL_RGB565:
-		case IG::PIXEL_RGBA8888:
-			return true;
-		default: return false;
-	}
-}
-
-constexpr bool renderPixelFormatIsValid(IG::PixelFormat val)
-{
-	return windowPixelFormatIsValid(val);
-}
 
 constexpr bool colorSpaceIsValid(Gfx::ColorSpace val)
 {
@@ -60,7 +44,6 @@ void EmuApp::saveConfigFile(FileIO &io)
 	recentContent.writeConfig(io);
 	writeOptionValueIfNotDefault(io, imageEffectPixelFormat);
 	writeOptionValueIfNotDefault(io, menuScale);
-	writeOptionValueIfNotDefault(io, contentScale);
 	writeOptionValueIfNotDefault(io, fontSize);
 	writeOptionValueIfNotDefault(io, showsBluetoothScan);
 	writeOptionValueIfNotDefault(io, showsNotificationIcon);
@@ -81,7 +64,7 @@ void EmuApp::saveConfigFile(FileIO &io)
 	writeOptionValue(io, CFGKEY_AUDIO_SOLO_MIX, audio.manager.soloMixOption());
 	writeOptionValue(io, CFGKEY_WINDOW_PIXEL_FORMAT, windowDrawablePixelFormatOption());
 	writeOptionValue(io, CFGKEY_VIDEO_COLOR_SPACE, windowDrawableColorSpaceOption());
-	writeOptionValue(io, CFGKEY_RENDER_PIXEL_FORMAT, renderPixelFormatOption());
+	writeOptionValueIfNotDefault(io, renderPixelFormat);
 	writeOptionValueIfNotDefault(io, textureBufferMode);
 	writeOptionValueIfNotDefault(io, showOnSecondScreen);
 	writeOptionValueIfNotDefault(io, showHiddenFilesInPicker);
@@ -113,12 +96,8 @@ void EmuApp::saveConfigFile(FileIO &io)
 	if(overrideScreenFrameRate)
 		writeOptionValue(io, CFGKEY_OVERRIDE_SCREEN_FRAME_RATE, overrideScreenFrameRate);
 	writeOptionValueIfNotDefault(io, allowBlankFrameInsertion);
-	if(videoBrightnessRGB != Gfx::Vec3{1.f, 1.f, 1.f})
-		writeOptionValue(io, CFGKEY_VIDEO_BRIGHTNESS, videoBrightnessRGB);
-	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-	if(!BluetoothAdapter::scanCacheUsage())
+	if(Config::Bluetooth::scanCache && !bluetoothAdapter.useScanCache)
 		writeOptionValue(io, CFGKEY_BLUETOOTH_SCAN_CACHE, false);
-	#endif
 	writeOptionValueIfNotDefault(io, cpuAffinityMask);
 	writeOptionValueIfNotDefault(io, cpuAffinityMode);
 	writeOptionValueIfNotDefault(io, presentMode);
@@ -196,13 +175,10 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_FONT_Y_SIZE: return readOptionValue(io, fontSize);
 				case CFGKEY_GAME_ORIENTATION: return readOptionValue(io, emuOrientation);
 				case CFGKEY_MENU_ORIENTATION: return readOptionValue(io, menuOrientation);
-				case CFGKEY_CONTENT_SCALE: return readOptionValue(io, contentScale);
 				case CFGKEY_MENU_SCALE: return readOptionValue(io, menuScale);
 				case CFGKEY_SHOW_ON_2ND_SCREEN: return readOptionValue(io, showOnSecondScreen);
 				case CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT: return readOptionValue(io, imageEffectPixelFormat);
-				case CFGKEY_RENDER_PIXEL_FORMAT:
-					setRenderPixelFormat(readOptionValue<IG::PixelFormat>(io, renderPixelFormatIsValid));
-					return true;
+				case CFGKEY_RENDER_PIXEL_FORMAT: return EmuSystem::canRenderRGBA8888 ? readOptionValue(io, renderPixelFormat) : false;
 				case CFGKEY_RECENT_CONTENT: return recentContent.readLegacyConfig(io, system());
 				case CFGKEY_SWAPPED_GAMEPAD_CONFIM:
 					setSwappedConfirmKeys(readOptionValue<bool>(io));
@@ -227,13 +203,10 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_HIDE_OS_NAV: return readOptionValue(io, hidesOSNav);
 				case CFGKEY_SUSTAINED_PERFORMANCE_MODE: return appContext().hasSustainedPerformanceMode()
 					&& readOptionValue(io, useSustainedPerformanceMode);
-				#ifdef CONFIG_INPUT_BLUETOOTH
-				case CFGKEY_KEEP_BLUETOOTH_ACTIVE: return readOptionValue(io, keepBluetoothActive);
-				case CFGKEY_SHOW_BLUETOOTH_SCAN: return readOptionValue(io, showsBluetoothScan);
-					#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-					case CFGKEY_BLUETOOTH_SCAN_CACHE: return readOptionValue<bool>(io, [](auto on){BluetoothAdapter::setScanCacheUsage(on);});
-					#endif
-				#endif
+				case CFGKEY_KEEP_BLUETOOTH_ACTIVE: return Config::Input::BLUETOOTH && readOptionValue(io, keepBluetoothActive);
+				case CFGKEY_SHOW_BLUETOOTH_SCAN: return Config::Input::BLUETOOTH && readOptionValue(io, showsBluetoothScan);
+				case CFGKEY_BLUETOOTH_SCAN_CACHE: return Config::Bluetooth::scanCache
+					&& readOptionValue<bool>(io, [this](auto on){ bluetoothAdapter.useScanCache = on; });
 				case CFGKEY_CPU_AFFINITY_MASK: return readOptionValue(io, cpuAffinityMask);
 				case CFGKEY_CPU_AFFINITY_MODE: return readOptionValue(io, cpuAffinityMode);
 				case CFGKEY_RENDERER_PRESENT_MODE: return readOptionValue(io, presentMode);
@@ -257,7 +230,6 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_VIDEO_PORTRAIT_ASPECT_RATIO: return readOptionValue(io, videoLayer.portraitAspectRatio, isValidAspectRatio);
 				case CFGKEY_VIDEO_LANDSCAPE_OFFSET: return readOptionValue(io, videoLayer.landscapeOffset, [](auto v){return v >= -4096 && v <= 4096;});
 				case CFGKEY_VIDEO_PORTRAIT_OFFSET: return readOptionValue(io, videoLayer.portraitOffset, [](auto v){return v >= -4096 && v <= 4096;});
-				case CFGKEY_VIDEO_BRIGHTNESS: return readOptionValue(io, videoBrightnessRGB);
 				case CFGKEY_INPUT_KEY_CONFIGS_V2: return inputManager.readCustomKeyConfig(io);
 				case CFGKEY_INPUT_DEVICE_CONFIGS: return inputManager.readSavedInputDevices(io);
 			}

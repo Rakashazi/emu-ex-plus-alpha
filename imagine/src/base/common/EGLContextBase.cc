@@ -55,10 +55,10 @@ static EGLAttrList glConfigAttrsToEGLAttrs(int renderableType, GLBufferConfigAtt
 	// don't accept slow configs
 	list.push_back(EGL_CONFIG_CAVEAT);
 	list.push_back(EGL_NONE);
-	switch(attr.pixelFormat.id())
+	switch(attr.pixelFormat.id)
 	{
 		default:
-			bug_unreachable("format id == %d", attr.pixelFormat.id());
+			bug_unreachable("format id == %d", attr.pixelFormat.id);
 		case PIXEL_NONE:
 			break; // don't set any color bits
 		case PIXEL_RGB565:

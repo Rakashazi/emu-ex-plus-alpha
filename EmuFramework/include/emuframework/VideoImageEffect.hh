@@ -19,7 +19,6 @@
 #include <imagine/gfx/Program.hh>
 #include <imagine/gfx/Quads.hh>
 #include <imagine/util/enum.hh>
-#include <optional>
 
 namespace EmuEx
 {

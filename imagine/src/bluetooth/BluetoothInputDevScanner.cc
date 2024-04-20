@@ -19,7 +19,6 @@
 #include <imagine/bluetooth/Zeemote.hh>
 #include <imagine/bluetooth/IControlPad.hh>
 #include <imagine/base/Application.hh>
-#include <imagine/base/Error.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Timer.hh>
 #ifdef CONFIG_BLUETOOTH_SERVER
@@ -56,12 +55,12 @@ static void removePendingDevs()
 #ifdef CONFIG_BLUETOOTH_SERVER
 bool listenForDevices(ApplicationContext ctx, BluetoothAdapter &bta, const BluetoothAdapter::OnStatusDelegate &onScanStatus)
 {
-	if(bta.inDetect || hidServiceActive)
+	if(bta.isInScan() || hidServiceActive)
 	{
 		return false;
 	}
 	onServerStatus = onScanStatus;
-	bta.onIncomingL2capConnection() =
+	bta.onIncomingL2capConnection =
 		[ctx](BluetoothAdapter &bta, BluetoothPendingSocket &pending)
 		{
 			if(!pending)
@@ -79,12 +78,12 @@ bool listenForDevices(ApplicationContext ctx, BluetoothAdapter &bta, const Bluet
 			{
 				logMsg("request for PSM 0x11");
 				pendingSocket = pending;
-				pending.requestName(
+				pending.requestName(bta,
 					[ctx](BluetoothAdapter &bta, const char *name, BluetoothAddr addr)
 					{
 						if(!name)
 						{
-							onServerStatus(bta, BluetoothAdapter::SCAN_NAME_FAILED, 0);
+							onServerStatus(bta, BluetoothScanState::NameFailed, 0);
 							pendingSocket = {};
 							return;
 						}
@@ -117,28 +116,28 @@ bool listenForDevices(ApplicationContext ctx, BluetoothAdapter &bta, const Bluet
 	logMsg("registering HID PSMs");
 	hidServiceActive = true;
 	bta.setL2capService(0x13, true,
-		[](BluetoothAdapter &bta, uint32_t success, int arg)
+		[](BluetoothAdapter &bta, BluetoothScanState state, int arg)
 		{
-			if(!success)
+			if(state <= BluetoothScanState::Failed)
 			{
 				hidServiceActive = false;
-				onServerStatus(bta, BluetoothAdapter::INIT_FAILED, 0);
+				onServerStatus(bta, BluetoothScanState::InitFailed, 0);
 				return;
 			}
 			logMsg("INT PSM registered");
 			// now register the 2nd PSM
 			bta.setL2capService(0x11, true,
-				[](BluetoothAdapter &bta, uint32_t success, int arg)
+				[](BluetoothAdapter &bta, BluetoothScanState state, int arg)
 				{
-					if(!success)
+					if(state <= BluetoothScanState::Failed)
 					{
 						bta.setL2capService(0x13, false, {});
 						hidServiceActive = false;
-						onServerStatus(bta, BluetoothAdapter::INIT_FAILED, 0);
+						onServerStatus(bta, BluetoothScanState::InitFailed, 0);
 						return;
 					}
 					logMsg("CTL PSM registered");
-					onServerStatus(bta, BluetoothAdapter::SCAN_COMPLETE, 0);
+					onServerStatus(bta, BluetoothScanState::Complete, 0);
 					// both PSMs are registered
 					unregisterHIDServiceCallback.runIn(IG::Seconds{8}, {},
 						[&bta]()
@@ -159,7 +158,7 @@ bool listenForDevices(ApplicationContext ctx, BluetoothAdapter &bta, const Bluet
 
 bool scanForDevices(ApplicationContext ctx, BluetoothAdapter &bta, BluetoothAdapter::OnStatusDelegate onScanStatus)
 {
-	if(!bta.inDetect && !hidServiceActive)
+	if(!bta.isInScan() && !hidServiceActive)
 	{
 		removePendingDevs();
 		return bta.startScan(onScanStatus,
@@ -172,7 +171,7 @@ bool scanForDevices(ApplicationContext ctx, BluetoothAdapter &bta, BluetoothAdap
 			{
 				if(!name)
 				{
-					onScanStatus(bta, BluetoothAdapter::SCAN_NAME_FAILED, 0);
+					onScanStatus(bta, BluetoothScanState::NameFailed, 0);
 					return;
 				}
 				if(strstr(name, "Nintendo RVL-CNT-01"))
@@ -193,12 +192,12 @@ bool scanForDevices(ApplicationContext ctx, BluetoothAdapter &bta, BluetoothAdap
 	return 0;
 }
 
-void closeDevices(BluetoothAdapter *bta)
+void closeDevices(BluetoothAdapter& bta)
 {
-	if(!bta)
+	if(!bta.isOpen())
 		return; // Bluetooth was never used
 	logMsg("closing all BT input devs");
-	auto ctx = bta->appContext();
+	auto ctx = bta.appContext();
 	auto &app = ctx.application();
 	app.removeInputDevices(ctx, Input::Map::WIIMOTE);
 	app.removeInputDevices(ctx, Input::Map::WII_CC);
@@ -209,36 +208,36 @@ void closeDevices(BluetoothAdapter *bta)
 	#endif
 }
 
-uint32_t pendingDevs()
+size_t pendingDevs()
 {
 	return btInputDevPendingList.size();
 }
 
-void connectPendingDevs(BluetoothAdapter *bta)
+void connectPendingDevs(BluetoothAdapter& bta)
 {
 	logMsg("connecting to %d devices", (int)btInputDevPendingList.size());
 	for(auto &e : btInputDevPendingList)
 	{
 		visit([&](auto &btDev)
 		{
-			if constexpr(requires {btDev.open(*bta, *e);})
-				btDev.open(*bta, *e);
+			if constexpr(requires {btDev.open(bta, *e);})
+				btDev.open(bta, *e);
 		}, *e);
 	}
 }
 
-void closeBT(BluetoothAdapter *bta)
+void closeBT(BluetoothAdapter& bta)
 {
-	if(!bta)
+	if(!bta.isOpen())
 		return; // Bluetooth was never used
-	if(bta->inDetect)
+	if(bta.isInScan())
 	{
 		logMsg("keeping BT active due to scan");
 		return;
 	}
 	removePendingDevs();
 	closeDevices(bta);
-	bta->close();
+	bta.close();
 }
 
 static bool isBluetoothDeviceInputMap(Input::Map map)
@@ -258,7 +257,7 @@ static bool isBluetoothDeviceInputMap(Input::Map map)
 	}
 }
 
-uint32_t devsConnected(ApplicationContext ctx)
+size_t devsConnected(ApplicationContext ctx)
 {
 	auto &devs = ctx.inputDevices();
 	return std::count_if(devs.begin(), devs.end(), [](auto &devPtr){ return isBluetoothDeviceInputMap(devPtr->map()); });
@@ -269,15 +268,20 @@ uint32_t devsConnected(ApplicationContext ctx)
 namespace IG
 {
 
-void BaseApplication::bluetoothInputDeviceStatus(ApplicationContext ctx, Input::Device &dev, int status)
+BluetoothInputDevice::BluetoothInputDevice(ApplicationContext ctx, Input::Map map,
+	Input::DeviceTypeFlags typeFlags, const char *name):
+	BaseDevice{0, map, typeFlags, name},
+	ctx{ctx} {}
+
+void BaseApplication::bluetoothInputDeviceStatus(ApplicationContext ctx, Input::Device &dev, BluetoothSocketState status)
 {
 	using namespace Bluetooth;
 	switch(status)
 	{
-		case BluetoothSocket::STATUS_CONNECT_ERROR:
+		case BluetoothSocketState::ConnectError:
 			std::erase_if(btInputDevPendingList, [&](auto &devPtr){ return devPtr.get() == &dev; });
 			break;
-		case BluetoothSocket::STATUS_OPENED:
+		case BluetoothSocketState::Opened:
 		{
 			logMsg("back %p, param %p", btInputDevPendingList.back().get(), &dev);
 			auto devPtr = IG::moveOutIf(btInputDevPendingList, [&](auto &devPtr){ return devPtr.get() == &dev; });
@@ -288,10 +292,11 @@ void BaseApplication::bluetoothInputDeviceStatus(ApplicationContext ctx, Input::
 			}
 			break;
 		}
-		case BluetoothSocket::STATUS_READ_ERROR:
-		case BluetoothSocket::STATUS_CLOSED:
+		case BluetoothSocketState::ReadError:
+		case BluetoothSocketState::Closed:
 			removeInputDevice(ctx, dev, true);
 			break;
+		case BluetoothSocketState::Connecting: break;
 	}
 }
 

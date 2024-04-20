@@ -147,19 +147,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 		"Edit Code",
 		attach,
 		cheat_.name,
-		[this](const TableView &)
-		{
-			return 3;
-		},
-		[this](const TableView &, unsigned idx) -> MenuItem&
-		{
-			switch(idx)
-			{
-				case 0: return name;
-				case 1: return ggCode;
-				default: return remove;
-			}
-		},
+		items,
 		[this](TextMenuItem &, View &, Input::Event)
 		{
 			IG::eraseFirst(cheatList, *cheat);
@@ -171,6 +159,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 		},
 		onCheatListChanged_
 	},
+	items{&name, &ggCode, &remove},
 	ggCode
 	{
 		"Code",
@@ -216,17 +205,20 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	BaseEditCheatListView
 	{
 		attach,
-		[this](const TableView &)
+		[this](ItemMessage msg) -> ItemReply
 		{
-			return 1 + cheat.size();
-		},
-		[this](const TableView &, size_t idx) -> MenuItem&
-		{
-			switch(idx)
+			return visit(overloaded
 			{
-				case 0: return addGGGS;
-				default: return cheat[idx - 1];
-			}
+				[&](const ItemsMessage &m) -> ItemReply { return 1 + cheat.size(); },
+				[&](const GetItemMessage &m) -> ItemReply
+				{
+					switch(m.idx)
+					{
+						case 0: return &addGGGS;
+						default: return &cheat[m.idx - 1];
+					}
+				},
+			}, msg);
 		}
 	},
 	addGGGS

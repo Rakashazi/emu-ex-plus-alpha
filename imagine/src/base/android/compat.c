@@ -5,9 +5,12 @@
 #include <string.h>
 #include <limits.h>
 #include <errno.h>
+#include <sys/stat.h>
 
 // Implementation of missing libc functions when compiling with newer NDK headers
 // and an old minimum SDK level, mostly from Bionic
+
+int fstat64(int fd, struct stat64* buf) { return fstat(fd, (struct stat*)buf); }
 
 void android_set_abort_message(const char* __msg) {}
 
@@ -35,54 +38,6 @@ void srandom(unsigned int __s) { srand48(__s); }
 
 int grantpt(int __fd __attribute((unused))) {
   return 0; /* devpts does this all for us! */
-}
-
-int isalnum_l(int c, locale_t loc) {
-  return isalnum(c);
-}
-
-int isalpha_l(int c, locale_t loc) {
-  return isalpha(c);
-}
-
-int isblank_l(int c, locale_t loc) {
-  return isblank(c);
-}
-
-int iscntrl_l(int c, locale_t loc) {
-  return iscntrl(c);
-}
-
-int isdigit_l(int c, locale_t loc) {
-  return isdigit(c);
-}
-
-int isgraph_l(int c, locale_t loc) {
-  return isgraph(c);
-}
-
-int islower_l(int c, locale_t loc) {
-  return islower(c);
-}
-
-int isprint_l(int c, locale_t loc) {
-  return isprint(c);
-}
-
-int ispunct_l(int c, locale_t loc) {
-  return ispunct(c);
-}
-
-int isspace_l(int c, locale_t loc) {
-  return isspace(c);
-}
-
-int isupper_l(int c, locale_t loc) {
-  return isupper(c);
-}
-
-int isxdigit_l(int c, locale_t loc) {
-  return isxdigit(c);
 }
 
 int iswalnum_l(wint_t c, locale_t loc) {
@@ -131,14 +86,6 @@ int iswupper_l(wint_t c, locale_t loc) {
 
 int iswxdigit_l(wint_t c, locale_t loc) {
   return iswxdigit(c);
-}
-
-int toupper_l(int c, locale_t loc) {
-  return toupper(c);
-}
-
-int tolower_l(int c, locale_t loc) {
-  return tolower(c);
 }
 
 wint_t towupper_l(wint_t c, locale_t loc) {

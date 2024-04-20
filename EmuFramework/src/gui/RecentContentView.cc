@@ -26,13 +26,13 @@ RecentContentView::RecentContentView(ViewAttachParams attach, RecentContent &rec
 	TableView
 	{
 		"Recent Content", attach,
-		[this](const TableView &)
+		[this](TableView::ItemMessage msg)
 		{
-			return 1 + recentItems.size();
-		},
-		[this](const TableView &, size_t idx) -> MenuItem&
-		{
-			return idx < recentItems.size() ? recentItems[idx] : clear;
+			return visit(overloaded
+			{
+				[&](const ItemsMessage &m) -> ItemReply { return 1 + recentItems.size(); },
+				[&](const GetItemMessage &m) -> ItemReply { return m.idx < recentItems.size() ? &recentItems[m.idx] : &clear; },
+			}, msg);
 		}
 	},
 	clear

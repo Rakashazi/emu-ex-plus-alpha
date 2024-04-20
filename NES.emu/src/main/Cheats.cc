@@ -53,32 +53,35 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 		u"",
 		attach,
 		u"",
-		[this](const TableView &)
+		[this](ItemMessage msg) -> ItemReply
 		{
-			return type ? 3 : 5;
-		},
-		[this](const TableView &, int idx) -> MenuItem&
-		{
-			if(type)
+			return visit(overloaded
 			{
-				switch(idx)
+				[&](const ItemsMessage &m) -> ItemReply { return type ? 3uz : 5uz; },
+				[&](const GetItemMessage &m) -> ItemReply
 				{
-					case 0: return name;
-					case 1: return ggCode;
-					default: return remove;
-				}
-			}
-			else
-			{
-				switch(idx)
-				{
-					case 0: return name;
-					case 1: return addr;
-					case 2: return value;
-					case 3: return comp;
-					default: return remove;
-				}
-			}
+					if(type)
+					{
+						switch(m.idx)
+						{
+							case 0: return &name;
+							case 1: return &ggCode;
+							default: return &remove;
+						}
+					}
+					else
+					{
+						switch(m.idx)
+						{
+							case 0: return &name;
+							case 1: return &addr;
+							case 2: return &value;
+							case 3: return &comp;
+							default: return &remove;
+						}
+					}
+				},
+			}, msg);
 		},
 		[this](TextMenuItem &, View &, Input::Event)
 		{
@@ -307,18 +310,21 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	BaseEditCheatListView
 	{
 		attach,
-		[this](const TableView &)
+		[this](ItemMessage msg) -> ItemReply
 		{
-			return 2 + cheat.size();
-		},
-		[this](const TableView &, size_t idx) -> MenuItem&
-		{
-			switch(idx)
+			return visit(overloaded
 			{
-				case 0: return addGG;
-				case 1: return addRAM;
-				default: return cheat[idx - 2];
-			}
+				[&](const ItemsMessage &m) -> ItemReply { return 2 + cheat.size(); },
+				[&](const GetItemMessage &m) -> ItemReply
+				{
+					switch(m.idx)
+					{
+						case 0: return &addGG;
+						case 1: return &addRAM;
+						default: return &cheat[m.idx - 2];
+					}
+				},
+			}, msg);
 		}
 	},
 	addGG

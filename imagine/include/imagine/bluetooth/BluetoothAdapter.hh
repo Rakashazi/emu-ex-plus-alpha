@@ -15,123 +15,74 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
-#include <imagine/bluetooth/config.hh>
+#include <imagine/bluetooth/defs.hh>
+
+#if defined CONFIG_BLUETOOTH_ANDROID
+#include "AndroidBluetoothAdapter.hh"
+#elif defined CONFIG_BLUETOOTH_BTSTACK
+#include "BtstackBluetoothAdapter.hh"
+#elif defined CONFIG_BLUETOOTH_BLUEZ
+#include "BluezBluetoothAdapter.hh"
+#endif
+
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/base/ApplicationContext.hh>
-#include <imagine/input/inputDefs.hh>
-#include <array>
+#include <imagine/util/used.hh>
+#include <system_error>
 
 namespace IG
 {
 
-class BluetoothPendingSocket;
-class ErrorCode;
-
-using BluetoothAddrString = std::array<char, 18>;
-
-struct BluetoothAddr
-{
-	constexpr BluetoothAddr() = default;
-	constexpr BluetoothAddr(const uint8_t b[6]): b{b[0], b[1], b[2], b[3], b[4], b[5]} {}
-
-	const uint8_t *data() const
-	{
-		return b.data();
-	}
-
-	uint8_t *data()
-	{
-		return b.data();
-	}
-
-	constexpr bool operator ==(BluetoothAddr const& rhs) const = default;
-
-private:
-	std::array<uint8_t, 6>b{};
-} __attribute__((packed));
-
-class BluetoothAdapter
+class BluetoothAdapter : public BluetoothAdapterImpl
 {
 public:
-	enum { INIT_FAILED = 1, SCAN_FAILED, SCAN_PROCESSING, SCAN_NO_DEVS, SCAN_NAME_FAILED,
-		SCAN_COMPLETE, SCAN_CANCELLED/*, SOCKET_OPEN_FAILED*/ };
-	enum State { STATE_OFF, STATE_ON, STATE_TURNING_OFF, STATE_TURNING_ON, STATE_ERROR };
-	bool inDetect = false;
-	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-	static bool useScanCache;
-	#endif
-	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
-	static uint32_t scanSecs;
-	#endif
-	using OnStateChangeDelegate = DelegateFunc<void (BluetoothAdapter &bta, State newState)>;
-	using OnStatusDelegate = DelegateFunc<void (BluetoothAdapter &bta, uint32_t statusCode, int arg)>;
-	using OnScanDeviceClassDelegate = DelegateFunc<bool (BluetoothAdapter &bta, std::array<uint8_t, 3> devClass)>;
-	using OnScanDeviceNameDelegate = DelegateFunc<void (BluetoothAdapter &bta, const char *name, BluetoothAddr addr)>;
-	using OnIncomingL2capConnectionDelegate = DelegateFunc<void (BluetoothAdapter &bta, BluetoothPendingSocket &pending)>;
+	using State = BluetoothState;
+	using ScanState = BluetoothScanState;
+	using OnStateChangeDelegate = BTOnStateChangeDelegate;
+	using OnStatusDelegate = BTOnStatusDelegate;
+	using OnScanDeviceClassDelegate = BTOnScanDeviceClassDelegate;
+	using OnScanDeviceNameDelegate = BTOnScanDeviceNameDelegate;
+	using OnIncomingL2capConnectionDelegate = BTOnIncomingL2capConnectionDelegate;
 
-	constexpr BluetoothAdapter() = default;
-	static BluetoothAdapter *defaultAdapter(ApplicationContext);
-	virtual bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) = 0;
-	virtual void cancelScan() = 0;
-	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-	static void setScanCacheUsage(bool on) { useScanCache = on; }
-	static bool scanCacheUsage() { return useScanCache; }
-	#endif
-	virtual void close() = 0;
-	virtual State state() = 0;
-	virtual void setActiveState(bool on, OnStateChangeDelegate onStateChange) = 0;
-	const OnStatusDelegate &onScanStatus() { return onScanStatusD; }
-	ApplicationContext appContext() const;
-	void setAppContext(ApplicationContext);
+	OnStatusDelegate onScanStatus;
+	OnScanDeviceClassDelegate onScanDeviceClass;
+	OnScanDeviceNameDelegate onScanDeviceName;
+	ConditionalMember<Config::Bluetooth::server, OnIncomingL2capConnectionDelegate> onIncomingL2capConnection;
+	ConditionalMember<Config::Bluetooth::scanTime, int> scanSecs{4};
+	ConditionalMember<Config::Bluetooth::scanCache, bool> useScanCache{true};
 
-	#ifdef CONFIG_BLUETOOTH_SERVER
-	OnIncomingL2capConnectionDelegate &onIncomingL2capConnection() { return onIncomingL2capConnectionD; }
-	virtual void setL2capService(uint32_t psm, bool active, OnStatusDelegate onResult) = 0;
-	//virtual bool l2capServiceRegistered(uint32_t psm);
-	#endif
+	BluetoothAdapter(ApplicationContext ctx):ctx{ctx} {}
+	bool openDefault();
+	bool isOpen() const;
+	bool startScan(OnStatusDelegate, OnScanDeviceClassDelegate, OnScanDeviceNameDelegate);
+	void cancelScan();
+	bool isInScan() const;
+	void close();
+	State state();
+	void setActiveState(bool on, OnStateChangeDelegate);
+	void setL2capService(uint32_t psm, bool active, OnStatusDelegate);
+	void requestName(BluetoothPendingSocket&, OnScanDeviceNameDelegate);
+	ApplicationContext appContext() const { return ctx; }
 
 protected:
-	OnStatusDelegate onScanStatusD;
-	OnScanDeviceClassDelegate onScanDeviceClassD;
-	OnScanDeviceNameDelegate onScanDeviceNameD;
-	#ifdef CONFIG_BLUETOOTH_SERVER
-	OnIncomingL2capConnectionDelegate onIncomingL2capConnectionD;
-	#endif
 	ApplicationContext ctx{};
 };
 
-class BluetoothSocket
+class BluetoothSocket : public BluetoothSocketImpl
 {
 public:
-	constexpr BluetoothSocket() = default;
-	virtual ~BluetoothSocket() = default;
-	virtual IG::ErrorCode openL2cap(BluetoothAdapter &, BluetoothAddr, uint32_t psm) = 0;
-	virtual IG::ErrorCode openRfcomm(BluetoothAdapter &, BluetoothAddr, uint32_t channel) = 0;
-	#ifdef CONFIG_BLUETOOTH_SERVER
-	virtual IG::ErrorCode open(BluetoothAdapter &, BluetoothPendingSocket &socket) = 0;
-	#endif
-	virtual IG::ErrorCode write(const void *data, size_t size) = 0;
-	typedef DelegateFunc<bool (const char *data, size_t size)> OnDataDelegate;
-	OnDataDelegate &onData() { return onDataD; }
-	typedef DelegateFunc<uint32_t (BluetoothSocket &sock, uint32_t status)> OnStatusDelegate;
-	OnStatusDelegate &onStatus() { return onStatusD; }
-	enum { STATUS_CONNECTING, STATUS_CONNECT_ERROR, STATUS_OPENED, STATUS_READ_ERROR, STATUS_CLOSED };
-	enum { OPEN_USAGE_NONE = 0, OPEN_USAGE_READ_EVENTS };
+	using OnDataDelegate = DelegateFunc<bool (const char* data, size_t size)>;
+	using OnStatusDelegate = DelegateFunc<uint32_t (BluetoothSocket&, BluetoothSocketState)>;
+	using State = BluetoothSocketState;
 
-protected:
-	OnDataDelegate onDataD{};
-	OnStatusDelegate onStatusD{};
-};
+	OnDataDelegate onData;
+	OnStatusDelegate onStatus;
 
-class BluetoothInputDevice : public Input::BaseDevice
-{
-public:
-	BluetoothInputDevice(ApplicationContext, Input::Map, Input::DeviceTypeFlags, const char *name);
-	virtual IG::ErrorCode open(BluetoothAdapter &, Input::Device &) = 0;
-
-protected:
-	ApplicationContext ctx;
+	using BluetoothSocketImpl::BluetoothSocketImpl;
+	std::system_error openL2cap(BluetoothAdapter&, BluetoothAddr, uint32_t psm);
+	std::system_error openRfcomm(BluetoothAdapter&, BluetoothAddr, uint32_t channel);
+	std::system_error open(BluetoothAdapter&, BluetoothPendingSocket& socket);
+	ssize_t write(const void* data, size_t size);
 };
 
 }

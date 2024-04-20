@@ -33,6 +33,8 @@
 namespace IG
 {
 
+enum class BluetoothSocketState: uint8_t;
+
 enum class ActivityState : uint8_t
 {
 	PAUSED,
@@ -114,7 +116,7 @@ public:
 	void setSwappedConfirmKeys(std::optional<bool>);
 	uint8_t keyEventFlags() const;
 	bool processICadeKey(const Input::KeyEvent &, Window &);
-	void bluetoothInputDeviceStatus(ApplicationContext, Input::Device &, int status);
+	void bluetoothInputDeviceStatus(ApplicationContext, Input::Device&, BluetoothSocketState);
 
 protected:
 	struct CommandMessage

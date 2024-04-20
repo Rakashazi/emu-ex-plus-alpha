@@ -16,7 +16,6 @@
 #define LOGTAG "PS3Ctrl"
 #include <imagine/bluetooth/PS3Controller.hh>
 #include <imagine/base/Application.hh>
-#include <imagine/base/Error.hh>
 #include <imagine/input/bluetoothInputDefs.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
@@ -122,65 +121,65 @@ const char *PS3Controller::keyName(Input::Key k) const
 	return ps3ButtonName(k);
 }
 
-IG::ErrorCode PS3Controller::open(BluetoothAdapter &adapter, Input::Device &dev)
+bool PS3Controller::open(BluetoothAdapter &adapter, Input::Device &dev)
 {
-	return {ENOTSUP};
+	return false;
 }
 
-IG::ErrorCode PS3Controller::open1Ctl(BluetoothAdapter &adapter, BluetoothPendingSocket &pending, Input::Device &dev)
+bool PS3Controller::open1Ctl(BluetoothAdapter &adapter, BluetoothPendingSocket &pending, Input::Device &dev)
 {
-	ctlSock.onData() = intSock.onData() =
+	ctlSock.onData = intSock.onData =
 		[&dev](const char *packet, size_t size)
 		{
 			return getAs<PS3Controller>(dev).dataHandler(dev, packet, size);
 		};
-	ctlSock.onStatus() = intSock.onStatus() =
-		[&dev](BluetoothSocket &sock, uint32_t status)
+	ctlSock.onStatus = intSock.onStatus =
+		[&dev](BluetoothSocket &sock, BluetoothSocketState status)
 		{
 			return getAs<PS3Controller>(dev).statusHandler(dev, sock, status);
 		};
 	logMsg("accepting PS3 control channel");
 	if(auto err = ctlSock.open(adapter, pending);
-		err)
+		err.code())
 	{
 		logErr("error opening control socket");
-		return err;
+		return false;
 	}
-	return {};
+	return true;
 }
 
-IG::ErrorCode PS3Controller::open2Int(BluetoothAdapter &adapter, BluetoothPendingSocket &pending)
+bool PS3Controller::open2Int(BluetoothAdapter &adapter, BluetoothPendingSocket &pending)
 {
 	logMsg("accepting PS3 interrupt channel");
 	if(auto err = intSock.open(adapter, pending);
-		err)
+		err.code())
 	{
 		logErr("error opening interrupt socket");
-		return err;
+		return false;
 	}
-	return {};
+	return true;
 }
 
-uint32_t PS3Controller::statusHandler(Input::Device &dev, BluetoothSocket &sock, uint32_t status)
+uint32_t PS3Controller::statusHandler(Input::Device &dev, BluetoothSocket &sock, BluetoothSocketState status)
 {
-	if(status == BluetoothSocket::STATUS_OPENED && &sock == (BluetoothSocket*)&ctlSock)
+	if(status == BluetoothSocketState::Opened && &sock == (BluetoothSocket*)&ctlSock)
 	{
 		logMsg("opened PS3 control socket, waiting for interrupt socket");
 		return 0; // don't add ctlSock to event loop
 	}
-	else if(status == BluetoothSocket::STATUS_OPENED && &sock == (BluetoothSocket*)&intSock)
+	else if(status == BluetoothSocketState::Opened && &sock == (BluetoothSocket*)&intSock)
 	{
 		logMsg("PS3 controller opened successfully");
 		ctx.application().bluetoothInputDeviceStatus(ctx, dev, status);
 		sendFeatureReport();
-		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
+		return 1;
 	}
-	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
+	else if(status == BluetoothSocketState::ConnectError)
 	{
 		logErr("PS3 controller connection error");
 		ctx.application().bluetoothInputDeviceStatus(ctx, dev, status);
 	}
-	else if(status == BluetoothSocket::STATUS_READ_ERROR)
+	else if(status == BluetoothSocketState::ReadError)
 	{
 		logErr("PS3 controller read error, disconnecting");
 		ctx.application().bluetoothInputDeviceStatus(ctx, dev, status);

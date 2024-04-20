@@ -17,6 +17,7 @@
 
 #include <emuframework/VideoImageOverlay.hh>
 #include <emuframework/VideoImageEffect.hh>
+#include <emuframework/EmuOptions.hh>
 #include <imagine/gfx/Quads.hh>
 #include <imagine/gfx/Vec3.hh>
 #include <imagine/pixmap/PixelFormat.hh>
@@ -29,6 +30,12 @@ class EmuInputView;
 class EmuVideo;
 class EmuSystem;
 class VController;
+
+WISE_ENUM_CLASS((ImageChannel, uint8_t),
+	All,
+	Red,
+	Green,
+	Blue);
 
 class EmuVideoLayer
 {
@@ -48,14 +55,23 @@ public:
 	void setEffectFormat(IG::PixelFormat);
 	void setLinearFilter(bool on);
 	bool usingLinearFilter() const { return useLinearFilter; }
-	void setBrightness(Gfx::Vec3);
 	void onVideoFormatChanged(IG::PixelFormat effectFmt);
 	Gfx::ColorSpace colorSpace() const { return colSpace; }
 	bool srgbColorSpace() const { return colSpace == Gfx::ColorSpace::SRGB; }
 	void setRotation(IG::Rotation);
 	float evalAspectRatio(float aR);
+	float channelBrightness(ImageChannel) const;
+	int channelBrightnessAsInt(ImageChannel ch) const { return channelBrightness(ch) * 100.f; }
+	const Gfx::Vec3 &brightnessAsRGB() const { return brightnessUnscaled; }
+	void setBrightness(float brightness, ImageChannel);
 	bool readConfig(MapIO &, unsigned key);
 	void writeConfig(FileIO &) const;
+
+	void setBrightnessScale(float s)
+	{
+		brightnessScale = s;
+		updateBrightness();
+	}
 
 	const IG::WindowRect &contentRect() const
 	{
@@ -72,6 +88,8 @@ private:
 	IG::WindowRect contentRect_;
 	Gfx::Vec3 brightness{1.f, 1.f, 1.f};
 	Gfx::Vec3 brightnessSrgb{1.f, 1.f, 1.f};
+	Gfx::Vec3 brightnessUnscaled{1.f, 1.f, 1.f};
+	float brightnessScale;
 public:
 	float landscapeAspectRatio;
 	float portraitAspectRatio;
@@ -82,7 +100,7 @@ private:
 	ImageOverlayId userOverlayEffectId{};
 	Gfx::ColorSpace colSpace{};
 public:
-	uint8_t scale{100};
+	Property<uint8_t, CFGKEY_CONTENT_SCALE, PropertyDesc<uint8_t>{.defaultValue = 100, .isValid = optionContentScaleIsValid}> scale;
 private:
 	IG::Rotation rotation{};
 	bool useLinearFilter{true};
@@ -92,6 +110,7 @@ private:
 	void buildEffectChain();
 	bool updateConvertColorSpaceEffect();
 	void updateSprite();
+	void updateBrightness();
 	void logOutputFormat();
 	Gfx::Renderer &renderer();
 	Gfx::ColorSpace videoColorSpace(IG::PixelFormat videoFmt) const;

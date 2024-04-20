@@ -32,6 +32,7 @@ namespace EmuEx
 
 using namespace IG;
 class InputDeviceConfig;
+struct InputAction;
 
 struct KeyCategory
 {
@@ -153,6 +154,11 @@ struct InputDeviceSavedConfig
 	bool matchesDevice(const Input::Device &dev) const;
 };
 
+struct SystemKeyInputFlags
+{
+	bool allowTurboModifier{true};
+};
+
 class InputManager
 {
 public:
@@ -166,6 +172,9 @@ public:
 
 	InputManager(ApplicationContext ctx):
 		vController{ctx} {}
+	bool handleKeyInput(EmuApp&, KeyInfo, const Input::Event &srcEvent);
+	bool handleAppActionKeyInput(EmuApp&, InputAction, const Input::Event &srcEvent);
+	void handleSystemKeyInput(EmuApp&, KeyInfo, Input::Action, uint32_t metaState = 0, SystemKeyInputFlags flags = {});
 	void updateInputDevices(ApplicationContext);
 	KeyConfig *customKeyConfig(std::string_view name, const Input::Device &) const;
 	KeyConfigDesc keyConfig(std::string_view name, const Input::Device &) const;

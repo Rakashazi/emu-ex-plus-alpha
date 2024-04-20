@@ -18,9 +18,9 @@ android_arch : Optional, default set by app
 2. Dependencies
 ===============
 
-If needed, install Clang r487747c (LLVM 17 dev version) or higher from android.googlesource.com via the script bundle/android/toolchains/get-clang-prebuilt.sh. Note that NDK r26 includes a sufficiently up to date version so this is optional.
+Install the SDK platform for Android 14.0 (API 34), Android NDK Revision 27 (tested on 27.0.11718014), and the Android Support Library from Android Studio's SDK tools menu
 
-Install the SDK platform for Android 14.0 (API 34), Android NDK Revision 26 (tested on 26.1.10909125), and the Android Support Library from Android Studio's SDK tools menu
+The script bundle/android/toolchains/get-clang-prebuilt.sh can download an alternate version of Clang from android.googlesource.com, but this isn't needed with the current NDK.
 
 3. Building
 ===========

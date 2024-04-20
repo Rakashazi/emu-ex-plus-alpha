@@ -268,10 +268,10 @@ void EmuVideoLayer::setLinearFilter(bool on)
 		video.setSampler(samplerConfig());
 }
 
-void EmuVideoLayer::setBrightness(Gfx::Vec3 b)
+void EmuVideoLayer::updateBrightness()
 {
-	brightness = b;
-	brightnessSrgb = glm::convertSRGBToLinear(b);
+	brightness = brightnessUnscaled * brightnessScale;
+	brightnessSrgb = glm::convertSRGBToLinear(brightness);
 }
 
 void EmuVideoLayer::onVideoFormatChanged(IG::PixelFormat effectFmt)
@@ -388,11 +388,43 @@ Gfx::ColorSpace EmuVideoLayer::videoColorSpace(IG::PixelFormat videoFmt) const
 
 Gfx::TextureSamplerConfig EmuVideoLayer::samplerConfig() const { return EmuVideo::samplerConfigForLinearFilter(useLinearFilter); }
 
+static auto &channelBrightnessVal(ImageChannel ch, auto &brightnessUnscaled)
+{
+	switch(ch)
+	{
+		case ImageChannel::All: break;
+		case ImageChannel::Red: return brightnessUnscaled.r;
+		case ImageChannel::Green: return brightnessUnscaled.g;
+		case ImageChannel::Blue: return brightnessUnscaled.b;
+	}
+	bug_unreachable("invalid ImageChannel");
+}
+
+float EmuVideoLayer::channelBrightness(ImageChannel ch) const
+{
+	return channelBrightnessVal(ch, brightnessUnscaled);
+}
+
+void EmuVideoLayer::setBrightness(float brightness, ImageChannel ch)
+{
+	if(ch == ImageChannel::All)
+	{
+		brightnessUnscaled.r = brightnessUnscaled.g = brightnessUnscaled.b = brightness;
+	}
+	else
+	{
+		channelBrightnessVal(ch, brightnessUnscaled) = brightness;
+	}
+	updateBrightness();
+}
+
 bool EmuVideoLayer::readConfig(MapIO &io, unsigned key)
 {
 	switch(key)
 	{
 		default: return false;
+		case CFGKEY_CONTENT_SCALE: return readOptionValue(io, scale);
+		case CFGKEY_VIDEO_BRIGHTNESS: return readOptionValue(io, brightnessUnscaled);
 		case CFGKEY_GAME_IMG_FILTER: return readOptionValue(io, useLinearFilter);
 		case CFGKEY_IMAGE_EFFECT: return readOptionValue(io, userEffectId, [](auto m){return m <= lastEnum<ImageEffectId>;});
 		case CFGKEY_OVERLAY_EFFECT: return readOptionValue(io, userOverlayEffectId, [](auto m){return m <= lastEnum<ImageOverlayId>;});
@@ -402,6 +434,9 @@ bool EmuVideoLayer::readConfig(MapIO &io, unsigned key)
 
 void EmuVideoLayer::writeConfig(FileIO &io) const
 {
+	writeOptionValueIfNotDefault(io, scale);
+	if(brightnessUnscaled != Gfx::Vec3{1.f, 1.f, 1.f})
+		writeOptionValue(io, CFGKEY_VIDEO_BRIGHTNESS, brightnessUnscaled);
 	writeOptionValueIfNotDefault(io, CFGKEY_GAME_IMG_FILTER, useLinearFilter, true);
 	writeOptionValueIfNotDefault(io, CFGKEY_IMAGE_EFFECT, userEffectId, ImageEffectId{});
 	writeOptionValueIfNotDefault(io, CFGKEY_OVERLAY_EFFECT, userOverlayEffectId, ImageOverlayId{});

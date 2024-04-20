@@ -17,6 +17,9 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/TextureSamplerConfig.hh>
+#include <imagine/util/DelegateFunc.hh>
+#include <imagine/util/utility.h>
+#include <span>
 
 namespace IG::ViewDefs
 {
@@ -34,6 +37,52 @@ struct TableUIState
 {
 	int highlightedCell{-1};
 	int scrollOffset{};
+};
+
+template <class ItemMessage, class ItemReply, class ItemsMessage, class GetItemMessage>
+class MenuItemSourceDelegate : public DelegateFunc<ItemReply (ItemMessage)>
+{
+public:
+	using DelegateFuncBase = DelegateFunc<ItemReply (ItemMessage)>;
+	using DelegateFuncBase::DelegateFuncBase;
+
+	constexpr MenuItemSourceDelegate(Container auto&& items):
+		DelegateFuncBase{itemsDelegate(IG_forward(items))} {}
+
+	static constexpr ItemReply handleItemMessage(const ItemMessage& msg, auto& items)
+	{
+		return visit(overloaded
+		{
+			[&](const ItemsMessage& m) -> ItemReply { return std::size(items); },
+			[&](const GetItemMessage& m) -> ItemReply
+			{
+				auto itemPtr = &indirect(std::data(items)[m.idx]);
+				if constexpr(requires {itemPtr->menuItem();})
+					return &itemPtr->menuItem();
+				else
+					return itemPtr;
+			},
+		}, msg);
+	};
+
+	template<Container T>
+	static constexpr MenuItemSourceDelegate itemsDelegate(T&& items)
+	{
+		if constexpr(std::is_rvalue_reference_v<T>)
+		{
+			return [items](ItemMessage msg) { return handleItemMessage(msg, items); };
+		}
+		else
+		{
+			return [&items](ItemMessage msg) { return handleItemMessage(msg, items); };
+		}
+	}
+
+	template<class T>
+	static constexpr MenuItemSourceDelegate itemsDelegate(std::span<T> items)
+	{
+		return [items](ItemMessage msg) { return handleItemMessage(msg, items); };
+	}
 };
 
 }

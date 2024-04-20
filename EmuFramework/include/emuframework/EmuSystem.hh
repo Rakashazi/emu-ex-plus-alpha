@@ -26,7 +26,6 @@
 #include <emuframework/EmuTiming.hh>
 #include <emuframework/VController.hh>
 #include <emuframework/EmuInput.hh>
-#include <optional>
 #include <string>
 #include <string_view>
 

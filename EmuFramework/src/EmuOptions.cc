@@ -53,7 +53,7 @@ void EmuApp::initOptions(IG::ApplicationContext ctx)
 	{
 		showsNotificationIcon.resetDefault(false);
 	}
-	else
+	if(androidSdk >= 17)
 	{
 		showsBluetoothScan.resetDefault(false);
 	}
@@ -87,10 +87,9 @@ IG::PixelFormat EmuApp::videoEffectPixelFormat() const
 
 bool EmuApp::setContentScale(uint8_t val)
 {
-	if(!contentScale.set(val))
+	if(!videoLayer.scale.set(val))
 		return false;
-	log.info("set content scale:{}", contentScale.value());
-	videoLayer.scale = val;
+	log.info("set content scale:{}", val);
 	viewController().placeEmuViews();
 	viewController().postDrawToEmuWindows();
 	return true;

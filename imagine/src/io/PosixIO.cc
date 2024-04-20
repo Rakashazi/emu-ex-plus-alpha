@@ -96,7 +96,7 @@ PosixIO::PosixIO(CStringView path, OpenFlags openFlags)
 		if(openFlags.test)
 			return;
 		else
-			throw std::system_error{errno, std::system_category(), path};
+			throw std::system_error{errno, std::generic_category(), path};
 	}
 	if constexpr(Config::DEBUG_BUILD)
 		log.info("opened ({}) fd:{} @ {}", flagsString(openFlags), fd(), path);

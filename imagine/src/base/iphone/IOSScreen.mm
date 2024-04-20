@@ -175,4 +175,9 @@ std::span<const FrameRate> Screen::supportedFrameRates() const
 	return {&frameRate_, 1};
 }
 
+void Screen::setVariableFrameTime(bool useVariableTime)
+{
+	// TODO
+}
+
 }

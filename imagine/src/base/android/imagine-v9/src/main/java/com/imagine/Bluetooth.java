@@ -30,8 +30,9 @@ final class Bluetooth
 	private static ArrayList<BluetoothDevice> devs = null;
 	private static final Constructor<?> l2capInsecureSocketConstructor = Util.getConstructor(BluetoothSocket.class, new Class[] {int.class, int.class, boolean.class, boolean.class, BluetoothDevice.class, int.class, ParcelUuid.class});
 	private static final Method createInsecureRfcommSocket = Util.getMethod(BluetoothDevice.class, "createInsecureRfcommSocket", new Class[] { int.class });
+	static long nativeBta = 0;
 	
-	static BluetoothAdapter defaultAdapter()
+	static BluetoothAdapter defaultAdapter(long nativeObj)
 	{
 		BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
 		if(adapter == null)
@@ -39,6 +40,7 @@ final class Bluetooth
 			//Log.i(logTag, "no bluetooth adapter found");
 			return null;
 		}
+		nativeBta = nativeObj;
 		return adapter;
 	}
 	
@@ -47,11 +49,18 @@ final class Bluetooth
 		if(devs == null)
 			devs = new ArrayList<BluetoothDevice>();
 		devs.clear();
-		if(adapter.isDiscovering())
-			adapter.cancelDiscovery();
-		act.registerReceiver(onDiscoveryFinished, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
-		act.registerReceiver(onDeviceFound, new IntentFilter(BluetoothDevice.ACTION_FOUND));
-        return adapter.startDiscovery();
+		try
+		{
+			if(adapter.isDiscovering())
+				adapter.cancelDiscovery();
+			act.registerReceiver(onDiscoveryFinished, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
+			act.registerReceiver(onDeviceFound, new IntentFilter(BluetoothDevice.ACTION_FOUND));
+	        return adapter.startDiscovery();
+		}
+		catch(Exception e)
+		{
+			return false;
+		}
 	}
 	
 	static void cancelScan(Activity act, BluetoothAdapter adapter)
@@ -129,7 +138,7 @@ final class Bluetooth
 			context.unregisterReceiver(onDiscoveryFinished);
 			context.unregisterReceiver(onDeviceFound);
 			devs.clear();
-			BaseActivity.onBTScanStatus(1);
+			BaseActivity.onBTScanStatus(nativeBta, 1);
 		}
 	};
 	
@@ -154,9 +163,9 @@ final class Bluetooth
 					}
 				}
 				devs.add(found);
-				if(BaseActivity.onScanDeviceClass(found.getBluetoothClass().getDeviceClass()))
+				if(BaseActivity.onScanDeviceClass(nativeBta, found.getBluetoothClass().getDeviceClass()))
 				{
-					BaseActivity.onScanDeviceName(found.getName(), found.getAddress());
+					BaseActivity.onScanDeviceName(nativeBta, found.getName(), found.getAddress());
 				}
 			}
 		}

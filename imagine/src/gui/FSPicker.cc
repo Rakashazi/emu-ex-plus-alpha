@@ -72,8 +72,7 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::Textu
 			pushFileLocationsView(e);
 		});
 	controller.setNavView(std::move(nav));
-	controller.push(makeView<TableView>([](const TableView &) { return 0; },
-		[&d = dir](const TableView &, size_t idx) -> MenuItem& { return d[idx].text; }));
+	controller.push(makeView<TableView>(dir));
 	controller.navView()->showLeftBtn(true);
 	dir.reserve(16); // start with some initial capacity to avoid small reallocations
 }
@@ -468,10 +467,10 @@ void FSPicker::startDirectoryListThread(CStringView path)
 		return;
 	}
 	dir.clear();
-	fileTableView().setItemsDelegate();
+	fileTableView().resetItemSource();
 	dirListEvent.setCallback([this]()
 	{
-		fileTableView().setItemsDelegate([&d = dir](const TableView &) { return d.size(); });
+		fileTableView().resetItemSource(dir);
 		place();
 		fileTableView().restoreUIState(std::exchange(newFileUIState, {}));
 		postDraw();

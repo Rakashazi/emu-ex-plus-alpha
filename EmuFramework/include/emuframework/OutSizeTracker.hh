@@ -17,6 +17,7 @@
 
 #include <imagine/io/IO.hh>
 #include <imagine/io/IOUtils-impl.hh>
+#include <optional>
 
 namespace EmuEx
 {

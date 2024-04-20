@@ -37,29 +37,20 @@ class MenuItem;
 class TableView : public ScrollView
 {
 public:
-	using ItemsDelegate = DelegateFunc<size_t (const TableView &view)>;
-	using ItemDelegate = DelegateFunc<MenuItem& (const TableView &view, size_t idx)>;
+	struct ItemsMessage {const TableView& item;};
+	struct GetItemMessage {const TableView& item; size_t idx;};
+	using ItemMessage = std::variant<GetItemMessage, ItemsMessage>;
+	using ItemReply = std::variant<MenuItem*, size_t>;
+	using ItemSourceDelegate = MenuItemSourceDelegate<ItemMessage, ItemReply, ItemsMessage, GetItemMessage>;
 	using SelectElementDelegate = DelegateFunc<void (const Input::Event &, int i, MenuItem &)>;
 
-	TableView(UTF16Convertible auto &&name, ViewAttachParams attach, ItemsDelegate items, ItemDelegate item):
-		ScrollView{attach}, items{items}, item{item}, nameStr{IG_forward(name)},
+	TableView(UTF16Convertible auto &&name, ViewAttachParams attach, ItemSourceDelegate itemSrc):
+		ScrollView{attach}, itemSrc{itemSrc}, nameStr{IG_forward(name)},
 		selectQuads{attach.rendererTask, {.size = 1}},
 		separatorQuads{attach.rendererTask, {.size = maxSeparators, .usageHint = Gfx::BufferUsageHint::streaming}} {}
 
-	TableView(ViewAttachParams attach, Container auto &item):
-		TableView{UTF16String{}, attach, item} {}
-
-	TableView(UTF16Convertible auto &&name, ViewAttachParams attach, Container auto &item):
-		TableView
-		{
-			IG_forward(name),
-			attach,
-			[&item](const TableView &) { return std::size(item); },
-			[&item](const TableView &, size_t idx) -> MenuItem& { return indirect(std::data(item)[idx]); }
-		} {}
-
-	TableView(ViewAttachParams attach, ItemsDelegate items, ItemDelegate item):
-		TableView{UTF16String{}, attach, items, item} {}
+	TableView(ViewAttachParams attach, ItemSourceDelegate itemSrc):
+		TableView{UTF16String{}, attach, itemSrc} {}
 
 	void prepareDraw() override;
 	void draw(Gfx::RendererCommands &__restrict__) override;
@@ -74,6 +65,7 @@ public:
 	void onAddedToController(ViewController *, const Input::Event &) override;
 	void setFocus(bool focused) override;
 	void setOnSelectElement(SelectElementDelegate del);
+	MenuItem& item(size_t idx) { return item(itemSrc, idx); }
 	size_t cells() const;
 	WSize cellSize() const;
 	void highlightCell(int idx);
@@ -84,12 +76,11 @@ public:
 	std::u16string_view name() const override;
 	void resetName(UTF16Convertible auto &&name) { nameStr = IG_forward(name); }
 	void resetName() { nameStr.clear(); }
-	void setItemsDelegate(ItemsDelegate items_ = [](const TableView &){ return 0; }) { items = items_; }
+	void resetItemSource(ItemSourceDelegate src = [](ItemMessage) -> ItemReply { return 0uz; }) { itemSrc = src; }
 
 protected:
 	static constexpr size_t maxSeparators = 32;
-	ItemsDelegate items{};
-	ItemDelegate item{};
+	ItemSourceDelegate itemSrc;
 	SelectElementDelegate selectElementDel{};
 	UTF16String nameStr{};
 	Gfx::IQuads selectQuads;
@@ -110,6 +101,7 @@ protected:
 	int prevSelectableElement(int start, int items);
 	bool handleTableInput(const Input::Event &, bool &movedSelected);
 	virtual void drawElement(Gfx::RendererCommands &__restrict__, size_t i, MenuItem &item, WRect rect, int xIndent) const;
+	MenuItem& item(ItemSourceDelegate, size_t idx);
 };
 
 }

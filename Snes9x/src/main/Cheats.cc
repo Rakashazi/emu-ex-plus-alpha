@@ -189,21 +189,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 		"Edit Address/Values",
 		attach,
 		cheatName(cheatIdx),
-		[this](const TableView &)
-		{
-			return 5;
-		},
-		[this](const TableView &, unsigned idx) -> MenuItem&
-		{
-			switch(idx)
-			{
-				case 0: return name;
-				case 1: return addr;
-				case 2: return value;
-				case 3: return saved;
-				default: return remove;
-			}
-		},
+		items,
 		[this](TextMenuItem &, View &, Input::Event)
 		{
 			deleteCheat(idx);
@@ -214,6 +200,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 		},
 		onCheatListChanged_
 	},
+	items{&name, &addr, &value, &saved, &remove},
 	addr
 	{
 		"Address",
@@ -392,17 +379,20 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	BaseEditCheatListView
 	{
 		attach,
-		[this](const TableView &)
+		[this](ItemMessage msg) -> ItemReply
 		{
-			return 1 + cheat.size();
-		},
-		[this](const TableView &, size_t idx) -> MenuItem&
-		{
-			switch(idx)
+			return visit(overloaded
 			{
-				case 0: return addCode;
-				default: return cheat[idx - 1];
-			}
+				[&](const ItemsMessage &m) -> ItemReply { return 1 + cheat.size(); },
+				[&](const GetItemMessage &m) -> ItemReply
+				{
+					switch(m.idx)
+					{
+						case 0: return &addCode;
+						default: return &cheat[m.idx - 1];
+					}
+				},
+			}, msg);
 		}
 	},
 	addCode

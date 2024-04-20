@@ -15,25 +15,23 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/bluetooth/sys.hh>
-#include <imagine/input/inputDefs.hh>
+#include <imagine/bluetooth/BluetoothInputDevice.hh>
+#include <imagine/bluetooth/BluetoothAdapter.hh>
 #include <imagine/input/Axis.hh>
 
 namespace IG
 {
 
-class ErrorCode;
-
 class PS3Controller : public BluetoothInputDevice
 {
 public:
 	PS3Controller(ApplicationContext, BluetoothAddr);
-	IG::ErrorCode open(BluetoothAdapter &, Input::Device &) final;
-	IG::ErrorCode open1Ctl(BluetoothAdapter &adapter, BluetoothPendingSocket &pending, Input::Device &);
-	IG::ErrorCode open2Int(BluetoothAdapter &adapter, BluetoothPendingSocket &pending);
+	bool open(BluetoothAdapter &, Input::Device &) final;
+	bool open1Ctl(BluetoothAdapter &adapter, BluetoothPendingSocket &pending, Input::Device &);
+	bool open2Int(BluetoothAdapter &adapter, BluetoothPendingSocket &pending);
 	void close();
 	bool dataHandler(Input::Device &, const char *data, size_t size);
-	uint32_t statusHandler(Input::Device &, BluetoothSocket &, uint32_t status);
+	uint32_t statusHandler(Input::Device &, BluetoothSocket &, BluetoothSocketState status);
 	void setLEDs(uint32_t player);
 	const char *keyName(Input::Key k) const;
 	std::span<Input::Axis> motionAxes() { return axis; };
@@ -49,7 +47,7 @@ private:
 		{Input::Map::PS3PAD, Input::AxisId::Z,  axisScaler}, // Right X Axis
 		{Input::Map::PS3PAD, Input::AxisId::RZ, axisScaler} // Right Y Axis
 	};
-	BluetoothSocketSys ctlSock, intSock;
+	BluetoothSocket ctlSock, intSock;
 	BluetoothAddr addr;
 
 	static uint8_t playerLEDs(uint32_t player);

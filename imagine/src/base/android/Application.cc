@@ -145,7 +145,7 @@ UniqueFileDescriptor AndroidApplication::openFileUriFd(JNIEnv *env, jobject base
 		if(openFlags.test)
 			return -1;
 		else
-			throw std::system_error{ENOENT, std::system_category(), uri};
+			throw std::system_error{ENOENT, std::generic_category(), uri};
 	}
 	log.info("opened fd:{} file URI:{}", fd, uri);
 	return fd;
@@ -208,7 +208,7 @@ bool AndroidApplication::forEachInDirectoryUri(JNIEnv *env, jobject baseActivity
 		if(flags.test)
 			return false;
 		else
-			throw std::system_error{ENOENT, std::system_category(), uri};
+			throw std::system_error{ENOENT, std::generic_category(), uri};
 	}
 	return true;
 }

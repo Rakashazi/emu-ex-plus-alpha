@@ -25,16 +25,19 @@ BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 	{
 		"Cheats",
 		attach,
-		[this](const TableView &)
+		[this](ItemMessage msg) -> ItemReply
 		{
-			return 1 + cheat.size();
-		},
-		[this](const TableView &, size_t idx) -> MenuItem&
-		{
-			if(idx == 0)
-				return edit;
-			else
-				return cheat[idx - 1];
+			return visit(overloaded
+			{
+				[&](const ItemsMessage &m) -> ItemReply { return 1 + cheat.size(); },
+				[&](const GetItemMessage &m) -> ItemReply
+				{
+					if(m.idx == 0)
+						return &edit;
+					else
+						return &cheat[m.idx - 1];
+				},
+			}, msg);
 		}
 	},
 	edit
@@ -55,13 +58,12 @@ BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 		}
 	} {}
 
-BaseEditCheatListView::BaseEditCheatListView(ViewAttachParams attach, TableView::ItemsDelegate items, TableView::ItemDelegate item):
+BaseEditCheatListView::BaseEditCheatListView(ViewAttachParams attach, TableView::ItemSourceDelegate itemSrc):
 	TableView
 	{
 		"Edit Cheats",
 		attach,
-		items,
-		item
+		itemSrc
 	} {}
 
 void BaseEditCheatListView::setOnCheatListChanged(RefreshCheatsDelegate del)

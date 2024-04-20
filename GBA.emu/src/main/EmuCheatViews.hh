@@ -50,6 +50,7 @@ public:
 	void renamed(std::string_view);
 
 private:
+	std::array<MenuItem*, 3> items;
 	DualTextMenuItem code{};
 	int idx = 0;
 };

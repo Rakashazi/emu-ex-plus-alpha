@@ -16,7 +16,6 @@
 #define LOGTAG "ICP"
 #include <imagine/bluetooth/IControlPad.hh>
 #include <imagine/base/Application.hh>
-#include <imagine/base/Error.hh>
 #include <imagine/input/bluetoothInputDefs.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
@@ -116,26 +115,26 @@ const char *IControlPad::keyName(Key k) const
 	return icpButtonName(k);
 }
 
-IG::ErrorCode IControlPad::open(BluetoothAdapter &adapter, Input::Device &dev)
+bool IControlPad::open(BluetoothAdapter &adapter, Input::Device &dev)
 {
 	logMsg("connecting to iCP");
-	sock.onData() =
+	sock.onData =
 		[&dev](const char *packet, size_t size)
 		{
 			return getAs<IControlPad>(dev).dataHandler(dev, packet, size);
 		};
-	sock.onStatus() =
-		[&dev](BluetoothSocket &sock, uint32_t status)
+	sock.onStatus =
+		[&dev](BluetoothSocket &sock, BluetoothSocketState status)
 		{
 			return getAs<IControlPad>(dev).statusHandler(dev, sock, status);
 		};
 	if(auto err = sock.openRfcomm(adapter, addr, 1);
-		err)
+		err.code())
 	{
 		logErr("error opening socket");
-		return err;
+		return false;
 	}
-	return {};
+	return true;
 }
 
 void IControlPad::close()
@@ -143,22 +142,22 @@ void IControlPad::close()
 	sock.close();
 }
 
-uint32_t IControlPad::statusHandler(Input::Device &dev, BluetoothSocket &sock, uint32_t status)
+uint32_t IControlPad::statusHandler(Input::Device &dev, BluetoothSocket &sock, BluetoothSocketState status)
 {
-	if(status == BluetoothSocket::STATUS_OPENED)
+	if(status == BluetoothSocketState::Opened)
 	{
 		logMsg("iCP opened successfully");
 		ctx.application().bluetoothInputDeviceStatus(ctx, dev, status);
 		sock.write(setLEDPulseInverse, sizeof setLEDPulseInverse);
 		function = FUNC_SET_LED_MODE;
-		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
+		return 1;
 	}
-	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
+	else if(status == BluetoothSocketState::ConnectError)
 	{
 		logErr("iCP connection error");
 		ctx.application().bluetoothInputDeviceStatus(ctx, dev, status);
 	}
-	else if(status == BluetoothSocket::STATUS_READ_ERROR)
+	else if(status == BluetoothSocketState::ReadError)
 	{
 		logErr("iCP read error, disconnecting");
 		ctx.application().bluetoothInputDeviceStatus(ctx, dev, status);
@@ -178,7 +177,7 @@ bool IControlPad::dataHandler(Input::Device &dev, const char *packetPtr, size_t 
 			if(packet[size-bytesLeft] != RESP_OKAY)
 			{
 				logErr("error: iCP didn't respond with OK");
-				ctx.application().bluetoothInputDeviceStatus(ctx, dev, BluetoothSocket::STATUS_READ_ERROR);
+				ctx.application().bluetoothInputDeviceStatus(ctx, dev, BluetoothSocketState::ReadError);
 				return 0;
 			}
 			logMsg("got OK reply");

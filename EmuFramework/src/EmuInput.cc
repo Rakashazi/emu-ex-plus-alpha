@@ -17,7 +17,9 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuViewController.hh>
 #include <emuframework/AppKeyCode.hh>
+#include <emuframework/FilePicker.hh>
 #include "InputDeviceData.hh"
+#include "gui/ResetAlertView.hh"
 #include <emuframework/EmuOptions.hh>
 #include <imagine/logger/logger.h>
 
@@ -25,6 +27,224 @@ namespace EmuEx
 {
 
 constexpr SystemLogger log{"InputManager"};
+
+bool InputManager::handleKeyInput(EmuApp& app, KeyInfo keyInfo, const Input::Event &srcEvent)
+{
+	if(!keyInfo.flags.appCode)
+	{
+		handleSystemKeyInput(app, keyInfo, srcEvent.state(), srcEvent.metaKeyBits());
+	}
+	else
+	{
+		for(auto c : keyInfo.codes)
+		{
+			if(handleAppActionKeyInput(app, {c, keyInfo.flags, srcEvent.state(), srcEvent.metaKeyBits()}, srcEvent))
+				return true;
+		}
+	}
+	return false;
+}
+
+bool InputManager::handleAppActionKeyInput(EmuApp& app, InputAction action, const Input::Event &srcEvent)
+{
+	bool isPushed = action.state == Input::Action::PUSHED;
+	auto& viewController = app.viewController();
+	auto& system = app.system();
+	assert(action.flags.appCode);
+	using enum AppKeyCode;
+	switch(AppKeyCode(action.code))
+	{
+		case fastForward:
+		{
+			viewController.inputView.setAltSpeedMode(AltSpeedMode::fast, isPushed);
+			break;
+		}
+		case openContent:
+		{
+			if(!isPushed)
+				break;
+			log.info("show load game view from key event");
+			viewController.popToRoot();
+			viewController.pushAndShow(FilePicker::forLoading(app.attachParams(), srcEvent), srcEvent, false);
+			return true;
+		}
+		case closeContent:
+		{
+			if(!isPushed)
+				break;
+			viewController.pushAndShowModal(app.makeCloseContentView(), srcEvent, false);
+			return true;
+		}
+		case openSystemActions:
+		{
+			if(!isPushed)
+				break;
+			log.info("show system actions view from key event");
+			app.showSystemActionsViewFromSystem(app.attachParams(), srcEvent);
+			return true;
+		}
+		case saveState:
+		{
+			if(!isPushed)
+				break;
+			static auto doSaveState = [](EmuApp &app, bool notify)
+			{
+				if(app.saveStateWithSlot(app.system().stateSlot()) && notify)
+				{
+					app.postMessage("State Saved");
+				}
+			};
+			if(app.shouldOverwriteExistingState())
+			{
+				app.syncEmulationThread();
+				doSaveState(app, app.confirmOverwriteState);
+			}
+			else
+			{
+				viewController.pushAndShowModal(std::make_unique<YesNoAlertView>(app.attachParams(), "Really Overwrite State?",
+					YesNoAlertView::Delegates
+					{
+						.onYes = [&app]
+						{
+							doSaveState(app, false);
+							app.showEmulation();
+						},
+						.onNo = [&app]{ app.showEmulation(); }
+					}), srcEvent, false);
+			}
+			return true;
+		}
+		case loadState:
+		{
+			if(!isPushed)
+				break;
+			app.syncEmulationThread();
+			app.loadStateWithSlot(system.stateSlot());
+			return true;
+		}
+		case decStateSlot:
+		{
+			if(!isPushed)
+				break;
+			system.decStateSlot();
+			app.postMessage(1, false, std::format("State Slot: {}", system.stateSlotName()));
+			return true;
+		}
+		case incStateSlot:
+		{
+			if(!isPushed)
+				break;
+			system.incStateSlot();
+			app.postMessage(1, false, std::format("State Slot: {}", system.stateSlotName()));
+			return true;
+		}
+		case takeScreenshot:
+		{
+			if(!isPushed)
+				break;
+			app.video.takeGameScreenshot();
+			return true;
+		}
+		case toggleFastForward:
+		{
+			if(!isPushed)
+				break;
+			viewController.inputView.toggleAltSpeedMode(AltSpeedMode::fast);
+			break;
+		}
+		case openMenu:
+		{
+			if(!isPushed)
+				break;
+			log.info("show last view from key event");
+			app.showLastViewFromSystem(app.attachParams(), srcEvent);
+			return true;
+		}
+		case turboModifier:
+		{
+			turboModifierActive = isPushed;
+			if(!isPushed)
+				turboActions = {};
+			break;
+		}
+		case exitApp:
+		{
+			if(!isPushed)
+				break;
+			viewController.pushAndShowModal(std::make_unique<YesNoAlertView>(app.attachParams(), "Really Exit?",
+				YesNoAlertView::Delegates{.onYes = [&app]{ app.appContext().exit(); }}), srcEvent, false);
+			break;
+		}
+		case slowMotion:
+		{
+			viewController.inputView.setAltSpeedMode(AltSpeedMode::slow, isPushed);
+			break;
+		}
+		case toggleSlowMotion:
+		{
+			if(!isPushed)
+				break;
+			viewController.inputView.toggleAltSpeedMode(AltSpeedMode::slow);
+			break;
+		}
+		case rewind:
+		{
+			if(!isPushed)
+				break;
+			if(app.rewindManager.maxStates)
+				app.rewindManager.rewindState(app);
+			else
+				app.postMessage(3, false, "Please set rewind states in Options➔System");
+			break;
+		}
+		case softReset:
+		{
+			if(!isPushed)
+				break;
+			app.syncEmulationThread();
+			system.reset(app, EmuSystem::ResetMode::SOFT);
+			break;
+		}
+		case hardReset:
+		{
+			if(!isPushed)
+				break;
+			app.syncEmulationThread();
+			system.reset(app, EmuSystem::ResetMode::HARD);
+			break;
+		}
+		case resetMenu:
+		{
+			if(!isPushed)
+				break;
+			viewController.pushAndShowModal(resetAlertView(app.attachParams(), app), srcEvent, false);
+			break;
+		}
+	}
+	return false;
+}
+
+void InputManager::handleSystemKeyInput(EmuApp& app, KeyInfo keyInfo, Input::Action act, uint32_t metaState, SystemKeyInputFlags flags)
+{
+	if(flags.allowTurboModifier && turboModifierActive && std::ranges::all_of(keyInfo.codes, app.allowsTurboModifier))
+		keyInfo.flags.turbo = 1;
+	if(keyInfo.flags.toggle)
+	{
+		toggleInput.updateEvent(app, keyInfo, act);
+	}
+	else if(keyInfo.flags.turbo)
+	{
+		turboActions.updateEvent(app, keyInfo, act);
+	}
+	else
+	{
+		app.defaultVController().updateSystemKeys(keyInfo, act == Input::Action::PUSHED);
+		for(auto code : keyInfo.codes)
+		{
+			app.system().handleInputAction(&app, {code, keyInfo.flags, act, metaState});
+		}
+	}
+}
 
 void InputManager::updateInputDevices(ApplicationContext ctx)
 {

@@ -22,6 +22,7 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/concepts.hh>
 #include <imagine/util/utility.h>
+#include <imagine/util/variant.hh>
 #include <vector>
 #include <iterator>
 #include <memory>
@@ -310,9 +311,12 @@ protected:
 class MultiChoiceMenuItem : public BaseDualTextMenuItem
 {
 public:
+	struct ItemsMessage {const MultiChoiceMenuItem& item;};
+	struct GetItemMessage {const MultiChoiceMenuItem& item; size_t idx;};
+	using ItemMessage = std::variant<GetItemMessage, ItemsMessage>;
+	using ItemReply = std::variant<TextMenuItem*, size_t>;
+	using ItemSourceDelegate = MenuItemSourceDelegate<ItemMessage, ItemReply, ItemsMessage, GetItemMessage>;
 	using SelectDelegate = DelegateFunc<void (MultiChoiceMenuItem &, View &, const Input::Event &)>;
-	using ItemsDelegate = DelegateFunc<size_t (const MultiChoiceMenuItem &item)>;
-	using ItemDelegate = DelegateFunc<TextMenuItem& (const MultiChoiceMenuItem &item, size_t idx)>;
 	using SetDisplayStringDelegate = DelegateFunc<bool(size_t idx, Gfx::Text &text)>;
 
 	struct SelectedInit
@@ -340,7 +344,7 @@ public:
 	MultiChoiceMenuItem() = default;
 
 	MultiChoiceMenuItem(UTF16Convertible auto &&name, ViewAttachParams attach,
-		SelectedInit selected, ItemsDelegate items, ItemDelegate item, Config conf = Config::defaultConfig()):
+		SelectedInit selected, ItemSourceDelegate itemSrc, Config conf = Config::defaultConfig()):
 		BaseDualTextMenuItem{IG_forward(name), UTF16String{}, attach, toBaseConfig(conf)},
 		onSelect
 		{
@@ -350,8 +354,7 @@ public:
 					item.defaultOnSelect(view, e);
 				}
 		},
-		items_{items},
-		item_{item},
+		itemSrc{itemSrc},
 		onSetDisplayString{conf.onSetDisplayString},
 		selected_{selected.isId ? idxOfId(MenuId{selected.val}) : selected.val} {}
 
@@ -360,7 +363,7 @@ public:
 		MultiChoiceMenuItem
 		{
 			IG_forward(name), attach, selected,
-			itemsDelegate(IG_forward(item)), itemDelegate(IG_forward(item)), conf
+			ItemSourceDelegate{IG_forward(item)}, conf
 		}
 	{
 		if(conf.defaultItemOnSelect)
@@ -378,6 +381,7 @@ public:
 	void compile() override;
 	int selected() const;
 	size_t items() const;
+	TextMenuItem& item(size_t idx) { return item(itemSrc, idx); }
 	bool setSelected(int idx, View &view);
 	bool setSelected(int idx);
 	bool setSelected(MenuId, View &view);
@@ -391,28 +395,12 @@ public:
 	int idxOfId(MenuId);
 
 protected:
-	ItemsDelegate items_;
-	ItemDelegate item_;
+	ItemSourceDelegate itemSrc;
 	SetDisplayStringDelegate onSetDisplayString;
 	int selected_{};
 
 	void setDisplayString(size_t idx);
-
-	static constexpr ItemsDelegate itemsDelegate(Container auto &&item)
-	{
-		if constexpr(std::is_rvalue_reference_v<decltype(item)>)
-			return [size = std::size(item)](const MultiChoiceMenuItem &) { return size; };
-		else
-			return [&item](const MultiChoiceMenuItem &) { return std::size(item); };
-	}
-
-	static constexpr ItemDelegate itemDelegate(Container auto &&item)
-	{
-		if constexpr(std::is_rvalue_reference_v<decltype(item)>)
-			return [item](const MultiChoiceMenuItem &, size_t idx) -> TextMenuItem& { return std::data(item)[idx]; };
-		else
-			return [&item](const MultiChoiceMenuItem &, size_t idx) -> TextMenuItem& { return std::data(item)[idx]; };
-	}
+	TextMenuItem& item(ItemSourceDelegate, size_t idx);
 };
 
 }

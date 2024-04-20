@@ -189,8 +189,8 @@ public:
 			write(pixmap);
 			return;
 		}
-		auto srcFormatID = pixmap.format().id();
-		switch(format().id())
+		auto srcFormatID = pixmap.format().id;
+		switch(format().id)
 		{
 			case PIXEL_RGBA8888:
 				switch(srcFormatID)

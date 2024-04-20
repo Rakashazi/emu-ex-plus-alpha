@@ -179,8 +179,8 @@ public:
 	int activeItem;
 	MultiChoiceMenuItem &src;
 
-	MenuItemTableView(UTF16Convertible auto &&name, ViewAttachParams attach, int active, ItemsDelegate items, ItemDelegate item, MultiChoiceMenuItem &src):
-		TableView{IG_forward(name), attach, items, item},
+	MenuItemTableView(UTF16Convertible auto &&name, ViewAttachParams attach, int active, ItemSourceDelegate itemSrc, MultiChoiceMenuItem &src):
+		TableView{IG_forward(name), attach, itemSrc},
 		activeItem{active},
 		src{src}
 	{
@@ -228,7 +228,12 @@ int MultiChoiceMenuItem::selected() const
 
 size_t MultiChoiceMenuItem::items() const
 {
-	return items_(*this);
+	return getAs<size_t>(itemSrc(ItemsMessage{*this}));
+}
+
+TextMenuItem& MultiChoiceMenuItem::item(ItemSourceDelegate src, size_t idx)
+{
+	return *getAs<TextMenuItem*>(src(GetItemMessage{*this, idx}));
 }
 
 bool MultiChoiceMenuItem::setSelected(int idx, View &view)
@@ -263,9 +268,9 @@ void MultiChoiceMenuItem::setDisplayString(size_t idx)
 	{
 		return;
 	}
-	else if(idx < items_(*this))
+	else if(idx < items())
 	{
-		t2.resetString(std::u16string{item_(*this, idx).text().stringView()});
+		t2.resetString(std::u16string{item(idx).text().stringView()});
 	}
 	else
 	{
@@ -298,14 +303,14 @@ std::unique_ptr<TableView> MultiChoiceMenuItem::makeTableView(ViewAttachParams a
 	(
 		std::u16string{t.stringView()},
 		attach,
-		selected_ < (int)items_(*this) ? selected_ : -1,
-		[this](const TableView &)
+		selected_ < (ssize_t)items() ? selected_ : -1,
+		[this](TableView::ItemMessage msg) -> TableView::ItemReply
 		{
-			return items_(*this);
-		},
-		[this](const TableView &, size_t idx) -> MenuItem&
-		{
-			return item_(*this, idx);
+			return visit(overloaded
+			{
+				[&](const TableView::ItemsMessage &m) -> TableView::ItemReply { return items(); },
+				[&](const TableView::GetItemMessage &m) -> TableView::ItemReply { return &item(m.idx); },
+			}, msg);
 		},
 		*this
 	);
@@ -323,17 +328,17 @@ void MultiChoiceMenuItem::updateDisplayString()
 
 int MultiChoiceMenuItem::idxOfId(MenuId id)
 {
-	auto items = items_(*this);
-	auto item = item_;
+	auto count = items();
+	auto src = itemSrc;
 	MenuId lastId{};
-	for(auto i : iotaCount(items))
+	for(auto i : iotaCount(count))
 	{
-		lastId = item(*this, i).id;
+		lastId = item(src, i).id;
 		if(lastId == id)
 			return (int)i;
 	}
 	if(lastId == defaultMenuId) // special case to simplify uses where the last menu item represents a custom value
-		return items - 1;
+		return count - 1;
 	else
 		return -1;
 }

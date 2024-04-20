@@ -30,7 +30,6 @@
 #include <emuframework/FilePathOptionView.hh>
 #include <emuframework/AppKeyCode.hh>
 #include "gui/AutosaveSlotView.hh"
-#include "gui/ResetAlertView.hh"
 #include "InputDeviceData.hh"
 #include "WindowData.hh"
 #include "configFile.hh"
@@ -50,7 +49,7 @@
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
 #include <imagine/thread/Thread.hh>
-#include <imagine/bluetooth/BluetoothInputDevScanner.hh>
+#include <imagine/bluetooth/BluetoothInputDevice.hh>
 #include <imagine/input/android/MogaManager.hh>
 #include <cmath>
 
@@ -100,7 +99,8 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	pixmapReader{ctx},
 	pixmapWriter{ctx},
 	perfHintManager{ctx.performanceHintManager()},
-	layoutBehindSystemUI{ctx.hasTranslucentSysUI()}
+	layoutBehindSystemUI{ctx.hasTranslucentSysUI()},
+	bluetoothAdapter{ctx}
 {
 	if(ctx.registerInstance(initParams))
 	{
@@ -309,26 +309,17 @@ IG::PixelFormat EmuApp::windowPixelFormat() const
 	return appContext().defaultWindowPixelFormat();
 }
 
-void EmuApp::setRenderPixelFormat(std::optional<IG::PixelFormat> fmtOpt)
+void EmuApp::setRenderPixelFormat(IG::PixelFormat fmt)
 {
-	if(!fmtOpt)
-		return;
-	renderPixelFmt = *fmtOpt;
+	renderPixelFormat = fmt;
 	applyRenderPixelFormat();
-}
-
-std::optional<IG::PixelFormat> EmuApp::renderPixelFormatOption() const
-{
-	if(EmuSystem::canRenderRGBA8888 && renderPixelFmt)
-		return renderPixelFmt;
-	return {};
 }
 
 void EmuApp::applyRenderPixelFormat()
 {
 	if(!video.hasRendererTask())
 		return;
-	auto fmt = renderPixelFormat();
+	auto fmt = renderPixelFormat.value();
 	if(!fmt)
 		fmt = windowPixelFormat();
 	if(!EmuSystem::canRenderRGBA8888 && fmt != IG::PIXEL_RGB565)
@@ -437,10 +428,8 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			audio.manager.endSession();
 			saveConfigFile(ctx);
 			saveSystemOptions();
-			#ifdef CONFIG_INPUT_BLUETOOTH
-			if(bta && (!backgrounded || (backgrounded && !keepBluetoothActive)))
+			if(!backgrounded || (backgrounded && !keepBluetoothActive))
 				closeBluetoothConnections();
-			#endif
 			onEvent(ctx, FreeCachesEvent{false});
 			return true;
 		});
@@ -451,15 +440,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 		[this, appConfig](IG::ApplicationContext ctx, IG::Window &win)
 		{
 			renderer.initMainTask(&win, windowDrawableConfig());
-			if(textureBufferMode != Gfx::TextureBufferMode::DEFAULT)
-			{
-				auto mode = textureBufferMode;
-				if(renderer.makeValidTextureBufferMode(mode) != mode)
-				{
-					// reset to default if saved non-default mode isn't supported
-					textureBufferMode.reset();
-				}
-			}
+			textureBufferMode = renderer.validateTextureBufferMode(textureBufferMode);
 			viewManager.defaultFace = {renderer, fontManager.makeSystem(), fontSettings(win)};
 			viewManager.defaultBoldFace = {renderer, fontManager.makeBoldSystem(), fontSettings(win)};
 			ViewAttachParams viewAttach{viewManager, win, renderer.task()};
@@ -489,7 +470,6 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			videoLayer.setRendererTask(renderer.task());
 			applyRenderPixelFormat();
 			videoLayer.updateEffect(system(), videoEffectPixelFormat());
-			videoLayer.scale = contentScale;
 			system().onFrameUpdate = [this](FrameParams params)
 			{
 				emuSystemTask.updateFrameParams(params);
@@ -718,7 +698,7 @@ bool EmuApp::advanceFrames(FrameParams frameParams, EmuSystemTask *taskPtr)
 		if(taskPtr)
 			taskPtr->framePending = true;
 	}
-	runTurboInputEvents();
+	inputManager.turboActions.update(*this);
 	//log.debug("running {} frame(s), skip:{}", frameInfo.advanced, !videoPtr);
 	runFrames({taskPtr}, videoPtr, audioPtr, frameInfo.advanced);
 	if(!videoPtr)
@@ -853,7 +833,7 @@ void EmuApp::startEmulation()
 {
 	if(!viewController().isShowingEmulation())
 		return;
-	videoLayer.setBrightness(videoBrightnessRGB);
+	videoLayer.setBrightnessScale(1.f);
 	video.setOnFrameFinished(
 		[&, &viewController = viewController()](EmuVideo &)
 		{
@@ -875,7 +855,7 @@ void EmuApp::showUI(bool updateTopView)
 		return;
 	pauseEmulation();
 	configureAppForEmulation(false);
-	videoLayer.setBrightness(videoBrightnessRGB * menuVideoBrightnessScale);
+	videoLayer.setBrightnessScale(menuVideoBrightnessScale);
 	viewController().showMenuView(updateTopView);
 }
 
@@ -886,7 +866,7 @@ void EmuApp::pauseEmulation()
 	video.setOnFrameFinished([](EmuVideo &){});
 	system().pause(*this);
 	setRunSpeed(1.);
-	videoLayer.setBrightness(videoBrightnessRGB * pausedVideoBrightnessScale);
+	videoLayer.setBrightnessScale(pausedVideoBrightnessScale);
 	emuWindow().setDrawEventPriority();
 	removeOnFrame();
 }
@@ -1169,228 +1149,6 @@ std::unique_ptr<YesNoAlertView> EmuApp::makeCloseContentView()
 				return false;
 			}
 		});
-}
-
-bool EmuApp::handleKeyInput(KeyInfo keyInfo, const Input::Event &srcEvent)
-{
-	if(!keyInfo.flags.appCode)
-	{
-		handleSystemKeyInput(keyInfo, srcEvent.state(), srcEvent.metaKeyBits());
-	}
-	else
-	{
-		for(auto c : keyInfo.codes)
-		{
-			if(handleAppActionKeyInput({c, keyInfo.flags, srcEvent.state(), srcEvent.metaKeyBits()}, srcEvent))
-				return true;
-		}
-	}
-	return false;
-}
-
-bool EmuApp::handleAppActionKeyInput(InputAction action, const Input::Event &srcEvent)
-{
-	bool isPushed = action.state == Input::Action::PUSHED;
-	assert(action.flags.appCode);
-	using enum AppKeyCode;
-	switch(AppKeyCode(action.code))
-	{
-		case fastForward:
-		{
-			viewController().inputView.setAltSpeedMode(AltSpeedMode::fast, isPushed);
-			break;
-		}
-		case openContent:
-		{
-			if(!isPushed)
-				break;
-			log.info("show load game view from key event");
-			viewController().popToRoot();
-			viewController().pushAndShow(FilePicker::forLoading(attachParams(), srcEvent), srcEvent, false);
-			return true;
-		}
-		case closeContent:
-		{
-			if(!isPushed)
-				break;
-			viewController().pushAndShowModal(makeCloseContentView(), srcEvent, false);
-			return true;
-		}
-		case openSystemActions:
-		{
-			if(!isPushed)
-				break;
-			log.info("show system actions view from key event");
-			showSystemActionsViewFromSystem(attachParams(), srcEvent);
-			return true;
-		}
-		case saveState:
-		{
-			if(!isPushed)
-				break;
-			static auto doSaveState = [](EmuApp &app, bool notify)
-			{
-				if(app.saveStateWithSlot(app.system().stateSlot()) && notify)
-				{
-					app.postMessage("State Saved");
-				}
-			};
-			if(shouldOverwriteExistingState())
-			{
-				syncEmulationThread();
-				doSaveState(*this, confirmOverwriteState);
-			}
-			else
-			{
-				viewController().pushAndShowModal(std::make_unique<YesNoAlertView>(attachParams(), "Really Overwrite State?",
-					YesNoAlertView::Delegates
-					{
-						.onYes = [this]
-						{
-							doSaveState(*this, false);
-							showEmulation();
-						},
-						.onNo = [this]{ showEmulation(); }
-					}), srcEvent, false);
-			}
-			return true;
-		}
-		case loadState:
-		{
-			if(!isPushed)
-				break;
-			syncEmulationThread();
-			loadStateWithSlot(system().stateSlot());
-			return true;
-		}
-		case decStateSlot:
-		{
-			if(!isPushed)
-				break;
-			system().decStateSlot();
-			postMessage(1, false, std::format("State Slot: {}", system().stateSlotName()));
-			return true;
-		}
-		case incStateSlot:
-		{
-			if(!isPushed)
-				break;
-			system().incStateSlot();
-			postMessage(1, false, std::format("State Slot: {}", system().stateSlotName()));
-			return true;
-		}
-		case takeScreenshot:
-		{
-			if(!isPushed)
-				break;
-			video.takeGameScreenshot();
-			return true;
-		}
-		case toggleFastForward:
-		{
-			if(!isPushed)
-				break;
-			viewController().inputView.toggleAltSpeedMode(AltSpeedMode::fast);
-			break;
-		}
-		case openMenu:
-		{
-			if(!isPushed)
-				break;
-			log.info("show last view from key event");
-			showLastViewFromSystem(attachParams(), srcEvent);
-			return true;
-		}
-		case turboModifier:
-		{
-			inputManager.turboModifierActive = isPushed;
-			if(!isPushed)
-				inputManager.turboActions = {};
-			break;
-		}
-		case exitApp:
-		{
-			if(!isPushed)
-				break;
-			viewController().pushAndShowModal(std::make_unique<YesNoAlertView>(attachParams(), "Really Exit?",
-				YesNoAlertView::Delegates{.onYes = [this]{ appContext().exit(); }}), srcEvent, false);
-			break;
-		}
-		case slowMotion:
-		{
-			viewController().inputView.setAltSpeedMode(AltSpeedMode::slow, isPushed);
-			break;
-		}
-		case toggleSlowMotion:
-		{
-			if(!isPushed)
-				break;
-			viewController().inputView.toggleAltSpeedMode(AltSpeedMode::slow);
-			break;
-		}
-		case rewind:
-		{
-			if(!isPushed)
-				break;
-			if(rewindManager.maxStates)
-				rewindManager.rewindState(*this);
-			else
-				postMessage(3, false, "Please set rewind states in Options➔System");
-			break;
-		}
-		case softReset:
-		{
-			if(!isPushed)
-				break;
-			syncEmulationThread();
-			system().reset(*this, EmuSystem::ResetMode::SOFT);
-			break;
-		}
-		case hardReset:
-		{
-			if(!isPushed)
-				break;
-			syncEmulationThread();
-			system().reset(*this, EmuSystem::ResetMode::HARD);
-			break;
-		}
-		case resetMenu:
-		{
-			if(!isPushed)
-				break;
-			viewController().pushAndShowModal(resetAlertView(attachParams(), *this), srcEvent, false);
-			break;
-		}
-	}
-	return false;
-}
-
-void EmuApp::handleSystemKeyInput(KeyInfo keyInfo, Input::Action act, uint32_t metaState, SystemKeyInputFlags flags)
-{
-	if(flags.allowTurboModifier && inputManager.turboModifierActive && std::ranges::all_of(keyInfo.codes, allowsTurboModifier))
-		keyInfo.flags.turbo = 1;
-	if(keyInfo.flags.toggle)
-	{
-		inputManager.toggleInput.updateEvent(*this, keyInfo, act);
-	}
-	else if(keyInfo.flags.turbo)
-	{
-		inputManager.turboActions.updateEvent(*this, keyInfo, act);
-	}
-	else
-	{
-		defaultVController().updateSystemKeys(keyInfo, act == Input::Action::PUSHED);
-		for(auto code : keyInfo.codes)
-		{
-			system().handleInputAction(this, {code, keyInfo.flags, act, metaState});
-		}
-	}
-}
-
-void EmuApp::runTurboInputEvents()
-{
-	assert(system().hasContent());
-	inputManager.turboActions.update(*this);
 }
 
 void EmuApp::resetInput()
@@ -1832,36 +1590,6 @@ void EmuApp::removeOnFrame()
 	viewController().emuWindow().removeOnFrame(system().onFrameUpdate, frameTimeSource);
 }
 
-static auto &videoBrightnessVal(ImageChannel ch, auto &videoBrightnessRGB)
-{
-	switch(ch)
-	{
-		case ImageChannel::All: break;
-		case ImageChannel::Red: return videoBrightnessRGB.r;
-		case ImageChannel::Green: return videoBrightnessRGB.g;
-		case ImageChannel::Blue: return videoBrightnessRGB.b;
-	}
-	bug_unreachable("invalid ImageChannel");
-}
-
-float EmuApp::videoBrightness(ImageChannel ch) const
-{
-	return videoBrightnessVal(ch, videoBrightnessRGB);
-}
-
-void EmuApp::setVideoBrightness(float brightness, ImageChannel ch)
-{
-	if(ch == ImageChannel::All)
-	{
-		videoBrightnessRGB.r = videoBrightnessRGB.g = videoBrightnessRGB.b = brightness;
-	}
-	else
-	{
-		videoBrightnessVal(ch, videoBrightnessRGB) = brightness;
-	}
-	videoLayer.setBrightness(videoBrightnessRGB * menuVideoBrightnessScale);
-}
-
 bool EmuApp::setAltSpeed(AltSpeedMode mode, int16_t speed)
 {
 	if(mode == AltSpeedMode::slow)
@@ -1937,20 +1665,9 @@ std::unique_ptr<View> EmuApp::makeView(ViewAttachParams attach, ViewID id)
 	}
 }
 
-BluetoothAdapter *EmuApp::bluetoothAdapter()
-{
-	if(bta)
-	{
-		return bta;
-	}
-	log.info("initializing Bluetooth");
-	bta = BluetoothAdapter::defaultAdapter(appContext());
-	return bta;
-}
-
 void EmuApp::closeBluetoothConnections()
 {
-	Bluetooth::closeBT(std::exchange(bta, {}));
+	Bluetooth::closeBT(bluetoothAdapter);
 }
 
 void EmuApp::reportFrameWorkTime()

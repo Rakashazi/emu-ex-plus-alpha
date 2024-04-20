@@ -30,13 +30,13 @@ PlaceVideoView::PlaceVideoView(ViewAttachParams attach, EmuVideoLayer &layer, VC
 	quads{attach.rendererTask, {.size = 4}}
 {
 	app().applyOSNavStyle(appContext(), true);
-	layer.setBrightness(app().videoBrightnessAsRGB());
+	layer.setBrightnessScale(1.f);
 }
 
 PlaceVideoView::~PlaceVideoView()
 {
 	app().applyOSNavStyle(appContext(), false);
-	layer.setBrightness(app().videoBrightnessAsRGB() * menuVideoBrightnessScale);
+	layer.setBrightnessScale(menuVideoBrightnessScale);
 }
 
 void PlaceVideoView::place()

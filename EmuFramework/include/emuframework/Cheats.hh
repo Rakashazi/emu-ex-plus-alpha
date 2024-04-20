@@ -42,7 +42,7 @@ protected:
 class BaseEditCheatListView : public TableView, public EmuAppHelper<BaseEditCheatListView>
 {
 public:
-	BaseEditCheatListView(ViewAttachParams attach, TableView::ItemsDelegate items, TableView::ItemDelegate item);
+	BaseEditCheatListView(ViewAttachParams attach, TableView::ItemSourceDelegate);
 	void setOnCheatListChanged(RefreshCheatsDelegate del);
 
 protected:
@@ -60,14 +60,13 @@ public:
 	using EmuAppHelper<BaseEditCheatView<CheatViewImpl>>::app;
 
 	BaseEditCheatView(UTF16Convertible auto &&viewName, ViewAttachParams attach, UTF16Convertible auto &&cheatName,
-		TableView::ItemsDelegate items, TableView::ItemDelegate item, TextMenuItem::SelectDelegate removed,
+		TableView::ItemSourceDelegate itemSrc, TextMenuItem::SelectDelegate removed,
 		RefreshCheatsDelegate onCheatListChanged_):
 		TableView
 		{
 			IG_forward(viewName),
 			attach,
-			items,
-			item
+			itemSrc
 		},
 		name
 		{

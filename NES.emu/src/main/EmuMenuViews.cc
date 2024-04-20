@@ -325,8 +325,8 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<Custo
 	};
 
 	static constexpr auto digitalPrimePalPath = "Digital Prime (FBX).pal";
-	static constexpr auto smoothPalPath = "Smooth V2 (FBX)";
-	static constexpr auto magnumPalPath = "Magnum (FBX)";
+	static constexpr auto smoothPalPath = "Smooth V2 (FBX).pal";
+	static constexpr auto magnumPalPath = "Magnum (FBX).pal";
 	static constexpr auto classicPalPath = "Classic (FBX).pal";
 	static constexpr auto wavebeamPalPath = "Wavebeam.pal";
 	static constexpr auto lightfulPalPath = "Lightful.pal";
@@ -709,27 +709,15 @@ private:
 		}
 	};
 
+	std::array<TextMenuItem*, 5> items{&setSide[0], &setSide[1], &setSide[2], &setSide[3], &insertEject};
+
 public:
 	FDSControlView(ViewAttachParams attach):
 		TableView
 		{
 			"FDS Control",
 			attach,
-			[this](const TableView &)
-			{
-				return 5;
-			},
-			[this](const TableView &, unsigned idx) -> MenuItem&
-			{
-				switch(idx)
-				{
-					case 0: return setSide[0];
-					case 1: return setSide[1];
-					case 2: return setSide[2];
-					case 3: return setSide[3];
-					default: return insertEject;
-				}
-			}
+			items
 		}
 	{
 		setSide[0].setActive(0 < FCEU_FDSSides());

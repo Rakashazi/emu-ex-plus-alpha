@@ -20,7 +20,6 @@
 #include <emuframework/EmuSystemTaskContext.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
 #include <imagine/gfx/SyncFence.hh>
-#include <optional>
 
 namespace EmuEx
 {

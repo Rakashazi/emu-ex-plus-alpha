@@ -115,7 +115,8 @@ public:
 	Texture makeTexture(Data::PixmapSource, TextureSamplerConfig samplerConf = {}, bool makeMipmaps = true);
 	PixmapBufferTexture makePixmapBufferTexture(TextureConfig config, TextureBufferMode mode = {}, bool singleBuffer = false);
 	std::vector<TextureBufferModeDesc> textureBufferModes();
-	TextureBufferMode makeValidTextureBufferMode(TextureBufferMode mode = {});
+	TextureBufferMode evalTextureBufferMode(TextureBufferMode mode = {});
+	TextureBufferMode validateTextureBufferMode(TextureBufferMode);
 	TextureSampler makeTextureSampler(TextureSamplerConfig);
 
 	// color space control

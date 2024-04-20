@@ -52,10 +52,11 @@ constexpr PixelDesc PIXEL_DESC_RGBA8888_NATIVE = PIXEL_DESC_RGBA8888.nativeOrder
 class PixelFormat
 {
 public:
+	PixelFormatID id{PIXEL_NONE};
+
 	constexpr PixelFormat() = default;
-	constexpr PixelFormat(PixelFormatID id): id_{id} {}
-	constexpr PixelFormatID id() const { return id_; }
-	constexpr operator PixelFormatID() const { return id_; }
+	constexpr PixelFormat(PixelFormatID id): id{id} {}
+	constexpr operator PixelFormatID() const { return id; }
 	constexpr int offsetBytes(int x, int y, int pitchBytes) const { return desc().offsetBytes(x, y, pitchBytes); }
 	constexpr int pixelBytes(int pixels) const { return desc().pixelBytes(pixels); }
 	constexpr int bytesPerPixel() const { return desc().bytesPerPixel(); }
@@ -63,8 +64,8 @@ public:
 	constexpr const char *name() const { return desc().name(); }
 	constexpr bool isGrayscale() const { return desc().isGrayscale(); }
 	constexpr bool isBGROrder() const { return desc().isBGROrder(); }
-	explicit constexpr operator bool() const { return (bool)id_; }
-	constexpr PixelDesc desc() const { return desc(id_); }
+	explicit constexpr operator bool() const { return (bool)id; }
+	constexpr PixelDesc desc() const { return desc(id); }
 
 	static constexpr PixelDesc desc(PixelFormatID id)
 	{
@@ -84,9 +85,6 @@ public:
 		}
 		return PIXEL_DESC_NONE;
 	}
-
-protected:
-	PixelFormatID id_ = PIXEL_NONE;
 };
 
 constexpr PixelFormat PIXEL_FMT_NONE{PIXEL_NONE};

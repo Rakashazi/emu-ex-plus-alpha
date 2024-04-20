@@ -16,7 +16,6 @@
 #define LOGTAG "Wiimote"
 #include <imagine/bluetooth/Wiimote.hh>
 #include <imagine/base/Application.hh>
-#include <imagine/base/Error.hh>
 #include <imagine/input/bluetoothInputDefs.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
@@ -186,49 +185,50 @@ const char *WiimoteExtDevice::keyName(Input::Key k) const
 	return wiiKeyName(k, map_);
 }
 
-IG::ErrorCode Wiimote::open(BluetoothAdapter &adapter, Input::Device &dev)
+bool Wiimote::open(BluetoothAdapter& adapter, Input::Device& dev)
 {
 	logMsg("opening Wiimote");
-	ctlSock.onData() = intSock.onData() =
+	btaPtr = &adapter;
+	ctlSock.onData = intSock.onData =
 		[&dev](const char *packet, size_t size)
 		{
 			return getAs<Wiimote>(dev).dataHandler(dev, packet, size);
 		};
-	ctlSock.onStatus() = intSock.onStatus() =
-		[&dev](BluetoothSocket &sock, uint32_t status)
+	ctlSock.onStatus = intSock.onStatus =
+		[&dev](BluetoothSocket &sock, BluetoothSocketState status)
 		{
 			return getAs<Wiimote>(dev).statusHandler(dev, sock, status);
 		};
-	if(ctlSock.openL2cap(adapter, addr, 17))
+	if(ctlSock.openL2cap(adapter, addr, 17).code())
 	{
 		logErr("error opening control socket");
-		return {EIO};
+		return false;
 	}
-	return {};
+	return true;
 }
 
-uint32_t Wiimote::statusHandler(Input::Device &dev, BluetoothSocket &sock, uint32_t status)
+uint32_t Wiimote::statusHandler(Input::Device &dev, BluetoothSocket &sock, BluetoothSocketState status)
 {
-	if(status == BluetoothSocket::STATUS_OPENED && &sock == (BluetoothSocket*)&ctlSock)
+	if(status == BluetoothSocketState::Opened && &sock == (BluetoothSocket*)&ctlSock)
 	{
 		logMsg("opened Wiimote control socket, opening interrupt socket");
-		intSock.openL2cap(*BluetoothAdapter::defaultAdapter(ctx), addr, 19);
+		intSock.openL2cap(*btaPtr, addr, 19);
 		return 0; // don't add ctlSock to event loop
 	}
-	else if(status == BluetoothSocket::STATUS_OPENED && &sock == (BluetoothSocket*)&intSock)
+	else if(status == BluetoothSocketState::Opened && &sock == (BluetoothSocket*)&intSock)
 	{
 		logMsg("Wiimote opened successfully");
 		ctx.application().bluetoothInputDeviceStatus(ctx, dev, status);
 		setLEDs(enumId_);
 		requestStatus();
-		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
+		return 1;
 	}
-	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
+	else if(status == BluetoothSocketState::ConnectError)
 	{
 		logErr("Wiimote connection error");
 		ctx.application().bluetoothInputDeviceStatus(ctx, dev, status);
 	}
-	else if(status == BluetoothSocket::STATUS_READ_ERROR)
+	else if(status == BluetoothSocketState::ReadError)
 	{
 		logErr("Wiimote read error");
 		ctx.application().bluetoothInputDeviceStatus(ctx, dev, status);

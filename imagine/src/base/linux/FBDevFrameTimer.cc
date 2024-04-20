@@ -41,7 +41,7 @@ FBDevFrameTimer::FBDevFrameTimer(Screen &screen, EventLoop loop)
 	auto fbdev = openDevice();
 	if(fbdev == -1)
 	{
-		logErr("error opening device:%s", std::system_category().message(errno).c_str());
+		logErr("error opening device:%s", std::generic_category().message(errno).c_str());
 		return;
 	}
 	int fd = eventfd(0, 0);
@@ -124,7 +124,7 @@ bool FBDevFrameTimer::testSupport()
 	auto fbdev = openDevice();
 	if(fbdev == -1)
 	{
-		logErr("error opening device:%s", std::system_category().message(errno).c_str());
+		logErr("error opening device:%s", std::generic_category().message(errno).c_str());
 		return false;
 	}
 	// test ioctl FBIO_WAITFORVSYNC

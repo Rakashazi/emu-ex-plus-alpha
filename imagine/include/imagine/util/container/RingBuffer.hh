@@ -39,7 +39,7 @@ struct RingBufferConf
 struct RingBufferRWFlags
 {
 	bool blocking:1{};
-	bool notifyOnBlock:1{};
+	size_t flushSize{};
 };
 
 struct RingBufferIdxPair
@@ -110,8 +110,6 @@ public:
 		IdxPair idxs{.read = readIdx.load(std::memory_order_relaxed), .write = writeIdx.load(std::memory_order_acquire)};
 		if(flags.blocking && empty(idxs))
 		{
-			if(flags.notifyOnBlock)
-				notifyWrite();
 			writeIdx.wait(idxs.write, std::memory_order_acquire);
 			idxs.write = writeIdx.load(std::memory_order_acquire);
 		}
@@ -162,8 +160,7 @@ public:
 		IdxPair idxs{.read = readIdx.load(std::memory_order_acquire), .write = writeIdx.load(std::memory_order_relaxed)};
 		if(flags.blocking && !freeSpace(idxs))
 		{
-			if(flags.notifyOnBlock)
-				notifyRead();
+			notifyWrite();
 			readIdx.wait(idxs.read, std::memory_order_acquire);
 			idxs.read = readIdx.load(std::memory_order_acquire);
 		}
@@ -183,6 +180,8 @@ public:
 		auto span = beginWrite(buff.size(), flags);
 		copy_n(buff.data(), span.size(), span.data());
 		endWrite(span);
+		if(flags.flushSize && (size() + span.size() >= flags.flushSize))
+			notifyWrite();
 		return span.size();
 	}
 
@@ -223,6 +222,9 @@ public:
 
 	void waitForSize(size_t s)
 	{
+		if(size() == s)
+			return;
+		notifyWrite();
 		IdxPair idxs = loadIdxs();
 		while(size(idxs) != s)
 		{

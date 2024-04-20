@@ -33,7 +33,7 @@ constexpr SystemLogger log{"TableView"};
 
 size_t TableView::cells() const
 {
-	return items(*this);
+	return getAs<size_t>(itemSrc(ItemsMessage{*this}));
 }
 
 WSize TableView::cellSize() const
@@ -43,7 +43,7 @@ WSize TableView::cellSize() const
 
 void TableView::highlightCell(int idx)
 {
-	auto cells_ = items(*this);
+	auto cells_ = cells();
 	if(!cells_)
 		return;
 	if(idx >= 0)
@@ -60,17 +60,19 @@ void TableView::setAlign(_2DOrigin align)
 
 void TableView::prepareDraw()
 {
-	for(auto i : iotaCount(items(*this)))
+	auto src = itemSrc;
+	for(auto i : iotaCount(cells()))
 	{
-		item(*this, i).prepareDraw();
+		item(src, i).prepareDraw();
 	}
 }
 
 void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 {
-	ssize_t cells_ = items(*this);
+	ssize_t cells_ = cells();
 	if(!cells_)
 		return;
+	auto src = itemSrc;
 	using namespace IG::Gfx;
 	auto visibleRect = viewRect() + WindowRect{{}, {0, displayRect().y2 - viewRect().y2}};
 	cmds.setClipRect(renderer().makeClipRect(window(), visibleRect));
@@ -119,7 +121,7 @@ void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 			{
 				int ySize = regularYSize;
 				auto color = regularColor;
-				if(!elementIsSelectable(item(*this, i - 1)))
+				if(!elementIsSelectable(item(src, i - 1)))
 				{
 					ySize = headingYSize;
 					color = headingColor;
@@ -161,7 +163,7 @@ void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	for(ssize_t i = startYCell; i < endYCell; i++)
 	{
 		auto rect = IG::makeWindowRectRel({x, y}, {viewRect().xSize(), yCellSize});
-		drawElement(cmds, i, item(*this, i), rect, xIndent);
+		drawElement(cmds, i, item(src, i), rect, xIndent);
 		y += yCellSize;
 	}
 	cmds.setClipTest(false);
@@ -169,15 +171,16 @@ void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 
 void TableView::place()
 {
-	auto cells_ = items(*this);
+	auto cells_ = cells();
+	auto src = itemSrc;
 	for(auto i : iotaCount(cells_))
 	{
 		//log.debug("compile item:{}", i);
-		item(*this, i).compile();
+		item(src, i).compile();
 	}
 	if(cells_)
 	{
-		setYCellSize(IG::makeEvenRoundedUp(item(*this, 0).ySize()*2));
+		setYCellSize(IG::makeEvenRoundedUp(item(0).ySize()*2));
 		visibleCells = IG::divRoundUp(displayRect().ySize(), yCellSize) + 1;
 		scrollToFocusRect();
 		selectQuads.write(0, {.bounds = WRect{{}, {viewRect().xSize(), yCellSize-1}}.as<int16_t>()});
@@ -200,10 +203,10 @@ void TableView::onAddedToController(ViewController *, const Input::Event &e)
 {
 	if(e.keyEvent())
 	{
-		auto cells = items(*this);
-		if(!cells)
+		auto cells_ = cells();
+		if(!cells_)
 			return;
-		selected = nextSelectableElement(0, cells);
+		selected = nextSelectableElement(0, cells_);
 	}
 }
 
@@ -272,7 +275,7 @@ void TableView::clearSelection()
 void TableView::setYCellSize(int s)
 {
 	yCellSize = s;
-	ScrollView::setContentSize({viewRect().xSize(), (int)items(*this) * s});
+	ScrollView::setContentSize({viewRect().xSize(), (int)cells() * s});
 }
 
 IG::WindowRect TableView::focusRect()
@@ -286,9 +289,10 @@ IG::WindowRect TableView::focusRect()
 int TableView::nextSelectableElement(int start, int items)
 {
 	int elem = wrapMinMax(start, 0, items);
+	auto src = itemSrc;
 	for(auto i : iotaCount(items))
 	{
-		if(elementIsSelectable(item(*this, elem)))
+		if(elementIsSelectable(item(src, elem)))
 		{
 			return elem;
 		}
@@ -300,9 +304,10 @@ int TableView::nextSelectableElement(int start, int items)
 int TableView::prevSelectableElement(int start, int items)
 {
 	int elem = wrapMinMax(start, 0, items);
+	auto src = itemSrc;
 	for(auto i : iotaCount(items))
 	{
-		if(elementIsSelectable(item(*this, elem)))
+		if(elementIsSelectable(item(src, elem)))
 		{
 			return elem;
 		}
@@ -313,7 +318,7 @@ int TableView::prevSelectableElement(int start, int items)
 
 bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 {
-	ssize_t cells_ = items(*this);
+	ssize_t cells_ = cells();
 	return visit(overloaded
 	{
 		[&](const Input::KeyEvent &keyEv)
@@ -414,7 +419,7 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 				{
 					//log.debug("entry:{} pushed", selected);
 					selectedIsActivated = true;
-					onSelectElement(e, selected, item(*this, selected));
+					onSelectElement(e, selected, item(selected));
 				}
 				return true;
 			}
@@ -457,7 +462,7 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 				//logMsg("pushed outside of item bounds");
 				return false;
 			}
-			auto &it = item(*this, i);
+			auto &it = item(i);
 			if(motionEv.pushed())
 			{
 				//log.info("input pushed on cell:{}", i);
@@ -516,6 +521,11 @@ std::u16string_view TableView::name() const
 TableUIState TableView::saveUIState() const
 {
 	return {.highlightedCell = highlightedCell(), .scrollOffset = scrollOffset()};
+}
+
+MenuItem& TableView::item(ItemSourceDelegate src, size_t idx)
+{
+	return *getAs<MenuItem*>(src(GetItemMessage{*this, idx}));
 }
 
 void TableView::restoreUIState(TableUIState state)

@@ -271,7 +271,7 @@ void EmuVideo::setOnFormatChanged(FormatChangedDelegate del)
 
 void EmuVideo::setTextureBufferMode(EmuSystem &sys, Gfx::TextureBufferMode mode)
 {
-	mode = renderer().makeValidTextureBufferMode(mode);
+	mode = renderer().evalTextureBufferMode(mode);
 	if(bufferMode == mode)
 		return;
 	bufferMode = mode;

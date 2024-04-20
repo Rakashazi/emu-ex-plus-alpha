@@ -37,19 +37,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 		"Edit Code",
 		attach,
 		cheatsList[cheatIdx].desc,
-		[this](const TableView &)
-		{
-			return 3;
-		},
-		[this](const TableView &, unsigned idx) -> MenuItem&
-		{
-			switch(idx)
-			{
-				case 0: return name;
-				case 1: return code;
-				default: return remove;
-			}
-		},
+		items,
 		[this](TextMenuItem &item, View &parent, Input::Event e)
 		{
 			cheatsDelete(gGba.cpu, idx, true);
@@ -60,6 +48,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 		},
 		onCheatListChanged_
 	},
+	items{&name, &code, &remove},
 	code
 	{
 		"Code",
@@ -163,18 +152,21 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	BaseEditCheatListView
 	{
 		attach,
-		[this](const TableView &)
+		[this](ItemMessage msg) -> ItemReply
 		{
-			return 2 + cheat.size();
-		},
-		[this](const TableView &, size_t idx) -> MenuItem&
-		{
-			switch(idx)
+			return visit(overloaded
 			{
-				case 0: return addGS12CBCode;
-				case 1: return addGS3Code;
-				default: return cheat[idx - 2];
-			}
+				[&](const ItemsMessage &m) -> ItemReply { return 2 + cheat.size(); },
+				[&](const GetItemMessage &m) -> ItemReply
+				{
+					switch(m.idx)
+					{
+						case 0: return &addGS12CBCode;
+						case 1: return &addGS3Code;
+						default: return &cheat[m.idx - 2];
+					}
+				},
+			}, msg);
 		}
 	},
 	addGS12CBCode

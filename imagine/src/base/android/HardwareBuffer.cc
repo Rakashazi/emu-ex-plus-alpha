@@ -60,7 +60,8 @@ HardwareBuffer::HardwareBuffer(uint32_t w, uint32_t h, uint32_t format, uint32_t
 	HardwareBuffer()
 {
 	assumeExpr(AHardwareBuffer_allocate);
-	AHardwareBuffer_Desc hardwareDesc{.width = w, .height = h, .layers = 1, .format = format, .usage = usage};
+	AHardwareBuffer_Desc hardwareDesc{.width = w, .height = h, .layers = 1, .format = format, .usage = usage,
+		.stride{}, .rfu0{}, .rfu1{}};
 	AHardwareBuffer *newBuff;
 	if(AHardwareBuffer_allocate(&hardwareDesc, &newBuff) != 0) [[unlikely]]
 	{

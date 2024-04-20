@@ -59,7 +59,7 @@ DirectoryStream::DirectoryStream(CStringView path, DirOpenFlags flags):
 		if(flags.test)
 			return;
 		else
-			throw std::system_error{errno, std::system_category(), path};
+			throw std::system_error{errno, std::generic_category(), path};
 	}
 	logMsg("opened directory:%s", path.data());
 	basePath = path;
@@ -321,7 +321,7 @@ bool create_directory(CStringView path)
 		{
 			if(Config::DEBUG_BUILD)
 				logErr("mkdir(%s) error:%s", path.data(), strerror(err));
-			throw std::system_error(err, std::system_category(), path);
+			throw std::system_error(err, std::generic_category(), path);
 		}
 	}
 	logMsg("made directory:%s", path.data());

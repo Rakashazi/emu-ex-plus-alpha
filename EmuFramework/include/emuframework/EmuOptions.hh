@@ -155,6 +155,23 @@ constexpr bool isValidWithMinMax(const auto &v)
 	return v >= min && v <= max;
 }
 
+constexpr bool windowPixelFormatIsValid(const IG::PixelFormat &v)
+{
+	switch(v)
+	{
+		case IG::PIXEL_NONE:
+		case IG::PIXEL_RGB565:
+		case IG::PIXEL_RGBA8888:
+			return true;
+		default: return false;
+	}
+}
+
+constexpr bool renderPixelFormatIsValid(const auto &v)
+{
+	return windowPixelFormatIsValid(v);
+}
+
 }
 
 namespace IG

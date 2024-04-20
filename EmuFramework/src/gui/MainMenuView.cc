@@ -28,8 +28,7 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/FS.hh>
-#include <imagine/bluetooth/sys.hh>
-#include <imagine/bluetooth/BluetoothInputDevScanner.hh>
+#include <imagine/bluetooth/BluetoothInputDevice.hh>
 #include <format>
 #include <imagine/logger/logger.h>
 
@@ -47,7 +46,7 @@ protected:
 	TextMenuItem subConfig[8];
 };
 
-static void onScanStatus(EmuApp &app, unsigned status, int arg);
+static void onScanStatus(EmuApp &app, BluetoothScanState status, int arg);
 
 template <class ViewT>
 static void handledFailedBTAdapterInit(ViewT &view, ViewAttachParams attach, const Input::Event &e)
@@ -141,10 +140,11 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 		"Scan for Wiimotes/iCP/JS1", attach,
 		[this](const Input::Event &e)
 		{
-			if(app().bluetoothAdapter())
+			app().bluetoothAdapter.openDefault();
+			if(app().bluetoothAdapter.isOpen())
 			{
-				if(Bluetooth::scanForDevices(appContext(), *app().bluetoothAdapter(),
-					[this](BluetoothAdapter &, unsigned status, int arg)
+				if(Bluetooth::scanForDevices(appContext(), app().bluetoothAdapter,
+					[this](BluetoothAdapter &, BluetoothScanState status, int arg)
 					{
 						onScanStatus(app(), status, arg);
 					}))
@@ -176,21 +176,21 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 			}
 		}
 	},
-	#ifdef CONFIG_BLUETOOTH_SERVER
 	acceptPS3ControllerConnection
 	{
 		"Scan for PS3 Controller", attach,
 		[this](const Input::Event &e)
 		{
-			if(app().bluetoothAdapter())
+			app().bluetoothAdapter.openDefault();
+			if(app().bluetoothAdapter.isOpen())
 			{
 				app().postMessage(4, "Prepare to push the PS button");
-				auto startedScan = Bluetooth::listenForDevices(appContext(), *app().bluetoothAdapter(),
-					[this](BluetoothAdapter &bta, unsigned status, int arg)
+				auto startedScan = Bluetooth::listenForDevices(appContext(), app().bluetoothAdapter,
+					[this](BluetoothAdapter &bta, BluetoothScanState status, int arg)
 					{
 						switch(status)
 						{
-							case BluetoothAdapter::INIT_FAILED:
+							case BluetoothScanState::InitFailed:
 							{
 								app().postErrorMessage(Config::envIsLinux ? 8 : 2,
 									Config::envIsLinux ?
@@ -198,7 +198,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 										"Bluetooth setup failed");
 								break;
 							}
-							case BluetoothAdapter::SCAN_COMPLETE:
+							case BluetoothScanState::Complete:
 							{
 								app().postMessage(4, "Push the PS button on your controller\n(see website for pairing help)");
 								break;
@@ -218,7 +218,6 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 			postDraw();
 		}
 	},
-	#endif
 	about
 	{
 		"About", attach,
@@ -242,11 +241,11 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	}
 }
 
-static void onScanStatus(EmuApp &app, unsigned status, int arg)
+static void onScanStatus(EmuApp &app, BluetoothScanState status, int arg)
 {
 	switch(status)
 	{
-		case BluetoothAdapter::INIT_FAILED:
+		case BluetoothScanState::InitFailed:
 		{
 			if(Config::envIsIOS)
 			{
@@ -254,33 +253,33 @@ static void onScanStatus(EmuApp &app, unsigned status, int arg)
 			}
 			break;
 		}
-		case BluetoothAdapter::SCAN_FAILED:
+		case BluetoothScanState::Failed:
 		{
 			app.postErrorMessage("Scan failed");
 			break;
 		}
-		case BluetoothAdapter::SCAN_NO_DEVS:
+		case BluetoothScanState::NoDevs:
 		{
 			app.postMessage("No devices found");
 			break;
 		}
-		case BluetoothAdapter::SCAN_PROCESSING:
+		case BluetoothScanState::Processing:
 		{
 			app.postMessage(2, 0, std::format("Checking {} device(s)...", arg));
 			break;
 		}
-		case BluetoothAdapter::SCAN_NAME_FAILED:
+		case BluetoothScanState::NameFailed:
 		{
 			app.postErrorMessage("Failed reading a device name");
 			break;
 		}
-		case BluetoothAdapter::SCAN_COMPLETE:
+		case BluetoothScanState::Complete:
 		{
 			int devs = Bluetooth::pendingDevs();
 			if(devs)
 			{
 				app.postMessage(2, 0, std::format("Connecting to {} device(s)...", devs));
-				Bluetooth::connectPendingDevs(app.bluetoothAdapter());
+				Bluetooth::connectPendingDevs(app.bluetoothAdapter);
 			}
 			else
 			{
@@ -288,7 +287,8 @@ static void onScanStatus(EmuApp &app, unsigned status, int arg)
 			}
 			break;
 		}
-		/*case BluetoothAdapter::SOCKET_OPEN_FAILED:
+		case BluetoothScanState::Cancelled: break;
+		/*case BluetoothScanState::SocketOpenFailed:
 		{
 			app.postErrorMessage("Failed opening a Bluetooth connection");
 		}*/
@@ -323,9 +323,8 @@ void MainMenuView::loadStandardItems()
 	if(used(scanWiimotes) && app().showsBluetoothScan)
 	{
 		item.emplace_back(&scanWiimotes);
-		#ifdef CONFIG_BLUETOOTH_SERVER
-		item.emplace_back(&acceptPS3ControllerConnection);
-		#endif
+		if(used(acceptPS3ControllerConnection))
+			item.emplace_back(&acceptPS3ControllerConnection);
 		item.emplace_back(&bluetoothDisconnect);
 	}
 	item.emplace_back(&benchmark);
@@ -345,8 +344,14 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach):
 	{
 		"Options",
 		attach,
-		[this](const TableView &) { return EmuApp::hasGooglePlayStoreFeatures() ? std::size(subConfig) : std::size(subConfig)-1; },
-		[this](const TableView &, size_t idx) -> MenuItem& { return subConfig[idx]; }
+		[this](ItemMessage msg) -> ItemReply
+		{
+			return visit(overloaded
+			{
+				[&](const ItemsMessage &m) -> ItemReply { return EmuApp::hasGooglePlayStoreFeatures() ? std::size(subConfig) : std::size(subConfig)-1; },
+				[&](const GetItemMessage &m) -> ItemReply { return &subConfig[m.idx]; },
+			}, msg);
+		}
 	},
 	subConfig
 	{

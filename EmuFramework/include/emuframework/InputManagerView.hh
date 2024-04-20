@@ -83,13 +83,9 @@ private:
 	ConditionalMember<Config::Input::DEVICE_HOTSWAP, BoolMenuItem> notifyDeviceChange;
 	ConditionalMember<Config::Input::BLUETOOTH, TextHeadingMenuItem> bluetoothHeading;
 	ConditionalMember<Config::Input::BLUETOOTH && Config::BASE_CAN_BACKGROUND_APP, BoolMenuItem> keepBtActive;
-	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
-	TextMenuItem btScanSecsItem[5];
-	MultiChoiceMenuItem btScanSecs;
-	#endif
-	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-	BoolMenuItem btScanCache;
-	#endif
+	ConditionalMember<Config::Bluetooth::scanTime, TextMenuItem> btScanSecsItem[5];
+	ConditionalMember<Config::Bluetooth::scanTime, MultiChoiceMenuItem> btScanSecs;
+	ConditionalMember<Config::Bluetooth::scanCache, BoolMenuItem> btScanCache;
 	BoolMenuItem altGamepadConfirm;
 	StaticArrayList<MenuItem*, 10> item;
 	EmuInputView *emuInputView{};

@@ -64,7 +64,7 @@ namespace IG::Gfx
 
 PixmapBufferTexture::PixmapBufferTexture(RendererTask &r, TextureConfig config, TextureBufferMode mode, bool singleBuffer)
 {
-	mode = r.renderer().makeValidTextureBufferMode(mode);
+	mode = r.renderer().evalTextureBufferMode(mode);
 	try
 	{
 		if(mode == TextureBufferMode::SYSTEM_MEMORY)
@@ -429,7 +429,7 @@ std::vector<TextureBufferModeDesc> Renderer::textureBufferModes()
 	return methodDesc;
 }
 
-TextureBufferMode Renderer::makeValidTextureBufferMode(TextureBufferMode mode)
+TextureBufferMode Renderer::evalTextureBufferMode(TextureBufferMode mode)
 {
 	switch(mode)
 	{
@@ -448,14 +448,21 @@ TextureBufferMode Renderer::makeValidTextureBufferMode(TextureBufferMode mode)
 		case TextureBufferMode::SYSTEM_MEMORY:
 			return TextureBufferMode::SYSTEM_MEMORY;
 		case TextureBufferMode::PBO:
-			return hasPersistentBufferMapping(*this) ? TextureBufferMode::PBO : makeValidTextureBufferMode();
+			return hasPersistentBufferMapping(*this) ? TextureBufferMode::PBO : evalTextureBufferMode();
 		#ifdef __ANDROID__
 		case TextureBufferMode::ANDROID_HARDWARE_BUFFER:
-			return hasHardwareBuffer(*this) ? TextureBufferMode::ANDROID_HARDWARE_BUFFER : makeValidTextureBufferMode();
+			return hasHardwareBuffer(*this) ? TextureBufferMode::ANDROID_HARDWARE_BUFFER : evalTextureBufferMode();
 		case TextureBufferMode::ANDROID_SURFACE_TEXTURE:
-			return hasSurfaceTexture(*this) ? TextureBufferMode::ANDROID_SURFACE_TEXTURE : makeValidTextureBufferMode();
+			return hasSurfaceTexture(*this) ? TextureBufferMode::ANDROID_SURFACE_TEXTURE : evalTextureBufferMode();
 		#endif
 	}
+}
+
+TextureBufferMode Renderer::validateTextureBufferMode(TextureBufferMode mode)
+{
+	if(mode == Gfx::TextureBufferMode::DEFAULT || evalTextureBufferMode(mode) == mode)
+		return mode;
+	return Gfx::TextureBufferMode::DEFAULT;
 }
 
 }

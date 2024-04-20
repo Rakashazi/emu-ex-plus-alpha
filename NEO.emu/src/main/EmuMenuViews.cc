@@ -598,24 +598,15 @@ class UnibiosSwitchesView : public TableView
 		memory.memcard[3] = val;
 	}
 
+	std::array<MenuItem*, 2> items{&region, &system};
+
 public:
 	UnibiosSwitchesView(ViewAttachParams attach):
 		TableView
 		{
 			"Unibios Switches",
 			attach,
-			[this](const TableView &)
-			{
-				return 2;
-			},
-			[this](const TableView &, unsigned idx) -> MenuItem&
-			{
-				switch(idx)
-				{
-					case 0: return region;
-					default: return system;
-				}
-			}
+			items
 		}
 	{}
 

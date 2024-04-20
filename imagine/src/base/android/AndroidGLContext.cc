@@ -62,12 +62,12 @@ NativeWindowFormat GLManager::nativeWindowFormat(ApplicationContext, GLBufferCon
 
 bool GLManager::hasBufferConfig(GLBufferConfigAttributes attrs) const
 {
-	switch(attrs.pixelFormat.id())
+	switch(attrs.pixelFormat.id)
 	{
 		case PIXEL_NONE:
 		case PIXEL_RGB565:
 		case PIXEL_RGBA8888: return true;
-		default: bug_unreachable("format id == %d", attrs.pixelFormat.id());
+		default: bug_unreachable("format id == %d", attrs.pixelFormat.id);
 	}
 }
 

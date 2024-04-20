@@ -355,7 +355,7 @@ ColorSpace Renderer::supportedColorSpace(PixelFormat fmt, ColorSpace wantedColor
 	{
 		case ColorSpace::LINEAR: return ColorSpace::LINEAR;
 		case ColorSpace::SRGB:
-			switch(fmt.id())
+			switch(fmt.id)
 			{
 				case PIXEL_FMT_RGBA8888:
 				case PIXEL_FMT_BGRA8888:

@@ -282,15 +282,15 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		NotificationHelper.removeNotification(this);
 	}
 	
-	static native void onBTScanStatus(int result);
-	static native boolean onScanDeviceClass(int btClass);
-	static native void onScanDeviceName(String name, String addr);
-	static native void onBTOn(boolean success);
+	static native void onBTScanStatus(long nativeBta, int result);
+	static native boolean onScanDeviceClass(long nativeBta, int btClass);
+	static native void onScanDeviceName(long nativeBta, String name, String addr);
+	static native void onBTOn(long nativeBta, boolean success);
 	
-	BluetoothAdapter btDefaultAdapter()
+	BluetoothAdapter btDefaultAdapter(long nativeBta)
 	{
 		//Log.i(logTag, "btDefaultAdapter()");
-		return Bluetooth.defaultAdapter();
+		return Bluetooth.defaultAdapter(nativeBta);
 	}
 	
 	int btStartScan(BluetoothAdapter adapter)
@@ -325,7 +325,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	{
 		if(requestCode == REQUEST_BT_ON)
 		{
-			onBTOn(resultCode == RESULT_OK);
+			onBTOn(Bluetooth.nativeBta, resultCode == RESULT_OK);
 		}
 		else if(android.os.Build.VERSION.SDK_INT >= 21 && requestCode == REQUEST_OPEN_DOCUMENT_TREE &&
 			resultCode == RESULT_OK && intent != null && activityResultNativeUserData != 0)
