@@ -25,7 +25,7 @@
 namespace EmuEx
 {
 
-class FilePathOptionView : public TableView, public EmuAppHelper<FilePathOptionView>
+class FilePathOptionView : public TableView, public EmuAppHelper
 {
 public:
 	FilePathOptionView(ViewAttachParams attach, bool customMenu = false);

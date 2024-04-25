@@ -46,11 +46,10 @@ public:
 		}
 	}
 
-	T *data() const { return reinterpret_cast<T*>(ptr.get()); }
+	auto data(this auto&& self) { return reinterpret_cast<T*>(self.ptr.get()); }
 	constexpr size_t size() const { return size_; }
 	constexpr size_t elementSize() const { return elemSize; }
-	T& operator[](size_t idx) { return reinterpret_cast<T&>(ptr[idx * elemSize]); }
-	const T& operator[](size_t idx) const { return reinterpret_cast<T&>(ptr[idx * elemSize]); }
+	auto& operator[](this auto&& self, size_t idx) { return reinterpret_cast<T&>(self.ptr[idx * self.elemSize]); }
 	auto release() { return ptr.release(); }
 
 	auto reset(size_t size, size_t flexSize)

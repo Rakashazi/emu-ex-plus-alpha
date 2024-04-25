@@ -15,7 +15,6 @@
 
 #include <emuframework/EmuViewController.hh>
 #include <emuframework/EmuApp.hh>
-#include <emuframework/EmuAppHelper.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuView.hh>
 #include <emuframework/EmuVideoLayer.hh>

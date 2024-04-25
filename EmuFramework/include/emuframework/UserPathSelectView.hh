@@ -24,11 +24,9 @@
 namespace EmuEx
 {
 
-class UserPathSelectView : public TableView, public EmuAppHelper<UserPathSelectView>
+class UserPathSelectView : public TableView, public EmuAppHelper
 {
 public:
-	using EmuAppHelper<UserPathSelectView>::app;
-
 	UserPathSelectView(UTF16Convertible auto &&name, ViewAttachParams attach, FS::PathString initialDir,
 		std::invocable<CStringView> auto &&onPathChange):
 		TableView{IG_forward(name), attach, item},

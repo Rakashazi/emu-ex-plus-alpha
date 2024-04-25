@@ -125,7 +125,7 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	initOptions(ctx);
 }
 
-class ExitConfirmAlertView : public AlertView, public EmuAppHelper<ExitConfirmAlertView>
+class ExitConfirmAlertView : public AlertView, public EmuAppHelper
 {
 public:
 	ExitConfirmAlertView(ViewAttachParams attach, bool hasEmuContent):

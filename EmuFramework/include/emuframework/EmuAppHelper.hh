@@ -21,22 +21,22 @@ namespace EmuEx
 {
 
 class EmuApp;
-class EmuSystem;
 
 // Easier access to the EmuApp object for any class that provides an appContext() function
-template<class T, class App = EmuApp>
-class EmuAppHelper
+template<class App>
+struct EmuAppHelperBase
 {
-public:
-	App &app() const
+	auto& app(this auto&& self)
 	{
-		return static_cast<const T*>(this)->appContext().template applicationAs<App>();
+		return self.appContext().template applicationAs<App>();
 	}
 
-	auto &system() const
+	auto& system(this auto&& self)
 	{
-		return app().system();
+		return self.EmuAppHelperBase<App>::app().system();
 	}
 };
+
+using EmuAppHelper = EmuAppHelperBase<EmuApp>;
 
 }

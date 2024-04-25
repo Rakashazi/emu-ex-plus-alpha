@@ -28,6 +28,9 @@
 namespace EmuEx
 {
 
+class EmuApp;
+class EmuSystem;
+
 #if defined __ANDROID__ || \
 	defined CONFIG_OS_IOS || \
 	(defined CONFIG_BASE_X11 && !defined CONFIG_MACHINE_PANDORA)

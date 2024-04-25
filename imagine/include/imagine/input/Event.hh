@@ -161,10 +161,8 @@ class Event : public EventVariant
 public:
 	using EventVariant::EventVariant;
 
-	constexpr auto motionEvent() { return std::get_if<MotionEvent>(this); }
-	constexpr auto motionEvent() const { return std::get_if<MotionEvent>(this); }
-	constexpr auto keyEvent() { return std::get_if<KeyEvent>(this); }
-	constexpr auto keyEvent() const { return std::get_if<KeyEvent>(this); }
+	constexpr auto motionEvent(this auto&& self) { return std::get_if<MotionEvent>(&self); }
+	constexpr auto keyEvent(this auto&& self) { return std::get_if<KeyEvent>(&self); }
 	constexpr auto state() const { return visit([](auto &e){ return e.state(); }, *this); }
 	constexpr auto metaKeyBits() const { return visit([](auto &e){ return e.metaKeyBits(); }, *this); }
 

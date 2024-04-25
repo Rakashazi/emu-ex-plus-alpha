@@ -24,7 +24,7 @@ namespace EmuEx
 
 using namespace IG;
 
-class FilePicker : public FSPicker, public EmuAppHelper<FilePicker>
+class FilePicker : public FSPicker, public EmuAppHelper
 {
 public:
 	FilePicker(ViewAttachParams, FSPicker::Mode, EmuSystem::NameFilterFunc, const Input::Event &, bool includeArchives = true);

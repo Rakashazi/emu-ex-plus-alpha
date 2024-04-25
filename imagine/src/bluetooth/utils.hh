@@ -2,7 +2,7 @@
 
 #include <imagine/bluetooth/BluetoothAdapter.hh>
 #include <imagine/util/format.hh>
-#include <cctype>
+#include <imagine/util/ctype.hh>
 
 namespace IG
 {
@@ -26,10 +26,10 @@ static int bachk(const char *str)
 		return -1;
 
 	while (*str) {
-		if (!isxdigit(*str++))
+		if (!isXdigit(*str++))
 			return -1;
 
-		if (!isxdigit(*str++))
+		if (!isXdigit(*str++))
 			return -1;
 
 		if (*str == 0)

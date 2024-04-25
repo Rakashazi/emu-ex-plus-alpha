@@ -404,10 +404,10 @@ static FS::PathString vic20ExtraCartPath(ApplicationContext ctx, std::string_vie
 	bool addrCharIsUpper = addrSuffixChar == 'A' || addrSuffixChar == 'B';
 	for(auto c : std::array{'2', '4', '6', 'a', 'b'}) // looks for a matching file with a valid memory address suffix
 	{
-		if(c == tolower(addrSuffixChar))
+		if(c == toLower(addrSuffixChar))
 			continue; // skip original filename
 		FS::FileString cartName{baseCartName};
-		cartName[addrSuffixOffset] = addrCharIsUpper ? toupper(c) : c;
+		cartName[addrSuffixOffset] = addrCharIsUpper ? toUpper(c) : c;
 		auto cartPath = FS::uriString(searchPath, cartName);
 		if(ctx.fileUriExists(cartPath))
 		{

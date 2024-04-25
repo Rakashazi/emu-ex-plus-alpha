@@ -41,7 +41,7 @@ public:
 	PngImage(PngImage &&o) noexcept;
 	PngImage &operator=(PngImage &&o) noexcept;
 	~PngImage();
-	std::errc readImage(PixmapView dest);
+	std::errc readImage(MutablePixmapView dest);
 	bool hasAlphaChannel();
 	bool isGrayscale();
 	void freeImageData();

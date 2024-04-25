@@ -258,8 +258,6 @@ void AutosaveManager::writeConfig(FileIO &io) const
 	writeOptionValueIfNotDefault(io, CFGKEY_AUTOSAVE_CONTENT, saveOnlyBackupMemory, false);
 }
 
-EmuSystem &AutosaveManager::system() { return app.system(); }
-const EmuSystem &AutosaveManager::system() const { return app.system(); }
 ApplicationContext AutosaveManager::appContext() const { return system().appContext(); }
 
 }

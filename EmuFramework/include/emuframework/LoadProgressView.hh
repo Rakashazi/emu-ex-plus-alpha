@@ -25,7 +25,7 @@ namespace EmuEx
 
 using namespace IG;
 
-class LoadProgressView : public View, public EmuAppHelper<LoadProgressView>
+class LoadProgressView : public View, public EmuAppHelper
 {
 public:
 	using MessagePortType = IG::MessagePort<EmuSystem::LoadProgressMessage>;

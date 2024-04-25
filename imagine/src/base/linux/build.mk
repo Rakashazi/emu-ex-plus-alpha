@@ -5,7 +5,7 @@ include $(imagineSrcDir)/base/Base.mk
 include $(imagineSrcDir)/input/build.mk
 include $(imagineSrcDir)/util/fdUtils.mk
 
-LDLIBS += -lpthread -ldl
+LDLIBS += -ldl
 
 SRC += base/linux/Application.cc \
  base/linux/ApplicationContext.cc \

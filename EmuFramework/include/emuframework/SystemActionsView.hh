@@ -25,7 +25,7 @@ namespace EmuEx
 
 using namespace IG;
 
-class SystemActionsView : public TableView, public EmuAppHelper<SystemActionsView>
+class SystemActionsView : public TableView, public EmuAppHelper
 {
 public:
 	SystemActionsView(ViewAttachParams attach, bool customMenu = false);

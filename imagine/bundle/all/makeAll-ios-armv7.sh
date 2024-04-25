@@ -3,7 +3,7 @@ makefilesToRun='
 
 	src/libogg/ios-armv7.mk
 	
-	src/tremor/ios-armv7.mk
+	src/libvorbis/ios-armv7.mk
 	
 	src/flac/ios-armv7.mk
 	

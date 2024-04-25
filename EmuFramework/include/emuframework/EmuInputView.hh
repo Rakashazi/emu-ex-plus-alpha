@@ -28,7 +28,7 @@ class EmuVideoLayer;
 class EmuViewController;
 enum class AltSpeedMode;
 
-class EmuInputView : public View, public EmuAppHelper<EmuInputView>
+class EmuInputView : public View, public EmuAppHelper
 {
 public:
 	EmuInputView();

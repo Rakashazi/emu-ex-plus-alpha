@@ -32,7 +32,6 @@ namespace IG
 {
 
 class Window;
-class MenuItem;
 
 class TableView : public ScrollView
 {

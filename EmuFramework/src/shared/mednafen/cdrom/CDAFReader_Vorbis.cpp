@@ -23,15 +23,7 @@
 #include "CDAFReader.h"
 #include "CDAFReader_Vorbis.h"
 
-#if defined ARCH_X86 || defined __aarch64__
-#define CONFIG_PACKAGE_LIBVORBIS
-#endif
-
-#ifdef CONFIG_PACKAGE_LIBVORBIS
 #include <vorbis/vorbisfile.h>
-#else
-#include <tremor/ivorbisfile.h>
-#endif
 
 namespace Mednafen
 {
@@ -152,12 +144,7 @@ uint64 CDAFReader_Vorbis::Read_(int16 *buffer, uint64 frames)
 	#else
 	int endianPack = 0;
 	#endif
-  long didread =
-	 #ifdef CONFIG_PACKAGE_LIBVORBIS
-	 ov_read(&ovfile, (char*)tw_buf, toread, endianPack, 2, 1, &cursection);
-	 #else
-	 ov_read(&ovfile, (char*)tw_buf, toread, &cursection);
-	 #endif
+  long didread = ov_read(&ovfile, (char*)tw_buf, toread, endianPack, 2, 1, &cursection);
 
   if(didread == 0)
    break;

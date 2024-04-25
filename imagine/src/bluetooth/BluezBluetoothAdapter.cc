@@ -356,7 +356,7 @@ std::system_error BluetoothSocket::open(BluetoothAdapter&, BluetoothPendingSocke
 	if(onStatus(*this, BluetoothSocketState::Opened) == 1)
 		setupFDEvents(POLLEV_IN);
 		//addPollEvent(fd, pollEvDel, POLLEV_IN);
-	return {};
+	return std::error_code{};
 }
 
 bool BluezBluetoothSocket::readPendingData(int events)
@@ -450,7 +450,7 @@ std::system_error BluetoothSocket::openRfcomm(BluetoothAdapter &, BluetoothAddr 
 	}
 	fd_setNonblock(fd, 0);
 	setupFDEvents(POLLEV_OUT);
-	return {};
+	return std::error_code{};
 }
 
 std::system_error BluetoothSocket::openL2cap(BluetoothAdapter &, BluetoothAddr bdaddr, uint32_t psm)
@@ -482,7 +482,7 @@ std::system_error BluetoothSocket::openL2cap(BluetoothAdapter &, BluetoothAddr b
 	}
 	fd_setNonblock(fd, 0);
 	setupFDEvents(POLLEV_OUT);
-	return {};
+	return std::error_code{};
 }
 
 BluezBluetoothSocket::~BluezBluetoothSocket()

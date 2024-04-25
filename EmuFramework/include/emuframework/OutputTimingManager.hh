@@ -65,14 +65,9 @@ public:
 	FrameTimeConfig frameTimeConfig(const EmuSystem &, std::span<const FrameRate> supportedFrameRates) const;
 	static bool frameTimeOptionIsValid(FrameTime time);
 	bool setFrameTimeOption(VideoSystem, FrameTime frameTime);
-	FrameTime frameTimeOption(VideoSystem vidSys) const { return frameTimeVar(vidSys); }
-	auto frameTimeOptionAsMenuId(VideoSystem vidSys) const { return MenuId(frameTimeVar(vidSys).count() > 0 ? 1 : frameTimeVar(vidSys).count()); }
 
 private:
-	FrameTime frameTimeNative{};
-	FrameTime frameTimePAL{};
-
-	static auto &frameTimeVar(auto &self, VideoSystem system)
+	auto& frameTimeVar(this auto&& self, VideoSystem system)
 	{
 	  switch(system)
 	  {
@@ -81,8 +76,14 @@ private:
 	  }
 	  __builtin_unreachable();
 	}
-	FrameTime &frameTimeVar(VideoSystem system) { return frameTimeVar(*this, system); }
-	const FrameTime &frameTimeVar(VideoSystem system) const { return frameTimeVar(*this, system); }
+
+public:
+	FrameTime frameTimeOption(VideoSystem vidSys) const { return frameTimeVar(vidSys); }
+	auto frameTimeOptionAsMenuId(VideoSystem vidSys) const { return MenuId(frameTimeVar(vidSys).count() > 0 ? 1 : frameTimeVar(vidSys).count()); }
+
+private:
+	FrameTime frameTimeNative{};
+	FrameTime frameTimePAL{};
 };
 
 }

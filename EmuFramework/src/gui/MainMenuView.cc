@@ -37,7 +37,7 @@ namespace EmuEx
 
 constexpr SystemLogger log{"AppMenus"};
 
-class OptionCategoryView : public TableView, public EmuAppHelper<OptionCategoryView>
+class OptionCategoryView : public TableView, public EmuAppHelper
 {
 public:
 	OptionCategoryView(ViewAttachParams attach);

@@ -28,15 +28,14 @@
 namespace EmuEx
 {
 
-template <class T>
-using MainAppHelper = EmuAppHelper<T, MainApp>;
+using MainAppHelper = EmuAppHelperBase<MainApp>;
 
 static constexpr size_t MAX_RESAMPLERS = 4;
 
-class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<CustomAudioOptionView>
+class CustomAudioOptionView : public AudioOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomAudioOptionView>::app;
-	using MainAppHelper<CustomAudioOptionView>::system;
+	using MainAppHelper::app;
+	using MainAppHelper::system;
 
 	StaticArrayList<TextMenuItem, MAX_RESAMPLERS> resamplerItem;
 
@@ -68,9 +67,9 @@ public:
 	}
 };
 
-class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<CustomVideoOptionView>
+class CustomVideoOptionView : public VideoOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomVideoOptionView>::system;
+	using MainAppHelper::system;
 
 	TextMenuItem::SelectDelegate setGbPaletteDel()
 	{
@@ -129,7 +128,7 @@ public:
 	}
 };
 
-class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionView>
+class ConsoleOptionView : public TableView, public MainAppHelper
 {
 	BoolMenuItem useBuiltinGBPalette
 	{
@@ -194,9 +193,9 @@ public:
 	}
 };
 
-class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<CustomFilePathOptionView>
+class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomFilePathOptionView>::system;
+	using MainAppHelper::system;
 
 	TextMenuItem cheatsPath
 	{

@@ -38,16 +38,12 @@ public:
 	constexpr FlatSet(const COMPARE& c = COMPARE()): c{c} {}
 
 	// Iterators (STL API)
-	iterator begin() { return v.begin(); }
-	iterator end() { return v.end(); }
-	const_iterator begin() const { return v.begin(); }
-	const_iterator end() const { return v.end(); }
+	auto begin(this auto&& self) { return self.v.begin(); }
+	auto end(this auto&& self) { return self.v.end(); }
 	const_iterator cbegin() const { return v.cbegin(); }
 	const_iterator cend() const { return v.cend(); }
-	reverse_iterator rbegin() { return reverse_iterator(end()); }
-	reverse_iterator rend() { return reverse_iterator(begin()); }
-	const_reverse_iterator rbegin() const { return const_reverse_iterator(end()); }
-	const_reverse_iterator rend() const { return const_reverse_iterator(begin()); }
+	auto rbegin(this auto&& self) { return std::reverse_iterator(self.end()); }
+	auto rend(this auto&& self) { return std::reverse_iterator(self.begin()); }
 	const_reverse_iterator crbegin() const { return rbegin(); }
 	const_reverse_iterator crend() const { return rend(); }
 
@@ -65,11 +61,8 @@ public:
 		return v.at(idx);
 	}
 
-	T *data() { return v.data(); }
-	const T *data() const { return v.data(); }
-
-	T& operator[] (int idx) { return v[idx]; }
-	const T& operator[] (int idx) const { return v[idx]; }
+	auto data(this auto&& self) { return self.v.data(); }
+	auto& operator[] (this auto&& self, int idx) { return self.v[idx]; }
 
 	// Modifiers (STL API)
 	void clear()

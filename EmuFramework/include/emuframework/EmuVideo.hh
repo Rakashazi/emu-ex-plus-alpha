@@ -43,7 +43,7 @@ protected:
 	Gfx::LockedTextureBuffer texBuff;
 };
 
-class EmuVideo : public EmuAppHelper<EmuVideo>
+class EmuVideo : public EmuAppHelper
 {
 public:
 	using FrameFinishedDelegate = DelegateFunc<void (EmuVideo &)>;

@@ -34,10 +34,6 @@ static constexpr bool XDND = !Config::MACHINE_IS_PANDORA;
 namespace IG
 {
 
-class Screen;
-class Window;
-class FrameTimer;
-class FDEventSource;
 struct XIDeviceInfo;
 
 enum class SupportedFrameTimer : uint8_t

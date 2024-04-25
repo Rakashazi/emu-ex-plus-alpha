@@ -42,9 +42,6 @@ class Window;
 class Screen;
 class ApplicationContext;
 class Application;
-class View;
-class ViewManager;
-class MenuItem;
 struct DocumentPickerEvent;
 
 class ViewController

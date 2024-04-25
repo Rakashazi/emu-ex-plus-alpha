@@ -35,7 +35,7 @@ constexpr bool containsAny(std::string_view s, auto &&...substrs)
 [[nodiscard]]
 constexpr bool equalsToLower(char lhs, char rhs)
 {
-	return tolower<char>(lhs) == tolower<char>(rhs);
+	return toLower<char>(lhs) == toLower<char>(rhs);
 }
 
 [[nodiscard]]
@@ -58,7 +58,7 @@ constexpr auto toUpperCase(std::string_view s)
 	dest.reserve(s.size());
 	for(auto c : s)
 	{
-		dest.push_back(toupper(c));
+		dest.push_back(toUpper(c));
 	}
 	return dest;
 }
@@ -100,7 +100,7 @@ constexpr std::string_view dotExtension(std::convertible_to<std::string_view> au
 [[nodiscard]]
 constexpr bool caselessLexCompare(std::string_view s1, std::string_view s2)
 {
-	return std::ranges::lexicographical_compare(s1, s2, std::ranges::less{}, tolower<char>, tolower<char>);
+	return std::ranges::lexicographical_compare(s1, s2, std::ranges::less{}, toLower<char>, toLower<char>);
 }
 
 }

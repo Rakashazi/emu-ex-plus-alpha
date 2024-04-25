@@ -29,26 +29,6 @@ namespace IG
 template <size_t SIZE>
 using ByteArray = std::array<uint8_t, SIZE>;
 
-// simple 2D view into an array
-template <class T>
-struct ArrayView2
-{
-	T *arr{};
-	std::size_t pitch{};
-
-	constexpr std::size_t flatOffset(std::size_t row, std::size_t col) const
-	{
-		return (row * pitch) + col;
-	}
-
-	constexpr std::span<T> operator[](std::size_t row) const
-	{
-		return {arr + (row * pitch), pitch};
-	}
-
-	constexpr T *data() { return arr; }
-};
-
 // Static array for storing non-null elements, terminated by null
 template<class T, size_t maxSize>
 class ZArray : public std::array<T, maxSize>
@@ -62,9 +42,8 @@ public:
 	constexpr ZArray(auto &&...args): Base{IG_forward(args)...} {}
 	constexpr size_t size() const { return findIndex(std::span{this->data(), maxSize}, T{}, maxSize); }
 	constexpr size_t capacity() const { return maxSize; }
-	constexpr auto end() { return this->data() + size(); }
-	constexpr auto end() const { return this->data() + size(); }
-	constexpr auto cend() const { return this->data() + size(); }
+	constexpr auto end(this auto&& self) { return self.data() + self.size(); }
+	constexpr const_iterator cend() const { return end(); }
 	constexpr size_t freeSpace() const { return capacity() - size(); }
 	constexpr bool isFull() const { return !freeSpace(); }
 

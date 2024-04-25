@@ -24,7 +24,7 @@
 namespace EmuEx
 {
 
-class RecentContentView : public TableView, public EmuAppHelper<RecentContentView>
+class RecentContentView : public TableView, public EmuAppHelper
 {
 public:
 	RecentContentView(ViewAttachParams attach, RecentContent &);

@@ -199,12 +199,10 @@ public:
 	constexpr auto &tl() { return v[tlIdx]; }
 	constexpr auto &tr() { return v[trIdx]; }
 	constexpr auto &br() { return v[brIdx]; }
-	constexpr auto data() const { return v.data(); }
+	constexpr auto data(this auto&& self) { return self.v.data(); }
 	constexpr auto size() const { return v.size(); }
-	constexpr auto begin() { return v.begin(); }
-	constexpr auto begin() const { return v.begin(); }
-	constexpr auto end() { return v.end(); }
-	constexpr auto end() const { return v.end(); }
+	constexpr auto begin(this auto&& self) { return self.v.begin(); }
+	constexpr auto end(this auto&& self) { return self.v.end(); }
 };
 
 using Quad = BaseQuad<Vertex2F>;

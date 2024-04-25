@@ -113,6 +113,7 @@ static const char *glImageFormatToString(int format)
 		case GL_RG8: return "RG8";
 		case GL_LUMINANCE8: return "LUMINANCE8";
 		case GL_LUMINANCE8_ALPHA8: return "LUMINANCE8_ALPHA8";
+		case GL_LUMINANCE_ALPHA: return "LUMINANCE_ALPHA";
 		case GL_ALPHA8: return "ALPHA8";
 		case GL_RGBA: return "RGBA";
 		case GL_BGRA: return "BGRA";

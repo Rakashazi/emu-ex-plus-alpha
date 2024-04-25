@@ -30,7 +30,7 @@ namespace EmuEx
 
 constexpr SystemLogger log{"FrameTimingView"};
 
-class DetectFrameRateView final: public View, public EmuAppHelper<DetectFrameRateView>
+class DetectFrameRateView final: public View, public EmuAppHelper
 {
 public:
 	using DetectFrameRateDelegate = DelegateFunc<void (SteadyClockTime frameTime)>;

@@ -25,6 +25,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Viewport.hh>
 #include <imagine/data-type/image/PixmapSource.hh>
+#include <imagine/util/ctype.hh>
 #include "internalDefs.hh"
 
 namespace IG::Gfx
@@ -598,7 +599,7 @@ static void printFeatures(DrawContextSupport support)
 	{
 		featuresStr.append(" [PBOs]");
 	}
-	if(!Config::Gfx::OPENGL_ES || (Config::Gfx::OPENGL_ES && support.glMapBufferRange))
+	if(!Config::Gfx::OPENGL_ES || (Config::Gfx::OPENGL_ES && (bool)support.glMapBufferRange))
 	{
 		featuresStr.append(" [Map Buffer Range]");
 	}
@@ -891,7 +892,8 @@ void GLRenderer::checkExtensionString(std::string_view extStr)
 	{
 		support.hasSrgbWriteControl = true;
 	}
-	else if(extStr == "GL_OES_vertex_array_object")
+	else if(extStr == "GL_OES_vertex_array_object"
+		&& !Config::MACHINE_IS_PANDORA) // VAOs may crash inside GL driver on Pandora
 	{
 		setupVAOFuncs(true);
 	}
@@ -939,7 +941,7 @@ void GLRenderer::checkFullExtensionString(const char *fullExtStr)
 static int glVersionFromStr(const char *versionStr)
 {
 	// skip to version number
-	while(!isdigit(*versionStr) && *versionStr != '\0')
+	while(!isDigit(*versionStr) && *versionStr != '\0')
 		versionStr++;
 	int major = 1, minor = 0;
 	if(sscanf(versionStr, "%d.%d", &major, &minor) != 2)

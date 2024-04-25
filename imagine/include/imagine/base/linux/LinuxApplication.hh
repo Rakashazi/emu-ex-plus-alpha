@@ -31,7 +31,6 @@ namespace IG
 {
 
 class LinuxApplication;
-class ApplicationContext;
 
 struct ApplicationInitParams
 {

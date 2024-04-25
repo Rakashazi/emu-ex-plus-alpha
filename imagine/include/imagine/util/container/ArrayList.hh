@@ -39,16 +39,12 @@ public:
 	constexpr StaticArrayList() = default;
 
 	// Iterators (STL API)
-	constexpr iterator begin() { return data(); }
-	constexpr iterator end() { return data() + size(); }
-	constexpr const_iterator begin() const { return data(); }
-	constexpr const_iterator end() const { return data() + size(); }
+	constexpr auto begin(this auto&& self) { return self.data(); }
+	constexpr auto end(this auto&& self) { return self.data() + self.size(); }
 	constexpr const_iterator cbegin() const { return begin(); }
 	constexpr const_iterator cend() const { return end(); }
-	constexpr reverse_iterator rbegin() { return reverse_iterator(end()); }
-	constexpr reverse_iterator rend() { return reverse_iterator(begin()); }
-	constexpr const_reverse_iterator rbegin() const { return const_reverse_iterator(end()); }
-	constexpr const_reverse_iterator rend() const { return const_reverse_iterator(begin()); }
+	constexpr auto rbegin(this auto&& self) { return std::reverse_iterator(self.end()); }
+	constexpr auto rend(this auto&& self) { return std::reverse_iterator(self.begin()); }
 	constexpr const_reverse_iterator crbegin() const { return rbegin(); }
 	constexpr const_reverse_iterator crend() const { return rend(); }
 
@@ -85,11 +81,8 @@ public:
 		return (*this)[idx];
 	}
 
-	constexpr T *data() { return storage(); }
-	constexpr const T *data() const { return storage(); }
-
-	constexpr T& operator[] (int idx) { return data()[idx]; }
-	constexpr const T& operator[] (int idx) const { return data()[idx]; }
+	constexpr auto* data(this auto&& self) { return self.storage(); }
+	constexpr auto& operator[] (this auto&& self, int idx) { return self.data()[idx]; }
 
 	// Modifiers (STL API)
 	constexpr void clear()
@@ -173,8 +166,7 @@ private:
 	size_t size_{};
 	T arr[SIZE];
 
-	constexpr T *storage() { return arr; }
-	constexpr const T *storage() const { return arr; }
+	constexpr auto* storage(this auto&& self) { return self.arr; }
 };
 
 template<class T, size_t SIZE>

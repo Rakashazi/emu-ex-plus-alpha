@@ -26,7 +26,7 @@ namespace EmuEx
 
 using namespace IG;
 
-class AutosaveSlotView : public TableView, public EmuAppHelper<AutosaveSlotView>
+class AutosaveSlotView : public TableView, public EmuAppHelper
 {
 public:
 	class SlotTextMenuItem : public TextMenuItem

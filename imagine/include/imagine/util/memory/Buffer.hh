@@ -92,19 +92,16 @@ public:
 		return stringView(0, size());
 	}
 
-	constexpr T *data() const { return data_.get(); }
+	constexpr auto data(this auto&& self) { return self.data_.get(); }
 
 	constexpr size_t size() const
 	{
 		return data_.get_deleter().size;
 	}
 
-	constexpr T& operator[] (size_t idx) { return data()[idx]; }
-	constexpr const T& operator[] (size_t idx) const { return data()[idx]; }
-	constexpr auto begin() { return data(); }
-	constexpr auto end() { return data() + size(); }
-	constexpr auto begin() const { return data(); }
-	constexpr auto end() const { return data() + size(); }
+	constexpr auto& operator[] (this auto&& self, size_t idx) { return self.data()[idx]; }
+	constexpr auto begin(this auto&& self) { return self.data(); }
+	constexpr auto end(this auto&& self) { return self.data() + self.size(); }
 
 	constexpr explicit operator bool() const
 	{

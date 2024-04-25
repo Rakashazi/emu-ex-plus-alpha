@@ -25,7 +25,7 @@ namespace EmuEx
 
 using namespace IG;
 
-class CPUAffinityView : public TableView, public EmuAppHelper<CPUAffinityView>
+class CPUAffinityView : public TableView, public EmuAppHelper
 {
 public:
 	CPUAffinityView(ViewAttachParams attach, int cpuCount);

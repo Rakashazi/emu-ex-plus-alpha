@@ -27,7 +27,7 @@ namespace EmuEx
 using namespace IG;
 class EmuAudio;
 
-class AudioOptionView : public TableView, public EmuAppHelper<AudioOptionView>
+class AudioOptionView : public TableView, public EmuAppHelper
 {
 public:
 	AudioOptionView(ViewAttachParams attach, EmuAudio&, bool customMenu = false);

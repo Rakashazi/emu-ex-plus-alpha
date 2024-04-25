@@ -51,7 +51,7 @@ private:
 	Gfx::IQuads quads;
 };
 
-class InputManagerView final: public TableView, public EmuAppHelper<InputManagerView>
+class InputManagerView final: public TableView, public EmuAppHelper
 {
 public:
 	InputManagerView(ViewAttachParams attach, InputManager &);
@@ -73,7 +73,7 @@ private:
 	void loadItems();
 };
 
-class InputManagerOptionsView : public TableView, public EmuAppHelper<InputManagerOptionsView>
+class InputManagerOptionsView : public TableView, public EmuAppHelper
 {
 public:
 	InputManagerOptionsView(ViewAttachParams attach, EmuInputView *emuInputView);
@@ -91,7 +91,7 @@ private:
 	EmuInputView *emuInputView{};
 };
 
-class InputManagerDeviceView : public TableView, public EmuAppHelper<InputManagerDeviceView>
+class InputManagerDeviceView : public TableView, public EmuAppHelper
 {
 public:
 	InputManagerDeviceView(UTF16String name, ViewAttachParams,

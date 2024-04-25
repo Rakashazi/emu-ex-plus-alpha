@@ -27,20 +27,11 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/logger/logger.h>
 
-#ifdef CONFIG_MACHINE_PANDORA
-// remap type name for libpng 1.2
-#define png_info_struct png_info_def
-#endif
-
 #define PNG_SKIP_SETJMP_CHECK
 #include <png.h>
 
 // this must be in the range 1 to 8
 #define INITIAL_HEADER_READ_BYTES 8
-
-#if PNG_LIBPNG_VER < 10500
-using png_const_bytep = png_bytep;
-#endif
 
 #ifndef PNG_ERROR_TEXT_SUPPORTED
 
@@ -243,12 +234,10 @@ void PngImage::setTransforms(PixelFormat outFormat, png_infop transInfo)
 			png_set_filler(png, 0xFF, PNG_FILLER_AFTER);
 	}
 
-	#ifdef PNG_READ_ALPHA_MODE_SUPPORTED
 	if(premultiplyAlpha)
 	{
 		png_set_alpha_mode(png, PNG_ALPHA_STANDARD, PNG_GAMMA_LINEAR);
 	}
-	#endif
 
 	if(supportUncommonConv)
 	{
@@ -284,7 +273,7 @@ void PngImage::setTransforms(PixelFormat outFormat, png_infop transInfo)
 	png_read_update_info(png, info);
 }
 
-std::errc PngImage::readImage(PixmapView dest)
+std::errc PngImage::readImage(MutablePixmapView dest)
 {
 	int height = this->height();
 	int width = this->width();

@@ -77,8 +77,7 @@ public:
 	bool readConfig(MapIO &, unsigned key);
 	void writeConfig(FileIO &) const;
 	ApplicationContext appContext() const;
-	EmuSystem &system();
-	const EmuSystem &system() const;
+	auto& system(this auto&& self) { return self.app.system(); }
 
 private:
 	EmuApp &app;

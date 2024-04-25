@@ -18,15 +18,14 @@
 namespace EmuEx
 {
 
-template <class T>
-using MainAppHelper = EmuAppHelper<T, MainApp>;
+using MainAppHelper = EmuAppHelperBase<MainApp>;
 
 constexpr bool HAS_NSRT = !IS_SNES9X_VERSION_1_4;
 
 #ifndef SNES9X_VERSION_1_4
-class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<CustomAudioOptionView>
+class CustomAudioOptionView : public AudioOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomAudioOptionView>::system;
+	using MainAppHelper::system;
 
 	void setDSPInterpolation(uint8_t val)
 	{
@@ -60,7 +59,7 @@ public:
 };
 #endif
 
-class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionView>
+class ConsoleOptionView : public TableView, public MainAppHelper
 {
 	BoolMenuItem multitap
 	{
@@ -290,10 +289,10 @@ public:
 	}
 };
 
-class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<CustomFilePathOptionView>
+class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomFilePathOptionView>::system;
-	using MainAppHelper<CustomFilePathOptionView>::app;
+	using MainAppHelper::system;
+	using MainAppHelper::app;
 
 	TextMenuItem cheatsPath
 	{

@@ -30,7 +30,7 @@ class EmuVideo;
 enum class ImageEffectId : uint8_t;
 enum class ImageChannel : uint8_t;
 
-class VideoOptionView : public TableView, public EmuAppHelper<VideoOptionView>
+class VideoOptionView : public TableView, public EmuAppHelper
 {
 public:
 	VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLayer, bool customMenu = false);

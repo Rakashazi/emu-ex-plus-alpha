@@ -2,7 +2,7 @@ ifndef CHOST
  CHOST := $(shell $(CC) -dumpmachine)
 endif
 
-libpngVer := 1.6.39
+libpngVer := 1.6.43
 libpngSrcDir := $(tempDir)/libpng-$(libpngVer)
 libpngSrcArchive := libpng-$(libpngVer).tar.xz
 
@@ -36,5 +36,5 @@ $(makeFile) : $(libpngSrcDir)/configure
 	@echo "Configuring libpng..."
 	@mkdir -p $(@D)
 	dir=`pwd` && cd $(@D) && $(libpngSrcDir)/configure --prefix='$${pcfiledir}/../..' --disable-shared \
-	--host=$(CHOST) $(buildArg) "CC=$(CC)" "CFLAGS=$(CPPFLAGS) $(CFLAGS)" \
+	--host=$(CHOST) $(buildArg) "CC=$(CC)" "CPPFLAGS=$(CPPFLAGS)" "CFLAGS=$(CFLAGS)" \
 	"LDFLAGS=$(LDFLAGS) $(LDLIBS)" PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config

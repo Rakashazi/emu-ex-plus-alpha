@@ -65,7 +65,7 @@ static void addCategories(EmuApp &app, VControllerElement &elem, auto &&addCateg
 	}
 }
 
-class DPadElementConfigView : public TableView, public EmuAppHelper<DPadElementConfigView>
+class DPadElementConfigView : public TableView, public EmuAppHelper
 {
 public:
 	DPadElementConfigView(ViewAttachParams attach, TouchConfigView &confView_, VController &vCtrl_, VControllerElement &elem_):
@@ -247,15 +247,16 @@ private:
 	void assignAction(int idx, const Input::Event &e)
 	{
 		auto multiChoiceView = makeViewWithName<TextTableView>("Assign Action", 16);
-		addCategories(app(), elem, [&](const KeyCategory &cat)
+		auto &app = this->app();
+		addCategories(app, elem, [&](const KeyCategory &cat)
 		{
 			for(auto &k : cat.keys)
 			{
-				multiChoiceView->appendItem(app().inputManager.toString(k),
+				multiChoiceView->appendItem(app.inputManager.toString(k),
 					[this, k](TextMenuItem &item, View &parentView, const Input::Event &)
 					{
 						elem.dPad()->config.keys[item.id] = k;
-						actions[item.id].set2ndName(app().inputManager.toString(k));
+						actions[item.id].set2ndName(this->app().inputManager.toString(k));
 						parentView.dismiss();
 					}).id = idx;
 			}
@@ -264,7 +265,7 @@ private:
 	}
 };
 
-class ButtonElementConfigView : public TableView, public EmuAppHelper<ButtonElementConfigView>
+class ButtonElementConfigView : public TableView, public EmuAppHelper
 {
 public:
 	using OnChange = DelegateFunc<void()>;
@@ -281,16 +282,17 @@ public:
 			[this](const Input::Event &e)
 			{
 				auto multiChoiceView = makeViewWithName<TextTableView>("Assign Action", 16);
-				addCategories(app(), elem, [&](const KeyCategory &cat)
+				auto &app = this->app();
+				addCategories(app, elem, [&](const KeyCategory &cat)
 				{
 					for(auto &k : cat.keys)
 					{
-						multiChoiceView->appendItem(app().inputManager.toString(k),
+						multiChoiceView->appendItem(app.inputManager.toString(k),
 							[this, k](View &parentView)
 							{
 								btn.key = k;
 								btn.enabled = vCtrl.keyIsEnabled(k);
-								key.set2ndName(app().inputManager.toString(k));
+								key.set2ndName(this->app().inputManager.toString(k));
 								turbo.setBoolValue(k.flags.turbo, *this);
 								toggle.setBoolValue(k.flags.toggle, *this);
 								vCtrl.update(elem);
@@ -373,7 +375,7 @@ private:
 	}
 };
 
-class ButtonGroupElementConfigView : public TableView, public EmuAppHelper<ButtonGroupElementConfigView>
+class ButtonGroupElementConfigView : public TableView, public EmuAppHelper
 {
 public:
 	ButtonGroupElementConfigView(ViewAttachParams attach, TouchConfigView &confView_, VController &vCtrl_, VControllerElement &elem_):
@@ -582,11 +584,12 @@ public:
 			[this](const Input::Event &e)
 			{
 				auto multiChoiceView = makeViewWithName<TextTableView>("Add Button", 16);
-				addCategories(app(), elem, [&](const KeyCategory &cat)
+				auto &app = this->app();
+				addCategories(app, elem, [&](const KeyCategory &cat)
 				{
 					for(auto &k : cat.keys)
 					{
-						multiChoiceView->appendItem(app().inputManager.toString(k),
+						multiChoiceView->appendItem(app.inputManager.toString(k),
 							[this, k](View &parentView, const Input::Event &e)
 							{
 								elem.add(k);
@@ -694,7 +697,7 @@ private:
 	}
 };
 
-class AddNewButtonView : public TableView, public EmuAppHelper<AddNewButtonView>
+class AddNewButtonView : public TableView, public EmuAppHelper
 {
 public:
 	AddNewButtonView(ViewAttachParams attach, TouchConfigView &confView_, VController &vCtrl_):

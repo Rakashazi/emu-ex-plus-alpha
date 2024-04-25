@@ -109,7 +109,7 @@ bool Text::compile(TextLayoutConfig conf)
 		charsInLine++;
 
 		// Is this the start of a text block?
-		if(isgraph(c) && isspace(prevC))
+		if(isGraph(c) && isSpace(prevC))
 		{
 			textBlockIdx = charIdx;
 			textBlockSize = 0;

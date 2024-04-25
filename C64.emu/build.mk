@@ -631,7 +631,12 @@ libtapeport_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(vic
 
 libsamplerdrv_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/samplerdrv/*)))
 
+ifeq ($(SUBENV), pandora)
+libcCompatSrc = main/linuxCompat.c
+endif
+
 pluginNoTape_src = \
+$(libcCompatSrc) \
 main/pluginCommon.c \
 main/pluginCxxSupport.cc \
 $(libsounddrv_a_SOURCES) \

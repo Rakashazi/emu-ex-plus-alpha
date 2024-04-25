@@ -38,8 +38,7 @@ extern "C"
 namespace EmuEx
 {
 
-template <class T>
-using MainAppHelper = EmuAppHelper<T, MainApp>;
+using MainAppHelper = EmuAppHelperBase<MainApp>;
 
 constexpr SystemLogger log{"MSX.emu"};
 
@@ -110,9 +109,9 @@ static std::vector<FS::FileString> readMachinesNames(IG::ApplicationContext ctx,
 	return machineNames;
 }
 
-class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<CustomSystemOptionView>
+class CustomSystemOptionView : public SystemOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomSystemOptionView>::system;
+	using MainAppHelper::system;
 
 	std::vector<FS::FileString> machineNames{};
 	std::vector<TextMenuItem> machineItems{};
@@ -202,10 +201,10 @@ public:
 	}
 };
 
-class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<CustomFilePathOptionView>
+class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomFilePathOptionView>::app;
-	using MainAppHelper<CustomFilePathOptionView>::system;
+	using MainAppHelper::app;
+	using MainAppHelper::system;
 	friend class FilePathOptionView;
 
 	std::string machinePathMenuEntryStr(IG::CStringView path) const
@@ -271,7 +270,7 @@ public:
 
 static const char *insertEjectDiskMenuStr[] {"Insert File", "Eject"};
 
-class MsxIOControlView : public TableView, public MainAppHelper<MsxIOControlView>
+class MsxIOControlView : public TableView, public MainAppHelper
 {
 public:
 	static const char *hdSlotPrefix[4];
@@ -534,10 +533,10 @@ const char *MsxIOControlView::romSlotPrefix[2] {"ROM1:", "ROM2:"};
 const char *MsxIOControlView::diskSlotPrefix[2] {"Disk1:", "Disk2:"};
 const char *MsxIOControlView::hdSlotPrefix[4] {"IDE1-M:", "IDE1-S:", "IDE2-M:", "IDE2-S:"};
 
-class CustomSystemActionsView : public SystemActionsView, public MainAppHelper<CustomSystemActionsView>
+class CustomSystemActionsView : public SystemActionsView, public MainAppHelper
 {
-	using MainAppHelper<CustomSystemActionsView>::system;
-	using MainAppHelper<CustomSystemActionsView>::app;
+	using MainAppHelper::system;
+	using MainAppHelper::app;
 
 private:
 	TextMenuItem msxIOControl
@@ -655,7 +654,7 @@ static const MixerAudioType channelType[]
 	MIXER_CHANNEL_PCM,
 };
 
-class SoundMixerView : public TableView, public MainAppHelper<SoundMixerView>
+class SoundMixerView : public TableView, public MainAppHelper
 {
 public:
 	SoundMixerView(ViewAttachParams attach):

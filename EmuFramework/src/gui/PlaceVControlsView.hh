@@ -29,7 +29,7 @@ class VControllerElement;
 
 using namespace IG;
 
-class PlaceVControlsView final: public View, public EmuAppHelper<PlaceVControlsView>
+class PlaceVControlsView final: public View, public EmuAppHelper
 {
 public:
 	PlaceVControlsView(ViewAttachParams attach, VController &vController);

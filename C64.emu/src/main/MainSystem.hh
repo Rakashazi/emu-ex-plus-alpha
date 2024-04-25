@@ -130,7 +130,7 @@ public:
 	std::string defaultPaletteName{};
 	std::string lastMissingSysFile;
 	IG::PixmapView canvasSrcPix{};
-	PixelFormat pixFmt{};
+	PixelFormat pixFmt{PIXEL_FMT_RGBA8888};
 	ViceSystem currSystem{};
 	bool viceThreadSignaled{};
 	bool inCPUTrap{};

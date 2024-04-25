@@ -268,7 +268,6 @@ public:
 	FS::PathString contentDirectory(std::string_view name) const;
 	FS::PathString contentFilePath(std::string_view ext) const;
 	const auto &contentLocation() const { return contentLocation_; }
-	const char *contentLocationPtr() { return contentLocation_.data(); }
 	FS::FileString contentNameExt(std::string_view ext) const
 	{
 		FS::FileString name{contentName_};

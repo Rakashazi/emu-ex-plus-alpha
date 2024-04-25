@@ -292,6 +292,8 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect 
 		}
 	}
 	bool elementsArePushed = newElems != nullElems;
+	auto &app = this->app();
+	auto &system = this->system();
 	auto applyInputActions =
 		[&](std::array<KeyInfo, 2> prevElements, std::array<KeyInfo, 2> currElements)
 		{
@@ -301,7 +303,7 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect 
 				if(vBtn && !contains(currElements, vBtn))
 				{
 					//log.info("releasing {}", vBtn[0]);
-					app().handleSystemKeyInput(vBtn, Input::Action::RELEASED);
+					app.handleSystemKeyInput(vBtn, Input::Action::RELEASED);
 				}
 			}
 			// push new buttons
@@ -310,10 +312,10 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect 
 				if(vBtn && !contains(prevElements, vBtn))
 				{
 					//log.info("pushing {}", vBtn[0]);
-					app().handleSystemKeyInput(vBtn, Input::Action::PUSHED);
+					app.handleSystemKeyInput(vBtn, Input::Action::PUSHED);
 					if(vibrateOnTouchInput())
 					{
-						app().vibrationManager.vibrate(IG::Milliseconds{32});
+						app.vibrationManager.vibrate(IG::Milliseconds{32});
 					}
 				}
 			}
@@ -325,7 +327,7 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect 
 			applyInputActions(nullElems, newElems);
 			if(!elementsArePushed)
 			{
-				elementsArePushed |= system().onPointerInputStart(e, dragState, gameRect);
+				elementsArePushed |= system.onPointerInputStart(e, dragState, gameRect);
 			}
 		},
 		[&](Input::DragTrackerState dragState, Input::DragTrackerState prevDragState, auto &currElems)
@@ -334,20 +336,20 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect 
 			applyInputActions(prevElems, newElems);
 			if(!elementsArePushed)
 			{
-				elementsArePushed |= system().onPointerInputUpdate(e, dragState, prevDragState, gameRect);
+				elementsArePushed |= system.onPointerInputUpdate(e, dragState, prevDragState, gameRect);
 			}
 		},
 		[&](Input::DragTrackerState dragState, auto &currElems)
 		{
 			applyInputActions(currElems, nullElems);
-			elementsArePushed |= system().onPointerInputEnd(e, dragState, gameRect);
+			elementsArePushed |= system.onPointerInputEnd(e, dragState, gameRect);
 		});
 	 if(!elementsArePushed && !gamepadControlsVisible() && shouldShowOnTouchInput()
 			&& !isInKeyboardMode() && e.isTouch() && e.pushed()) [[unlikely]]
 		{
 			log.info("turning on on-screen controls from touch input");
 			setGamepadControlsVisible(true);
-			app().viewController().placeEmuViews();
+			app.viewController().placeEmuViews();
 		}
 	return elementsArePushed;
 }

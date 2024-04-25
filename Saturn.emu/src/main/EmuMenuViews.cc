@@ -32,8 +32,7 @@
 namespace EmuEx
 {
 
-template <class T>
-using MainAppHelper = EmuAppHelper<T, MainApp>;
+using MainAppHelper = EmuAppHelperBase<MainApp>;
 using namespace MDFN_IEN_SS;
 
 constexpr SystemLogger log{"Saturn.emu"};
@@ -43,10 +42,10 @@ static bool hasBIOSExtension(std::string_view name)
 	return endsWithAnyCaseless(name, ".bin");
 }
 
-class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<CustomFilePathOptionView>
+class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomFilePathOptionView>::app;
-	using MainAppHelper<CustomFilePathOptionView>::system;
+	using MainAppHelper::app;
+	using MainAppHelper::system;
 
 	TextMenuItem naBiosPath
 	{
@@ -182,7 +181,7 @@ constexpr auto regionToString(int t)
 	return "";
 }
 
-class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionView>
+class ConsoleOptionView : public TableView, public MainAppHelper
 {
 	TextMenuItem cartTypeItems[8]
 	{
@@ -481,17 +480,17 @@ public:
 		},
 		discItems
 		{
-			[&]()
+			[&](auto &system)
 			{
-				auto discItems = DynArray<TextMenuItem>{system().CDInterfaces.size() + 1};
+				auto discItems = DynArray<TextMenuItem>{system.CDInterfaces.size() + 1};
 				discItems[0] = {"Eject", attachParams(), setDiscDel(), {.id = -1}};
 				const char *numStrings[] {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14" , "15", "16"};
-				for(auto i : iotaCount(system().CDInterfaces.size()))
+				for(auto i : iotaCount(system.CDInterfaces.size()))
 				{
 					discItems[i + 1] = {numStrings[i], attachParams(), setDiscDel(), {.id = i}};
 				}
 				return discItems;
-			}()
+			}(system())
 		}
 	{
 		menuItems.emplace_back(&cartType);
@@ -531,9 +530,9 @@ public:
 	}
 };
 
-class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<CustomSystemOptionView>
+class CustomSystemOptionView : public SystemOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomSystemOptionView>::system;
+	using MainAppHelper::system;
 
 	BoolMenuItem autoSetRTC
 	{
@@ -580,10 +579,10 @@ public:
 	}
 };
 
-class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<CustomVideoOptionView>
+class CustomVideoOptionView : public VideoOptionView, public MainAppHelper
 {
-	using  MainAppHelper<CustomVideoOptionView>::app;
-	using  MainAppHelper<CustomVideoOptionView>::system;
+	using  MainAppHelper::app;
+	using  MainAppHelper::system;
 
 	BoolMenuItem showHOverscan
 	{

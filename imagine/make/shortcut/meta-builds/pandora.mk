@@ -57,10 +57,7 @@ pandora_resourcePath := res/pandora
 pandora-resources : $(pandora_resourcePath) $(pandora_iconPNDPath) $(pandora_pxml)
 	@mkdir -p $(pandora_targetPNDPath)
 	@echo linking resource files
-	@for f in $(pandora_resourcePath)/* ; do \
-		filename=`basename $$f` ; \
-		ln -Lf "$$f" $(pandora_targetPNDPath)/ ; \
-	done
+	cp -alLu $(pandora_resourcePath)/* $(pandora_targetPNDPath)/
 
 .PHONY: pandora-resources-install
 pandora-resources-install : $(pandora_pxml)

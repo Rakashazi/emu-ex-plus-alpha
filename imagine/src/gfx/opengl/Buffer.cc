@@ -60,7 +60,7 @@ constexpr GLenum toGLEnum(BufferUsageHint type)
 
 static bool hasBufferMap(const Renderer &r)
 {
-	return !Config::Gfx::OPENGL_ES || (Config::Gfx::OPENGL_ES && r.support.glMapBufferRange);
+	return !Config::Gfx::OPENGL_ES || (Config::Gfx::OPENGL_ES && (bool)r.support.glMapBufferRange);
 }
 
 template<BufferType type>

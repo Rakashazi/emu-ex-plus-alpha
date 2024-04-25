@@ -32,7 +32,7 @@ class InputManagerView;
 class InputDeviceConfig;
 struct KeyCategory;
 
-class ButtonConfigSetView : public View, public EmuAppHelper<ButtonConfigSetView>
+class ButtonConfigSetView : public View, public EmuAppHelper
 {
 public:
 	using SetDelegate = DelegateFunc<void (const MappedKeys &)>;
@@ -61,7 +61,7 @@ private:
 	void finalize();
 };
 
-class ButtonConfigView : public TableView, public EmuAppHelper<ButtonConfigView>
+class ButtonConfigView : public TableView, public EmuAppHelper
 {
 public:
 	ButtonConfigView(ViewAttachParams attach, InputManagerView &rootIMView, const KeyCategory &cat, InputDeviceConfig &devConf);

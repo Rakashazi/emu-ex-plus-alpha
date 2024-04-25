@@ -52,7 +52,7 @@ public:
 	}
 };
 
-struct FDEventSource : public FDEventSourceImpl
+class FDEventSource : public FDEventSourceImpl
 {
 public:
 	using FDEventSourceImpl::FDEventSourceImpl;

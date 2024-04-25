@@ -93,7 +93,7 @@ void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 	// draw separators
 	int yStart = y;
 	cmds.basicEffect().disableTexture(cmds);
-	int selectedCellY = INT_MAX;
+	int selectedCellY = selected == 0 ? y : INT_MAX;
 	if(cells_ > 1)
 	{
 		cmds.basicEffect().setModelView(cmds, Gfx::Mat4::ident());

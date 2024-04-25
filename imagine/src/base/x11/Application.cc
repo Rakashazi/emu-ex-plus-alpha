@@ -298,7 +298,7 @@ void initXScreens(ApplicationContext ctx, Display *dpy)
 		{
 			if((int)i == defaultScreenIdx)
 				continue;
-			ctx.application().addScreen(ctx, std::make_unique<Screen>(ScreenOfDisplay(dpy, i)), false);
+			ctx.application().addScreen(ctx, std::make_unique<Screen>(ctx, Screen::InitParams{ScreenOfDisplay(dpy, i)}), false);
 		}
 	}
 }

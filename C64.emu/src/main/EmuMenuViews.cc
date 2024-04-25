@@ -56,8 +56,7 @@ namespace EmuEx
 
 constexpr SystemLogger log{"C64.emu"};
 
-template <class T>
-using MainAppHelper = EmuAppHelper<T, MainApp>;
+using MainAppHelper = EmuAppHelperBase<MainApp>;
 
 constexpr std::string_view driveMenuPrefix[4]
 {
@@ -115,10 +114,10 @@ static std::span<const drive_type_info_t> driveInfoList(C64System &sys)
 	return {infoList, size};
 }
 
-class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<CustomVideoOptionView>
+class CustomVideoOptionView : public VideoOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomVideoOptionView>::system;
-	using MainAppHelper<CustomVideoOptionView>::app;
+	using MainAppHelper::system;
+	using MainAppHelper::app;
 
 	BoolMenuItem cropNormalBorders
 	{
@@ -227,9 +226,9 @@ public:
 	}
 };
 
-class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<CustomAudioOptionView>
+class CustomAudioOptionView : public AudioOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomAudioOptionView>::system;
+	using MainAppHelper::system;
 
 	TextMenuItem sidEngineItem[2]
 	{
@@ -274,9 +273,9 @@ public:
 	}
 };
 
-class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<CustomSystemOptionView>
+class CustomSystemOptionView : public SystemOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomSystemOptionView>::system;
+	using MainAppHelper::system;
 
 	StaticArrayList<TextMenuItem, maxModels> defaultModelItem;
 
@@ -344,10 +343,10 @@ public:
 	}
 };
 
-class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<CustomFilePathOptionView>
+class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomFilePathOptionView>::app;
-	using MainAppHelper<CustomFilePathOptionView>::system;
+	using MainAppHelper::app;
+	using MainAppHelper::system;
 	friend class FilePathOptionView;
 
 	TextMenuItem systemFilePath
@@ -409,7 +408,7 @@ public:
 	}
 };
 
-class DatasetteControlsView : public TableView, public MainAppHelper<DatasetteControlsView>
+class DatasetteControlsView : public TableView, public MainAppHelper
 {
 public:
 	public:
@@ -533,7 +532,7 @@ private:
 	}
 };
 
-class C64IOControlView : public TableView, public MainAppHelper<C64IOControlView>
+class C64IOControlView : public TableView, public MainAppHelper
 {
 private:
 	void updateTapeText()
@@ -854,7 +853,7 @@ public:
 	}
 };
 
-class Vic20MemoryExpansionsView : public TableView, public MainAppHelper<Vic20MemoryExpansionsView>
+class Vic20MemoryExpansionsView : public TableView, public MainAppHelper
 {
 	void setRamBlock(const char *name, bool on)
 	{
@@ -933,7 +932,7 @@ public:
 	{}
 };
 
-class MachineOptionView : public TableView, public MainAppHelper<MachineOptionView>
+class MachineOptionView : public TableView, public MainAppHelper
 {
 	StaticArrayList<TextMenuItem, maxModels> modelItem;
 
@@ -1109,10 +1108,10 @@ public:
 	}
 };
 
-class CustomSystemActionsView : public SystemActionsView, public MainAppHelper<CustomSystemActionsView>
+class CustomSystemActionsView : public SystemActionsView, public MainAppHelper
 {
-	using MainAppHelper<CustomSystemActionsView>::system;
-	using MainAppHelper<CustomSystemActionsView>::app;
+	using MainAppHelper::system;
+	using MainAppHelper::app;
 
 	TextMenuItem c64IOControl
 	{
@@ -1264,10 +1263,10 @@ public:
 	}
 };
 
-class CustomMainMenuView : public MainMenuView, public MainAppHelper<CustomMainMenuView>
+class CustomMainMenuView : public MainMenuView, public MainAppHelper
 {
-	using MainAppHelper<CustomMainMenuView>::app;
-	using MainAppHelper<CustomMainMenuView>::system;
+	using MainAppHelper::app;
+	using MainAppHelper::system;
 
 	TextMenuItem systemPlugin
 	{

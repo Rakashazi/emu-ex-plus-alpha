@@ -29,7 +29,7 @@ using namespace IG;
 class EmuVideoLayer;
 class EmuAudio;
 
-class MainMenuView : public TableView, public EmuAppHelper<MainMenuView>
+class MainMenuView : public TableView, public EmuAppHelper
 {
 public:
 	MainMenuView(ViewAttachParams attach, bool customMenu = false);

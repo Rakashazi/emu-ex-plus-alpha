@@ -29,7 +29,7 @@ class EmuVideoLayer;
 class EmuVideo;
 enum class VideoSystem: uint8_t;
 
-class FrameTimingView : public TableView, public EmuAppHelper<FrameTimingView>
+class FrameTimingView : public TableView, public EmuAppHelper
 {
 public:
 	FrameTimingView(ViewAttachParams attach);

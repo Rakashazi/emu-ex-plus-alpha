@@ -42,10 +42,9 @@ namespace EmuEx
 
 constexpr SystemLogger log{"NES.emu"};
 
-template <class T>
-using MainAppHelper = EmuAppHelper<T, MainApp>;
+using MainAppHelper = EmuAppHelperBase<MainApp>;
 
-class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionView>
+class ConsoleOptionView : public TableView, public MainAppHelper
 {
 	BoolMenuItem fourScore
 	{
@@ -293,10 +292,10 @@ public:
 		} {}
 };
 
-class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<CustomVideoOptionView>
+class CustomVideoOptionView : public VideoOptionView, public MainAppHelper
 {
-	using  MainAppHelper<CustomVideoOptionView>::app;
-	using  MainAppHelper<CustomVideoOptionView>::system;
+	using  MainAppHelper::app;
+	using  MainAppHelper::system;
 
 	BoolMenuItem spriteLimit
 	{
@@ -461,9 +460,9 @@ public:
 	}
 };
 
-class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<CustomAudioOptionView>
+class CustomAudioOptionView : public AudioOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomAudioOptionView>::system;
+	using MainAppHelper::system;
 
 	void setQuality(int quaility)
 	{
@@ -573,10 +572,10 @@ public:
 	}
 };
 
-class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<CustomFilePathOptionView>
+class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomFilePathOptionView>::app;
-	using MainAppHelper<CustomFilePathOptionView>::system;
+	using MainAppHelper::app;
+	using MainAppHelper::system;
 
 	TextMenuItem cheatsPath
 	{
@@ -656,7 +655,7 @@ public:
 	}
 };
 
-class FDSControlView : public TableView, public MainAppHelper<FDSControlView>
+class FDSControlView : public TableView, public MainAppHelper
 {
 private:
 	static constexpr unsigned DISK_SIDES = 4;
@@ -769,9 +768,9 @@ public:
 	}
 };
 
-class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<CustomSystemOptionView>
+class CustomSystemOptionView : public SystemOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomSystemOptionView>::system;
+	using MainAppHelper::system;
 
 	BoolMenuItem skipFdcAccess
 	{

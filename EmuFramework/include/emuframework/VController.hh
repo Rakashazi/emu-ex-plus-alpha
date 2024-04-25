@@ -386,12 +386,9 @@ public:
 	std::array<VControllerLayoutPosition, 2> layoutPos;
 	VControllerState state{VControllerState::SHOWN};
 
-	constexpr auto dPad() { return std::get_if<VControllerDPad>(this); }
-	constexpr auto dPad() const { return std::get_if<VControllerDPad>(this); }
-	constexpr auto buttonGroup() { return std::get_if<VControllerButtonGroup>(this); }
-	constexpr auto buttonGroup() const { return std::get_if<VControllerButtonGroup>(this); }
-	constexpr auto uiButtonGroup() { return std::get_if<VControllerUIButtonGroup>(this); }
-	constexpr auto uiButtonGroup() const { return std::get_if<VControllerUIButtonGroup>(this); }
+	constexpr auto dPad(this auto&& self) { return std::get_if<VControllerDPad>(&self); }
+	constexpr auto buttonGroup(this auto&& self) { return std::get_if<VControllerButtonGroup>(&self); }
+	constexpr auto uiButtonGroup(this auto&& self) { return std::get_if<VControllerUIButtonGroup>(&self); }
 
 	size_t configSize() const
 	{
@@ -561,7 +558,7 @@ struct VControllerGamepadFlags
 	static constexpr VControllerGamepadFlags all() { return {.dpad = true, .buttons = true}; }
 };
 
-class VController : public EmuAppHelper<VController>
+class VController : public EmuAppHelper
 {
 public:
 	static constexpr KeyInfo TOGGLE_KEYBOARD = KeyInfo::appKey(254);

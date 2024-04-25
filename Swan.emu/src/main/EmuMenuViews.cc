@@ -25,13 +25,12 @@ namespace EmuEx
 
 using namespace MDFN_IEN_WSWAN;
 
-template <class T>
-using MainAppHelper = EmuAppHelper<T, MainApp>;
+using MainAppHelper = EmuAppHelperBase<MainApp>;
 
-class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<CustomSystemOptionView>
+class CustomSystemOptionView : public SystemOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomSystemOptionView>::system;
-	using MainAppHelper<CustomSystemOptionView>::app;
+	using MainAppHelper::system;
+	using MainAppHelper::app;
 
 	TextHeadingMenuItem userProfile{"WonderSwan User Profile", attachParams()};
 
@@ -174,7 +173,7 @@ public:
 	}
 };
 
-class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionView>
+class ConsoleOptionView : public TableView, public MainAppHelper
 {
 	TextMenuItem::SelectDelegate setRotationDel()
 	{

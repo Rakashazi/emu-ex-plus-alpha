@@ -32,14 +32,13 @@
 namespace EmuEx
 {
 
-template <class T>
-using MainAppHelper = EmuAppHelper<T, MainApp>;
+using MainAppHelper = EmuAppHelperBase<MainApp>;
 
 constexpr std::string_view pceFastText{"pce_fast (Default for general use)"};
 constexpr std::string_view pceText{"pce (Better accuracy, higher power usage)"};
 constexpr std::string_view changeEmuCoreText{"Really change emulation core? Note that save states from different cores aren't compatible."};
 
-class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionView>
+class ConsoleOptionView : public TableView, public MainAppHelper
 {
 	BoolMenuItem sixButtonPad
 	{
@@ -179,10 +178,10 @@ public:
 	}
 };
 
-class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper<CustomFilePathOptionView>
+class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomFilePathOptionView>::app;
-	using MainAppHelper<CustomFilePathOptionView>::system;
+	using MainAppHelper::app;
+	using MainAppHelper::system;
 
 	TextMenuItem sysCardPath
 	{
@@ -214,10 +213,10 @@ public:
 	}
 };
 
-class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<CustomVideoOptionView>
+class CustomVideoOptionView : public VideoOptionView, public MainAppHelper
 {
-	using  MainAppHelper<CustomVideoOptionView>::app;
-	using  MainAppHelper<CustomVideoOptionView>::system;
+	using  MainAppHelper::app;
+	using  MainAppHelper::system;
 
 	BoolMenuItem spriteLimit
 	{
@@ -279,9 +278,9 @@ public:
 	}
 };
 
-class CustomSystemOptionView : public SystemOptionView, public MainAppHelper<CustomSystemOptionView>
+class CustomSystemOptionView : public SystemOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomSystemOptionView>::system;
+	using MainAppHelper::system;
 
 	TextMenuItem cdSpeedItem[5]
 	{
@@ -357,10 +356,10 @@ public:
 	}
 };
 
-class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<CustomAudioOptionView>
+class CustomAudioOptionView : public AudioOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomAudioOptionView>::system;
-	using MainAppHelper<CustomAudioOptionView>::app;
+	using MainAppHelper::system;
+	using MainAppHelper::app;
 
 	TextHeadingMenuItem mixer{"Mixer", attachParams()};
 

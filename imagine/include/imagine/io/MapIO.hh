@@ -44,11 +44,11 @@ public:
 	off_t seek(off_t offset, SeekMode mode);
 	size_t size() const { return buff.size(); }
 	bool eof() const { return currPos == size(); }
-	std::span<uint8_t> map() { return {data(), size()}; }
 	void sync();
-	explicit operator bool() const { return data(); }
 	void advise(off_t offset, size_t bytes, Advice advice);
-	uint8_t *data() const { return buff.data(); }
+	auto data(this auto&& self) { return self.buff.data(); }
+	std::span<uint8_t> map() { return {data(), size()}; }
+	explicit operator bool() const { return data(); }
 	IOBuffer releaseBuffer() { return std::move(buff); }
 	std::span<uint8_t> subSpan(off_t offset, size_t maxBytes) const;
 	MapIO subView(off_t offset, size_t maxBytes) const { return IOBuffer{subSpan(offset, maxBytes), 0}; }

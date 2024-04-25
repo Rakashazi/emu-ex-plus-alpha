@@ -36,9 +36,6 @@ class Event;
 namespace IG
 {
 
-class View;
-class TableView;
-
 template <class Item>
 class MenuItemSelectDelegate : public DelegateFunc<bool (Item &, View &, const Input::Event &)>
 {

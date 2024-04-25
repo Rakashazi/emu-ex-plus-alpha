@@ -41,16 +41,12 @@ public:
 	}
 
 	// Iterators (STL API)
-	iterator begin() { return data(); }
-	iterator end() { return data() + size(); }
-	const_iterator begin() const { return data(); }
-	const_iterator end() const { return data() + size(); }
+	auto begin(this auto&& self) { return self.data(); }
+	auto end(this auto&& self) { return self.data() + self.size(); }
 	const_iterator cbegin() const { return begin(); }
 	const_iterator cend() const { return end(); }
-	reverse_iterator rbegin() { return reverse_iterator(end()); }
-	reverse_iterator rend() { return reverse_iterator(begin()); }
-	const_reverse_iterator rbegin() const { return const_reverse_iterator(end()); }
-	const_reverse_iterator rend() const { return const_reverse_iterator(begin()); }
+	auto rbegin(this auto&& self) { return std::reverse_iterator(self.end()); }
+	auto rend(this auto&& self) { return std::reverse_iterator(self.begin()); }
 	const_reverse_iterator crbegin() const { return rbegin(); }
 	const_reverse_iterator crend() const { return rend(); }
 
@@ -76,11 +72,8 @@ public:
 		return (*this)[idx];
 	}
 
-	T *data() { return buff.get(); }
-	const T *data() const { return buff.get(); }
-
-	T& operator[] (size_t idx) { return data()[idx]; }
-	const T& operator[] (size_t idx) const { return data()[idx]; }
+	auto data(this auto&& self) { return self.buff.get(); }
+	auto& operator[] (this auto&& self, size_t idx) { return self.data()[idx]; }
 
 	void resetElements()
 	{

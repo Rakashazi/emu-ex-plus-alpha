@@ -58,7 +58,7 @@ protected:
 	EmuApp *emuAppPtr;
 };
 
-class EmuViewController final: public ViewController, public EmuAppHelper<EmuViewController>
+class EmuViewController final: public ViewController, public EmuAppHelper
 {
 public:
 	EmuViewController(ViewAttachParams, VController &, EmuVideoLayer &, EmuSystem &);

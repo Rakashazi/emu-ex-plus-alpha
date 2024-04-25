@@ -29,7 +29,7 @@ class VController;
 
 using namespace IG;
 
-class PlaceVideoView final: public View, public EmuAppHelper<PlaceVideoView>
+class PlaceVideoView final: public View, public EmuAppHelper
 {
 public:
 	PlaceVideoView(ViewAttachParams, EmuVideoLayer &, VController &);

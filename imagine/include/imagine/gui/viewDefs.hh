@@ -33,6 +33,13 @@ constexpr auto imageSamplerConfig = Gfx::SamplerConfigs::nearestMipClamp;
 namespace IG
 {
 
+class View;
+class ViewController;
+struct ViewAttachParams;
+class ViewManager;
+class TableView;
+class MenuItem;
+
 struct TableUIState
 {
 	int highlightedCell{-1};

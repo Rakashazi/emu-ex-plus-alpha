@@ -5,7 +5,7 @@
 # File format:
 # - comment lines start with '#'
 # - keyword lines start with '!keyword'
-# - normal line has 'keysym/scancode row column shiftflag'
+# - normal lines have 'keysym/scancode row column shiftflag'
 #
 # Keywords and their lines are:
 # '!CLEAR'               clear whole table
@@ -14,27 +14,41 @@
 # '!RSHIFT row col'      right shift keyboard row/column
 # '!VSHIFT shiftkey'     virtual shift key (RSHIFT or LSHIFT)
 # '!SHIFTL shiftkey'     shift lock key (RSHIFT or LSHIFT)
+#  for emulated keyboards that have only one shift key, set both LSHIFT
+#  and RSHIFT to the same row/col and use RSHIFT for VSHIFT and SHIFTL.
+# '!LCTRL row col'       left control keyboard row/column
+# '!VCTRL ctrlkey'       virtual control key (LCTRL)
+# '!LCBM row col'        left CBM keyboard row/column
+# '!VCBM cbmkey'         virtual CBM key (LCBM)
 # '!UNDEF keysym'        remove keysym from table
 #
-# Shiftflag can have the values:
-# 0      key is not shifted for this keysym/scancode
-# 1      key is shifted for this keysym/scancode
-# 2      left shift
-# 4      right shift
-# 8      key can be shifted or not with this keysym/scancode
-# 16     deshift key for this keysym/scancode
-# 32     another definition for this keysym/scancode follows
-# 64     shift lock
-# 256    key is used for an alternative keyboard mapping
+# Shiftflag can have these values, flags can be ORed to combine them:
+# 0x0000      0  key is not shifted for this keysym/scancode
+# 0x0001      1  key is combined with shift for this keysym/scancode
+# 0x0002      2  key is left shift on emulated machine
+# 0x0004      4  key is right shift on emulated machine (use only this one
+#                for emulated keyboards that have only one shift key)
+# 0x0008      8  key can be shifted or not with this keysym/scancode
+# 0x0010     16  deshift key for this keysym/scancode
+# 0x0020     32  another definition for this keysym/scancode follows
+# 0x0040     64  key is shift-lock on emulated machine
+# 0x0080    128  shift modifier required on host
+# 0x0100    256  key is used for an alternative keyboard mapping, e.g. C64 mode in x128
+# 0x0200    512  alt-r (alt-gr) modifier required on host
+# 0x0400   1024  ctrl modifier required on host
+# 0x0800   2048  key is combined with cbm for this keysym/scancode
+# 0x1000   4096  key is combined with ctrl for this keysym/scancode
+# 0x2000   8192  key is (left) cbm on emulated machine
+# 0x4000  16384  key is (left) ctrl on emulated machine
 #
 # Negative row values:
 # 'keysym -1 n' joystick keymap A, direction n
 # 'keysym -2 n' joystick keymap B, direction n
 # 'keysym -3 0' first RESTORE key
 # 'keysym -3 1' second RESTORE key
-# 'keysym -4 0' 40/80 column key
-# 'keysym -4 1' CAPS (ASCII/DIN) key
-# 'keysym -5 n' joyport keypad, key n
+# 'keysym -4 0' 40/80 column key (x128)
+# 'keysym -4 1' CAPS (ASCII/DIN) key (x128)
+# 'keysym -5 n' joyport keypad, key n (not supported in x128)
 #
 # Joystick direction values:
 # 0      Fire
@@ -61,7 +75,7 @@
 # When a bigger spaced key is used,
 # it uses the upper left most key value.
 
-# Symbolic Mapping, US Layout, VIC20, X11
+# Symbolic Mapping, US Layout, VIC20, GTK
 
 # VIC20 Keyboard matrix
 #
@@ -85,35 +99,57 @@
 # |Bit 7| DEL |Retrn|C_L/R|C_U/D|  F1 |  F3 |  F5 |  F7 |
 # +-----+-----+-----+-----+-----+-----+-----+-----+-----+
 
+# to convert from C64 to VIC20:
+# change rows 7 -> 0, 0 -> 7
+# change columns 7 -> 3, 3 -> 7
+
+# VIC20 Keyboard layout:
+#
+#   arrow 1!  2"  3#  4$  5%  6&  7'  8(  9)  0   +   -   pound clr del     f1/f2
+#    ctrl   q   w   e   r   t   y   u   i   o   p   @   *   ^   restore     f3/f4
+#   r/s SL    a   s   d   f   g   h   j   k   l   :[  ;]  =   return        f5/f6
+#   CBM LS      z   x   c   v   b   n   m   ,<  .>  /?  RS  u/d l/r         f7/f8
+#                           space
+
 !CLEAR
 !LSHIFT 1 3
 !RSHIFT 6 4
 !VSHIFT RSHIFT
+!SHIFTL LSHIFT
+!LCBM 0 5
+!VCBM LCBM
+!LCTRL 0 2
+!VCTRL LCTRL
 
 #####################
 # |Bit 0| 1 ! |A_LFT| CTRL| R/S |SPACE|  C= |  Q  | 2 " |
 
 exclam          0 0 1
-# underscore = arrow left
-underscore      0 1 0
+# Tilde -> Arrow Left
+asciitilde      0 1 16
 End             0 1 8
-# Tab = CTRL
-Tab             0 2 8
-# Shift + Tab = CTRL
-ISO_Left_Tab    0 2 8
+# Tab = CBM
+Tab             0 5 8200
+# Shift + Tab = CBM
+ISO_Left_Tab    0 5 8200
 # Escape = run/stop
 Escape          0 3 8
 Help            0 3 8
 space           0 4 8
-# Control_L = CBM
-Control_L       0 5 8
+# Control_L = CTRL
+Control_L       0 2 16392
 quotedbl        0 7 1
 
 #####################
 # |Bit 1| 3 # |  W  |  A  | S_L |  Z  |  S  |  E  | 4 $ |
 
 numbersign      1 0 1
-Shift_L         1 3 2
+# left shift
+# key is left shift
+Shift_L          1 3 2
+# shift lock
+# key is (left) shift-lock
+Caps_Lock        1 3 64
 dollar          1 7 1
 
 #####################
@@ -137,14 +173,16 @@ parenright      4 0 1
 #####################
 # |Bit 5|  +  |  P  |  L  | , < | . > | : [ |  @  |  -  |
 
-plus            5 0 0
+plus            5 0 16
 comma           5 3 0
 less            5 3 1
 period          5 4 0
 greater         5 4 1
-colon           5 5 0
+colon           5 5 16
 bracketleft     5 5 1
-at              5 6 0
+# underscore = CBM+@
+underscore      5 6 0x810
+at              5 6 16
 minus           5 7 0
 
 #####################
@@ -153,7 +191,7 @@ minus           5 7 0
 sterling        6 0 0
 bar             6 0 8
 backslash       6 0 0
-asterisk        6 1 0
+asterisk        6 1 16
 semicolon       6 2 0
 bracketright    6 2 1
 slash           6 3 0
@@ -161,8 +199,7 @@ question        6 3 1
 Shift_R         6 4 4
 equal           6 5 0
 # Page down -> Arrow Up
-asciicircum     6 6 0
-asciitilde      6 6 0
+asciicircum     6 6 16
 Page_Down       6 6 8
 Home            6 7 8
 Find            6 7 8
@@ -172,7 +209,7 @@ Find            6 7 8
 
 BackSpace       7 0 8
 Delete          7 0 8
-Insert          7 0 16
+Insert          7 0 1
 Return          7 1 8
 Linefeed        7 1 1
 Right           7 2 8
@@ -264,11 +301,12 @@ Page_Up -3 0
 Prior -3 1
 
 # Dead keys support for those using US-International keyboard layout.
-dead_acute      3 0 1  # '
-dead_grave      3 0 1  # '
-dead_circumflex 6 6 0  # A_UP
-dead_tilde      6 6 0  # A_UP
-dead_diaeresis  0 7 1  # "
+dead_acute       3 0 1  # '
+dead_grave       3 0 1  # '
+dead_circumflex  6 6 16 # A_UP
+dead_tilde       6 6 16 # A_UP
+dead_perispomeni 0 1 16 # Arrow Left
+dead_diaeresis   0 7 1  # "
 
 #
 # joyport attached keypad

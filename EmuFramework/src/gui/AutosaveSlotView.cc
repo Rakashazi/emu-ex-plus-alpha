@@ -24,7 +24,7 @@ namespace EmuEx
 
 using SlotTextMenuItem = AutosaveSlotView::SlotTextMenuItem;
 
-class ManageAutosavesView : public TableView, public EmuAppHelper<ManageAutosavesView>
+class ManageAutosavesView : public TableView, public EmuAppHelper
 {
 public:
 	ManageAutosavesView(ViewAttachParams, AutosaveSlotView &srcView,
@@ -37,7 +37,7 @@ private:
 	std::vector<SlotTextMenuItem> extraSlotItems;
 };
 
-class EditAutosaveView : public TableView, public EmuAppHelper<EditAutosaveView>
+class EditAutosaveView : public TableView, public EmuAppHelper
 {
 public:
 	EditAutosaveView(ViewAttachParams attach, ManageAutosavesView &srcView_, std::string_view slotName_):

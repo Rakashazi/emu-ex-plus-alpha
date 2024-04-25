@@ -25,7 +25,7 @@ namespace EmuEx
 
 using namespace IG;
 
-class SystemOptionView : public TableView, public EmuAppHelper<SystemOptionView>
+class SystemOptionView : public TableView, public EmuAppHelper
 {
 public:
 	SystemOptionView(ViewAttachParams attach, bool customMenu = false);

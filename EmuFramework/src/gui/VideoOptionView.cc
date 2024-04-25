@@ -15,7 +15,6 @@
 
 #include <emuframework/VideoOptionView.hh>
 #include <emuframework/EmuApp.hh>
-#include <emuframework/EmuAppHelper.hh>
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/VideoImageEffect.hh>

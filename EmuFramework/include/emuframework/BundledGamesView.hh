@@ -24,7 +24,7 @@ namespace EmuEx
 
 using namespace IG;
 
-class BundledGamesView : public TableView, public EmuAppHelper<BundledGamesView>
+class BundledGamesView : public TableView, public EmuAppHelper
 {
 public:
 	BundledGamesView(ViewAttachParams attach);

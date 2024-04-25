@@ -32,12 +32,11 @@ namespace EmuEx
 
 constexpr SystemLogger log{"2600.emu"};
 
-template <class T>
-using MainAppHelper = EmuAppHelper<T, MainApp>;
+using MainAppHelper = EmuAppHelperBase<MainApp>;
 
-class CustomAudioOptionView : public AudioOptionView, public MainAppHelper<CustomAudioOptionView>
+class CustomAudioOptionView : public AudioOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomAudioOptionView>::system;
+	using MainAppHelper::system;
 
 	TextMenuItem::SelectDelegate setResampleQualityDel()
 	{
@@ -71,9 +70,9 @@ public:
 	}
 };
 
-class CustomVideoOptionView : public VideoOptionView, public MainAppHelper<CustomVideoOptionView>
+class CustomVideoOptionView : public VideoOptionView, public MainAppHelper
 {
-	using MainAppHelper<CustomVideoOptionView>::system;
+	using MainAppHelper::system;
 
 	TextMenuItem tvPhosphorBlendItem[4]
 	{
@@ -108,7 +107,7 @@ public:
 	}
 };
 
-class ConsoleOptionView : public TableView, public MainAppHelper<ConsoleOptionView>
+class ConsoleOptionView : public TableView, public MainAppHelper
 {
 	TextMenuItem tvPhosphorItem[3]
 	{
@@ -320,7 +319,7 @@ public:
 	{}
 };
 
-class VCSSwitchesView : public TableView, public MainAppHelper<VCSSwitchesView>
+class VCSSwitchesView : public TableView, public MainAppHelper
 {
 	BoolMenuItem diff1
 	{

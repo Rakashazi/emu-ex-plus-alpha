@@ -6,8 +6,8 @@ ARCH := arm
 SUBARCH := armv7
 ifeq ($(origin CC), default)
  CHOST := arm-none-linux-gnueabi
- CC := $(CHOST)-gcc
- CXX := $(CHOST)-g++
+ CC := $(CHOST)-gcc-14
+ CXX := $(CHOST)-g++-14
 endif
 configEnable += CONFIG_MACHINE_PANDORA
 IMAGINE_SDK_PLATFORM = $(ENV)-$(SUBARCH)-$(SUBENV)
@@ -26,7 +26,8 @@ openGLAPI := gles
 staticLibcxx := 1
 include $(buildSysPath)/linux-gcc.mk
 
-CFLAGS_WARN += -Wno-register -Wno-psabi
+CFLAGS_WARN += -Wno-psabi
+CXXFLAGS_WARN += -Wno-register
 
 CFLAGS_CODEGEN += -mcpu=cortex-a8 -mfpu=neon -fno-stack-protector
 LDFLAGS_SYSTEM += -mcpu=cortex-a8 -mfpu=neon -fno-stack-protector --sysroot=$(pandoraSDKSysroot) -s
@@ -38,16 +39,10 @@ PKG_CONFIG_SYSTEM_LIBRARY_PATH := $(pandoraSDKSysroot)/usr/lib
 
 # don't use FORTIFY_SOURCE to avoid linking in newer glibc symbols
 CPPFLAGS += --sysroot=$(pandoraSDKSysroot) \
- -isystem /usr/lib/gcc/$(CHOST)/13/include/g++-v13 \
+ -isystem /usr/lib/gcc/$(CHOST)/14/include/g++-v14 \
  -isystem /usr/$(CHOST)/usr/include \
  -isystem $(pandoraSDKSysroot)/usr/include \
  -I$(IMAGINE_SDK_PLATFORM_PATH)/include \
- -include $(buildSysPath)/include/glibc29Symver.h \
  -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0
 
 LDLIBS += -Wl,-rpath-link=$(pandoraSDKSysroot)/usr/lib -lrt
-
-ifneq ($(ltoMode),off)
- # -flto-partition=none seems to help .symver issues
- LDFLAGS_SYSTEM += -flto-partition=none
-endif

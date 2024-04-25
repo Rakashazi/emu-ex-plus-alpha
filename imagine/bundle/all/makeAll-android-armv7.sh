@@ -3,7 +3,7 @@ makefilesToRun='
 
 	src/libogg/android-armv7.mk
 	
-	src/tremor/android-armv7.mk
+	src/libvorbis/android-armv7.mk
 	
 	src/flac/android-armv7.mk
 	

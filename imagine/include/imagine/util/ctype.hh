@@ -20,59 +20,59 @@
 namespace IG
 {
 
-constexpr bool isalpha(std::integral auto c)
+constexpr bool isAlpha(std::integral auto c)
 {
 	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
 }
 
-constexpr int isblank(std::integral auto c)
+constexpr int isBlank(std::integral auto c)
 {
 	return c == ' ' || c == '\t';
 }
 
-constexpr int iscntrl(std::integral auto c)
+constexpr int isCntrl(std::integral auto c)
 {
 	return static_cast<unsigned>(c) < ' ' || c == 0x7f;
 }
 
 /** Returns true if `ch` is in `[0-9]`. */
-constexpr int isdigit(std::integral auto c)
+constexpr int isDigit(std::integral auto c)
 {
 	return c >= '0' && c <= '9';
 }
 
-constexpr int isgraph(std::integral auto c)
+constexpr int isGraph(std::integral auto c)
 {
 	return c >= '!' && c <= '~';
 }
 
-constexpr int islower(std::integral auto c)
+constexpr int isLower(std::integral auto c)
 {
 	return c >= 'a' && c <= 'z';
 }
 
-constexpr int isprint(std::integral auto c)
+constexpr int isPrint(std::integral auto c)
 {
 	return c >= ' ' && c <= '~';
 }
 
-constexpr int isspace(std::integral auto c)
+constexpr int isSpace(std::integral auto c)
 {
 	return c == ' ' || (c >= '\t' && c <= '\r');
 }
 
-constexpr int isupper(std::integral auto c)
+constexpr int isUpper(std::integral auto c)
 {
 	return c >= 'A' && c <= 'Z';
 }
 
-constexpr int isxdigit(std::integral auto c)
+constexpr int isXdigit(std::integral auto c)
 {
 	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
 }
 
 template<std::integral T>
-constexpr T tolower(T c)
+constexpr T toLower(T c)
 {
 	if(c >= 'A' && c <= 'Z')
 		return c | 0x20;
@@ -80,7 +80,7 @@ constexpr T tolower(T c)
 }
 
 template<std::integral T>
-constexpr T toupper(T c)
+constexpr T toUpper(T c)
 {
 	if(c >= 'a' && c <= 'z')
 		return c ^ 0x20;
@@ -88,12 +88,12 @@ constexpr T toupper(T c)
 }
 
 /** Returns true if `ch` is less than 0x80. */
-constexpr int isascii(std::integral auto c)
+constexpr int isAscii(std::integral auto c)
 {
 	return static_cast<unsigned>(c) < 0x80;
 }
 
-constexpr int toascii(std::integral auto c)
+constexpr int toAscii(std::integral auto c)
 {
 	return c & 0x7f;
 }

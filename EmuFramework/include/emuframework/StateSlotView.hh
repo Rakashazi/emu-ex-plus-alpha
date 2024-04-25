@@ -24,7 +24,7 @@ namespace EmuEx
 
 using namespace IG;
 
-class StateSlotView : public TableView, public EmuAppHelper<StateSlotView>
+class StateSlotView : public TableView, public EmuAppHelper
 {
 public:
 	StateSlotView(ViewAttachParams attach);
