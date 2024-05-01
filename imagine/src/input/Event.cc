@@ -356,8 +356,8 @@ bool KeyEvent::hasSwappedConfirmKeys() const
 	return keyFlags; // currently there is only a single flag
 }
 
-SteadyClockTimePoint Event::time() const { return visit([](auto &e){ return e.time(); }, *this); }
+SteadyClockTimePoint Event::time() const { return visit([](auto &e){ return e.time(); }); }
 
-const Device *Event::device() const { return visit([](auto &e){ return e.device(); }, *this); }
+const Device *Event::device() const { return visit([](auto &e){ return e.device(); }); }
 
 }

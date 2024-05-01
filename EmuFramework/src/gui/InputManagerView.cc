@@ -53,7 +53,7 @@ void IdentInputDeviceView::place()
 
 bool IdentInputDeviceView::inputEvent(const Input::Event &e)
 {
-	return visit(overloaded
+	return e.visit(overloaded
 	{
 		[&](const Input::MotionEvent &e)
 		{
@@ -75,7 +75,7 @@ bool IdentInputDeviceView::inputEvent(const Input::Event &e)
 			}
 			return false;
 		}
-	}, e);
+	});
 }
 
 void IdentInputDeviceView::draw(Gfx::RendererCommands &__restrict__ cmds)

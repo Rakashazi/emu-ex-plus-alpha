@@ -65,7 +65,7 @@ void PlaceVideoView::place()
 
 bool PlaceVideoView::inputEvent(const Input::Event &e)
 {
-	return visit(overloaded
+	return e.visit(overloaded
 	{
 		[&](const Input::KeyEvent &e)
 		{
@@ -150,7 +150,7 @@ bool PlaceVideoView::inputEvent(const Input::Event &e)
 			}
 			return true;
 		}
-	}, e);
+	});
 }
 
 void PlaceVideoView::draw(Gfx::RendererCommands &__restrict__ cmds)

@@ -59,11 +59,11 @@ void CreditsView::place()
 
 bool CreditsView::inputEvent(const Input::Event &e)
 {
-	if(visit(overloaded
+	if(e.visit(overloaded
 		{
 			[&](const Input::MotionEvent &e) { return viewRect().overlaps(e.pos()) && e.released(); },
 			[&](const Input::KeyEvent &e) { return e.pushed(Input::DefaultKey::CANCEL); }
-		}, e))
+		}))
 	{
 		dismiss();
 		return true;

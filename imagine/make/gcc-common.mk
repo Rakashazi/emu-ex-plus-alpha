@@ -8,7 +8,7 @@ CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT ?= -Ofast
 CFLAGS_OPTIMIZE_RELEASE_DEFAULT ?= $(CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT) $(CFLAGS_OPTIMIZE_MISC_RELEASE_DEFAULT)
 CFLAGS_CODEGEN += -pipe -fvisibility=hidden -ffunction-sections -fdata-sections
 CFLAGS_LANG = -fno-common
-CXXFLAGS_LANG = -std=gnu++2b $(if $(cxxThreadSafeStatics),,-fno-threadsafe-statics) -fvisibility-inlines-hidden
+CXXFLAGS_LANG = -std=gnu++26 $(if $(cxxThreadSafeStatics),,-fno-threadsafe-statics) -fvisibility-inlines-hidden
 
 ifeq ($(ENV), ios)
  ifeq ($(SUBARCH), armv7)
@@ -19,7 +19,6 @@ endif
 # setup warnings
 
 CFLAGS_WARN ?= -Wall -Wextra -Werror=return-type -Wno-comment -Wno-unused -Wno-unused-parameter
-CFLAGS_WARN += $(CFLAGS_WARN_EXTRA)
 CXXFLAGS_WARN ?= $(CFLAGS_WARN) -Woverloaded-virtual
 
 # setup optimizations

@@ -17,6 +17,7 @@
 
 #include <imagine/input/inputDefs.hh>
 #include <imagine/util/container/array.hh>
+#include <imagine/util/concepts.hh>
 #include <array>
 #include <cstdint>
 
@@ -49,7 +50,7 @@ struct KeyInfo
 
 	constexpr KeyInfo() = default;
 
-	constexpr KeyInfo(auto code, KeyFlags flags = {}):
+	constexpr KeyInfo(NotPointer auto code, KeyFlags flags = {}):
 		codes{KeyCode(code)}, flags{flags} {}
 
 	template <class T>

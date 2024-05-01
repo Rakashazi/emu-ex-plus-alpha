@@ -84,11 +84,12 @@ AppleGameDevice,
 NullDevice
 >;
 
-class Device : public DeviceVariant
+class Device : public DeviceVariant, public AddVisit
 {
 public:
 	using Subtype = DeviceSubtype;
 	using DeviceVariant::DeviceVariant;
+	using AddVisit::visit;
 
 	bool hasKeyboard() const { return typeFlags().keyboard; }
 	bool hasGamepad() const { return typeFlags().gamepad; }
@@ -128,10 +129,10 @@ public:
 		return k;
 	}
 
-	int id() const { return visit([](auto &d){ return d.id_; }, *this); }
-	uint8_t enumId() const { return visit([](auto &d){ return d.enumId_; }, *this); }
-	void setEnumId(uint8_t id) { visit([&](auto &d){ d.enumId_ = id; }, *this); }
-	std::string_view name() const { return visit([](auto &d){ return std::string_view{d.name_}; }, *this); }
+	int id() const { return visit([](auto &d){ return d.id_; }); }
+	uint8_t enumId() const { return visit([](auto &d){ return d.enumId_; }); }
+	void setEnumId(uint8_t id) { visit([&](auto &d){ d.enumId_ = id; }); }
+	std::string_view name() const { return visit([](auto &d){ return std::string_view{d.name_}; }); }
 	Map map() const;
 	DeviceTypeFlags typeFlags() const
 	{
@@ -141,10 +142,10 @@ public:
 			if(iCadeMode())
 				flags.gamepad = true;
 			return flags;
-		}, *this);
+		});
 	}
-	Subtype subtype() const { return visit([](auto &d){ return d.subtype_; }, *this); }
-	void setSubtype(Subtype s) { visit([&](auto &d){ d.subtype_ = s; }, *this); }
+	Subtype subtype() const { return visit([](auto &d){ return d.subtype_; }); }
+	void setSubtype(Subtype s) { visit([&](auto &d){ d.subtype_ = s; }); }
 	bool operator==(Device const&) const = default;
 	void setJoystickAxesAsKeys(AxisSetId, bool on);
 	bool joystickAxesAsKeys(AxisSetId);
@@ -159,7 +160,7 @@ public:
 	template <class T>
 	T &makeAppData(auto &&...args)
 	{
-		auto &appDataPtr = visit([&](auto &d) -> auto& { return d.appDataPtr; }, *this);
+		auto &appDataPtr = visit([&](auto &d) -> auto& { return d.appDataPtr; });
 		appDataPtr = std::make_shared<T>(IG_forward(args)...);
 		return *appData<T>();
 	}
@@ -167,7 +168,7 @@ public:
 	template<class T>
 	T *appData() const
 	{
-		return visit([&](auto &d){ return static_cast<T*>(d.appDataPtr.get()); }, *this);
+		return visit([&](auto &d){ return static_cast<T*>(d.appDataPtr.get()); });
 	}
 
 	// optional API
@@ -179,7 +180,7 @@ public:
 				return d.motionAxes();
 			else
 				return std::span<Axis>{};
-		}, *this);
+		});
 	}
 	const char *keyName(Key k) const;
 	void setICadeMode(bool on);

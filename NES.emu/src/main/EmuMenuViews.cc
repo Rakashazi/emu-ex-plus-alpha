@@ -329,6 +329,7 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper
 	static constexpr auto classicPalPath = "Classic (FBX).pal";
 	static constexpr auto wavebeamPalPath = "Wavebeam.pal";
 	static constexpr auto lightfulPalPath = "Lightful.pal";
+	static constexpr auto palightfulPalPath = "Palightful.pal";
 
 	void setPalette(IG::ApplicationContext ctx, IG::CStringView palPath)
 	{
@@ -346,21 +347,19 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper
 		return lastIndex(defaultPalItem);
 	}
 
-	TextMenuItem defaultPalItem[8]
+	TextMenuItem defaultPalItem[9]
 	{
-		{"FCEUX", attachParams(), [this](){ setPalette(appContext(), ""); }},
+		{"FCEUX",               attachParams(), [this]() { setPalette(appContext(), ""); }},
 		{"Digital Prime (FBX)", attachParams(), [this]() { setPalette(appContext(), digitalPrimePalPath); }},
-		{"Smooth V2 (FBX)", attachParams(), [this]() { setPalette(appContext(), smoothPalPath); }},
-		{"Magnum (FBX)", attachParams(), [this]() { setPalette(appContext(), magnumPalPath); }},
-		{"Classic (FBX)", attachParams(), [this]() { setPalette(appContext(), classicPalPath); }},
-		{"Wavebeam", attachParams(), [this]() { setPalette(appContext(), wavebeamPalPath); }},
-		{"Lightful", attachParams(), [this]() { setPalette(appContext(), lightfulPalPath); }},
-		{"Custom File", attachParams(), [this](TextMenuItem &, View &, Input::Event e)
+		{"Smooth V2 (FBX)",     attachParams(), [this]() { setPalette(appContext(), smoothPalPath); }},
+		{"Magnum (FBX)",        attachParams(), [this]() { setPalette(appContext(), magnumPalPath); }},
+		{"Classic (FBX)",       attachParams(), [this]() { setPalette(appContext(), classicPalPath); }},
+		{"Wavebeam",            attachParams(), [this]() { setPalette(appContext(), wavebeamPalPath); }},
+		{"Lightful",            attachParams(), [this]() { setPalette(appContext(), lightfulPalPath); }},
+		{"Palightful",          attachParams(), [this]() { setPalette(appContext(), palightfulPalPath); }},
+		{"Custom File", attachParams(), [this](Input::Event e)
 			{
-				auto fsFilter = [](std::string_view name)
-					{
-						return IG::endsWithAnyCaseless(name, ".pal");
-					};
+				auto fsFilter = [](std::string_view name) { return endsWithAnyCaseless(name, ".pal"); };
 				auto fPicker = makeView<FilePicker>(FSPicker::Mode::FILE, fsFilter, e, false);
 				fPicker->setOnSelectPath(
 					[this](FSPicker &picker, IG::CStringView path, std::string_view name, Input::Event)
@@ -388,6 +387,7 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper
 			if(system().defaultPalettePath == classicPalPath) return 4;
 			if(system().defaultPalettePath == wavebeamPalPath) return 5;
 			if(system().defaultPalettePath == lightfulPalPath) return 6;
+			if(system().defaultPalettePath == palightfulPalPath) return 7;
 			return (int)defaultPaletteCustomFileIdx();
 		}(),
 		defaultPalItem,

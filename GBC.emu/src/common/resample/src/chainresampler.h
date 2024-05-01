@@ -45,8 +45,8 @@ private:
 	typedef std::list<SubResampler *> List;
 	typedef SubResampler * (*CreateSinc)(unsigned div, float rollOffStart,
 	                                     float rollOffWidth, double gain);
-	enum { big_sinc_mul   = 2048 };
-	enum { small_sinc_mul =   32 };
+	static constexpr int big_sinc_mul   = 2048;
+	static constexpr int small_sinc_mul = 32;
 
 	List list_;
 	SubResampler *bigSinc_;

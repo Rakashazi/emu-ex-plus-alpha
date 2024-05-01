@@ -117,8 +117,7 @@ class SH7095 final
  INLINE uint64 GetMAC64(void) { return MACL | ((uint64)MACH << 32); }
  INLINE void SetMAC64(uint64 nv) { MACL = nv; MACH = nv >> 32; }
 
- enum // must be in range of 0 ... 7
- {
+ static constexpr int // must be in range of 0 ... 7
   PEX_POWERON = 0,
   PEX_RESET   = 1,
   PEX_CPUADDR = 2,
@@ -126,10 +125,9 @@ class SH7095 final
   PEX_INT     = 4,
   PEX_NMI     = 5,
   PEX_PSEUDO_DMABURST = 6,
-  PEX_PSEUDO_EXTHALT = 7
- };
- enum { EPENDING_PEXBITS_SHIFT = 16 };
- enum { EPENDING_OP_OR = 0xFF000000 };
+  PEX_PSEUDO_EXTHALT = 7;
+ static constexpr int EPENDING_PEXBITS_SHIFT = 16;
+ static constexpr unsigned EPENDING_OP_OR = 0xFF000000;
 
  uint32 EPending;
 

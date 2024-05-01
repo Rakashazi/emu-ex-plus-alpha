@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/concepts.hh>
-#include <imagine/util/utility.h>
+#include <utility>
 #include <new>
 #include <cstddef>
 #include <cassert>
@@ -49,7 +49,7 @@ public:
 		{
 			[](const Storage &funcObj, Args ...args) -> R
 			{
-				return ((F*)funcObj.data())->operator()(IG_forward(args)...);
+				return ((F*)funcObj.data())->operator()(std::forward<Args>(args)...);
 			}
 		}
 	{
@@ -64,7 +64,7 @@ public:
 		{
 			[](const Storage &funcObj, Args ...args) -> R
 			{
-				return (*((FreeFuncPtr*)funcObj.data()))(IG_forward(args)...);
+				return (*((FreeFuncPtr*)funcObj.data()))(std::forward<Args>(args)...);
 			}
 		}
 	{
@@ -78,33 +78,37 @@ public:
 		return exec;
 	}
 
-	constexpr R operator()(auto &&...args) const
-		requires ValidInvokeArgs<FreeFuncPtr, decltype(args)...>
+	template<class... CallArgs>
+	constexpr R operator()(CallArgs&&... args) const
+		requires ValidInvokeArgs<FreeFuncPtr, CallArgs...>
 	{
 		assert(exec);
-		return exec(store, IG_forward(args)...);
+		return exec(store, std::forward<CallArgs>(args)...);
 	}
 
 	constexpr bool operator ==(DelegateFuncBase const&) const = default;
 
-	constexpr R callCopy(auto &&...args) const
+	template<class... CallArgs>
+	constexpr R callCopy(CallArgs&&... args) const
 	{
 		// Call a copy to avoid trashing captured variables
 		// if delegate's function can modify the delegate
-		return ({auto copy = *this; copy;})(IG_forward(args)...);
+		return ({auto copy = *this; copy;})(std::forward<CallArgs>(args)...);
 	}
 
-	constexpr R callSafe(auto &&...args) const
+	template<class... CallArgs>
+	constexpr R callSafe(CallArgs&&... args) const
 	{
 		if(exec)
-			return this->operator()(IG_forward(args)...);
+			return this->operator()(std::forward<CallArgs>(args)...);
 		return R();
 	}
 
-	constexpr R callCopySafe(auto &&...args) const
+	template<class... CallArgs>
+	constexpr R callCopySafe(CallArgs&&... args) const
 	{
 		if(exec)
-			return callCopy(IG_forward(args)...);
+			return callCopy(std::forward<CallArgs>(args)...);
 		return R();
 	}
 

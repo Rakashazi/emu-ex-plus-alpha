@@ -17,12 +17,12 @@ details. You should have received a copy of the GNU Lesser General Public
 License along with this module; if not, write to the Free Software Foundation,
 Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA */
 
-enum { buf_extra   = 2 };  /* extra samples to save past end */
-enum { time_bits   = 16 }; /* bits in fraction of fixed-point sample counts */
-enum { time_unit   = 1 << time_bits };
-enum { phase_bits  = 15 }; /* bits in fraction of deltas in buffer */
-enum { phase_count = 1 << phase_bits };
-enum { phase_shift = time_bits - phase_bits };
+constexpr int buf_extra   = 2;  /* extra samples to save past end */
+constexpr int time_bits   = 16; /* bits in fraction of fixed-point sample counts */
+constexpr int time_unit   = 1 << time_bits;
+constexpr int phase_bits  = 15; /* bits in fraction of deltas in buffer */
+constexpr int phase_count = 1 << phase_bits;
+constexpr int phase_shift = time_bits - phase_bits;
 
 typedef int buf_t; /* type of element in delta buffer */
 

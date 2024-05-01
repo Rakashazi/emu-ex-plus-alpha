@@ -30,8 +30,7 @@ using namespace Mednafen;
 
 namespace MDFN_IEN_SS
 {
- enum
- {
+ constexpr unsigned
   SS_DBG_ERROR     = (1U <<  0),
   SS_DBG_WARNING   = (1U <<  1),
 
@@ -69,8 +68,7 @@ namespace MDFN_IEN_SS
 
   SS_DBG_SCSP 	   = (1U << 26),
   SS_DBG_SCSP_REGW = (1U << 27),
-  SS_DBG_SCSP_MOBUF= (1U << 28),
- };
+  SS_DBG_SCSP_MOBUF= (1U << 28);
 #ifdef MDFN_ENABLE_DEV_BUILD
  MDFN_HIDE extern uint32 ss_dbg_mask;
 #else

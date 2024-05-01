@@ -33,12 +33,23 @@ constexpr auto imageSamplerConfig = Gfx::SamplerConfigs::nearestMipClamp;
 namespace IG
 {
 
+class ApplicationContext;
+class Window;
 class View;
 class ViewController;
-struct ViewAttachParams;
 class ViewManager;
 class TableView;
 class MenuItem;
+
+struct ViewAttachParams
+{
+	ViewManager &viewManager;
+	Window &window;
+	Gfx::RendererTask &rendererTask;
+
+	Gfx::Renderer &renderer() const;
+	ApplicationContext appContext() const;
+};
 
 struct TableUIState
 {

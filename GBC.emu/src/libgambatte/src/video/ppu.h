@@ -28,10 +28,10 @@
 
 namespace gambatte {
 
-enum {
+constexpr int
 	max_num_palettes = 8,
 	num_palette_entries = 4,
-	ppu_force_signed_enum = -1 };
+	ppu_force_signed_enum = -1;
 
 class PPUFrameBuf {
 public:

@@ -233,7 +233,7 @@ void FrameRateTestApplication::setActiveTestHandlers(IG::Window &win)
 			[&](Input::Event &e)
 			{
 				auto &activeTest = windowData(win).activeTest;
-				return visit(overloaded
+				return e.visit(overloaded
 				{
 					[&](const Input::MotionEvent &motionEv)
 					{
@@ -261,7 +261,7 @@ void FrameRateTestApplication::setActiveTestHandlers(IG::Window &win)
 						}
 						return false;
 					}
-				}, e);
+				});
 			},
 			[](auto &){ return false; }
 		}, winEvent);

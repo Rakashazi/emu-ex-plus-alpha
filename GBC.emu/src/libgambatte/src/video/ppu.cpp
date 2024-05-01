@@ -97,8 +97,8 @@ namespace StartWindowDraw {
 
 #undef DECLARE_FUNC
 
-enum { attr_cgbpalno = 0x07, attr_tdbank = 0x08, attr_dmgpalno = 0x10, attr_xflip = 0x20,
-	attr_yflip = 0x40, attr_bgpriority = 0x80 };
+constexpr unsigned attr_cgbpalno = 0x07, attr_tdbank = 0x08, attr_dmgpalno = 0x10, attr_xflip = 0x20,
+	attr_yflip = 0x40, attr_bgpriority = 0x80;
 enum { win_draw_start = 1, win_draw_started = 2 };
 
 int const max_m3start_cycles = 80;

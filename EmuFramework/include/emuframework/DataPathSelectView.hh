@@ -44,8 +44,6 @@ template<DataPathSelectMode mode, ArchivePathSelectMode archiveMode = ArchivePat
 class DataPathSelectView : public TableView, public EmuAppHelper
 {
 public:
-	using EmuAppHelper::app;
-
 	enum class Mode: uint8_t
 	{
 		File, Folder

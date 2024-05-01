@@ -1029,12 +1029,12 @@ void TouchConfigView::reloadItems()
 			elem.name(app().inputManager), attachParams(),
 			[this, &elem](const Input::Event &e)
 			{
-				visit(overloaded
+				elem.visit(overloaded
 				{
 					[&](VControllerDPad &){ pushAndShow(makeView<DPadElementConfigView>(*this, vController, elem), e); },
 					[&](VControllerButtonGroup &){ pushAndShow(makeView<ButtonGroupElementConfigView>(*this, vController, elem), e); },
 					[](auto &){}
-				}, elem);
+				});
 			});
 		item.emplace_back(&i);
 	}
@@ -1045,11 +1045,11 @@ void TouchConfigView::reloadItems()
 			elem.name(app().inputManager), attachParams(),
 			[this, &elem](const Input::Event &e)
 			{
-				visit(overloaded
+				elem.visit(overloaded
 				{
 					[&](VControllerUIButtonGroup &){ pushAndShow(makeView<ButtonGroupElementConfigView>(*this, vController, elem), e); },
 					[](auto &){}
-				}, elem);
+				});
 			});
 		item.emplace_back(&i);
 	}

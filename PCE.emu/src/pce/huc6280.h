@@ -15,14 +15,14 @@ class alignas(128) HuC6280
 	typedef uint8 (MDFN_FASTCALL *readfunc)(uint32 A);
 	typedef int32 (MDFN_FASTCALL *ehfunc)(const int32 timestamp);
 
-	enum { N_FLAG = 0x80 };
-	enum { V_FLAG = 0x40 };
-	enum { T_FLAG = 0x20 };
-	enum { B_FLAG = 0x10 };
-	enum { D_FLAG = 0x08 };
-	enum { I_FLAG = 0x04 };
-	enum { Z_FLAG = 0x02 };
-	enum { C_FLAG = 0x01 };
+	static constexpr unsigned N_FLAG = 0x80;
+	static constexpr unsigned V_FLAG = 0x40;
+	static constexpr unsigned T_FLAG = 0x20;
+	static constexpr unsigned B_FLAG = 0x10;
+	static constexpr unsigned D_FLAG = 0x08;
+	static constexpr unsigned I_FLAG = 0x04;
+	static constexpr unsigned Z_FLAG = 0x02;
+	static constexpr unsigned C_FLAG = 0x01;
 
 	// If emulate_wai is true, then the "0xCB" opcode will be handled by waiting for the next high-level event, NOT 
 	// for the IRQ line to be asserted as on a 65816.
@@ -35,10 +35,10 @@ class alignas(128) HuC6280
 	void Reset(void) MDFN_COLD;
 	void Power(void) MDFN_COLD;
 
-	enum { IQIRQ1 = 0x002 };
-	enum { IQIRQ2 = 0x001 };
-	enum { IQTIMER = 0x004 };
-	enum { IQRESET = 0x020 };
+	static constexpr unsigned IQIRQ1 = 0x002;
+	static constexpr unsigned IQIRQ2 = 0x001;
+	static constexpr unsigned IQTIMER = 0x004;
+	static constexpr unsigned IQRESET = 0x020;
 
 	INLINE void IRQBegin(int w)
 	{

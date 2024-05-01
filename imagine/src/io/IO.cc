@@ -27,18 +27,18 @@ template class IOUtils<IO>;
 
 ssize_t IO::read(void *buff, size_t bytes, std::optional<off_t> offset)
 {
-	return visit([&](auto &io){ return io.read(buff, bytes, offset); }, *this);
+	return visit([&](auto &io){ return io.read(buff, bytes, offset); });
 }
 
 ssize_t IO::write(const void *buff, size_t bytes, std::optional<off_t> offset)
 {
-	return visit([&](auto &io){ return io.write(buff, bytes, offset);	}, *this);
+	return visit([&](auto &io){ return io.write(buff, bytes, offset);	});
 }
 
-off_t IO::seek(off_t offset, IOSeekMode mode) { return visit([&](auto &io){ return io.seek(offset, mode); }, *this); }
-size_t IO::size() { return visit([&](auto &io){ return io.size(); }, *this); }
-bool IO::eof() { return visit([&](auto &io){ return io.eof(); }, *this); }
-IO::operator bool() const { return visit([&](auto &io){ return (bool)io; }, *this); }
+off_t IO::seek(off_t offset, IOSeekMode mode) { return visit([&](auto &io){ return io.seek(offset, mode); }); }
+size_t IO::size() { return visit([&](auto &io){ return io.size(); }); }
+bool IO::eof() { return visit([&](auto &io){ return io.eof(); }); }
+IO::operator bool() const { return visit([&](auto &io){ return (bool)io; }); }
 
 std::span<uint8_t> IO::map()
 {
@@ -48,7 +48,7 @@ std::span<uint8_t> IO::map()
 			return io.map();
 		else
 			return std::span<uint8_t>{};
-	}, *this);
+	});
 };
 
 ssize_t IO::writeVector(std::span<const OutVector> buffs, std::optional<off_t> offset)
@@ -59,7 +59,7 @@ ssize_t IO::writeVector(std::span<const OutVector> buffs, std::optional<off_t> o
 			return io.writeVector(buffs, offset);
 		else
 			return io.genericWriteVector(buffs, offset);
-	}, *this);
+	});
 }
 
 bool IO::truncate(off_t offset)
@@ -70,7 +70,7 @@ bool IO::truncate(off_t offset)
 			return io.truncate(offset);
 		else
 			return false;
-	}, *this);
+	});
 };
 
 void IO::sync()
@@ -79,7 +79,7 @@ void IO::sync()
 	{
 		if constexpr(requires {io.sync();})
 			io.sync();
-	}, *this);
+	});
 }
 
 void IO::advise(off_t offset, size_t bytes, Advice advice)
@@ -88,7 +88,7 @@ void IO::advise(off_t offset, size_t bytes, Advice advice)
 	{
 		if constexpr(requires {io.advise(offset, bytes, advice);})
 			return io.advise(offset, bytes, advice);
-	}, *this);
+	});
 }
 
 }

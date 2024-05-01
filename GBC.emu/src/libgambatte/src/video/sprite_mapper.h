@@ -103,7 +103,7 @@ private:
 		bool cgb_;
 	};
 
-	enum { need_sorting_flag = 0x80 };
+	static constexpr unsigned need_sorting_flag = 0x80;
 
 	mutable unsigned char spritemap_[lcd_vres][lcd_max_num_sprites_per_line];
 	mutable unsigned char num_[lcd_vres];

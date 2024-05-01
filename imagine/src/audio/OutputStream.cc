@@ -46,13 +46,13 @@ void OutputStream::setApi(const Manager &mgr, Api api)
 	}
 }
 
-StreamError OutputStream::open(OutputStreamConfig config) { return visit([&](auto &v){ return v.open(config); }, *this); }
-void OutputStream::play() { visit([&](auto &v){ v.play(); }, *this); }
-void OutputStream::pause() { visit([&](auto &v){ v.pause(); }, *this); }
-void OutputStream::close() { visit([&](auto &v){ v.close(); }, *this); }
-void OutputStream::flush() { visit([&](auto &v){ v.flush(); }, *this); }
-bool OutputStream::isOpen() { return visit([&](auto &v){ return v.isOpen(); }, *this); }
-bool OutputStream::isPlaying() { return visit([&](auto &v){ return v.isPlaying(); }, *this); }
+StreamError OutputStream::open(OutputStreamConfig config) { return visit([&](auto &v){ return v.open(config); }); }
+void OutputStream::play() { visit([&](auto &v){ v.play(); }); }
+void OutputStream::pause() { visit([&](auto &v){ v.pause(); }); }
+void OutputStream::close() { visit([&](auto &v){ v.close(); }); }
+void OutputStream::flush() { visit([&](auto &v){ v.flush(); }); }
+bool OutputStream::isOpen() { return visit([&](auto &v){ return v.isOpen(); }); }
+bool OutputStream::isPlaying() { return visit([&](auto &v){ return v.isPlaying(); }); }
 void OutputStream::reset() { emplace<NullOutputStream>(); }
 
 OutputStreamConfig Manager::makeNativeOutputStreamConfig() const

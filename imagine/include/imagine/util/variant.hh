@@ -29,7 +29,7 @@ template<class... Ts> overloaded(Ts&&...) -> overloaded<std::decay_t<Ts>...>;
 // TODO: remove when clang implements a similar optimization,
 // currently Clang 14's libc++ uses a function jump table that prevents inline optimization
 template<class... VTypes, class Variant = std::variant<VTypes...>, auto vSize = std::variant_size_v<Variant>>
-constexpr decltype(auto) visitVariant(auto &&func, Variant &v)
+constexpr decltype(auto) visitVariant(auto&& func, Variant& v)
 	requires (vSize <= 16)
 {
 	#define VISIT_CASE(i) case i: \
@@ -60,26 +60,38 @@ constexpr decltype(auto) visitVariant(auto &&func, Variant &v)
 }
 
 template <class... VTypes>
-constexpr decltype(auto) asVariant(std::variant<VTypes...> &v) noexcept { return v; }
+constexpr decltype(auto) asVariant(std::variant<VTypes...>& v) noexcept { return v; }
 
 template <class... VTypes>
-constexpr decltype(auto) asVariant(const std::variant<VTypes...> &v) noexcept { return v; }
+constexpr decltype(auto) asVariant(const std::variant<VTypes...>& v) noexcept { return v; }
 
 template <class... VTypes>
-constexpr decltype(auto) asVariant(std::variant<VTypes...> &&v) noexcept { return std::move(v); }
+constexpr decltype(auto) asVariant(std::variant<VTypes...>&& v) noexcept { return std::move(v); }
 
 template <class... VTypes>
-constexpr decltype(auto) asVariant(const std::variant<VTypes...> &&v) noexcept { return std::move(v); }
+constexpr decltype(auto) asVariant(const std::variant<VTypes...>&& v) noexcept { return std::move(v); }
 
 // visit a std::variant or object derived from std::variant
-constexpr decltype(auto) visit(auto &&func, auto &v)
+template <class Func>
+constexpr decltype(auto) visit(Func&& func, auto& v)
 {
-  return visitVariant(std::forward<decltype(func)>(func),
-    asVariant(std::forward<decltype(v)>(v)));
+  return visitVariant(std::forward<Func>(func), asVariant(v));
 }
 
+class AddVisit
+{
+public:
+	template <class Func>
+	constexpr decltype(auto) visit(this auto&& self, Func&& func)
+	{
+	  return IG::visit(std::forward<Func>(func), asVariant(self));
+	}
+
+	bool operator==(AddVisit const&) const = default;
+};
+
 template<class T, class... VTypes>
-constexpr T& getAs(std::variant<VTypes...> &v)
+constexpr T& getAs(std::variant<VTypes...>& v)
 {
 	auto vPtr = std::get_if<T>(&v);
 	assumeExpr(vPtr);
@@ -87,7 +99,7 @@ constexpr T& getAs(std::variant<VTypes...> &v)
 }
 
 template<class T, class... VTypes>
-constexpr const T& getAs(const std::variant<VTypes...> &v)
+constexpr const T& getAs(const std::variant<VTypes...>& v)
 {
 	auto vPtr = std::get_if<T>(&v);
 	assumeExpr(vPtr);

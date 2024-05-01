@@ -229,13 +229,13 @@ void Window::drawNow(bool needsSync)
 bool Window::dispatchInputEvent(Input::Event event)
 {
 	bool handled = onEvent.callCopy(*this, event);
-	return visit(overloaded{
+	return event.visit(overloaded{
 		[&](const Input::MotionEvent &e)
 		{
 			return handled || (e.isPointer() && contentBounds().overlaps(e.pos()));
 		},
 		[&](const Input::KeyEvent &e) { return handled; }
-	}, event);
+	});
 }
 
 bool Window::dispatchRepeatableKeyInputEvent(Input::KeyEvent event)

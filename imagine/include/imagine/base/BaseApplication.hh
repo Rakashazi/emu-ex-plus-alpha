@@ -23,7 +23,6 @@
 #include <imagine/base/MessagePort.hh>
 #include <imagine/input/Device.hh>
 #include <imagine/util/DelegateFuncSet.hh>
-#include <vector>
 #include <memory>
 #include <optional>
 #include <cstdint>

@@ -579,7 +579,7 @@ bool SID::set_sampling_parameters(double clock_freq, sampling_method method,
   if (method == SAMPLE_RESAMPLE || method == SAMPLE_RESAMPLE_FASTMEM)
   {
     // Check whether the sample ring buffer would overfill.
-    if (FIR_N*clock_freq/sample_freq >= RINGSIZE) {
+    if (double(FIR_N)*clock_freq/sample_freq >= double(RINGSIZE)) {
       return false;
     }
 

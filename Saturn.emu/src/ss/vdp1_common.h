@@ -53,10 +53,10 @@ MDFN_HIDE extern int32 LocalX, LocalY;
 
 MDFN_HIDE extern uint32 (MDFN_FASTCALL *const TexFetchTab[0x20])(uint32 x);
 
-enum { TVMR_8BPP   = 0x1 };
-enum { TVMR_ROTATE = 0x2 };
-enum { TVMR_HDTV   = 0x4 };
-enum { TVMR_VBE    = 0x8 };
+constexpr unsigned TVMR_8BPP   = 0x1;
+constexpr unsigned TVMR_ROTATE = 0x2;
+constexpr unsigned TVMR_HDTV   = 0x4;
+constexpr unsigned TVMR_VBE    = 0x8;
 MDFN_HIDE extern uint8 TVMR;
 
 enum { FBCR_FCT	   = 0x01 };	// Frame buffer change trigger

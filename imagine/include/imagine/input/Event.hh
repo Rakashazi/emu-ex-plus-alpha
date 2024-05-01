@@ -156,15 +156,16 @@ protected:
 
 using EventVariant = std::variant<MotionEvent, KeyEvent>;
 
-class Event : public EventVariant
+class Event : public EventVariant, public AddVisit
 {
 public:
 	using EventVariant::EventVariant;
+	using AddVisit::visit;
 
 	constexpr auto motionEvent(this auto&& self) { return std::get_if<MotionEvent>(&self); }
 	constexpr auto keyEvent(this auto&& self) { return std::get_if<KeyEvent>(&self); }
-	constexpr auto state() const { return visit([](auto &e){ return e.state(); }, *this); }
-	constexpr auto metaKeyBits() const { return visit([](auto &e){ return e.metaKeyBits(); }, *this); }
+	constexpr auto state() const { return visit([](auto &e){ return e.state(); }); }
+	constexpr auto metaKeyBits() const { return visit([](auto &e){ return e.metaKeyBits(); }); }
 
 	SteadyClockTimePoint time() const;
 	const Device *device() const;

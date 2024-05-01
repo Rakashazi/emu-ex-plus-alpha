@@ -1,4 +1,4 @@
-LD := $(CXX)
+LD = $(CXX)
 
 ifdef LINK_MAP
  MAPFILE := link.map

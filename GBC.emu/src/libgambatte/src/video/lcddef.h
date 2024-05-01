@@ -20,14 +20,14 @@ enum {
 	lcdstat_m2irqen = 0x20,
 	lcdstat_lycirqen = 0x40 };
 
-enum {
+constexpr int
 	lcd_hres = 160,
 	lcd_vres = 144,
 	lcd_lines_per_frame = 154,
 	lcd_max_num_sprites_per_line = 10,
 	lcd_num_oam_entries = 40,
 	lcd_cycles_per_line = 456,
-	lcd_force_signed_enum1 = -1 };
+	lcd_force_signed_enum1 = -1;
 enum {
 	lcd_cycles_per_frame = 1l * lcd_lines_per_frame * lcd_cycles_per_line,
 	lcd_force_signed_enum2 = -1 };

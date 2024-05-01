@@ -315,7 +315,7 @@ void Device::setICadeMode(bool on)
 	{
 		if constexpr(requires {d.setICadeMode(on);})
 			d.setICadeMode(on);
-	}, *this);
+	});
 }
 
 bool Device::iCadeMode() const
@@ -326,7 +326,7 @@ bool Device::iCadeMode() const
 			return d.iCadeMode();
 		else
 			return false;
-	}, *this);
+	});
 }
 
 void Device::setJoystickAxesAsKeys(AxisSetId id, bool on)
@@ -361,7 +361,7 @@ const char *Device::keyName(Key k) const
 			return d.keyName(k);
 		else
 			return nullptr;
-	}, *this);
+	});
 	if(customName)
 		return customName;
 	switch(map())
@@ -420,7 +420,7 @@ std::string Device::keyString(Key k, KeyNameFlags flags) const
 
 Map Device::map() const
 {
-	return visit([](auto &d){ return d.map_; }, *this);
+	return visit([](auto &d){ return d.map_; });
 }
 
 static DeviceSubtype gamepadSubtype(std::string_view name)

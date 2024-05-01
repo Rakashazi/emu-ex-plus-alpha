@@ -16,14 +16,12 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/gui/ViewAttachParams.hh>
 #include <imagine/gui/ViewManager.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/concepts.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/variant.hh>
-#include <vector>
 #include <iterator>
 #include <memory>
 #include <type_traits>
@@ -35,6 +33,21 @@ class Event;
 
 namespace IG
 {
+
+template<class Func, class... Args>
+constexpr bool callAndAutoReturnTrue(Func& f, Args&&... args)
+{
+	if constexpr(VoidInvokeResult<Func, Args...>)
+	{
+		// auto-return true if the supplied function doesn't return a value
+		f(std::forward<Args>(args)...);
+		return true;
+	}
+	else
+	{
+		return f(std::forward<Args>(args)...);
+	}
+}
 
 template <class Item>
 class MenuItemSelectDelegate : public DelegateFunc<bool (Item &, View &, const Input::Event &)>
@@ -49,58 +62,44 @@ public:
 	constexpr MenuItemSelectDelegate(Callable<void, Item &, View &, const Input::Event &> auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f, i, v, e); }
+			[=](Item &i, View &v, const Input::Event &e) { return callAndAutoReturnTrue(f, i, v, e); }
 		} {}
 
 	constexpr MenuItemSelectDelegate(std::invocable<Item &, const Input::Event &> auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f, i, e); }
+			[=](Item &i, View &v, const Input::Event &e) { return callAndAutoReturnTrue(f, i, e); }
 		} {}
 
 	constexpr MenuItemSelectDelegate(std::invocable<View &, const Input::Event &> auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f, v, e); }
+			[=](Item &i, View &v, const Input::Event &e) { return callAndAutoReturnTrue(f, v, e); }
 		} {}
 
 	constexpr MenuItemSelectDelegate(std::invocable<Item &> auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f, i); }
+			[=](Item &i, View &v, const Input::Event &e) { return callAndAutoReturnTrue(f, i); }
 		} {}
 
 	constexpr MenuItemSelectDelegate(std::invocable<View &> auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f, v); }
+			[=](Item &i, View &v, const Input::Event &e) { return callAndAutoReturnTrue(f, v); }
 		} {}
 
 	constexpr MenuItemSelectDelegate(std::invocable<const Input::Event &> auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f, e); }
+			[=](Item &i, View &v, const Input::Event &e) { return callAndAutoReturnTrue(f, e); }
 		} {}
 
 	constexpr MenuItemSelectDelegate(std::invocable auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, const Input::Event &e) { return callAndReturnBool(f); }
+			[=](Item &i, View &v, const Input::Event &e) { return callAndAutoReturnTrue(f); }
 		} {}
-
-	constexpr static bool callAndReturnBool(auto &f, auto &&...args)
-	{
-		if constexpr(VoidInvokeResult<decltype(f), decltype(args)...>)
-		{
-			// auto-return true if the supplied function doesn't return a value
-			f(IG_forward(args)...);
-			return true;
-		}
-		else
-		{
-			return f(IG_forward(args)...);
-		}
-	}
 };
 
 struct MenuItemFlags

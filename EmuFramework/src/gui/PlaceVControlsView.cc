@@ -84,7 +84,7 @@ void PlaceVControlsView::place()
 
 bool PlaceVControlsView::inputEvent(const Input::Event &e)
 {
-	return visit(overloaded
+	return e.visit(overloaded
 	{
 		[&](const Input::KeyEvent &e)
 		{
@@ -170,7 +170,7 @@ bool PlaceVControlsView::inputEvent(const Input::Event &e)
 				});
 			return true;
 		}
-	}, e);
+	});
 }
 
 void PlaceVControlsView::draw(Gfx::RendererCommands &__restrict__ cmds)

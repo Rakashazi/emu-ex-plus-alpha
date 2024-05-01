@@ -226,7 +226,7 @@ void ButtonConfigSetView::place()
 
 bool ButtonConfigSetView::inputEvent(const Input::Event &e)
 {
-	return visit(overloaded
+	return e.visit(overloaded
 	{
 		[&](const Input::MotionEvent &motionEv)
 		{
@@ -300,7 +300,7 @@ bool ButtonConfigSetView::inputEvent(const Input::Event &e)
 			}
 			return true;
 		}
-	}, e);
+	});
 }
 
 void ButtonConfigSetView::finalize()

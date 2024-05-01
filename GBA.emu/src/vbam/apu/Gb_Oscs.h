@@ -125,8 +125,8 @@ class Gb_Sweep_Square : public Gb_Square
         }
 
         private:
-        enum { period_mask = 0x70 };
-        enum { shift_mask = 0x07 };
+        static constexpr unsigned period_mask = 0x70;
+        static constexpr unsigned shift_mask = 0x07;
 
         void calc_sweep(bool update);
         void reload_sweep_timer();

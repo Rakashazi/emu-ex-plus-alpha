@@ -1955,8 +1955,8 @@ static MDFN_COLD void LoadRTC(void)
 
 struct EventsPacker
 {
- enum : size_t { eventcopy_first = SS_EVENT__SYNFIRST + 1 };
- enum : size_t { eventcopy_bound = SS_EVENT__SYNLAST };
+ static constexpr size_t eventcopy_first = SS_EVENT__SYNFIRST + 1;
+ static constexpr size_t eventcopy_bound = SS_EVENT__SYNLAST;
 
  bool Restore(const unsigned state_version);
  void Save(void);

@@ -16,7 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/viewDefs.hh>
-#include <imagine/gui/ViewAttachParams.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/string/utf16.hh>

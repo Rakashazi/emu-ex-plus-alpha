@@ -21,6 +21,7 @@
 #ifdef __ANDROID__
 #include <imagine/io/AAssetIO.hh>
 #endif
+#include <imagine/util/variant.hh>
 #include <variant>
 #include <span>
 #include <optional>
@@ -36,11 +37,12 @@ AAssetIO,
 #endif
 ArchiveIO>;
 
-class IO : public IOVariant, public IOUtils<IO>
+class IO : public IOVariant, public IOUtils<IO>, public AddVisit
 {
 public:
 	using IOVariant::IOVariant;
 	using IOVariant::operator=;
+	using AddVisit::visit;
 	using IOUtilsBase = IOUtils<IO>;
 	using IOUtilsBase::read;
 	using IOUtilsBase::write;

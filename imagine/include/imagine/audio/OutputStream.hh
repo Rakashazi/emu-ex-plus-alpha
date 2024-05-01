@@ -34,6 +34,7 @@
 #include <imagine/audio/defs.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/audio/Format.hh>
+#include <imagine/util/variant.hh>
 #include <variant>
 
 namespace IG::Audio
@@ -79,11 +80,12 @@ using OutputStreamVariant = std::variant<CAOutputStream, NullOutputStream>;
 	NullOutputStream>;
 #endif
 
-class OutputStream : public OutputStreamVariant
+class OutputStream : public OutputStreamVariant, public AddVisit
 {
 public:
 	using OutputStreamVariant::OutputStreamVariant;
 	using OutputStreamVariant::operator=;
+	using AddVisit::visit;
 
 	constexpr OutputStream(): OutputStreamVariant{std::in_place_type<NullOutputStream>} {}
 	void setApi(const Manager &, Api api = Api::DEFAULT);

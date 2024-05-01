@@ -23,15 +23,15 @@
 
 namespace min_keeper_detail {
 
-template<int n> struct CeiledLog2 { enum { r = 1 + CeiledLog2<(n + 1) / 2>::r }; };
-template<> struct CeiledLog2<1> { enum { r = 0 }; };
+template<int n> struct CeiledLog2 { static constexpr int r = 1 + CeiledLog2<(n + 1) / 2>::r; };
+template<> struct CeiledLog2<1> { static constexpr int r = 0; };
 
-template<int v, int n> struct CeiledDiv2n { enum { r = CeiledDiv2n<(v + 1) / 2, n - 1>::r }; };
-template<int v> struct CeiledDiv2n<v, 0> { enum { r = v }; };
-// alternatively: template<int v, int n> struct CeiledDiv2n { enum { r = (v + (1 << n) - 1) >> n }; };
+template<int v, int n> struct CeiledDiv2n { static constexpr int r = CeiledDiv2n<(v + 1) / 2, n - 1>::r; };
+template<int v> struct CeiledDiv2n<v, 0> { static constexpr int r = v; };
+// alternatively: template<int v, int n> struct CeiledDiv2n { static constexpr int r = (v + (1 << n) - 1) >> n; };
 
-template<template<int> class T, int n> struct Sum { enum { r = T<n-1>::r + Sum<T, n-1>::r }; };
-template<template<int> class T> struct Sum<T, 0> { enum { r = 0 }; };
+template<template<int> class T, int n> struct Sum { static constexpr int r = T<n-1>::r + Sum<T, n-1>::r; };
+template<template<int> class T> struct Sum<T, 0> { static constexpr int r = 0; };
 
 }
 
