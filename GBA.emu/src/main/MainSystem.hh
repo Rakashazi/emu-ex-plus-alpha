@@ -20,7 +20,7 @@
 #include <imagine/base/Sensor.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/util/enum.hh>
-#include <vbam/gba/GBA.h>
+#include <core/gba/gba.h>
 
 namespace IG
 {

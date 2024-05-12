@@ -83,14 +83,14 @@ PixelFormat makePixelFormatFromAndroidFormat(int32_t androidFormat)
 	switch(androidFormat)
 	{
 		case AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM:
-		case AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM: return PIXEL_FMT_RGBA8888;
-		case AHARDWAREBUFFER_FORMAT_R5G6B5_UNORM: return PIXEL_FMT_RGB565;
-		case ANDROID_BITMAP_FORMAT_RGBA_4444: return PIXEL_FMT_RGBA4444;
-		case ANDROID_BITMAP_FORMAT_A_8: return PIXEL_FMT_I8;
+		case AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM: return PixelFmtRGBA8888;
+		case AHARDWAREBUFFER_FORMAT_R5G6B5_UNORM: return PixelFmtRGB565;
+		case ANDROID_BITMAP_FORMAT_RGBA_4444: return PixelFmtRGBA4444;
+		case ANDROID_BITMAP_FORMAT_A_8: return PixelFmtI8;
 		default:
 		{
 			log.error("unhandled format");
-			return PIXEL_FMT_I8;
+			return PixelFmtI8;
 		}
 	}
 }
@@ -105,7 +105,7 @@ MutablePixmapView makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, Pixe
 		return {};
 	}
 	//log.info("android bitmap info:size {}x{}, stride:{}", info.width, info.height, info.stride);
-	if(format == PIXEL_FMT_NONE)
+	if(format == PixelFmtUnset)
 	{
 		// use format from bitmap info
 		format = makePixelFormatFromAndroidFormat(info.format);
@@ -282,12 +282,12 @@ jobject AndroidApplication::makeFontRenderer(JNIEnv *env, jobject baseActivity)
 	return jNewFontRenderer(env, baseActivity);
 }
 
-uint32_t toAHardwareBufferFormat(PixelFormatID format)
+uint32_t toAHardwareBufferFormat(PixelFormatId format)
 {
 	switch(format)
 	{
-		case PIXEL_RGBA8888: return AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
-		case PIXEL_RGB565: return AHARDWAREBUFFER_FORMAT_R5G6B5_UNORM;
+		case PixelFormatId::RGBA8888: return AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
+		case PixelFormatId::RGB565: return AHARDWAREBUFFER_FORMAT_R5G6B5_UNORM;
 		default: return 0;
 	}
 }
@@ -296,7 +296,7 @@ const char *aHardwareBufferFormatStr(uint32_t format)
 {
 	switch(format)
 	{
-		case 0: return "None";
+		case 0: return "Unset";
 		case AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM: return "RGBA8888";
 		case AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM: return "RGBX8888";
 		case AHARDWAREBUFFER_FORMAT_R8G8B8_UNORM: return "RGB888";

@@ -22,7 +22,7 @@
 namespace EmuEx
 {
 
-constexpr uint32_t slCol(uint8_t a) { return IG::PIXEL_DESC_RGBA8888_NATIVE.build(0, 0, 0, a); }
+constexpr uint32_t slCol(uint8_t a) { return IG::PixelDescRGBA8888Native.build(0, 0, 0, a); }
 
 constexpr uint32_t scanlinePixmapBuff[]
 {
@@ -30,7 +30,7 @@ constexpr uint32_t scanlinePixmapBuff[]
 	slCol(0xff)
 };
 
-constexpr uint32_t lcdCol(uint8_t a) { return IG::PIXEL_DESC_RGBA8888_NATIVE.build(0, 0, 0, a); }
+constexpr uint32_t lcdCol(uint8_t a) { return IG::PixelDescRGBA8888Native.build(0, 0, 0, a); }
 
 constexpr uint32_t lcdPixmapBuff[]
 {
@@ -46,7 +46,7 @@ constexpr uint32_t lcdPixmapBuff[]
 
 constexpr uint32_t crtCol(uint8_t r, uint8_t g, uint8_t b)
 {
-	return IG::PIXEL_DESC_RGBA8888_NATIVE.build(r, g, b, 0xff);
+	return IG::PixelDescRGBA8888Native.build(r, g, b, 0xff);
 }
 
 constexpr WSize crtTexSize{4, 4};
@@ -78,13 +78,13 @@ constexpr OverlayDesc overlayDesc(ImageOverlayId id)
 	switch(id)
 	{
 		case ImageOverlayId::SCANLINES ... ImageOverlayId::SCANLINES_2:
-			return {{{{1, 2}, PIXEL_RGBA8888}, scanlinePixmapBuff}, Gfx::WrapMode::REPEAT};
+			return {{{{1, 2}, PixelFmtRGBA8888}, scanlinePixmapBuff}, Gfx::WrapMode::REPEAT};
 		case ImageOverlayId::LCD:
-			return {{{{8, 8}, PIXEL_RGBA8888}, lcdPixmapBuff}, Gfx::WrapMode::MIRROR_REPEAT};
+			return {{{{8, 8}, PixelFmtRGBA8888}, lcdPixmapBuff}, Gfx::WrapMode::MIRROR_REPEAT};
 		case ImageOverlayId::CRT_MASK ... ImageOverlayId::CRT_MASK_2:
-			return {{{crtTexSize, PIXEL_RGBA8888}, crtMaskPixmapBuff}, Gfx::WrapMode::REPEAT};
+			return {{{crtTexSize, PixelFmtRGBA8888}, crtMaskPixmapBuff}, Gfx::WrapMode::REPEAT};
 		case ImageOverlayId::CRT_GRILLE ... ImageOverlayId::CRT_GRILLE_2:
-			return {{{crtTexSize, PIXEL_RGBA8888}, crtGrillePixmapBuff}, Gfx::WrapMode::REPEAT};
+			return {{{crtTexSize, PixelFmtRGBA8888}, crtGrillePixmapBuff}, Gfx::WrapMode::REPEAT};
 	}
 	bug_unreachable("invalid ImageOverlayId");
 }

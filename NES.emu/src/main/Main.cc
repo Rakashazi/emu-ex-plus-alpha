@@ -433,12 +433,12 @@ void NesSystem::renderVideo(EmuSystemTaskContext taskCtx, EmuVideo &video, uint8
 {
 	auto img = video.startFrame(taskCtx);
 	auto pix = img.pixmap();
-	PixmapView ppuPix{{{256, 256}, PIXEL_FMT_I8}, buf};
+	PixmapView ppuPix{{{256, 256}, PixelFmtI8}, buf};
 	int xStart = pix.w() == 256 ? 0 : 8;
 	int yStart = optionStartVideoLine;
 	auto ppuPixRegion = ppuPix.subView({xStart, yStart}, pix.size());
 	assumeExpr(pix.size() == ppuPixRegion.size());
-	if(pix.format() == PIXEL_RGB565)
+	if(pix.format() == PixelFmtRGB565)
 	{
 		pix.writeTransformed([&](uint8 p){ return nativeCol.col16[p]; }, ppuPixRegion);
 	}
@@ -484,13 +484,13 @@ void FCEUD_SetPalette(uint8 index, uint8 r, uint8 g, uint8 b)
 {
 	using namespace EmuEx;
 	auto &sys = static_cast<NesSystem&>(gSystem());
-	if(sys.pixFmt == PIXEL_RGB565)
+	if(sys.pixFmt == PixelFmtRGB565)
 	{
 		sys.nativeCol.col16[index] = sys.pixFmt.desc().build(r >> 3, g >> 2, b >> 3, 0);
 	}
 	else // RGBA8888
 	{
-		auto desc = sys.pixFmt == PIXEL_BGRA8888 ? PIXEL_DESC_BGRA8888.nativeOrder() : PIXEL_DESC_RGBA8888_NATIVE;
+		auto desc = sys.pixFmt == PixelFmtBGRA8888 ? PixelDescBGRA8888Native : PixelDescRGBA8888Native;
 		sys.nativeCol.col32[index] = desc.build(r, g, b, (uint8)0);
 	}
 	//log.debug("set palette {} {}", index, nativeCol[index]);

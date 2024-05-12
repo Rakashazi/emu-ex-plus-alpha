@@ -8,12 +8,19 @@
 #include <stella/emucore/EventHandlerConstants.hxx>
 #include <stella/common/PaletteHandler.hxx>
 #include <stella/common/VideoModeHandler.hxx>
-#include <imagine/pixmap/Pixmap.hh>
 #include <array>
 
 class Console;
 class OSystem;
 class TIA;
+
+namespace IG
+{
+template <class PixData>
+class PixmapViewBase;
+using MutablePixmapView = PixmapViewBase<char>;
+enum class PixelFormatId : uint8_t;
+}
 
 namespace EmuEx
 {
@@ -70,8 +77,8 @@ public:
 
 	void setTIAPalette(const PaletteArray& rgb_palette);
 
-	void setPixelFormat(IG::PixelFormat);
-	IG::PixelFormat pixelFormat() const;
+	void setPixelFormat(IG::PixelFormatId);
+	IG::PixelFormatId pixelFormat() const;
 
 	void showTextMessage(const string& message,
 		MessagePosition position = MessagePosition::BottomCenter,
@@ -107,7 +114,7 @@ private:
 	Common::Rect myImageRect{};
 	float myPhosphorPercent = 0.80f;
 	bool myUsePhosphor{};
-	IG::PixelFormat format;
+	IG::PixelFormatId format;
 
 	std::array<uInt8, 3> getRGBPhosphorTriple(uInt32 c, uInt32 p) const;
 	template <int outputBits>

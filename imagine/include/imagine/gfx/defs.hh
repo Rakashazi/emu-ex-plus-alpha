@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/pixmap/PixelDesc.hh>
+#include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/util/rectangle2.h>
 #include <array>
 
@@ -179,7 +179,7 @@ struct Color4B
 			uint8_t r, g, b, a;
 		};
 	};
-	static constexpr auto format = PIXEL_DESC_RGBA8888_NATIVE;
+	static constexpr auto format = PixelDescRGBA8888Native;
 
 	constexpr Color4B() = default;
 	constexpr Color4B(uint32_t rgba): rgba{rgba} {}

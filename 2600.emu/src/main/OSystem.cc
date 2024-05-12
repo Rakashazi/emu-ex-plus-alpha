@@ -16,7 +16,7 @@
 #include <OSystem.hxx>
 #include <FrameBuffer.hxx>
 #include <EventHandler.hxx>
-#include <FSNodeEmuEx.hh>
+#include <FSNode.hxx>
 #include <SoundEmuEx.hh>
 #include <stella/emucore/Console.hxx>
 #include <stella/emucore/PropsSet.hxx>
@@ -35,7 +35,8 @@
 #undef Debugger
 
 OSystem::OSystem(EmuEx::EmuApp &app):
-	appPtr{&app}
+	appPtr{&app},
+	myRandom{uInt32(TimerManager::getTicks())}
 {
 	mySettings.setValue(AudioSettings::SETTING_PRESET, static_cast<int>(AudioSettings::Preset::custom));
 	mySettings.setValue(AudioSettings::SETTING_FRAGMENT_SIZE, 128);

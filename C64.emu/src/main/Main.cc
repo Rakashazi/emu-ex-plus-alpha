@@ -542,8 +542,8 @@ void EmuApp::onMainWindowCreated(ViewAttachParams attach, const Input::Event &e)
 
 bool C64System::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 {
-	if(fmt == IG::PIXEL_FMT_RGB565)
-		fmt = IG::PIXEL_FMT_RGBA8888; // internally render in 32bpp
+	if(fmt == IG::PixelFmtRGB565)
+		fmt = IG::PixelFmtRGBA8888; // internally render in 32bpp
 	pixFmt = fmt;
 	if(activeCanvas)
 	{

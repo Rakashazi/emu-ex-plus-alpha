@@ -89,7 +89,7 @@ unsigned int (*vdp_z80_data_r)(void);
 #endif
 
 static_assert(RENDER_BPP == 32 || RENDER_BPP == 16);
-static constexpr auto fbPixelFormat = RENDER_BPP == 32 ? IG::PIXEL_RGBA8888 : IG::PIXEL_RGB565;
+static constexpr auto fbPixelFormat = RENDER_BPP == 32 ? IG::PixelFmtRGBA8888 : IG::PixelFmtRGB565;
 
 static Pixel frameBufferData[320 * 240];
 

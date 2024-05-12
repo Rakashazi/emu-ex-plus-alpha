@@ -95,7 +95,7 @@ static PixelFormat effectFormat(IG::PixelFormat format, Gfx::ColorSpace colSpace
 	assert(format);
 	if(colSpace == Gfx::ColorSpace::SRGB)
 	{
-		return IG::PIXEL_RGBA8888;
+		return IG::PixelFmtRGBA8888;
 	}
 	return format;
 }

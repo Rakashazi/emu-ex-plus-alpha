@@ -64,12 +64,12 @@ void vsyncarch_refresh_frequency_changed(double rate)
 
 static bool isValidPixelFormat(IG::PixelFormat fmt)
 {
-	return fmt == IG::PIXEL_FMT_RGBA8888 || fmt == IG::PIXEL_FMT_BGRA8888;
+	return fmt == IG::PixelFmtRGBA8888 || fmt == IG::PixelFmtBGRA8888;
 }
 
 static IG::PixmapView pixmapView(const struct video_canvas_s *c)
 {
-	IG::PixelFormat fmt{(IG::PixelFormatID)c->pixelFormat};
+	IG::PixelFormat fmt{IG::PixelFormatId{c->pixelFormat}};
 	assumeExpr(isValidPixelFormat(fmt));
 	return {{{c->w, c->h}, fmt}, c->pixmapData};
 }
@@ -83,7 +83,7 @@ static IG::PixelDesc pixelDesc(IG::PixelFormat fmt)
 static void updateInternalPixelFormat(struct video_canvas_s *c, IG::PixelFormat fmt)
 {
 	assumeExpr(isValidPixelFormat(fmt));
-	c->pixelFormat = fmt;
+	c->pixelFormat = to_underlying(fmt.id);
 }
 
 void video_arch_canvas_init(struct video_canvas_s *c)
@@ -96,7 +96,7 @@ void video_arch_canvas_init(struct video_canvas_s *c)
 
 int video_canvas_set_palette(video_canvas_t *c, struct palette_s *palette)
 {
-	IG::PixelFormat fmt{(IG::PixelFormatID)c->pixelFormat};
+	IG::PixelFormat fmt{IG::PixelFormatId{c->pixelFormat}};
 	const auto pDesc = pixelDesc(fmt);
 	auto colorTables = &c->videoconfig->color_tables;
 	auto &plugin = c64Sys(c).plugin;
@@ -168,7 +168,7 @@ void C64System::resetCanvasSourcePixmap(struct video_canvas_s *c)
 
 static void updateCanvasMemPixmap(struct video_canvas_s *c, int x, int y)
 {
-	IG::PixelFormat fmt{(IG::PixelFormatID)c->pixelFormat};
+	IG::PixelFormat fmt{IG::PixelFormatId{c->pixelFormat}};
 	assumeExpr(isValidPixelFormat(fmt));
 	IG::PixmapDesc desc{{x, y}, fmt};
 	c->w = x;
@@ -195,7 +195,7 @@ static void refreshFullCanvas(video_canvas_t *canvas)
 bool C64System::updateCanvasPixelFormat(struct video_canvas_s *c, IG::PixelFormat fmt)
 {
 	assumeExpr(isValidPixelFormat(fmt));
-	if(c->pixelFormat == fmt)
+	if(c->pixelFormat == to_underlying(fmt.id))
 		return false;
 	updateInternalPixelFormat(c, fmt);
 	if(!c->pixmapData)

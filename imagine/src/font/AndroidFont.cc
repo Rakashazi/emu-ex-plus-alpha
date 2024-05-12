@@ -115,7 +115,7 @@ Font::Glyph Font::glyph(int idx, FontSize &size)
 		return {};
 	void *data{};
 	auto res = AndroidBitmap_lockPixels(env, bitmap, &data);
-	auto pix = makePixmapView(env, bitmap, data, PIXEL_A8);
+	auto pix = makePixmapView(env, bitmap, data, PixelFmtA8);
 	//logMsg("AndroidBitmap_lockPixels returned %s", androidBitmapResultToStr(res));
 	assert(res == ANDROID_BITMAP_RESULT_SUCCESS);
 	return {{{env, bitmap, mgr.recycleBitmapMethod()}, pix}, metrics};

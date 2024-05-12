@@ -234,7 +234,7 @@ DrawTest::DrawTest(IG::ApplicationContext ctx, ViewAttachParams attach, WSize pi
 {
 	using namespace IG::Gfx;
 	auto &r = attach.renderer();
-	IG::PixmapDesc pixmapDesc = {pixmapSize, IG::PIXEL_FMT_RGB565};
+	PixmapDesc pixmapDesc = {pixmapSize, PixelFmtRGB565};
 	TextureConfig texConf{pixmapDesc, SamplerConfigs::noMipClamp};
 	texture = r.makePixmapBufferTexture(texConf, bufferMode);
 	if(!texture) [[unlikely]]
@@ -288,11 +288,11 @@ void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Screen &screen,
 	{
 		uint16_t writeColor;
 		if(!droppedFrames)
-			writeColor = IG::PIXEL_DESC_RGB565.build(.7, .7, .7, 1.);
+			writeColor = IG::PixelDescRGB565.build(.7, .7, .7, 1.);
 		else if(droppedFrames % 2 == 0)
-			writeColor = IG::PIXEL_DESC_RGB565.build(.7, .7, .0, 1.);
+			writeColor = IG::PixelDescRGB565.build(.7, .7, .0, 1.);
 		else
-			writeColor = IG::PIXEL_DESC_RGB565.build(.7, .0, .0, 1.);
+			writeColor = IG::PixelDescRGB565.build(.7, .0, .0, 1.);
 		for(auto i : iotaCount(pix.w() * pix.h()))
 		{
 			((uint16_t*)pix.data())[i] = writeColor;

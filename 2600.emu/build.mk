@@ -72,7 +72,6 @@ ControllerDetector.cxx \
 DispatchResult.cxx \
 Driving.cxx \
 EmulationTiming.cxx \
-FSNode.cxx \
 Genesis.cxx \
 Joystick.cxx \
 Keyboard.cxx \

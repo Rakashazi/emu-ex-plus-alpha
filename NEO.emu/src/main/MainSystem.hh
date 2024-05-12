@@ -53,7 +53,7 @@ constexpr bool countryEnumIsValid(auto const &v)
 class NeoSystem final: public EmuSystem
 {
 public:
-	static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
+	static constexpr auto pixFmt = IG::PixelFmtRGB565;
 	static constexpr int FBResX = 352;
 	size_t saveStateSize{};
 	FileIO nvramFileIO;

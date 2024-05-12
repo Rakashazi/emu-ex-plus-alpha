@@ -117,7 +117,7 @@ NativeWindowFormat GLManager::nativeWindowFormat(ApplicationContext ctx, GLBuffe
 
 bool GLManager::hasBufferConfig(GLBufferConfigAttributes attrs) const
 {
-	if(attrs.pixelFormat.id == PIXEL_NONE)
+	if(attrs.pixelFormat == PixelFmtUnset)
 		return true;
 	auto dpy = display();
 	auto configOpt = chooseConfig(dpy, 0, attrs, false);
@@ -133,13 +133,13 @@ bool GLManager::hasBufferConfig(GLBufferConfigAttributes attrs) const
 		};
 	switch(attrs.pixelFormat.id)
 	{
-		case PIXEL_RGB565: return
+		case PixelFmtRGB565: return
 			eglConfigInt(dpy, *configOpt, EGL_BUFFER_SIZE) == 16 &&
 			eglConfigInt(dpy, *configOpt, EGL_RED_SIZE) == 5;
-		case PIXEL_RGBA8888: return
+		case PixelFmtRGBA8888: return
 			eglConfigInt(dpy, *configOpt, EGL_BUFFER_SIZE) >= 24 &&
 			eglConfigInt(dpy, *configOpt, EGL_RED_SIZE) == 8;
-		default: bug_unreachable("format id == %d", attrs.pixelFormat.id);
+		default: std::unreachable();
 	}
 }
 

@@ -408,7 +408,7 @@ CLINK ROM_DEF *res_load_drv(void *contextPtr, const char *name)
 	}
 
 	// Fill out the driver struct
-	auto drv = (ROM_DEF*)calloc(sizeof(ROM_DEF), 1);
+	auto drv = (ROM_DEF*)calloc(1, sizeof(ROM_DEF));
 	io.read(drv->name, 32);
 	io.read(drv->parent, 32);
 	io.read(drv->longname, 128);

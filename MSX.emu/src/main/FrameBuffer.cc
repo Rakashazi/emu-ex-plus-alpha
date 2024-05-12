@@ -23,7 +23,7 @@ extern "C"
 	#include <blueMSX/VideoChips/FrameBuffer.h>
 }
 
-static constexpr auto pixFmt = PIXEL_WIDTH == 16 ? IG::PIXEL_FMT_RGB565 : IG::PIXEL_FMT_RGBA8888;
+static constexpr auto pixFmt = PIXEL_WIDTH == 16 ? IG::PixelFmtRGB565 : IG::PixelFmtRGBA8888;
 
 class FrameBufferImpl
 {

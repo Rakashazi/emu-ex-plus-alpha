@@ -239,7 +239,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 	// apply any pending read options
 	if(pendingWindowDrawableConf)
 	{
-		if(pendingWindowDrawableConf.colorSpace != Gfx::ColorSpace{} && pendingWindowDrawableConf.pixelFormat != IG::PIXEL_RGBA8888)
+		if(pendingWindowDrawableConf.colorSpace != Gfx::ColorSpace{} && pendingWindowDrawableConf.pixelFormat != IG::PixelFmtRGBA8888)
 			pendingWindowDrawableConf.colorSpace = {};
 		windowDrawableConf = pendingWindowDrawableConf;
 	}

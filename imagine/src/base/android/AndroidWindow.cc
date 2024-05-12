@@ -127,7 +127,7 @@ bool Window::requestOrientationChange(Rotation o)
 
 PixelFormat ApplicationContext::defaultWindowPixelFormat() const
 {
-	return ((Config::ARM_ARCH && Config::ARM_ARCH < 7) || androidSDK() < 11) ? PIXEL_FMT_RGB565 : PIXEL_FMT_RGBA8888;
+	return ((Config::ARM_ARCH && Config::ARM_ARCH < 7) || androidSDK() < 11) ? PixelFmtRGB565 : PixelFmtRGBA8888;
 }
 
 Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate onInit_):

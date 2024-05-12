@@ -59,7 +59,7 @@ uint_least32_t GbcSystem::makeOutputColor(uint_least32_t rgb888) const
 	unsigned b = rgb888       & 0xFF;
 	unsigned g = rgb888 >>  8 & 0xFF;
 	unsigned r = rgb888 >> 16 & 0xFF;
-	auto desc = useBgrOrder ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888_NATIVE;
+	auto desc = useBgrOrder ? IG::PixelDescBGRA8888Native : IG::PixelDescRGBA8888Native;
 	return desc.build(r, g, b, 0u);
 }
 
@@ -194,11 +194,11 @@ void GbcSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 bool GbcSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 {
 	video.setFormat({lcdSize, fmt});
-	auto isBgrOrder = fmt == IG::PIXEL_BGRA8888;
+	auto isBgrOrder = fmt == IG::PixelFmtBGRA8888;
 	if(isBgrOrder != useBgrOrder)
 	{
 		useBgrOrder = isBgrOrder;
-		IG::MutablePixmapView frameBufferPix{{lcdSize, IG::PIXEL_RGBA8888}, frameBuffer};
+		IG::MutablePixmapView frameBufferPix{{lcdSize, IG::PixelFmtRGBA8888}, frameBuffer};
 		frameBufferPix.transformInPlace(
 			[](uint32_t srcPixel) // swap red/blue values
 			{
@@ -249,7 +249,7 @@ size_t GbcSystem::runUntilVideoFrame(gambatte::uint_least32_t *videoBuf, std::pt
 
 void GbcSystem::renderVideo(const EmuSystemTaskContext &taskCtx, EmuVideo &video)
 {
-	auto fmt = video.renderPixelFormat() == IG::PIXEL_FMT_BGRA8888 ? IG::PIXEL_FMT_BGRA8888 : IG::PIXEL_FMT_RGBA8888;
+	auto fmt = video.renderPixelFormat() == IG::PixelFmtBGRA8888 ? IG::PixelFmtBGRA8888 : IG::PixelFmtRGBA8888;
 	IG::PixmapView frameBufferPix{{lcdSize, fmt}, frameBuffer};
 	video.startFrameWithAltFormat(taskCtx, frameBufferPix);
 }
@@ -334,7 +334,7 @@ uint_least32_t gbcToRgb32(unsigned const bgr15, unsigned flags)
 		outG = (g * 3 + b) << 1;
 		outB = (r * 3 + g * 2 + b * 11) >> 1;
 	}
-	auto desc = (flags & EmuEx::COLOR_CONVERSION_BGR_BIT) ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888_NATIVE;
+	auto desc = (flags & EmuEx::COLOR_CONVERSION_BGR_BIT) ? IG::PixelDescBGRA8888Native : IG::PixelDescRGBA8888Native;
 	return desc.build(outR, outG, outB, 0u);
 }
 

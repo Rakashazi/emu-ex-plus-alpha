@@ -192,36 +192,36 @@ public:
 		auto srcFormatID = pixmap.format().id;
 		switch(format().id)
 		{
-			case PIXEL_RGBA8888:
+			case PixelFormatId::RGBA8888:
 				switch(srcFormatID)
 				{
-					case PIXEL_BGRA8888: return convertRGBA8888ToBGRA8888(*this, pixmap);
-					case PIXEL_RGB565: return convertRGB565ToRGBX8888(*this, pixmap);
-					case PIXEL_RGB888: return convertRGB888ToRGBX8888(*this, pixmap);
+					case PixelFormatId::BGRA8888: return convertRGBA8888ToBGRA8888(*this, pixmap);
+					case PixelFormatId::RGB565: return convertRGB565ToRGBX8888(*this, pixmap);
+					case PixelFormatId::RGB888: return convertRGB888ToRGBX8888(*this, pixmap);
 					default: return invalidFormatConversion(*this, pixmap);
 				}
-			case PIXEL_BGRA8888:
+			case PixelFormatId::BGRA8888:
 				switch(srcFormatID)
 				{
-					case PIXEL_RGBA8888: return convertRGBA8888ToBGRA8888(*this, pixmap);
-					case PIXEL_RGB565: return convertRGB565ToBGRX8888(*this, pixmap);
-					case PIXEL_RGB888: return convertRGB888ToBGRX8888(*this, pixmap);
+					case PixelFormatId::RGBA8888: return convertRGBA8888ToBGRA8888(*this, pixmap);
+					case PixelFormatId::RGB565: return convertRGB565ToBGRX8888(*this, pixmap);
+					case PixelFormatId::RGB888: return convertRGB888ToBGRX8888(*this, pixmap);
 					default: return invalidFormatConversion(*this, pixmap);
 				}
-			case PIXEL_RGB888:
+			case PixelFormatId::RGB888:
 				switch(srcFormatID)
 				{
-					case PIXEL_BGRA8888: return convertBGRX8888ToRGB888(*this, pixmap);
-					case PIXEL_RGBA8888: return convertRGBX8888ToRGB888(*this, pixmap);
-					case PIXEL_RGB565: return convertRGB565ToRGB888(*this, pixmap);
+					case PixelFormatId::BGRA8888: return convertBGRX8888ToRGB888(*this, pixmap);
+					case PixelFormatId::RGBA8888: return convertRGBX8888ToRGB888(*this, pixmap);
+					case PixelFormatId::RGB565: return convertRGB565ToRGB888(*this, pixmap);
 					default: return invalidFormatConversion(*this, pixmap);
 				}
-			case PIXEL_RGB565:
+			case PixelFormatId::RGB565:
 				switch(srcFormatID)
 				{
-					case PIXEL_RGBA8888: return convertRGBX8888ToRGB565(*this, pixmap);
-					case PIXEL_BGRA8888: return convertBGRX8888ToRGB565(*this, pixmap);
-					case PIXEL_RGB888: return convertRGB888ToRGB565(*this, pixmap);
+					case PixelFormatId::RGBA8888: return convertRGBX8888ToRGB565(*this, pixmap);
+					case PixelFormatId::BGRA8888: return convertBGRX8888ToRGB565(*this, pixmap);
+					case PixelFormatId::RGB888: return convertRGB888ToRGB565(*this, pixmap);
 					default: return invalidFormatConversion(*this, pixmap);
 				}
 			default:

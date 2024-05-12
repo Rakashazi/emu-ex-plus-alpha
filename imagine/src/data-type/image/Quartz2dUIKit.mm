@@ -25,7 +25,7 @@ namespace IG::Data
 
 bool PixmapWriter::writeToFile(PixmapView srcPix, const char *path) const
 {
-	IG::MemPixmap tempMemPix{{srcPix.size(), IG::PIXEL_FMT_RGB888}};
+	IG::MemPixmap tempMemPix{{srcPix.size(), IG::PixelFmtRGB888}};
 	auto pix = tempMemPix.view();
 	pix.writeConverted(srcPix);
 	auto provider = CGDataProviderCreateWithData(nullptr, pix.data(), pix.bytes(), nullptr);

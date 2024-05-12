@@ -46,9 +46,9 @@ bool Quartz2dImage::isGrayscale()
 const IG::PixelFormat Quartz2dImage::pixelFormat()
 {
 	if(isGrayscale())
-		return IG::PIXEL_FMT_I8;
+		return IG::PixelFmtI8;
 	else
-		return IG::PIXEL_FMT_RGBA8888;
+		return IG::PixelFmtRGBA8888;
 }
 
 Quartz2dImage::Quartz2dImage(CStringView name)

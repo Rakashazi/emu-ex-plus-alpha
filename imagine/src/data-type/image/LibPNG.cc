@@ -100,9 +100,9 @@ PixelFormat PngImage::pixelFormat()
 	bool grayscale = isGrayscale();
 	bool alpha = hasAlphaChannel();
 	if(grayscale)
-		return alpha ? PIXEL_FMT_IA88 : PIXEL_FMT_I8;
+		return alpha ? PixelFmtIA88 : PixelFmtI8;
 	else
-		return PIXEL_FMT_RGBA8888;
+		return PixelFmtRGBA8888;
 }
 
 static png_voidp png_memAlloc(png_structp png_ptr, png_size_t size)
@@ -441,7 +441,7 @@ bool PixmapWriter::writeToFile(PixmapView pix, const char *path) const
 		PNG_FILTER_TYPE_DEFAULT);
 	png_write_info(pngPtr, infoPtr);
 	{
-		MemPixmap tempMemPix{{pix.size(), PIXEL_FMT_RGB888}};
+		MemPixmap tempMemPix{{pix.size(), PixelFmtRGB888}};
 		auto tempPix = tempMemPix.view();
 		tempPix.writeConverted(pix);
 		int rowBytes = png_get_rowbytes(pngPtr, infoPtr);

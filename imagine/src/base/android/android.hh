@@ -48,7 +48,7 @@ void releaseSurfaceTexture(JNIEnv *env, jobject surfaceTexture);
 jobject makeSurface(JNIEnv *env, jobject surfaceTexture);
 void releaseSurface(JNIEnv *env, jobject surface);
 
-uint32_t toAHardwareBufferFormat(PixelFormatID);
+uint32_t toAHardwareBufferFormat(PixelFormatId);
 const char *aHardwareBufferFormatStr(uint32_t format);
 
 PixelFormat makePixelFormatFromAndroidFormat(int32_t androidFormat);

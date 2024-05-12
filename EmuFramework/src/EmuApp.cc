@@ -322,10 +322,10 @@ void EmuApp::applyRenderPixelFormat()
 	auto fmt = renderPixelFormat.value();
 	if(!fmt)
 		fmt = windowPixelFormat();
-	if(!EmuSystem::canRenderRGBA8888 && fmt != IG::PIXEL_RGB565)
+	if(!EmuSystem::canRenderRGBA8888 && fmt != IG::PixelFmtRGB565)
 	{
 		log.info("Using RGB565 render format since emulated system can't render RGBA8888");
-		fmt = IG::PIXEL_RGB565;
+		fmt = IG::PixelFmtRGB565;
 	}
 	videoLayer.setFormat(system(), fmt, videoEffectPixelFormat(), windowDrawableConf.colorSpace);
 }

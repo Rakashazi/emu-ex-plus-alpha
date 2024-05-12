@@ -22,14 +22,21 @@
 #include <imagine/util/string.h>
 #include <imagine/util/zlib.hh>
 #include <imagine/logger/logger.h>
-#include <vbam/gba/GBA.h>
-#include <vbam/gba/GBAGfx.h>
-#include <vbam/gba/Sound.h>
-#include <vbam/gba/RTC.h>
-#include <vbam/common/SoundDriver.h>
-#include <vbam/common/Patch.h>
-#include <vbam/Util.h>
+#include <core/gba/gba.h>
+#include <core/gba/gbaGfx.h>
+#include <core/gba/gbaSound.h>
+#include <core/gba/gbaRtc.h>
+#include <core/gba/gbaEeprom.h>
+#include <core/gba/gbaFlash.h>
+#include <core/gba/gbaCheats.h>
+#include <core/base/sound_driver.h>
+#include <core/base/patch.h>
+#include <core/base/file_util.h>
 #include <sys/mman.h>
+
+bool patchApplyIPS(FILE* f, uint8_t** rom, int *size);
+bool patchApplyUPS(FILE* f, uint8_t** rom, int *size);
+bool patchApplyPPF(FILE* f, uint8_t** rom, int *size);
 
 namespace EmuEx
 {
@@ -226,8 +233,8 @@ bool GbaSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 {
 	log.info("updating system color maps");
 	video.setFormat({lcdSize, fmt});
-	if(fmt == PIXEL_RGB565)
-		updateColorMap(systemColorMap.map16, PIXEL_DESC_RGB565);
+	if(fmt == PixelFmtRGB565)
+		updateColorMap(systemColorMap.map16, PixelDescRGB565);
 	else
 		updateColorMap(systemColorMap.map32, fmt.desc().nativeOrder());
 	return true;
@@ -278,9 +285,9 @@ void systemDrawScreen(EmuEx::EmuSystemTaskContext taskCtx, EmuEx::EmuVideo &vide
 {
 	using namespace EmuEx;
 	auto img = video.startFrame(taskCtx);
-	IG::PixmapView framePix{{lcdSize, IG::PIXEL_RGB565}, gGba.lcd.pix};
+	IG::PixmapView framePix{{lcdSize, IG::PixelFmtRGB565}, gGba.lcd.pix};
 	assumeExpr(img.pixmap().size() == framePix.size());
-	if(img.pixmap().format() == IG::PIXEL_FMT_RGB565)
+	if(img.pixmap().format() == IG::PixelFmtRGB565)
 	{
 		img.pixmap().writeTransformed([](uint16_t p){ return systemColorMap.map16[p]; }, framePix);
 	}

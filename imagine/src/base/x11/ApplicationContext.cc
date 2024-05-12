@@ -32,7 +32,7 @@ NativeDisplayConnection ApplicationContext::nativeDisplayConnection() const
 
 PixelFormat ApplicationContext::defaultWindowPixelFormat() const
 {
-	return Config::MACHINE_IS_PANDORA ? PIXEL_FMT_RGB565 : PIXEL_FMT_RGBA8888;
+	return Config::MACHINE_IS_PANDORA ? PixelFmtRGB565 : PixelFmtRGBA8888;
 }
 
 }

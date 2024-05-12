@@ -61,31 +61,31 @@ uint8_t FrameBuffer::getPhosphor(uInt8 c1, uInt8 c2) const
 void FrameBuffer::setTIAPalette(const PaletteArray& palette)
 {
 	logMsg("setTIAPalette");
-	auto desc32 = format == IG::PIXEL_BGRA8888 ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888_NATIVE;
+	auto desc32 = format == IG::PixelFmtBGRA8888 ? IG::PixelDescBGRA8888Native : IG::PixelDescRGBA8888Native;
 	for(auto i : IG::iotaCount(256))
 	{
 		uint8_t r = (palette[i] >> 16) & 0xff;
 		uint8_t g = (palette[i] >> 8) & 0xff;
 		uint8_t b = palette[i] & 0xff;
-		tiaColorMap16[i] = IG::PIXEL_DESC_RGB565.build(r >> 3, g >> 2, b >> 3, 0);
+		tiaColorMap16[i] = IG::PixelDescRGB565.build(r >> 3, g >> 2, b >> 3, 0);
 		tiaColorMap32[i] = desc32.build((int)r, (int)g, (int)b, 0);
 	}
 }
 
-void FrameBuffer::setPixelFormat(IG::PixelFormat fmt)
+void FrameBuffer::setPixelFormat(IG::PixelFormatId fmt)
 {
 	format = fmt;
 }
 
-IG::PixelFormat FrameBuffer::pixelFormat() const
+IG::PixelFormatId FrameBuffer::pixelFormat() const
 {
 	return format;
 }
 
 std::array<uInt8, 3> FrameBuffer::getRGBPhosphorTriple(uInt32 c, uInt32 p) const
 {
-	auto [rc, gc, bc, ac] = IG::PIXEL_DESC_RGBA8888_NATIVE.rgba(c);
-	auto [rp, gp, bp, ap] = IG::PIXEL_DESC_RGBA8888_NATIVE.rgba(p);
+	auto [rc, gc, bc, ac] = IG::PixelDescRGBA8888Native.rgba(c);
+	auto [rp, gp, bp, ap] = IG::PixelDescRGBA8888Native.rgba(p);
 
   // Mix current calculated frame with previous displayed frame
   const uInt8 rn = myPhosphorPalette[rc][rp];
@@ -97,19 +97,19 @@ std::array<uInt8, 3> FrameBuffer::getRGBPhosphorTriple(uInt32 c, uInt32 p) const
 uInt16 FrameBuffer::getRGBPhosphor16(const uInt32 c, const uInt32 p) const
 {
   auto [rn, gn, bn] = getRGBPhosphorTriple(c, p);
-  return IG::PIXEL_DESC_RGB565.build(rn >> 3, gn >> 2, bn >> 3, 0);
+  return IG::PixelDescRGB565.build(rn >> 3, gn >> 2, bn >> 3, 0);
 }
 
 uInt32 FrameBuffer::getRGBPhosphor32(const uInt32 c, const uInt32 p) const
 {
   auto [rn, gn, bn] = getRGBPhosphorTriple(c, p);
-  return IG::PIXEL_DESC_RGBA8888_NATIVE.build(rn, gn, bn, (uInt8)0);
+  return IG::PixelDescRGBA8888Native.build(rn, gn, bn, (uInt8)0);
 }
 
 template <int outputBits>
 void FrameBuffer::renderOutput(IG::MutablePixmapView pix, TIA &tia)
 {
-	IG::PixmapView framePix{{{(int)tia.width(), (int)tia.height()}, IG::PIXEL_I8}, tia.frameBuffer()};
+	IG::PixmapView framePix{{{(int)tia.width(), (int)tia.height()}, IG::PixelFmtI8}, tia.frameBuffer()};
 	assumeExpr(pix.size() == framePix.size());
 	assumeExpr(pix.format().bytesPerPixel() == outputBits / 8);
 	assumeExpr(framePix.format().bytesPerPixel() == 1);
@@ -147,7 +147,7 @@ void FrameBuffer::renderOutput(IG::MutablePixmapView pix, TIA &tia)
 
 void FrameBuffer::render(IG::MutablePixmapView pix, TIA &tia)
 {
-	if(format == IG::PIXEL_RGB565)
+	if(format == IG::PixelFmtRGB565)
 	{
 		renderOutput<16>(pix, tia);
 	}

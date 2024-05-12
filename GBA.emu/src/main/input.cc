@@ -18,7 +18,8 @@
 #include <emuframework/keyRemappingUtils.hh>
 #include "MainSystem.hh"
 #include "MainApp.hh"
-#include <vbam/gba/GBA.h>
+#include <core/gba/gba.h>
+#include <core/gba/gbaGlobals.h>
 #include <format>
 
 namespace EmuEx

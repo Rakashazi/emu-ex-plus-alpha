@@ -32,7 +32,7 @@ namespace EmuEx
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nSnes9x Team\nwww.snes9x.com";
 #if PIXEL_FORMAT == RGB565
-constexpr auto srcPixFmt = IG::PIXEL_FMT_RGB565;
+constexpr auto srcPixFmt = IG::PixelFmtRGB565;
 #else
 #error "incompatible PIXEL_FORMAT value"
 #endif

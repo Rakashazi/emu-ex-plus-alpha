@@ -16,9 +16,10 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/Option.hh>
 #include "MainSystem.hh"
-#include <vbam/gba/GBA.h>
-#include <vbam/gba/RTC.h>
-#include <vbam/gba/Sound.h>
+#include "GBASys.hh"
+#include <core/gba/gba.h>
+#include <core/gba/gbaRtc.h>
+#include <core/gba/gbaSound.h>
 #include <imagine/logger/logger.h>
 
 namespace EmuEx

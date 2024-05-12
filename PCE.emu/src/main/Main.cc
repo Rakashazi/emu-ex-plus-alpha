@@ -381,7 +381,7 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 		{pixWidth, pixHeight});
 	if(multiResOutputWidth)
 	{
-		if(srcPix.format() == IG::PIXEL_RGB565)
+		if(srcPix.format() == IG::PixelFmtRGB565)
 			renderMultiresOutput<uint16_t>(spec, srcPix, multiResOutputWidth);
 		else
 			renderMultiresOutput<uint32_t>(spec, srcPix, multiResOutputWidth);

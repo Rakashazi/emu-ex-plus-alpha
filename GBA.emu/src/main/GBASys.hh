@@ -1,6 +1,8 @@
 #pragma once
 
-#include <vbam/System.h>
+#include <core/base/system.h>
+#include <core/base/port.h>
+#include <core/gba/gba.h>
 #include <imagine/util/used.hh>
 #include <imagine/util/utility.h>
 
@@ -106,7 +108,7 @@ struct GBAMem
 			uint16_t IME;
 		};
 
-		void resetDmaRegs()
+		constexpr void resetDmaRegs()
 		{
 		  DM0SAD_L = 0x0000;
 		  DM0SAD_H = 0x0000;
@@ -134,7 +136,7 @@ struct GBAMem
 		  DM3CNT_H = 0x0000;
 		}
 
-		void resetLcdRegs(bool useBios, bool skipBios)
+		constexpr void resetLcdRegs(bool useBios, bool skipBios)
 		{
 			DISPCNT  = 0x0080;
 			DISPSTAT = 0x0000;
@@ -178,6 +180,9 @@ struct GBAMem
 			COLEV    = 0x0000;
 			COLY     = 0x0000;
 		}
+
+		constexpr auto& operator[] (this auto&& self, int idx) { return self.b[idx]; }
+		constexpr operator uint8_t*() { return b; }
 	};
 
 	uint8_t bios[0x4000] __attribute__ ((aligned(4)));
@@ -309,6 +314,8 @@ struct GBALCD
 		layerEnable = ioMem.DISPCNT & coreOptions.layerSettings;
 	}
 };
+
+const char *dispModeName(GBALCD::RenderLineFunc);
 
 struct ARM7TDMI;
 

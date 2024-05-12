@@ -9,32 +9,25 @@ CPPFLAGS += -DHAVE_ZLIB_H \
 -DNO_PNG \
 -DNO_LINK \
 -DNO_DEBUGGER \
--I$(projectPath)/src \
--I$(projectPath)/src/vbam
+-I$(projectPath)/src
 
-vbamSrc := gba/GBA-thumb.cpp \
-gba/bios.cpp \
-gba/Globals.cpp \
-gba/Cheats.cpp \
-gba/Mode0.cpp \
-gba/CheatSearch.cpp \
-gba/Mode1.cpp \
-gba/Mode2.cpp \
-gba/Mode3.cpp \
-gba/Mode4.cpp \
-gba/Mode5.cpp \
-gba/EEprom.cpp \
-gba/Flash.cpp \
-gba/GBA-arm.cpp \
-gba/GBA.cpp \
-gba/gbafilter.cpp \
-gba/RTC.cpp \
-gba/Sound.cpp \
-gba/Sram.cpp \
-common/Patch.cpp \
-Util.cpp
-#gba/remote.cpp gba/GBASockClient.cpp gba/GBALink.cpp gba/agbprint.cpp
-#gba/armdis.cpp gba/elf.cpp
+vbamSrc := gba/gbaCpuThumb.cpp \
+gba/internal/gbaBios.cpp \
+gba/gbaCheats.cpp \
+gba/gbaMode0.cpp \
+gba/gbaMode1.cpp \
+gba/gbaMode2.cpp \
+gba/gbaMode3.cpp \
+gba/gbaMode4.cpp \
+gba/gbaMode5.cpp \
+gba/gbaEeprom.cpp \
+gba/gbaFlash.cpp \
+gba/gbaCpuArm.cpp \
+gba/gba.cpp \
+gba/gbaRtc.cpp \
+gba/gbaSound.cpp \
+gba/internal/gbaSram.cpp \
+base/patch.cpp
 
 vbamSrc += apu/Gb_Apu.cpp \
 apu/Gb_Oscs.cpp \
@@ -42,7 +35,7 @@ apu/Blip_Buffer.cpp \
 apu/Multi_Buffer.cpp \
 apu/Gb_Apu_State.cpp
 
-vbamPath := vbam
+vbamPath := core
 SRC += main/Main.cc \
 main/options.cc \
 main/input.cc \

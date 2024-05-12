@@ -15,18 +15,16 @@ class VideoDialog;
 #include <stella/common/bspf.hxx>
 #include <stella/common/StateManager.hxx>
 #include <stella/common/AudioSettings.hxx>
-#include <stella/common/TimerManager.hxx>
 #include <stella/emucore/PropsSet.hxx>
 #include <stella/emucore/Console.hxx>
-#include <stella/emucore/FSNode.hxx>
 #include <stella/emucore/FrameBufferConstants.hxx>
 #include <stella/emucore/EventHandlerConstants.hxx>
 #include <stella/emucore/Settings.hxx>
 #include <stella/emucore/Random.hxx>
+#include <FSNode.hxx>
 #include <SoundEmuEx.hh>
 #include <EventHandler.hxx>
 #include <FrameBuffer.hxx>
-#include <imagine/time/Time.hh>
 #include <optional>
 
 namespace EmuEx
@@ -90,7 +88,7 @@ protected:
 	std::optional<Console> myConsole{};
 	Settings mySettings{};
 	AudioSettings myAudioSettings{mySettings};
-	Random myRandom{uInt32(TimerManager::getTicks())};
+	Random myRandom;
 	FrameBuffer myFrameBuffer{*this};
 	EventHandler myEventHandler{*this};
 	PropertiesSet myPropSet{};

@@ -32,7 +32,7 @@ constexpr SystemLogger log{"VideoOptionView"};
 
 static const char *autoWindowPixelFormatStr(IG::ApplicationContext ctx)
 {
-	return ctx.defaultWindowPixelFormat() == PIXEL_RGB565 ? "RGB565" : "RGBA8888";
+	return ctx.defaultWindowPixelFormat() == PixelFmtRGB565 ? "RGB565" : "RGBA8888";
 }
 
 constexpr uint16_t pack(Gfx::DrawableConfig c)
@@ -42,7 +42,7 @@ constexpr uint16_t pack(Gfx::DrawableConfig c)
 
 constexpr Gfx::DrawableConfig unpackDrawableConfig(uint16_t c)
 {
-	return {PixelFormatID(c & 0xFF), Gfx::ColorSpace(c >> sizeof(Gfx::DrawableConfig::colorSpace) * 8)};
+	return {PixelFormatId(c & 0xFF), Gfx::ColorSpace(c >> sizeof(Gfx::DrawableConfig::colorSpace) * 8)};
 }
 
 VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLayer_, bool customMenu):
@@ -343,14 +343,14 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 	},
 	imgEffectPixelFormatItem
 	{
-		{"Auto (Match display format)", attach, {.id = PIXEL_NONE}},
-		{"RGBA8888",                    attach, {.id = PIXEL_RGBA8888}},
-		{"RGB565",                      attach, {.id = PIXEL_RGB565}},
+		{"Auto (Match display format)", attach, {.id = PixelFormatId::Unset}},
+		{"RGBA8888",                    attach, {.id = PixelFormatId::RGBA8888}},
+		{"RGB565",                      attach, {.id = PixelFormatId::RGB565}},
 	},
 	imgEffectPixelFormat
 	{
 		"Effect Color Format", attach,
-		MenuId{app().imageEffectPixelFormat},
+		MenuId{app().imageEffectPixelFormat.value()},
 		imgEffectPixelFormatItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
@@ -365,7 +365,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item)
 			{
-				app().imageEffectPixelFormat = PixelFormatID(item.id.val);
+				app().imageEffectPixelFormat = PixelFormatId(item.id.val);
 				videoLayer.setEffectFormat(app().videoEffectPixelFormat());
 				app().viewController().postDrawToEmuWindows();
 			}
@@ -436,9 +436,9 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 	},
 	renderPixelFormatItem
 	{
-		{"Auto (Match display format)", attach, {.id = PIXEL_NONE}},
-		{"RGBA8888",                    attach, {.id = PIXEL_RGBA8888}},
-		{"RGB565",                      attach, {.id = PIXEL_RGB565}},
+		{"Auto (Match display format)", attach, {.id = PixelFormatId::Unset}},
+		{"RGBA8888",                    attach, {.id = PixelFormatId::RGBA8888}},
+		{"RGB565",                      attach, {.id = PixelFormatId::RGB565}},
 	},
 	renderPixelFormat
 	{
@@ -455,7 +455,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 				}
 				return false;
 			},
-			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setRenderPixelFormat(PixelFormatID(item.id.val)); }
+			.defaultItemOnSelect = [this](TextMenuItem &item) { app().setRenderPixelFormat(PixelFormatId(item.id.val)); }
 		},
 	},
 	brightnessItem

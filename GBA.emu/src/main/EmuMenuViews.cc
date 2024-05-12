@@ -23,12 +23,13 @@
 #include <emuframework/viewUtils.hh>
 #include "EmuCheatViews.hh"
 #include "MainApp.hh"
+#include "GBASys.hh"
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
-#include <vbam/gba/GBA.h>
-#include <vbam/gba/RTC.h>
-#include <vbam/gba/Sound.h>
+#include <core/gba/gba.h>
+#include <core/gba/gbaRtc.h>
+#include <core/gba/gbaSound.h>
 #include <format>
 #include <imagine/logger/logger.h>
 

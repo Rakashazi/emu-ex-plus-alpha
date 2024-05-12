@@ -6,8 +6,6 @@ ifeq ($(origin AR), default)
  AR := $(CHOST_PREFIX)gcc-ar
 endif
 
-CFLAGS_OPTIMIZE_MISC_RELEASE_DEFAULT += -funsafe-loop-optimizations
-
 # Four possible LTO_MODE values when using GCC
 ifeq ($(LTO_MODE),lto)
  ltoMode := lto
@@ -34,7 +32,6 @@ CFLAGS_WARN += -fmax-errors=15
 
 ifdef RELEASE
  CXXFLAGS_LANG += -fno-enforce-eh-specs
- CFLAGS_WARN += -Wunsafe-loop-optimizations
 endif
 
 ifndef RELEASE

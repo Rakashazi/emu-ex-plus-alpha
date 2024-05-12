@@ -389,8 +389,8 @@ public:
 	Property<bool, CFGKEY_SHOW_BUNDLED_GAMES, PropertyDesc<bool>{.defaultValue = true}> showsBundledGames;
 	ConditionalProperty<Config::Input::BLUETOOTH, bool, CFGKEY_SHOW_BLUETOOTH_SCAN,
 		PropertyDesc<bool>{.defaultValue = true, .mutableDefault = true}> showsBluetoothScan;
-	Property<PixelFormatID, CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT,
-		PropertyDesc<PixelFormatID>{.defaultValue = PIXEL_NONE, .isValid = imageEffectPixelFormatIsValid}> imageEffectPixelFormat;
+	Property<PixelFormatId, CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT,
+		{.defaultValue = PixelFormatId::Unset, .isValid = imageEffectPixelFormatIsValid}> imageEffectPixelFormat;
 	Property<int8_t, CFGKEY_MENU_SCALE, PropertyDesc<int8_t>{.defaultValue = 100, .isValid = optionMenuScaleIsValid}> menuScale;
 	ConditionalProperty<Config::BASE_MULTI_WINDOW && Config::BASE_MULTI_SCREEN, bool, CFGKEY_SHOW_ON_2ND_SCREEN> showOnSecondScreen;
 	Property<Gfx::TextureBufferMode, CFGKEY_TEXTURE_BUFFER_MODE> textureBufferMode;

@@ -13,81 +13,54 @@
 	You should have received a copy of the GNU General Public License
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <FSNodeEmuEx.hh>
-#include <imagine/logger/logger.h>
-#include <assert.h>
+#include <FSNode.hxx>
 
-FilesystemNodeEmuEx::FilesystemNodeEmuEx()
-{}
-
-FilesystemNodeEmuEx::FilesystemNodeEmuEx(const string& path):name(path), path(path)
-{}
-
-bool FilesystemNodeEmuEx::exists() const
+bool FilesystemNode::exists() const
 {
 	return true;
 }
 
-const string& FilesystemNodeEmuEx::getName() const
-{
-	return name;
-}
-
-void FilesystemNodeEmuEx::setName(const string& name)
-{
-	this->name = name;
-}
-
-const string& FilesystemNodeEmuEx::getPath() const
+const string& FilesystemNode::getName() const
 {
 	return path;
 }
-bool FilesystemNodeEmuEx::isReadable() const
+
+const string& FilesystemNode::getPath() const
+{
+	return path;
+}
+
+bool FilesystemNode::isReadable() const
 {
 	return true;
 }
 
-bool FilesystemNodeEmuEx::isWritable() const
+bool FilesystemNode::isWritable() const
 {
 	return true;
 }
 
-string FilesystemNodeEmuEx::getShortPath() const
-{
-	return ".";
-}
-
-bool FilesystemNodeEmuEx::hasParent() const
+bool FilesystemNode::isDirectory() const
 {
 	return false;
 }
 
-bool FilesystemNodeEmuEx::isDirectory() const
-{
-	return false;
-}
-
-bool FilesystemNodeEmuEx::isFile() const
+bool FilesystemNode::isFile() const
 {
 	return true;
 }
 
-bool FilesystemNodeEmuEx::makeDir()
+string FilesystemNode::getNameWithExt(const string& ext) const
 {
-	return false;
+	size_t pos = getName().find_last_of("/\\");
+	string s = pos == string::npos ? getName() : getName().substr(pos+1);
+	pos = s.find_last_of('.');
+	return (pos != string::npos) ? s.replace(pos, string::npos, ext) : s + ext;
 }
 
-bool FilesystemNodeEmuEx::rename(const string& newfile)
+string FilesystemNode::getPathWithExt(const string& ext) const
 {
-	return false;
-}
-
-bool FilesystemNodeEmuEx::getChildren(AbstractFSList& myList, ListMode mode) const
-{
-	return false;
-}
-
-AbstractFSNodePtr FilesystemNodeEmuEx::getParent() const
-{
-	return nullptr;
+	string s = path;
+	const size_t pos = s.find_last_of('.');
+	return (pos != string::npos) ? s.replace(pos, string::npos, ext) : s + ext;
 }

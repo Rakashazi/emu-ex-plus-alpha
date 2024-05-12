@@ -134,9 +134,9 @@ constexpr bool imageEffectPixelFormatIsValid(const auto &v)
 {
 	switch(v)
 	{
-		case IG::PIXEL_NONE:
-		case IG::PIXEL_RGB565:
-		case IG::PIXEL_RGBA8888:
+		case IG::PixelFmtUnset:
+		case IG::PixelFmtRGB565:
+		case IG::PixelFmtRGBA8888:
 			return true;
 		default:
 			return false;
@@ -159,9 +159,9 @@ constexpr bool windowPixelFormatIsValid(const IG::PixelFormat &v)
 {
 	switch(v)
 	{
-		case IG::PIXEL_NONE:
-		case IG::PIXEL_RGB565:
-		case IG::PIXEL_RGBA8888:
+		case IG::PixelFmtUnset:
+		case IG::PixelFmtRGB565:
+		case IG::PixelFmtRGBA8888:
 			return true;
 		default: return false;
 	}

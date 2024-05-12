@@ -108,7 +108,7 @@ Window *IOSApplicationContext::deviceWindow() const
 
 IG::PixelFormat ApplicationContext::defaultWindowPixelFormat() const
 {
-	return PIXEL_RGBA8888;
+	return PixelFmtRGBA8888;
 }
 
 bool Window::hasSurface() const
@@ -268,7 +268,7 @@ UIApplication *IOSWindow::uiApp() const
 
 IG::PixelFormat Window::pixelFormat() const
 {
-	return IG::PIXEL_FMT_RGBA8888;
+	return PixelFmtRGBA8888;
 }
 
 void Window::setIntendedFrameRate(FrameRate rate) {}

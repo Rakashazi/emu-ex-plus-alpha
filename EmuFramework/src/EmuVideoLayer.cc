@@ -200,7 +200,7 @@ void EmuVideoLayer::setFormat(EmuSystem &sys, IG::PixelFormat videoFmt, IG::Pixe
 	colSpace = colorSpace;
 	if(EmuSystem::canRenderRGBA8888 && colorSpace == Gfx::ColorSpace::SRGB)
 	{
-		videoFmt = IG::PIXEL_RGBA8888;
+		videoFmt = IG::PixelFmtRGBA8888;
 	}
 	if(!video.setRenderPixelFormat(sys, videoFmt, videoColorSpace(videoFmt)))
 	{
@@ -334,7 +334,7 @@ bool EmuVideoLayer::updateConvertColorSpaceEffect()
 		&& userEffectId == ImageEffectId::DIRECT;
 	if(needsConversion && !userEffect)
 	{
-		userEffect = {renderer(), ImageEffectId::DIRECT, IG::PIXEL_RGBA8888, Gfx::ColorSpace::SRGB, samplerConfig(), video.size()};
+		userEffect = {renderer(), ImageEffectId::DIRECT, IG::PixelFmtRGBA8888, Gfx::ColorSpace::SRGB, samplerConfig(), video.size()};
 		log.info("made sRGB conversion effect");
 		buildEffectChain();
 		return true;

@@ -451,18 +451,18 @@ static __inline__ void WRITE_LONG(void *address, uint32 data)
 /* Pixel conversion */
 
 using Pixel = std::conditional_t<RENDER_BPP == 32, uint32_t, uint16_t>;
-static IG::PixelFormat fbRenderFormat{RENDER_BPP == 32 ? IG::PIXEL_RGBA8888 : IG::PIXEL_RGB565};
+static IG::PixelFormat fbRenderFormat{RENDER_BPP == 32 ? IG::PixelFmtRGBA8888 : IG::PixelFmtRGB565};
 
 static Pixel MAKE_PIXEL(int r, int g, int b)
 {
 	if constexpr(RENDER_BPP == 32)
 	{
-		auto desc = fbRenderFormat == IG::PIXEL_BGRA8888 ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888_NATIVE;
+		auto desc = fbRenderFormat == IG::PixelFmtBGRA8888 ? IG::PixelDescBGRA8888Native : IG::PixelDescRGBA8888Native;
 		return desc.build(r << 4 | r, g << 4 | g, b << 4 | b, 0);
 	}
 	else
 	{
-		return IG::PIXEL_DESC_RGB565.build(r << 1 | (r >> 3), g << 2 | (g >> 2), b << 1 | (b >> 3), 0);
+		return IG::PixelDescRGB565.build(r << 1 | (r >> 3), g << 2 | (g >> 2), b << 1 | (b >> 3), 0);
 	}
 }
 
@@ -3789,11 +3789,11 @@ static bool isValidPixelFormat(IG::PixelFormat fmt)
 {
 	if constexpr(RENDER_BPP == 32)
 	{
-		return fmt == IG::PIXEL_RGBA8888 || fmt == IG::PIXEL_BGRA8888;
+		return fmt == IG::PixelFmtRGBA8888 || fmt == IG::PixelFmtBGRA8888;
 	}
 	else
 	{
-		return fmt == IG::PIXEL_RGB565;
+		return fmt == IG::PixelFmtRGB565;
 	}
 }
 

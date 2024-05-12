@@ -358,8 +358,8 @@ ColorSpace Renderer::supportedColorSpace(PixelFormat fmt, ColorSpace wantedColor
 		case ColorSpace::SRGB:
 			switch(fmt.id)
 			{
-				case PIXEL_FMT_RGBA8888:
-				case PIXEL_FMT_BGRA8888:
+				case PixelFmtRGBA8888:
+				case PixelFmtBGRA8888:
 					return ColorSpace::SRGB;
 				default: return ColorSpace::LINEAR;
 			}
@@ -397,15 +397,15 @@ std::vector<DrawableConfigDesc> Renderer::supportedDrawableConfigs() const
 	{
 		{
 			.name = "RGBA8888",
-			.config{ .pixelFormat = PIXEL_RGBA8888 }
+			.config{ .pixelFormat = PixelFmtRGBA8888 }
 		},
 		{
 			.name = "RGBA8888:sRGB",
-			.config{ .pixelFormat = PIXEL_RGBA8888, .colorSpace = ColorSpace::SRGB }
+			.config{ .pixelFormat = PixelFmtRGBA8888, .colorSpace = ColorSpace::SRGB }
 		},
 		{
 			.name = "RGB565",
-			.config{ .pixelFormat = PIXEL_RGB565 }
+			.config{ .pixelFormat = PixelFmtRGB565 }
 		},
 	};
 	for(auto desc : testDescs)

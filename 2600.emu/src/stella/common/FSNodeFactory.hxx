@@ -28,7 +28,6 @@ class AbstractFSNode;
 #elif defined(BSPF_WINDOWS)
   #include "FSNodeWINDOWS.hxx"
 #elif defined(EMU_EX_PLATFORM)
-  #include "FSNodeEmuEx.hh"
 #elif defined(__LIB_RETRO__)
   #include "FSNodeLIBRETRO.hxx"
 #else
@@ -55,8 +54,6 @@ class FilesystemNodeFactory
           return make_unique<FilesystemNodePOSIX>(path);
         #elif defined(BSPF_WINDOWS)
           return make_unique<FilesystemNodeWINDOWS>(path);
-        #elif defined(EMU_EX_PLATFORM)
-          return make_unique<FilesystemNodeEmuEx>(path);
         #elif defined(__LIB_RETRO__)
           return make_unique<FilesystemNodeLIBRETRO>(path);
         #endif

@@ -153,7 +153,7 @@ Font::Glyph Font::glyph(int idx, FontSize &size)
 	{
 		{
 			glyphData.metrics.size.as<int>(),
-			IG::PIXEL_FMT_A8
+			IG::PixelFmtA8
 		},
 		glyphData.startOfCharInPixData,
 		{glyphData.metrics.xAdvance, PixmapView::Units::BYTE}

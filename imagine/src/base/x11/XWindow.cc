@@ -271,8 +271,8 @@ PixelFormat Window::pixelFormat() const
 {
 	auto xScreen = (::Screen*)screen()->nativeObject();
 	if(DefaultDepthOfScreen(xScreen) == 16)
-		return PIXEL_FMT_RGB565;
-	return PIXEL_FMT_RGBA8888;
+		return PixelFmtRGB565;
+	return PixelFmtRGBA8888;
 }
 
 std::pair<unsigned long, unsigned long> XWindow::xdndData() const

@@ -38,7 +38,7 @@ void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r)
 {
 	if(!config.visualizeBounds || !padArea.xSize())
 		return;
-	MemPixmap mapMemPix{{padArea.size(), PIXEL_FMT_RGB565}};
+	MemPixmap mapMemPix{{padArea.size(), PixelFmtRGB565}};
 	auto mapPix = mapMemPix.view();
 	auto pixels = mapPix.mdspan<uint16_t>();
 	for(auto y : iotaCount(pixels.extent(0)))
@@ -46,9 +46,9 @@ void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r)
 		{
 			auto input = getInput({padArea.xPos(LT2DO) + int(x), padArea.yPos(LT2DO) + int(y)});
 			//log.info("got input {}", input);
-			pixels[y, x] = input == std::array<KeyInfo, 2>{} ? PIXEL_DESC_RGB565.build(1., 0., 0.)
-									: (input[0] && input[1]) ? PIXEL_DESC_RGB565.build(0., 1., 0.)
-									: PIXEL_DESC_RGB565.build(1., 1., 1.);
+			pixels[y, x] = input == std::array<KeyInfo, 2>{} ? PixelDescRGB565.build(1., 0., 0.)
+									: (input[0] && input[1]) ? PixelDescRGB565.build(0., 1., 0.)
+									: PixelDescRGB565.build(1., 1., 1.);
 		}
 	mapImg = r.makeTexture({mapPix.desc(), View::imageSamplerConfig});
 	mapImg.write(0, mapPix, {});

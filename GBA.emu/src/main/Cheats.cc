@@ -18,13 +18,14 @@
 #include <emuframework/viewUtils.hh>
 #include "EmuCheatViews.hh"
 #include "MainSystem.hh"
+#include "GBASys.hh"
 #include <imagine/fs/FS.hh>
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/util/string.h>
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
-#include <gba/Cheats.h>
-#include <gba/GBA.h>
+#include <core/gba/gbaCheats.h>
+#include <core/gba/gba.h>
 
 namespace EmuEx
 {

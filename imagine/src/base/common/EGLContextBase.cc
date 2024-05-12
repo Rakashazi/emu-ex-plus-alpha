@@ -55,17 +55,15 @@ static EGLAttrList glConfigAttrsToEGLAttrs(int renderableType, GLBufferConfigAtt
 	// don't accept slow configs
 	list.push_back(EGL_CONFIG_CAVEAT);
 	list.push_back(EGL_NONE);
-	switch(attr.pixelFormat.id)
+	switch(attr.pixelFormat)
 	{
-		default:
-			bug_unreachable("format id == %d", attr.pixelFormat.id);
-		case PIXEL_NONE:
+		case PixelFmtUnset:
 			break; // don't set any color bits
-		case PIXEL_RGB565:
+		case PixelFmtRGB565:
 			list.push_back(EGL_BUFFER_SIZE);
 			list.push_back(16);
 			break;
-		case PIXEL_RGBA8888:
+		case PixelFmtRGBA8888:
 			if(attr.useAlpha)
 			{
 				list.push_back(EGL_ALPHA_SIZE);
@@ -78,6 +76,8 @@ static EGLAttrList glConfigAttrsToEGLAttrs(int renderableType, GLBufferConfigAtt
 				list.push_back(EGL_BUFFER_SIZE);
 				list.push_back(24);
 			}
+			break;
+		default: std::unreachable();
 	}
 	if(renderableType)
 	{
@@ -538,7 +538,7 @@ bool GLManager::hasDrawableConfig(GLBufferConfigAttributes attrs, GLColorSpace c
 	if(colorSpace == GLColorSpace::LINEAR)
 		return true;
 	// sRGB Color Space
-	return hasSrgbColorSpace() && attrs.pixelFormat != IG::PIXEL_RGB565;
+	return hasSrgbColorSpace() && attrs.pixelFormat != PixelFmtRGB565;
 }
 
 bool GLManager::hasNoErrorContextAttribute() const

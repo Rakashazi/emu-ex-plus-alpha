@@ -54,11 +54,10 @@ inline Mednafen::MDFN_Surface toMDFNSurface(IG::MutablePixmapView pix)
 		{
 			switch(pix.format().id)
 			{
-				case IG::PIXEL_BGRA8888: return MDFN_PixelFormat::ARGB32_8888;
-				case IG::PIXEL_RGBA8888: return MDFN_PixelFormat::ABGR32_8888;
-				case IG::PIXEL_RGB565: return MDFN_PixelFormat::RGB16_565;
-				default:
-					bug_unreachable("format id == %d", pix.format().id);
+				case IG::PixelFmtBGRA8888: return MDFN_PixelFormat::ARGB32_8888;
+				case IG::PixelFmtRGBA8888: return MDFN_PixelFormat::ABGR32_8888;
+				case IG::PixelFmtRGB565: return MDFN_PixelFormat::RGB16_565;
+				default: std::unreachable();
 			};
 		}();
 	return {pix.data(), uint32(pix.w()), uint32(pix.h()), uint32(pix.pitchPx()), fmt};

@@ -80,7 +80,7 @@ IG::FontSettings EmuApp::fontSettings(Window &win) const
 
 IG::PixelFormat EmuApp::videoEffectPixelFormat() const
 {
-	if(imageEffectPixelFormat)
+	if(imageEffectPixelFormat.value() != PixelFormatId::Unset)
 		return imageEffectPixelFormat.value();
 	return windowPixelFormat();
 }

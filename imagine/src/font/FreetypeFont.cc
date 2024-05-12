@@ -522,7 +522,7 @@ PixmapView IG::GlyphImage::pixmap()
 {
 	return
 		{
-			{{(int)bitmap.width, (int)bitmap.rows}, IG::PIXEL_FMT_A8},
+			{{(int)bitmap.width, (int)bitmap.rows}, IG::PixelFmtA8},
 			bitmap.buffer,
 			{bitmap.pitch, PixmapView::Units::BYTE}
 		};
