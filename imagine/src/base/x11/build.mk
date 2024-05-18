@@ -3,11 +3,9 @@ inc_base_x11 := 1
 
 include $(imagineSrcDir)/input/build.mk
 include $(IMAGINE_PATH)/make/package/x11.mk
-include $(IMAGINE_PATH)/make/package/xinput.mk
-include $(IMAGINE_PATH)/make/package/xfixes.mk
 
 ifeq ($(SUBENV), pandora)
- pkgConfigDeps += xext xcb xdmcp xau
+ pkgConfigDeps += xdmcp xau xcb-xkb xcb-xfixes
 else
  include $(IMAGINE_PATH)/make/package/xrandr.mk
 endif

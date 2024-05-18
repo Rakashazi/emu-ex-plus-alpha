@@ -682,10 +682,5 @@ static void blankLine(MixColorType *lineMix, GBALCD &lcd, const GBAMem::IoMem &i
 {
 	for (int x = 0; x < 240; x++)
 		lineMix[x] = 0x7fff;
-}
-
-static void blankLineUpdateLastVCount(MixColorType *lineMix, GBALCD &lcd, const GBAMem::IoMem &ioMem)
-{
-	blankLine(lineMix, lcd, ioMem);
 	lcd.gfxLastVCOUNT = ioMem.VCOUNT;
 }

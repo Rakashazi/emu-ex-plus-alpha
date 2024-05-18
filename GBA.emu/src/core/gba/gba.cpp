@@ -1809,19 +1809,19 @@ void CPUUpdateRender(GBASys &gba)
   if (DISPCNT & 0x80)
   {
 	  systemMessage(0, "Set forced blank");
-	  gba.lcd.renderLine = ((DISPCNT & 7) == 0) ? blankLine : blankLineUpdateLastVCount;
+	  gba.lcd.renderLine = blankLine;
   }
   else
   {
-  	static constexpr GBALCD::RenderLineFunc norm[8] =
+  	static constexpr GBALCD::RenderLineFunc norm[8]
   		{ mode0RenderLine, mode1RenderLine, mode2RenderLine, mode3RenderLine, mode4RenderLine, mode5RenderLine,
-  		blankLine };
-  	static constexpr GBALCD::RenderLineFunc noWin[8] =
+  			blankLine, blankLine };
+  	static constexpr GBALCD::RenderLineFunc noWin[8]
 			{ mode0RenderLineNoWindow, mode1RenderLineNoWindow, mode2RenderLineNoWindow, mode3RenderLineNoWindow, mode4RenderLineNoWindow, mode5RenderLineNoWindow,
-			blankLine };
-  	static constexpr GBALCD::RenderLineFunc all[8] =
+				blankLine, blankLine };
+  	static constexpr GBALCD::RenderLineFunc all[8]
 			{ mode0RenderLineAll, mode1RenderLineAll, mode2RenderLineAll, mode3RenderLineAll, mode4RenderLineAll, mode5RenderLineAll,
-			blankLine };
+				blankLine, blankLine };
   	size_t mode = DISPCNT & 7;
   	gba.lcd.renderLine = ((!fxOn && !windowOn && !(layerEnable & 0x8000)) || coreOptions.cpuDisableSfx) ? norm[mode] :
   			(fxOn && !windowOn && !(layerEnable & 0x8000)) ? noWin[mode] :

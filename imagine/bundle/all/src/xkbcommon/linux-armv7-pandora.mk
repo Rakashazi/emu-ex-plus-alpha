@@ -1,0 +1,1 @@
+../../make/linux-armv7-pandora.mk

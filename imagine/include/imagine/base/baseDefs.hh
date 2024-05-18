@@ -310,9 +310,6 @@ using WindowEvent = std::variant<WindowSurfaceChangeEvent, DrawEvent,
 using OnWindowEvent = DelegateFunc<bool(Window &, WindowEvent)>;
 using WindowInitDelegate = DelegateFunc<void (ApplicationContext, Window &)>;
 
-using ScreenId = std::conditional_t<Config::envIsAndroid, int, void*>;
-using NativeDisplayConnection = void*;
-
 using PollEventDelegate = DelegateFunc<bool (int fd, int event)>;
 
 class CallbackDelegate : public DelegateFunc<bool ()>

@@ -40,6 +40,8 @@ public:
 	using FrameTimerInterface::FrameTimerInterface;
 };
 
+using ScreenId = void*;
+
 class IOSScreen
 {
 public:

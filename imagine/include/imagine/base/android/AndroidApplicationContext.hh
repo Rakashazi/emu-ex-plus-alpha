@@ -33,6 +33,8 @@ namespace IG
 
 class Application;
 
+using NativeDisplayConnection = void*;
+
 class AndroidApplicationContext
 {
 public:

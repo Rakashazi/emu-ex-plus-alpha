@@ -20,54 +20,15 @@
 #include "xdnd.hh"
 #include "xlibutils.h"
 #include <imagine/util/ranges.hh>
+#include <xcb/xfixes.h>
 
-static constexpr char ASCII_LF = 0xA;
-static constexpr char ASCII_CR = 0xD;
+constexpr char ASCII_LF = 0xA;
+constexpr char ASCII_CR = 0xD;
 
 namespace IG
 {
 
 constexpr SystemLogger log{"X11"};
-
-struct XGlibSource : public GSource
-{
-	::Display *xDisplay{};
-	XApplication *appPtr{};
-};
-
-static GSourceFuncs x11SourceFuncs
-{
-	.prepare
-	{
-		[](GSource *src, gint *timeout)
-		{
-			*timeout = -1;
-			auto xDisplay = static_cast<XGlibSource*>(src)->xDisplay;
-			return (gboolean)XPending(xDisplay);
-		}
-	},
-	.check
-	{
-		[](GSource *src)
-		{
-			auto xDisplay = static_cast<XGlibSource*>(src)->xDisplay;
-			return (gboolean)XPending(xDisplay);
-		}
-	},
-	.dispatch
-	{
-		[](GSource *src, GSourceFunc, gpointer)
-		{
-			//log.info("events for X fd");
-			auto &xGlibSrc = *static_cast<XGlibSource*>(src);
-			xGlibSrc.appPtr->runX11Events(xGlibSrc.xDisplay);
-			return (gboolean)TRUE;
-		}
-	},
-	.finalize{},
-	.closure_callback{},
-	.closure_marshal{},
-};
 
 XApplication::XApplication(ApplicationInitParams initParams):
 	LinuxApplication{initParams},
@@ -81,7 +42,7 @@ XApplication::~XApplication()
 	deinitWindows();
 	deinitInputSystem();
 	log.info("closing X display");
-	XCloseDisplay(dpy);
+	xcb_disconnect(xConn);
 }
 
 static std::array<char, 2> charToStringArr(char c)
@@ -135,7 +96,7 @@ static void fileURLToPath(char *url)
 	url[destPos] = '\0';
 }
 
-Window *XApplication::windowForXWindow(::Window xWin) const
+Window *XApplication::windowForXWindow(xcb_window_t xWin) const
 {
 	for(auto &w : windows())
 	{
@@ -145,25 +106,34 @@ Window *XApplication::windowForXWindow(::Window xWin) const
 	return nullptr;
 }
 
-static bool shouldBypassCompositor(const Window &win)
+static bool shouldBypassCompositor(const Window& win)
 {
 	return win.size() == win.screen()->sizePx();
 }
 
-bool XApplication::eventHandler(XEvent event)
+bool XApplication::eventHandler(xcb_ge_generic_event_t& event_)
 {
-	//log.info("got event type {} ({})", xEventTypeToString(event.type), event.type);
-
-	switch(event.type)
+	union XcbEvents
 	{
-		case Expose:
+		xcb_ge_generic_event_t generic;
+		xcb_expose_event_t xexpose;
+		xcb_configure_notify_event_t xconfigure;
+		xcb_client_message_event_t xclient;
+		xcb_selection_notify_event_t xselection;
+	};
+
+	auto &event = reinterpret_cast<XcbEvents&>(event_);
+	//log.info("got event type {} ({})", xEventTypeToString(event.type), event.type);
+	switch(event.generic.response_type & XCB_EVENT_RESPONSE_TYPE_MASK)
+	{
+		case XCB_EXPOSE:
 		{
 			auto &win = *windowForXWindow(event.xexpose.window);
 			if (event.xexpose.count == 0)
 				win.postDraw();
 			break;
 		}
-		case ConfigureNotify:
+		case XCB_CONFIGURE_NOTIFY:
 		{
 			//log.info("ConfigureNotify");
 			auto &win = *windowForXWindow(event.xconfigure.window);
@@ -176,23 +146,24 @@ bool XApplication::eventHandler(XEvent event)
 				// allow bypassing compositor on WMs without full screen unredirect support like KWin, needed for VRR
 				log.info("setting bypass compositor hint:{}", newShouldBypassCompositorState);
 				win.shouldBypassCompositorState = newShouldBypassCompositorState;
-				auto wmBypassCompositor = XInternAtom(dpy, "_NET_WM_BYPASS_COMPOSITOR", False);
+				auto wmBypassCompositor = internAtom(*xConn, "_NET_WM_BYPASS_COMPOSITOR");
 				int32_t val = newShouldBypassCompositorState ? 1 : 0;
-				XChangeProperty(dpy, win.nativeObject(), wmBypassCompositor, XA_CARDINAL, 32, PropModeReplace, (unsigned char*)&val, 1);
+				xcb_change_property(xConn, XCB_PROP_MODE_REPLACE, win.nativeObject(), wmBypassCompositor, XCB_ATOM_CARDINAL, 32, 1, &val);
 				// work around mutter 44 issue that prevents full-screen redirection when decorations are present
 				win.setDecorations(!newShouldBypassCompositorState);
 			}
 			break;
 		}
-		case ClientMessage:
+		case XCB_CLIENT_MESSAGE:
 		{
 			auto &win = *windowForXWindow(event.xclient.window);
-			auto type = event.xclient.message_type;
-			char *clientMsgName = XGetAtomName(dpy, type);
+			auto type = event.xclient.type;
+			auto atomNameReply = XCB_REPLY(xcb_get_atom_name, xConn, type);
+			auto clientMsgName = atomNameString(*atomNameReply);
 			//log.debug("got client msg {}", clientMsgName);
-			if(std::string_view{clientMsgName} == "WM_PROTOCOLS")
+			if(clientMsgName == "WM_PROTOCOLS")
 			{
-				if((Atom)event.xclient.data.l[0] == XInternAtom(dpy, "WM_DELETE_WINDOW", True))
+				if(event.xclient.data.data32[0] == internAtom(*xConn, "WM_DELETE_WINDOW", true))
 				{
 					//log.info("got window manager delete window message");
 					win.dispatchDismissRequest();
@@ -205,56 +176,52 @@ bool XApplication::eventHandler(XEvent event)
 			else if(Config::XDND && xdndIsInit())
 			{
 				auto [draggerXWin, dragAction] = win.xdndData();
-				handleXDNDEvent(dpy, xdndAtom, event.xclient, win.nativeObject(), draggerXWin, dragAction);
+				handleXDNDEvent(*xConn, xdndAtom, event.xclient, win.nativeObject(), draggerXWin, dragAction);
 			}
-			XFree(clientMsgName);
 			break;
 		}
-		case PropertyNotify:
+		case XCB_PROPERTY_NOTIFY:
 		{
 			//log.info("PropertyNotify");
 			break;
 		}
-		case SelectionNotify:
+		case XCB_SELECTION_NOTIFY:
 		{
 			log.info("SelectionNotify");
-			if(Config::XDND && event.xselection.property != None)
+			if(Config::XDND && event.xselection.property)
 			{
 				auto &win = *windowForXWindow(event.xselection.requestor);
-				int format;
-				unsigned long numItems;
-				unsigned long bytesAfter;
-				unsigned char *prop;
-				Atom type;
-				XGetWindowProperty(dpy, win.nativeObject(), event.xselection.property, 0, 256, False, AnyPropertyType, &type, &format, &numItems, &bytesAfter, &prop);
-				log.info("property read {} items, in {} format, {} bytes left", numItems, format, bytesAfter);
-				log.info("property is {}", (char*)prop);
+				auto propReply = XCB_REPLY(xcb_get_property, xConn, false, win.nativeObject(), event.xselection.property, XCB_ATOM_ANY, 0, 256);
+				if(!propReply)
+					break;
+				auto filename = (char*)xcb_get_property_value(propReply.get());
+				auto numItems = xcb_get_property_value_length(propReply.get());
+				log.info("property read {} items, in {} format, {} bytes left", numItems, propReply->format, propReply->bytes_after);
+				log.info("property is {}", filename);
 				auto [draggerXWin, dragAction] = win.xdndData();
 				sendDNDFinished(win.nativeObject(), draggerXWin, dragAction);
-				auto filename = (char*)prop;
 				fileURLToPath(filename);
 				win.dispatchDragDrop(filename);
-				XFree(prop);
 			}
 			break;
 		}
-		case MapNotify:
+		case XCB_MAP_NOTIFY:
 		{
 			//log.debug("MapNotfiy");
 			break;
 		}
-		case ReparentNotify:
+		case XCB_REPARENT_NOTIFY:
 		{
 			//log.debug("ReparentNotify");
 			break;
 		}
-		case GenericEvent:
+		case XCB_GE_GENERIC:
 		{
-			handleXI2GenericEvent(event); break;
+			handleXI2GenericEvent(event.generic); break;
 		}
 		default:
 		{
-			log.debug("got unhandled message type {}", event.type);
+			log.debug("got unhandled message type {}", event.generic.response_type);
 		}
 		break;
 	}
@@ -262,65 +229,83 @@ bool XApplication::eventHandler(XEvent event)
 	return true;
 }
 
-void XApplication::runX11Events(_XDisplay *dpy)
+
+void printXcbError(const xcb_generic_error_t& error)
 {
-	while(XPending(dpy))
+	size_t errorCode = std::min(size_t(error.error_code), xcbErrorStrings.size() - 1);
+	size_t majorCode = std::min(size_t(error.major_code), xcbProtocolRequestCodes.size() - 1);
+	log.error("X Error: {} ({}), sequence:{}, resource id:{}, major code:{} ({}), minor code:{}",
+		error.error_code, xcbErrorStrings[errorCode], error.sequence, error.resource_id,
+		error.major_code, xcbProtocolRequestCodes[majorCode], error.minor_code);
+}
+
+void XApplication::runX11Events(xcb_connection_t& conn)
+{
+	xcb_generic_event_t* event;
+	while((event = xcb_poll_for_event(&conn)))
 	{
-		XEvent event;
-		XNextEvent(dpy, &event);
-		eventHandler(event);
+		if(!(event->response_type & XCB_EVENT_RESPONSE_TYPE_MASK)) [[unlikely]]
+		{
+			printXcbError(reinterpret_cast<xcb_generic_error_t&>(*event));
+		}
+		else
+		{
+			eventHandler(reinterpret_cast<xcb_ge_generic_event_t&>(*event));
+		}
+		free(event);
 	}
 }
 
 void XApplication::runX11Events()
 {
-	runX11Events(dpy);
+	runX11Events(*xConn);
 }
 
-::Display *XApplication::xDisplay() const
+void XApplication::setWindowCursor(xcb_window_t xWin, bool on)
 {
-	return dpy;
+	uint32_t mask = XCB_CW_CURSOR;
+	xcb_change_window_attributes_value_list_t vals{};
+	vals.cursor = on ? normalCursor : blankCursor;
+	xcb_change_window_attributes_aux(xConn, xWin, mask, &vals);
 }
 
-void XApplication::setWindowCursor(::Window xWin, bool on)
+static void initXFixes(xcb_connection_t& conn)
 {
-	auto cursor = on ? normalCursor : blankCursor;
-	XDefineCursor(dpy, xWin, cursor);
-}
-
-void initXScreens(ApplicationContext ctx, Display *dpy)
-{
-	auto defaultScreenIdx = DefaultScreen(dpy);
-	ctx.application().addScreen(ctx, std::make_unique<Screen>(ctx, Screen::InitParams{ScreenOfDisplay(dpy, defaultScreenIdx)}), false);
-	if constexpr(Config::BASE_MULTI_SCREEN)
+	const xcb_query_extension_reply_t *extReply = xcb_get_extension_data(&conn, &xcb_xfixes_id);
+	if(!extReply || !extReply->present)
 	{
-		for(auto i : iotaCount(ScreenCount(dpy)))
-		{
-			if((int)i == defaultScreenIdx)
-				continue;
-			ctx.application().addScreen(ctx, std::make_unique<Screen>(ctx, Screen::InitParams{ScreenOfDisplay(dpy, i)}), false);
-		}
+		log.warn("XFixes extension not available");
+		return;
+	}
+	auto verReply = XCB_REPLY(xcb_xfixes_query_version, &conn, 4, 0);
+	if(!verReply || verReply->major_version < 4)
+	{
+		log.warn("required XFixes 4.x version not available, server supports {}.{}", verReply->major_version, verReply->minor_version);
 	}
 }
 
 FDEventSource XApplication::makeXDisplayConnection(EventLoop loop)
 {
-	XInitThreads();
-	auto xDisplay = XOpenDisplay({});
-	if(!xDisplay)
+	auto &conn = *xcb_connect(nullptr, nullptr);
+	xConn = &conn;
+	if(xcb_connection_has_error(&conn))
 	{
-		log.error("couldn't open display");
+		log.error("couldn't open X connection");
 		return {};
 	}
-	dpy = xDisplay;
+	auto &screen = *xcb_setup_roots_iterator(xcb_get_setup(&conn)).data;
+	xScr = &screen;
+	log.info("created X connection:{} screen:{}", (void*)&conn, (void*)&screen);
 	ApplicationContext appCtx{static_cast<Application&>(*this)};
-	initXScreens(appCtx, xDisplay);
+	addScreen(appCtx, std::make_unique<Screen>(appCtx, Screen::InitParams{conn, screen}), false);
+	initXFixes(conn);
 	initInputSystem();
-	FDEventSource x11Src{"XServer", ConnectionNumber(xDisplay)};
-	auto source = (XGlibSource*)g_source_new(&x11SourceFuncs, sizeof(XGlibSource));
-	source->xDisplay = xDisplay;
-	source->appPtr = this;
-	x11Src.attach(loop, source);
+	FDEventSource x11Src{"XServer", xcb_get_file_descriptor(&conn)};
+	x11Src.attach(loop, [this, &conn](int fd, int event)
+	{
+		runX11Events(conn);
+		return true;
+	});
 	return x11Src;
 }
 

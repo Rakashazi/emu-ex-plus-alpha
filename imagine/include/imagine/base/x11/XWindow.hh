@@ -19,28 +19,28 @@
 #include <imagine/base/BaseWindow.hh>
 #include <utility>
 
-struct _XDisplay;
+struct xcb_connection_t;
 
 namespace IG
 {
 
-using NativeWindowFormat = void*;
-using NativeWindow = unsigned long;
+using NativeWindowFormat = uint32_t;
+using NativeWindow = uint32_t;
 
 class XWindow : public BaseWindow
 {
 public:
 	using BaseWindow::BaseWindow;
 	~XWindow();
-	std::pair<unsigned long, unsigned long> xdndData() const;
+	std::pair<uint32_t, uint32_t> xdndData() const;
 	explicit operator bool() const;
 
 protected:
-	_XDisplay *dpy{};
-	unsigned long xWin{};
-	unsigned long draggerXWin{};
-	unsigned long dragAction{};
-	unsigned long colormap{};
+	xcb_connection_t* xConn{};
+	uint32_t xWin{};
+	uint32_t draggerXWin{};
+	uint32_t dragAction{};
+	uint32_t colormap{};
 public:
 	bool shouldBypassCompositorState{};
 };

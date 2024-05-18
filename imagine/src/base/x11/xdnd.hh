@@ -16,10 +16,10 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/x11/XApplication.hh>
-#include <X11/Xlib.h>
-#include <X11/Xatom.h>
+#include <xcb/xproto.h>
 
 namespace IG
 {
-void handleXDNDEvent(Display *dpy, XApplication::XdndAtoms xdndAtom, const XClientMessageEvent &e, ::Window win, ::Window &draggerWin, Atom &dragAction);
+void handleXDNDEvent(xcb_connection_t& conn, XApplication::XdndAtoms xdndAtom, const xcb_client_message_event_t& e,
+	xcb_window_t win, xcb_window_t &draggerWin, xcb_atom_t &dragAction);
 }
