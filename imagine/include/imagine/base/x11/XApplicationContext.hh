@@ -17,10 +17,19 @@
 
 #include <imagine/config/defs.hh>
 
+struct xcb_connection_t;
+struct xcb_screen_t;
+
 namespace IG
 {
 
 class Application;
+
+struct NativeDisplayConnection
+{
+	xcb_connection_t* conn{};
+	xcb_screen_t* screen{};
+};
 
 class XApplicationContext
 {

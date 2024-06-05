@@ -26,6 +26,8 @@ namespace IG
 class Application;
 class Window;
 
+using NativeDisplayConnection = void*;
+
 class IOSApplicationContext
 {
 public:

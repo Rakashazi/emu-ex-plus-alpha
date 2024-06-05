@@ -406,7 +406,8 @@ bool EGLManager::initDisplay(EGLDisplay display)
 	EGLint major, minor;
 	if(!eglInitialize(display, &major, &minor))
 	{
-		log.error("error initializing EGL for display:{}", display);
+		if(Config::DEBUG_BUILD)
+			log.error("error:{} in eglInitialize() for display:{}", GLManager::errorString(eglGetError()), display);
 		return false;
 	}
 	int eglVersion = 10 * major + minor;

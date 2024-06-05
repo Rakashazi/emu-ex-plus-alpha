@@ -17,22 +17,25 @@
 #include <imagine/base/Screen.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
-#include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
-#include <X11/extensions/Xrandr.h>
+#include <imagine/logger/logger.h>
+#include "xlibutils.h"
+#include <xcb/randr.h>
 #include <cmath>
 #include <format>
 
 namespace IG
 {
 
+constexpr SystemLogger log{"X11Screen"};
+
 XScreen::XScreen(ApplicationContext ctx, InitParams params)
 {
-	auto *xScreen = (::Screen*)params.xScreen;
-	assert(xScreen);
-	this->xScreen = xScreen;
-	xMM = WidthMMOfScreen(xScreen);
-	yMM = HeightMMOfScreen(xScreen);
+	auto &screen = params.screen;
+	xScreen = &screen;
+	auto &conn = params.conn;
+	xMM = screen.width_in_millimeters;
+	yMM = screen.height_in_millimeters;
 	if(Config::MACHINE_IS_PANDORA)
 	{
 		// TODO: read actual frame rate value
@@ -41,46 +44,59 @@ XScreen::XScreen(ApplicationContext ctx, InitParams params)
 	}
 	else
 	{
-		auto screenRes = XRRGetScreenResourcesCurrent(DisplayOfScreen(xScreen), RootWindowOfScreen(xScreen));
-		auto primaryOutput = XRRGetOutputPrimary(DisplayOfScreen(xScreen), RootWindowOfScreen(xScreen));
-		if(!primaryOutput)
-		{
-			for(auto output : std::span<RROutput>{screenRes->outputs, size_t(screenRes->noutput)})
-			{
-				auto outputInfo = XRRGetOutputInfo(DisplayOfScreen(xScreen), screenRes, output);
-				if(outputInfo->connection == RR_Connected)
-				{
-					primaryOutput = output;
-					break;
-				}
-			}
-		}
-		auto outputInfo = XRRGetOutputInfo(DisplayOfScreen(xScreen), screenRes, primaryOutput);
-		auto crtcInfo = XRRGetCrtcInfo(DisplayOfScreen(xScreen), screenRes, outputInfo->crtc);
 		frameRate_ = 60;
 		frameTime_ = fromHz<SteadyClockTime>(60.);
 		reliableFrameTime = false;
-		for(auto &modeInfo : std::span<XRRModeInfo>{screenRes->modes, (size_t)screenRes->nmode})
+		xcb_randr_output_t primaryOutput{};
+		auto resReply = XCB_REPLY(xcb_randr_get_screen_resources, &conn, screen.root);
+		if(resReply)
 		{
-			if(modeInfo.id == crtcInfo->mode && modeInfo.hTotal && modeInfo.vTotal)
+			auto outPrimaryReply = XCB_REPLY(xcb_randr_get_output_primary, &conn, screen.root);
+			if(outPrimaryReply)
 			{
-				frameRate_ = float(modeInfo.dotClock) / (modeInfo.hTotal * modeInfo.vTotal);
-				frameTime_ = fromSeconds<SteadyClockTime>(modeInfo.hTotal * modeInfo.vTotal / double(modeInfo.dotClock));
-				reliableFrameTime = true;
-				break;
+				primaryOutput = outPrimaryReply->output;
+			}
+			else
+			{
+				for(auto output : std::span<xcb_randr_output_t>{xcb_randr_get_screen_resources_outputs(resReply.get()),
+					size_t(xcb_randr_get_screen_resources_outputs_length(resReply.get()))})
+				{
+					auto outputInfoReply = XCB_REPLY(xcb_randr_get_output_info, &conn, output, resReply->timestamp);
+					if(outputInfoReply && outputInfoReply->connection == XCB_RANDR_CONNECTION_CONNECTED)
+					{
+						primaryOutput = output;
+						break;
+					}
+				}
+			}
+			auto outputInfoReply = XCB_REPLY(xcb_randr_get_output_info, &conn, primaryOutput, resReply->timestamp);
+			if(outputInfoReply)
+			{
+				auto crtcInfoReply = XCB_REPLY(xcb_randr_get_crtc_info, &conn, outputInfoReply->crtc, outputInfoReply->timestamp);
+				if(crtcInfoReply)
+				{
+					for(auto &modeInfo : std::span<xcb_randr_mode_info_t>{xcb_randr_get_screen_resources_modes(resReply.get()),
+						(size_t)xcb_randr_get_screen_resources_modes_length(resReply.get())})
+					{
+						if(modeInfo.id == crtcInfoReply->mode && modeInfo.htotal && modeInfo.vtotal)
+						{
+							frameRate_ = float(modeInfo.dot_clock) / (modeInfo.htotal * modeInfo.vtotal);
+							frameTime_ = fromSeconds<SteadyClockTime>(modeInfo.htotal * modeInfo.vtotal / double(modeInfo.dot_clock));
+							reliableFrameTime = true;
+							break;
+						}
+					}
+				}
 			}
 		}
-		XRRFreeCrtcInfo(crtcInfo);
-		XRRFreeOutputInfo(outputInfo);
-		XRRFreeScreenResources(screenRes);
 		assert(frameTime_.count());
 	}
-	logMsg("screen:%p %dx%d (%dx%dmm) %.2fHz", xScreen,
-		WidthOfScreen(xScreen), HeightOfScreen(xScreen), (int)xMM, (int)yMM, frameRate_);
+	log.info("screen:{} {}x{} ({}x{}mm) %.2fHz", (void*)&screen,
+		screen.width_in_pixels, screen.height_in_pixels, (int)xMM, (int)yMM, frameRate_);
 	ctx.application().emplaceFrameTimer(frameTimer, *static_cast<Screen*>(this));
 }
 
-void *XScreen::nativeObject() const
+xcb_screen_t* XScreen::nativeObject() const
 {
 	return xScreen;
 }
@@ -102,12 +118,12 @@ XScreen::operator bool() const
 
 int Screen::width() const
 {
-	return WidthOfScreen((::Screen*)xScreen);
+	return xScreen->width_in_pixels;
 }
 
 int Screen::height() const
 {
-	return HeightOfScreen((::Screen*)xScreen);
+	return xScreen->height_in_pixels;
 }
 
 FrameRate Screen::frameRate() const { return frameRate_; }
@@ -128,14 +144,14 @@ void Screen::setFrameRate(FrameRate rate)
 			rate = std::round(rate);
 		if(rate != 50 && rate != 60)
 		{
-			logWarn("tried to set unsupported frame rate: %f", rate);
+			log.warn("tried to set unsupported frame rate:{}", rate);
 			return;
 		}
 		auto cmd = std::format("sudo /usr/pandora/scripts/op_lcdrate.sh {}", (unsigned int)rate);
 		int err = system(cmd.data());
 		if(err)
 		{
-			logErr("error setting frame rate, %d", err);
+			log.error("error:{} setting frame rate", err);
 			return;
 		}
 		frameRate_ = rate;
@@ -161,7 +177,7 @@ void Screen::unpostFrameTimer()
 void Screen::setFrameInterval(int interval)
 {
 	// TODO
-	//logMsg("setting frame interval %d", (int)interval);
+	//log.info("setting frame interval:{}", interval);
 	assert(interval >= 1);
 }
 

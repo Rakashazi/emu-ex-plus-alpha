@@ -1,1 +1,0 @@
-pkgName := inputproto

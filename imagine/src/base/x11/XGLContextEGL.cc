@@ -17,28 +17,38 @@
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/time/Time.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/util/egl.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/ranges.hh>
 #include <imagine/logger/logger.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
-#include <X11/Xutil.h>
-
-#ifndef EGL_PLATFORM_X11_EXT
-#define EGL_PLATFORM_X11_EXT 0x31D5
-#endif
+#include "xlibutils.h"
 
 namespace IG
 {
 
-static constexpr bool HAS_EGL_PLATFORM = Config::envIsLinux && !Config::MACHINE_IS_PANDORA;
+constexpr SystemLogger log{"X11GL"};
 
 GLDisplay GLManager::getDefaultDisplay(NativeDisplayConnection nativeDpy) const
 {
-	if constexpr(HAS_EGL_PLATFORM)
+	if constexpr(useEGLPlatformAPI)
 	{
-		return {eglGetPlatformDisplay(EGL_PLATFORM_X11_EXT, nativeDpy, nullptr)};
+		auto dpy = [&]()
+		{
+			if(FS::exists("/usr/share/glvnd/egl_vendor.d/10_nvidia.json")) // Nvidia EGL library doesn't recognize EGL_PLATFORM_XCB_EXT
+			{
+				return eglGetPlatformDisplay(EGL_PLATFORM_X11_EXT, EGL_DEFAULT_DISPLAY, nullptr);
+			}
+			else
+			{
+				return eglGetPlatformDisplay(EGL_PLATFORM_XCB_EXT, nativeDpy.conn, nullptr);
+			}
+		}();
+		if(Config::DEBUG_BUILD && dpy == EGL_NO_DISPLAY)
+			log.error("error:{} getting platform display", GLManager::errorString(eglGetError()));
+		return dpy;
 	}
 	else
 	{
@@ -63,29 +73,25 @@ std::optional<GLBufferConfig> GLManager::makeBufferConfig(ApplicationContext ctx
 		auto configCount = chooseConfigs(display(), renderableType, attr, configs);
 		if(!configCount)
 		{
-			logErr("no usable EGL configs found with renderable type:%s", eglRenderableTypeToStr(renderableType));
+			log.error("no usable EGL configs found with renderable type:{}", eglRenderableTypeToStr(renderableType));
 			return {};
 		}
 		// find the config with a visual bits/channel == 8
-		auto xDpy = static_cast<Display*>(ctx.nativeDisplayConnection());
 		for(auto conf : configs | std::views::take(configCount))
 		{
-			XVisualInfo visualTemplate{};
-			visualTemplate.c_class = TrueColor;
-			visualTemplate.visualid = eglConfigAttrib(display(), conf, EGL_NATIVE_VISUAL_ID);
-			int count;
-			auto infoPtr = XGetVisualInfo(xDpy, VisualIDMask | VisualClassMask, &visualTemplate, &count);
-			if(!infoPtr)
-				continue;
-			auto freeInfo = scopeGuard([&](){ XFree(infoPtr); });
-			if(infoPtr->bits_per_rgb == 8)
+			auto visualId = eglConfigAttrib(display(), conf, EGL_NATIVE_VISUAL_ID);
+			auto found = findVisualType(ctx.application().xScreen(), 32, [&](const xcb_visualtype_t& v)
+			{
+				return v.bits_per_rgb_value == 8;
+			});
+			if(found)
 			{
 				if(Config::DEBUG_BUILD)
 					printEGLConf(display(), conf);
 				return conf;
 			}
 		}
-		logErr("no EGL configs with matching visual bits/channel found");
+		log.error("no EGL configs with matching visual bits/channel found");
 		return {};
 	}
 	else
@@ -97,22 +103,20 @@ std::optional<GLBufferConfig> GLManager::makeBufferConfig(ApplicationContext ctx
 NativeWindowFormat GLManager::nativeWindowFormat(ApplicationContext ctx, GLBufferConfig glConfig) const
 {
 	if(Config::MACHINE_IS_PANDORA)
-		return nullptr;
+		return {};
 	// get matching x visual
-	EGLint nativeID;
-	eglGetConfigAttrib(display(), glConfig, EGL_NATIVE_VISUAL_ID, &nativeID);
-	XVisualInfo viTemplate{};
-	viTemplate.visualid = nativeID;
-	int visuals;
-	auto viPtr = XGetVisualInfo(ctx.application().xDisplay(), VisualIDMask, &viTemplate, &visuals);
+	EGLint nativeId;
+	eglGetConfigAttrib(display(), glConfig, EGL_NATIVE_VISUAL_ID, &nativeId);
+	auto viPtr = findVisualType(ctx.application().xScreen(), 0, [&](const xcb_visualtype_t& v)
+	{
+		return v.visual_id == (uint32_t)nativeId;
+	});
 	if(!viPtr)
 	{
-		logErr("unable to find matching X Visual");
-		return nullptr;
+		log.error("unable to find matching X Visual");
+		return {};
 	}
-	auto visual = viPtr->visual;
-	XFree(viPtr);
-	return visual;
+	return viPtr->visual_id;
 }
 
 bool GLManager::hasBufferConfig(GLBufferConfigAttributes attrs) const

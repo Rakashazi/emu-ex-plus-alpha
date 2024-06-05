@@ -27,7 +27,7 @@ void ApplicationContext::flushSystemInputEvents()
 
 NativeDisplayConnection ApplicationContext::nativeDisplayConnection() const
 {
-	return (NativeDisplayConnection)application().xDisplay();
+	return {.conn = &application().xConnection(), .screen = &application().xScreen()};
 }
 
 PixelFormat ApplicationContext::defaultWindowPixelFormat() const

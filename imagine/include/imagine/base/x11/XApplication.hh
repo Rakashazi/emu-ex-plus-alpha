@@ -21,10 +21,11 @@
 #include <string>
 #include <array>
 
-struct _XDisplay;
-union _XEvent;
-struct _XIM;
-struct _XIC;
+struct xcb_connection_t;
+struct xcb_screen_t;
+struct xcb_input_xi_device_info_t;
+struct xcb_ge_generic_event_t;
+struct xkb_state;
 
 namespace Config
 {
@@ -33,8 +34,6 @@ static constexpr bool XDND = !Config::MACHINE_IS_PANDORA;
 
 namespace IG
 {
-
-struct XIDeviceInfo;
 
 enum class SupportedFrameTimer : uint8_t
 {
@@ -48,48 +47,50 @@ enum class SupportedFrameTimer : uint8_t
 class XApplication : public LinuxApplication
 {
 public:
-	using XdndAtoms = std::array<unsigned long, 11>;
+	using XdndAtoms = std::array<uint32_t, 11>;
 
 	XApplication(ApplicationInitParams);
 	~XApplication();
 	FDEventSource makeXDisplayConnection(EventLoop);
-	::_XDisplay *xDisplay() const;
+	xcb_connection_t& xConnection() const { return *xConn; }
+	xcb_screen_t& xScreen() const { return *xScr; }
+
 	void emplaceFrameTimer(FrameTimer&, Screen&, bool useVariableTime = {});
-	void initPerWindowInputData(unsigned long xWin);
-	void runX11Events(_XDisplay *);
+	void initPerWindowInputData(uint32_t xWin);
+	void runX11Events(xcb_connection_t&);
 	void runX11Events();
 	bool hasPendingX11Events() const;
-	void setXdnd(unsigned long win, bool on);
+	void setXdnd(uint32_t win, bool on);
 	std::string inputKeyString(Input::Key rawKey, uint32_t modifiers) const;
-	void setWindowCursor(unsigned long xWin, bool on);
+	void setWindowCursor(uint32_t xWin, bool on);
 	SupportedFrameTimer supportedFrameTimerType() const { return supportedFrameTimer; }
 
 private:
-	::_XDisplay *dpy{};
+	xcb_connection_t* xConn{};
+	xcb_screen_t* xScr{};
 	FDEventSource xEventSrc{};
 	SupportedFrameTimer supportedFrameTimer{};
 	XdndAtoms xdndAtom{};
 
 	// Input state
-	_XIM *im{};
-	_XIC *ic{};
+	xkb_state* kbState{};
 	Input::Device *vkbDevice{};
-	unsigned long blankCursor{};
-	unsigned long normalCursor{};
+	uint32_t blankCursor{};
+	uint32_t normalCursor{};
 	int xI2opcode{};
 
 	void initXInput2();
-	bool eventHandler(_XEvent);
-	Window *windowForXWindow(unsigned long xWin) const;
+	bool eventHandler(xcb_ge_generic_event_t&);
+	Window *windowForXWindow(uint32_t xWin) const;
 	void initInputSystem();
 	void deinitInputSystem();
-	bool handleXI2GenericEvent(_XEvent);
-	void addXInputDevice(XIDeviceInfo, bool notify, bool isPointingDevice);
+	bool handleXI2GenericEvent(xcb_ge_generic_event_t&);
+	void addXInputDevice(xcb_input_xi_device_info_t&, bool notify, bool isPointingDevice);
 	const Input::Device *deviceForInputId(int osId) const;
 	static SupportedFrameTimer testFrameTimers();
 	bool initXdnd();
 	bool xdndIsInit() const;
-	void sendDNDFinished(unsigned long win, unsigned long srcWin, unsigned long action);
+	void sendDNDFinished(uint32_t win, uint32_t srcWin, uint32_t action);
 };
 
 using ApplicationImpl = XApplication;

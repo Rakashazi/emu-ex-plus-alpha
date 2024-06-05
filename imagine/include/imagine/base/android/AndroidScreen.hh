@@ -38,6 +38,8 @@ public:
 	using FrameTimerInterface::FrameTimerInterface;
 };
 
+using ScreenId = int;
+
 class AndroidScreen
 {
 public:

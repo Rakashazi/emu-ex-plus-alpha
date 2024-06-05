@@ -44,6 +44,8 @@ class Window;
 class GLDisplay;
 class ApplicationContext;
 
+constexpr bool useEGLPlatformAPI = Config::envIsLinux && !Config::MACHINE_IS_PANDORA;
+
 class GLBufferConfigAttributes
 {
 public:

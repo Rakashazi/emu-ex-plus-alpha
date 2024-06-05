@@ -17,6 +17,8 @@
 
 #include <imagine/input/inputDefs.hh>
 
+struct xcb_input_xi_device_info_t;
+
 namespace IG
 {
 struct XIDeviceInfo;
@@ -31,6 +33,7 @@ public:
 	XInputDevice() = default;
 	XInputDevice(InputDeviceTypeFlags, std::string name);
 	XInputDevice(XIDeviceInfo, bool isPointingDevice, bool isPowerButton);
+	XInputDevice(xcb_input_xi_device_info_t&, bool isPointingDevice, bool isPowerButton);
 	void setICadeMode(bool on) { iCadeMode_ = on; }
 	bool iCadeMode() const { return iCadeMode_; }
 

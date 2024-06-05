@@ -21,12 +21,13 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
 #include "xlibutils.h"
-#include <X11/Xatom.h>
-#include <X11/Xutil.h>
-#include <X11/extensions/Xfixes.h>
+#include <xcb/xcb_icccm.h>
+#include <xcb/xfixes.h>
 
 namespace IG
 {
+
+constexpr SystemLogger log{"X11Win"};
 
 void Window::setAcceptDnd(bool on)
 {
@@ -37,20 +38,9 @@ void Window::setAcceptDnd(bool on)
 
 void Window::setTitle(const char *name)
 {
-	XTextProperty nameProp;
-	std::string tempName{};
-	if(name)
-		tempName = name;
-	char *tempNameArr[1] {tempName.data()};
-	if(XStringListToTextProperty(tempNameArr, 1, &nameProp))
-	{
-		XSetWMName(dpy, xWin, &nameProp);
-		XFree(nameProp.value);
-	}
-	else
-	{
-		logWarn("unable to set window title, out of memory in XStringListToTextProperty()");
-	}
+	xcb_change_property(xConn, XCB_PROP_MODE_REPLACE, xWin, XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8,
+		strlen(name), name);
+	xcb_flush(xConn);
 }
 
 bool Window::hasSurface() const
@@ -71,30 +61,26 @@ Point2D<float> Window::pixelSizeAsMM(Point2D<int> size)
 	return {xMM * ((float)size.x/(float)s.width()), yMM * ((float)size.y/(float)s.height())};
 }
 
-static WindowRect makeWindowRectWithConfig(Display *dpy, const WindowConfig &config, ::Window rootWindow)
+static WindowRect makeWindowRectWithConfig(xcb_connection_t& conn, const WindowConfig &config, xcb_window_t rootWindow)
 {
 	WindowRect workAreaRect;
 	{
-		long *workArea;
-		int format;
-		unsigned long items, bytesAfter;
-		uint8_t *prop;
-		Atom type;
-		Atom _NET_WORKAREA = XInternAtom(dpy, "_NET_WORKAREA", 0);
-		if(XGetWindowProperty(dpy, rootWindow,
-			_NET_WORKAREA, 0, ~0, False,
-			XA_CARDINAL, &type, &format, &items, &bytesAfter, (uint8_t **)&workArea) || !workArea)
+		auto _NET_WORKAREA = internAtom(conn, "_NET_WORKAREA");
+		auto reply = XCB_REPLY(xcb_get_property, &conn, false, rootWindow, _NET_WORKAREA, XCB_ATOM_CARDINAL, 0, 1024);
+		if(reply && xcb_get_property_value_length(reply.get()) >= 16)
 		{
-			logWarn("error getting desktop work area, using root window size");
-			XWindowAttributes attr;
-			XGetWindowAttributes(dpy, rootWindow, &attr);
-			workAreaRect = {{}, {attr.width, attr.height}};
+			auto workArea = (int32_t*)xcb_get_property_value(reply.get());
+			log.info("work area: {}:{}:{}:{}", workArea[0], workArea[1], workArea[2], workArea[3]);
+			workAreaRect = {{workArea[0], workArea[1]}, {workArea[2], workArea[3]}};
 		}
 		else
 		{
-			logMsg("work area: %ld:%ld:%ld:%ld", workArea[0], workArea[1], workArea[2], workArea[3]);
-			workAreaRect = {{(int)workArea[0], (int)workArea[1]}, {(int)workArea[2], (int)workArea[3]}};
-			XFree(workArea);
+			log.warn("error getting desktop work area, using root window size");
+			auto reply = XCB_REPLY(xcb_get_geometry, &conn, rootWindow);
+			if(reply)
+			{
+				workAreaRect = {{}, {reply->width, reply->height}};
+			}
 		}
 	}
 
@@ -144,112 +130,120 @@ static WindowRect makeWindowRectWithConfig(Display *dpy, const WindowConfig &con
 	{
 		winRect.y2 = workAreaRect.y2;
 	}
-	logMsg("made window rect %d:%d:%d:%d", winRect.x, winRect.y, winRect.x2, winRect.y2);
+	log.info("made window rect {}:{}:{}:{}", winRect.x, winRect.y, winRect.x2, winRect.y2);
 	return winRect;
 }
 
 struct VisualConfig
 {
-	Visual *visual{};
+	xcb_visualid_t visual{};
 	int depth{};
 };
 
-static VisualConfig defaultVisualConfig(Display *dpy, ::Screen* screen)
+static VisualConfig defaultVisualConfig(xcb_screen_t& screen)
 {
-	return {DefaultVisualOfScreen(screen), DefaultDepthOfScreen(screen)};
+	return {screen.root_visual, screen.root_depth};
 }
 
-static VisualConfig defaultTranslucentVisualConfig(Display *dpy, ::Screen* screen)
+static VisualConfig defaultTranslucentVisualConfig(xcb_screen_t& screen)
 {
-	XVisualInfo info{};
-	if(!XMatchVisualInfo(dpy, XScreenNumberOfScreen(screen), 32, TrueColor, &info))
-		return defaultVisualConfig(dpy, screen);
-	return {info.visual, info.depth};
+	VisualConfig conf = defaultVisualConfig(screen);
+	findVisualType(screen, 32, [&](const xcb_visualtype_t& v)
+	{
+		conf = {v.visual_id, 32};
+		return true;
+	});
+	return conf;
 }
 
 Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate):
 	XWindow{ctx, config}
 {
-	auto &screen = ctx.mainScreen();
-	this->screen_ = &screen;
-	auto xScreen = (::Screen*)screen.nativeObject();
-	auto rootWindow = RootWindowOfScreen(xScreen);
-	auto dpy = DisplayOfScreen(xScreen);
+	screen_ = config.screen(ctx);
+	auto &xScreen = ctx.application().xScreen();
+	auto rootWindow = xScreen.root;
+	auto &conn = ctx.application().xConnection();
 	auto winRect = Config::MACHINE_IS_PANDORA ? WindowRect{{}, {800, 480}} :
-		makeWindowRectWithConfig(dpy, config, rootWindow);
+		makeWindowRectWithConfig(conn, config, rootWindow);
 	updateSize({winRect.xSize(), winRect.ySize()});
 	{
-		XSetWindowAttributes attr{};
-		unsigned long valueMask = CWEventMask | CWBorderPixel;
-		attr.event_mask = ExposureMask | PropertyChangeMask | StructureNotifyMask;
+		xcb_create_window_value_list_t attr{};
+		uint32_t valueMask = XCB_CW_EVENT_MASK | XCB_CW_BORDER_PIXEL;
+		attr.event_mask = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_PROPERTY_CHANGE | XCB_EVENT_MASK_STRUCTURE_NOTIFY;
 		attr.border_pixel = 0;
-		VisualConfig visualConf{};
+		VisualConfig visualConf;
 		if(config.nativeFormat)
 		{
-			visualConf.visual = (Visual*)config.nativeFormat;
+			visualConf.visual = config.nativeFormat;
 		}
 		else
 		{
 			if(config.translucent)
-				visualConf = defaultTranslucentVisualConfig(dpy, xScreen);
+				visualConf = defaultTranslucentVisualConfig(xScreen);
 			else
-				visualConf = defaultVisualConfig(dpy, xScreen);
+				visualConf = defaultVisualConfig(xScreen);
 		}
-		colormap = attr.colormap = XCreateColormap(dpy, rootWindow, visualConf.visual, AllocNone);
-		valueMask |= CWColormap;
-		xWin = XCreateWindow(dpy, rootWindow, winRect.x, winRect.y, width(), height(), 0,
-			visualConf.depth, InputOutput, visualConf.visual, valueMask, &attr);
+		colormap = attr.colormap = xcb_generate_id(&conn);
+		xcb_create_colormap(&conn, 0, colormap, rootWindow, visualConf.visual);
+		valueMask |= XCB_CW_COLORMAP;
+		xWin = xcb_generate_id(&conn);
+		xcb_create_window_aux(&conn, visualConf.depth, xWin, rootWindow, winRect.x, winRect.y, width(), height(),
+			0, XCB_WINDOW_CLASS_INPUT_OUTPUT, visualConf.visual, valueMask, &attr);
 		if(!xWin)
 		{
-			logErr("error initializing window");
+			log.error("error initializing window");
 			return;
 		}
 	}
-	logMsg("made window with XID %d, drawable depth %d", (int)xWin, xDrawableDepth(dpy, xWin));
+	if(Config::DEBUG_BUILD)
+		log.info("made window with XID {}, drawable depth {}", (int)xWin, xDrawableDepth(conn, xWin));
 	ctx.application().initPerWindowInputData(xWin);
 	if(Config::MACHINE_IS_PANDORA)
 	{
-		auto wmState = XInternAtom(dpy, "_NET_WM_STATE", False);
-		auto wmFullscreen = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
-		XChangeProperty(dpy, xWin, wmState, XA_ATOM, 32, PropModeReplace, (uint8_t*)&wmFullscreen, 1);
+		auto wmState = internAtom(conn, "_NET_WM_STATE");
+		auto wmFullscreen = internAtom(conn, "_NET_WM_STATE_FULLSCREEN");
+		xcb_change_property(&conn, XCB_PROP_MODE_REPLACE, xWin, wmState, XCB_ATOM_ATOM, 32, 1, &wmFullscreen);
 	}
 	else
 	{
-		auto wmDelete = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
-		XSetWMProtocols(dpy, xWin, &wmDelete, 1);
+		auto wmDelete = internAtom(conn, "WM_DELETE_WINDOW", true);
+		auto wmProtocols = internAtom(conn, "WM_PROTOCOLS");
+		xcb_change_property(&conn, XCB_PROP_MODE_REPLACE, xWin, wmProtocols, XCB_ATOM_ATOM, 32, 1, &wmDelete);
 		if(config.minimumSize.x || config.minimumSize.y)
 		{
-			XSizeHints hints{};
+			xcb_size_hints_t hints{};
 			hints.x = winRect.x;
 			hints.y = winRect.y;
 			hints.min_width = config.minimumSize.x;
 			hints.min_height = config.minimumSize.y;
-			hints.flags = PPosition | PMinSize;
-			XSetWMNormalHints(dpy, xWin, &hints);
+			hints.flags = XCB_ICCCM_SIZE_HINT_P_POSITION | XCB_ICCCM_SIZE_HINT_P_MIN_SIZE;
+			xcb_icccm_set_wm_size_hints(&conn, xWin, XCB_ATOM_WM_NORMAL_HINTS, &hints);
 		}
 	}
-	this->dpy = dpy;
+	xConn = &conn;
 	if(config.title)
 		setTitle(config.title);
+	xcb_flush(&conn);
 }
 
 XWindow::~XWindow()
 {
 	if(xWin)
 	{
-		logMsg("destroying window with ID %d", (int)xWin);
-		XDestroyWindow(dpy, xWin);
+		log.info("destroying window with ID:{}", (int)xWin);
+		xcb_destroy_window(xConn, xWin);
 	}
 	if(colormap)
 	{
-		XFreeColormap(dpy, colormap);
+		xcb_free_colormap(xConn, colormap);
 	}
 }
 
 void Window::show()
 {
-	assert(xWin != None);
-	XMapRaised(dpy, xWin);
+	assert(xWin);
+	xcb_map_window(xConn, xWin);
+	xcb_flush(xConn);
 	postDraw();
 }
 
@@ -269,13 +263,13 @@ void Window::setFormat(PixelFormat) {}
 
 PixelFormat Window::pixelFormat() const
 {
-	auto xScreen = (::Screen*)screen()->nativeObject();
-	if(DefaultDepthOfScreen(xScreen) == 16)
+	auto xScreen = screen()->nativeObject();
+	if(xScreen->root_depth == 16)
 		return PixelFmtRGB565;
 	return PixelFmtRGBA8888;
 }
 
-std::pair<unsigned long, unsigned long> XWindow::xdndData() const
+std::pair<uint32_t, uint32_t> XWindow::xdndData() const
 {
 	return {draggerXWin, dragAction};
 }
@@ -295,9 +289,10 @@ void Window::setCursorVisible(bool on)
 	if constexpr(Config::MACHINE_IS_PANDORA)
 	{
 		if(on)
-			XFixesShowCursor(dpy, xWin);
+			xcb_xfixes_show_cursor(xConn, xWin);
 		else
-			XFixesHideCursor(dpy, xWin);
+			xcb_xfixes_hide_cursor(xConn, xWin);
+		xcb_flush(xConn);
 	}
 	else
 	{
@@ -305,66 +300,63 @@ void Window::setCursorVisible(bool on)
 	}
 }
 
-static void ewmhFullscreen(Display *dpy, ::Window win, int action)
+static void ewmhFullscreen(xcb_connection_t& conn, xcb_window_t win, int action)
 {
 	assert(action == _NET_WM_STATE_REMOVE || action == _NET_WM_STATE_ADD || action == _NET_WM_STATE_TOGGLE);
-	XEvent xev
-	{
-		.xclient =
-		{
-			.type = ClientMessage,
-			.serial = 0,
-			.send_event = True,
-			.display = {},
-			.window = win,
-			.message_type = XInternAtom(dpy, "_NET_WM_STATE", False),
-			.format = 32,
-			.data =	{	.l{action, (long)XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False)}	}
-		}
-	};
-	XWindowAttributes attr;
-	XGetWindowAttributes(dpy, win, &attr);
-	if(!XSendEvent(dpy, attr.root, False,
-		SubstructureRedirectMask | SubstructureNotifyMask, &xev))
-	{
-		logWarn("couldn't send root window NET_WM_STATE message");
-	}
+	xcb_client_message_event_t xev{};
+	xev.response_type = XCB_CLIENT_MESSAGE;
+	xev.window = win;
+	xev.type = internAtom(conn, "_NET_WM_STATE");
+	xev.format = 32;
+	xev.data.data32[0] = action;
+	xev.data.data32[1] = (long)internAtom(conn, "_NET_WM_STATE_FULLSCREEN");
+	auto geomReply = XCB_REPLY(xcb_get_geometry, &conn, win);
+	if(!geomReply)
+		return;
+	xcb_send_event(&conn, true, geomReply->root, XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY, (const char*)&xev);
+	xcb_flush(&conn);
 }
 
 void Window::toggleFullScreen()
 {
-	logMsg("toggling fullscreen");
-	ewmhFullscreen(dpy, xWin, _NET_WM_STATE_TOGGLE);
+	log.info("toggling fullscreen");
+	ewmhFullscreen(*xConn, xWin, _NET_WM_STATE_TOGGLE);
 }
 
 void WindowConfig::setFormat(PixelFormat) {}
 
 struct MotifWMHints
 {
-	unsigned long flags{};
-	unsigned long functions{};
-	unsigned long decorations{};
-	long input_mode{};
-	unsigned long status{};
+	uint32_t flags{};
+	uint32_t functions{};
+	uint32_t decorations{};
+	int32_t input_mode{};
+	uint32_t status{};
 };
 
 void Window::setDecorations(bool on)
 {
-	logMsg("setting window decorations:%s", on ? "on" : "off");
-  Atom wmHintsAtom = XInternAtom(dpy, "_MOTIF_WM_HINTS", True);
+	log.info("setting window decorations:{}", on ? "on" : "off");
+  auto wmHintsAtom = internAtom(*xConn, "_MOTIF_WM_HINTS");
   MotifWMHints hints{.flags = bit(1), .decorations = on};
-	XChangeProperty(dpy, xWin, wmHintsAtom, wmHintsAtom, 32, PropModeReplace, (unsigned char*)&hints,
-		sizeof(MotifWMHints) / sizeof(long));
+	xcb_change_property(xConn, XCB_PROP_MODE_REPLACE, xWin, wmHintsAtom, wmHintsAtom, 32, 5, &hints);
+	xcb_flush(xConn);
 }
 
 void Window::setPosition(WPt pos)
 {
-	XMoveWindow(dpy, xWin, pos.x, pos.y);
+	xcb_configure_window_value_list_t vals{};
+	vals.x = pos.x; vals.y = pos.y;
+	xcb_configure_window_aux(xConn, xWin, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, &vals);
+	xcb_flush(xConn);
 }
 
 void Window::setSize(WSize size)
 {
-	XResizeWindow(dpy, xWin, size.x, size.y);
+	xcb_configure_window_value_list_t vals{};
+	vals.width = size.x; vals.height = size.y;
+	xcb_configure_window_aux(xConn, xWin, XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, &vals);
+	xcb_flush(xConn);
 }
 
 }
