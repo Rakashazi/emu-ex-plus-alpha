@@ -1,4 +1,4 @@
-Brand|Icon|Architecture|![Play](https://www.svgrepo.com/download/353828/google-play-icon.svg)|![GitHub](https://www.svgrepo.com/download/353783/github-octocat.svg)
+Brand|Icon|ABI|Play|GitHub
 ---|---|---|---|---
 ||||[All](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/EX-Emulators.zip)
 ASCII|![MSX.emu](./MSX.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[MSX.emu](https://play.google.com/store/apps/details?id=com.explusalpha.MsxEmu)|[MSX.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/MsxEmu.zip)
