@@ -47,4 +47,4 @@ SNK|[Mednafen](https://github.com/mednafen/mednafen.github.io)|![NGP.emu](./NGP.
 Tomy|[ePyuTa](http://takeda-toshiya.my.coocan.jp/pyuta/index.html)|||Pyūta|Pyūta
 VTech|[creatiVision](https://sourceforge.net/projects/creativisionemulator/)|||CreatiVision|CreatiVision
 Watara||||SV.emu|SV.emu
-Watara||||Mega Duck|Mega Duck
+Welback||||Mega Duck|Mega Duck
