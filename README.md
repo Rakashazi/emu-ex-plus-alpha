@@ -17,6 +17,7 @@ Bandai|[Mednafen](https://github.com/mednafen/mednafen.github.io)|![Swan.emu](./
 Casio|[ePV-1000](http://takeda-toshiya.my.coocan.jp/pv1000/index.html)|||PV-1000|PV-1000
 Casio|[EmuGaki](http://takeda-toshiya.my.coocan.jp/pv2000/index.html)|||PV-2000|PV-2000
 CBM|[VICE](https://sourceforge.net/projects/vice-emu/)|![C64.emu](./C64.emu/res/icons/icon-144.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[C64.emu](https://play.google.com/store/apps/details?id=com.explusalpha.C64Emu)|[C64.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/C64Emu.zip)
+Enterprise|||||
 Epoch|[eSCV](http://takeda-toshiya.my.coocan.jp/scv/index.html)|||SCV.emu|SCV.emu
 Fujitsu|[Tsugaru](https://github.com/captainys/TOWNSEMU)|||FM Towns|FM Towns
 GCE||||Vectrex|Vectrex
@@ -37,14 +38,15 @@ Philips||||CDi.emu|CDi.emu
 Qualcomm|[Infuse](Open source in the future)|||BREW.emu|BREW.emu
 SEGA|Genesis Plus|![MD.emu](./MD.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[MD.emu](https://play.google.com/store/apps/details?id=com.explusalpha.MdEmu)|[MD.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/MdEmu.zip)
 SEGA|[Mednafen](https://github.com/mednafen/mednafen.github.io)|![Saturn.emu](./Saturn.emu/res/icons/icon-192.png)|arm64-v8a, x86_64|[Saturn.emu](https://play.google.com/store/apps/details?id=com.explusalpha.SaturnEmu)|[Saturn.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/SaturnEmu.zip)
+Sharp||||MZ.emu|MZ.emu
 Sharp||||X1.emu|X1.emu
 Sharp||||X68000|X68000
-Sinclair||||ZX80.emu|ZX80.emu
-Sinclair||||ZX81.emu|ZX81.emu
-Sinclair||||ZX Spectrum|ZX Spectrum
+Sinclair|[EightyOne](https://sourceforge.net/projects/eightyone-sinclair-emulator/)|||ZX.emu|ZX.emu
 SNK|[Gngeo](https://github.com/pepone42/gngeo)|![NEO.emu](./NEO.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[NEO.emu](https://play.google.com/store/apps/details?id=com.explusalpha.NeoEmu)|[NEO.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/NeoEmu.zip)
 SNK|[Mednafen](https://github.com/mednafen/mednafen.github.io)|![NGP.emu](./NGP.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[NGP.emu](https://play.google.com/store/apps/details?id=com.explusalpha.NgpEmu)|[NGP.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/NgpEmu.zip)
+SORD|[Emu5](http://takeda-toshiya.my.coocan.jp/m5/index.html)|||M5.emu|M5.emu
+SORD|[Emu23](http://takeda-toshiya.my.coocan.jp/m23/index.html)|||M23.emu|M23.emu
 Tomy|[ePyuTa](http://takeda-toshiya.my.coocan.jp/pyuta/index.html)|||Pyūta|Pyūta
 VTech|[creatiVision](https://sourceforge.net/projects/creativisionemulator/)|||CreatiVision|CreatiVision
 Watara||||SV.emu|SV.emu
-Welback||||Mega Duck|Mega Duck
+Welback|[SameDuck](https://github.com/LIJI32/SameBoy/tree/SameDuck)|||Mega Duck|Mega Duck
