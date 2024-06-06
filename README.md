@@ -1,3 +1,5 @@
+Play: Update app
+GitHub: Backup data, Clear data, Uninstall app, EXtract ZIP, Install app, Restore data
 Brand|Icon|ABI|Play|GitHub
 ---|---|---|---|---
 |||||[All](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/EX-Emulators.zip)
