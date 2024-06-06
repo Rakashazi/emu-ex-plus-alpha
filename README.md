@@ -1,6 +1,6 @@
 Brand|Icon|ABI|Play|GitHub
 ---|---|---|---|---
-||||[All](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/EX-Emulators.zip)
+|||||[All](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/EX-Emulators.zip)
 ASCII|![MSX.emu](./MSX.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[MSX.emu](https://play.google.com/store/apps/details?id=com.explusalpha.MsxEmu)|[MSX.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/MsxEmu.zip)
 Atari|![2600.emu](./2600.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[2600.emu](https://play.google.com/store/apps/details?id=com.explusalpha.A2600Emu)|[2600.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/2600Emu.zip)
 Atari|||5200.emu|5200.emu
