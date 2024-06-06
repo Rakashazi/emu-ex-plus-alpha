@@ -1,25 +1,50 @@
-Play: Update app
-GitHub: Backup data, Clear data, Uninstall app, Extract ZIP, Install app, Restore data
-Brand|Icon|ABI|Play|GitHub
----|---|---|---|---
-|||||[All](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/EX-Emulators.zip)
-ASCII|![MSX.emu](./MSX.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[MSX.emu](https://play.google.com/store/apps/details?id=com.explusalpha.MsxEmu)|[MSX.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/MsxEmu.zip)
-Atari|![2600.emu](./2600.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[2600.emu](https://play.google.com/store/apps/details?id=com.explusalpha.A2600Emu)|[2600.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/2600Emu.zip)
-Atari|||5200.emu|5200.emu
-Atari|||7800.emu|7800.emu
-Atari|![Lynx.emu](./Lynx.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[Lynx.emu](https://play.google.com/store/apps/details?id=com.explusalpha.LynxEmu)|[Lynx.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/LynxEmu.zip)
-Bandai|![Swan.emu](./Swan.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[Swan.emu](https://play.google.com/store/apps/details?id=com.explusalpha.SwanEmu)|[Swan.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/SwanEmu.zip)
-CBM|![C64.emu](./C64.emu/res/icons/icon-144.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[C64.emu](https://play.google.com/store/apps/details?id=com.explusalpha.C64Emu)|[C64.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/C64Emu.zip)
-NEC|![PCE.emu](./PCE.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[PCE.emu](https://play.google.com/store/apps/details?id=com.PceEmu)|[PCE.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/PceEmu.zip)
-NEC|||PCFX.emu|PCFX.emu
-Nintendo|![NES.emu](./NES.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[NES.emu](https://play.google.com/store/apps/details?id=com.explusalpha.NesEmu)|[NES.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/NesEmu.zip)
-Nintendo|![Snes9x EX+](./Snes9x/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[Snes9x EX+](https://play.google.com/store/apps/details?id=com.explusalpha.Snes9xPlus)|[Snes9x EX+](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/Snes9xEXPlus.zip)
-Nintendo|![Snes9x EX](./Snes9x/1.43/res/icons/icon-192.png)|armeabi-v7a||[Snes9x EX](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/Snes9xEX-9.zip)
-Nintendo|![Snes9x EX](./Snes9x/1.43/res/icons/icon-192.png)|x86||[Snes9x EX](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/Snes9xEX-15.zip)
-Nintendo|![GBC.emu](./GBC.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[GBC.emu](https://play.google.com/store/apps/details?id=com.explusalpha.GbcEmu)|[GBC.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/GbcEmu.zip)
-Nintendo|||VB.emu|VB.emu
-Nintendo|![GBA.emu](./GBA.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[GBA.emu](https://play.google.com/store/apps/details?id=com.explusalpha.GbaEmu)|[GBA.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/GbaEmu.zip)
-SEGA|![MD.emu](./MD.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[MD.emu](https://play.google.com/store/apps/details?id=com.explusalpha.MdEmu)|[MD.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/MdEmu.zip)
-SEGA|![Saturn.emu](./Saturn.emu/res/icons/icon-192.png)|arm64-v8a, x86_64|[Saturn.emu](https://play.google.com/store/apps/details?id=com.explusalpha.SaturnEmu)|[Saturn.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/SaturnEmu.zip)
-SNK|![NEO.emu](./NEO.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[NEO.emu](https://play.google.com/store/apps/details?id=com.explusalpha.NeoEmu)|[NEO.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/NeoEmu.zip)
-SNK|![NGP.emu](./NGP.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[NGP.emu](https://play.google.com/store/apps/details?id=com.explusalpha.NgpEmu)|[NGP.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/NgpEmu.zip)
+Play: Update app | GitHub: Backup data, Clear data, Uninstall app, UnZIP, Install app, Restore data
+Brand|Source|Icon|ABI|Play|GitHub
+---|---|---|---|---|---
+All|All|All|All|None|[All](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/EX-Emulators.zip)
+3DO||||3DO.emu|3DO.emu
+Amiga||||Amiga.emu|Amiga.emu
+Amstrad||||CPC.emu|CPC.emu
+ASCII|[blueMSX](https://sourceforge.net/projects/bluemsx/)|![MSX.emu](./MSX.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[MSX.emu](https://play.google.com/store/apps/details?id=com.explusalpha.MsxEmu)|[MSX.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/MsxEmu.zip)
+Atari|[Stella](https://github.com/stella-emu/stella)|![2600.emu](./2600.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[2600.emu](https://play.google.com/store/apps/details?id=com.explusalpha.A2600Emu)|[2600.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/2600Emu.zip)
+Atari||||5200.emu|5200.emu
+Atari|[ProSystem Rikki & Vikki](https://github.com/tachimarten/ProSystem1_3/tree/rikki)|||7800.emu|7800.emu
+Atari||||Jaguar.emu|Jaguar.emu
+Atari|[Mednafen](https://github.com/mednafen/mednafen.github.io)|![Lynx.emu](./Lynx.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[Lynx.emu](https://play.google.com/store/apps/details?id=com.explusalpha.LynxEmu)|[Lynx.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/LynxEmu.zip)
+Atari||||ST|ST
+Bandai|[eRX-78](http://takeda-toshiya.my.coocan.jp/rx78/index.html)|||RX78.emu|RX78.emu
+Bandai|[Mednafen](https://github.com/mednafen/mednafen.github.io)|![Swan.emu](./Swan.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[Swan.emu](https://play.google.com/store/apps/details?id=com.explusalpha.SwanEmu)|[Swan.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/SwanEmu.zip)
+Casio|[ePV-1000](http://takeda-toshiya.my.coocan.jp/pv1000/index.html)|||PV-1000|PV-1000
+Casio|[EmuGaki](http://takeda-toshiya.my.coocan.jp/pv2000/index.html)|||PV-2000|PV-2000
+CBM|[VICE](https://sourceforge.net/projects/vice-emu/)|![C64.emu](./C64.emu/res/icons/icon-144.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[C64.emu](https://play.google.com/store/apps/details?id=com.explusalpha.C64Emu)|[C64.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/C64Emu.zip)
+Epoch|[eSCV](http://takeda-toshiya.my.coocan.jp/scv/index.html)|||SCV.emu|SCV.emu
+Fujitsu|[Tsugaru](https://github.com/captainys/TOWNSEMU)|||FM Towns|FM Towns
+GCE||||Vectrex|Vectrex
+Magnavox||||Odyssey²|Odyssey²
+Mattel||||INTV.emu|INTV.emu
+NEC|[Mednafen](https://github.com/mednafen/mednafen.github.io)|![PCE.emu](./PCE.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[PCE.emu](https://play.google.com/store/apps/details?id=com.PceEmu)|[PCE.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/PceEmu.zip)
+NEC|[Mednafen](https://github.com/mednafen/mednafen.github.io)|||PCFX.emu|PCFX.emu
+NEC||||PC98.emu|PC98.emu
+Nintendo|[FCEUX](https://github.com/TASEmulators/fceux)|![NES.emu](./NES.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[NES.emu](https://play.google.com/store/apps/details?id=com.explusalpha.NesEmu)|[NES.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/NesEmu.zip)
+Nintendo|[Snes9x](https://github.com/snes9xgit/snes9x)|![Snes9x EX+](./Snes9x/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[Snes9x EX+](https://play.google.com/store/apps/details?id=com.explusalpha.Snes9xPlus)|[Snes9x EX+](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/Snes9xEXPlus.zip)
+Nintendo|[Snes9x](https://github.com/snes9xgit/snes9x)|![Snes9x EX](./Snes9x/1.43/res/icons/icon-192.png)|armeabi-v7a||[Snes9x EX](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/Snes9xEX-9.zip)
+Nintendo|[Snes9x](https://github.com/snes9xgit/snes9x)|![Snes9x EX](./Snes9x/1.43/res/icons/icon-192.png)|x86||[Snes9x EX](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/Snes9xEX-15.zip)
+Nintendo|[Gambatte](https://sourceforge.net/projects/gambatte/)|![GBC.emu](./GBC.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[GBC.emu](https://play.google.com/store/apps/details?id=com.explusalpha.GbcEmu)|[GBC.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/GbcEmu.zip)
+Nintendo|[Mednafen](https://github.com/mednafen/mednafen.github.io)|||VB.emu|VB.emu
+Nintendo|[VBA-M](https://github.com/visualboyadvance-m/visualboyadvance-m)|![GBA.emu](./GBA.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[GBA.emu](https://play.google.com/store/apps/details?id=com.explusalpha.GbaEmu)|[GBA.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/GbaEmu.zip)
+Nintendo||||Pokémon mini|Pokémon mini
+Philips||||CDi.emu|CDi.emu
+Qualcomm|[Infuse](Open source in the future)|||BREW.emu|BREW.emu
+SEGA|Genesis Plus|![MD.emu](./MD.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[MD.emu](https://play.google.com/store/apps/details?id=com.explusalpha.MdEmu)|[MD.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/MdEmu.zip)
+SEGA|[Mednafen](https://github.com/mednafen/mednafen.github.io)|![Saturn.emu](./Saturn.emu/res/icons/icon-192.png)|arm64-v8a, x86_64|[Saturn.emu](https://play.google.com/store/apps/details?id=com.explusalpha.SaturnEmu)|[Saturn.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/SaturnEmu.zip)
+Sharp||||X1.emu|X1.emu
+Sharp||||X68000|X68000
+Sinclair||||ZX80.emu|ZX80.emu
+Sinclair||||ZX81.emu|ZX81.emu
+Sinclair||||ZX Spectrum|ZX Spectrum
+SNK|[Gngeo](https://github.com/pepone42/gngeo)|![NEO.emu](./NEO.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[NEO.emu](https://play.google.com/store/apps/details?id=com.explusalpha.NeoEmu)|[NEO.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/NeoEmu.zip)
+SNK|[Mednafen](https://github.com/mednafen/mednafen.github.io)|![NGP.emu](./NGP.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[NGP.emu](https://play.google.com/store/apps/details?id=com.explusalpha.NgpEmu)|[NGP.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/NgpEmu.zip)
+Tomy|[ePyuTa](http://takeda-toshiya.my.coocan.jp/pyuta/index.html)|||Pyūta|Pyūta
+VTech|[creatiVision](https://sourceforge.net/projects/creativisionemulator/)|||CreatiVision|CreatiVision
+Watara||||SV.emu|SV.emu
+Watara||||Mega Duck|Mega Duck
