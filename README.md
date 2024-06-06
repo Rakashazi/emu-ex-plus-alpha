@@ -21,6 +21,7 @@ Enterprise|||||
 Epoch|[eSCV](http://takeda-toshiya.my.coocan.jp/scv/index.html)|||SCV.emu|SCV.emu
 Fujitsu|[Mutsu](https://github.com/captainys/77AVEMU)|||FM7.emu|FM7.emu
 Fujitsu|[Tsugaru](https://github.com/captainys/TOWNSEMU)|||FM Towns|FM Towns
+Gakken|yaTVBOY|||TV Boy|TV Boy
 GCE||||Vectrex|Vectrex
 Magnavox||||Odyssey²|Odyssey²
 Mattel||||INTV.emu|INTV.emu
