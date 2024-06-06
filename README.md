@@ -19,6 +19,7 @@ Casio|[EmuGaki](http://takeda-toshiya.my.coocan.jp/pv2000/index.html)|||PV-2000|
 CBM|[VICE](https://sourceforge.net/projects/vice-emu/)|![C64.emu](./C64.emu/res/icons/icon-144.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[C64.emu](https://play.google.com/store/apps/details?id=com.explusalpha.C64Emu)|[C64.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/C64Emu.zip)
 Enterprise|||||
 Epoch|[eSCV](http://takeda-toshiya.my.coocan.jp/scv/index.html)|||SCV.emu|SCV.emu
+Fujitsu|[Mutsu](https://github.com/captainys/77AVEMU)|||FM7.emu|FM7.emu
 Fujitsu|[Tsugaru](https://github.com/captainys/TOWNSEMU)|||FM Towns|FM Towns
 GCE||||Vectrex|Vectrex
 Magnavox||||Odyssey²|Odyssey²
@@ -40,7 +41,7 @@ Qualcomm|[Infuse](Open source in the future)|||BREW.emu|BREW.emu
 SEGA|Genesis Plus|![MD.emu](./MD.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[MD.emu](https://play.google.com/store/apps/details?id=com.explusalpha.MdEmu)|[MD.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/MdEmu.zip)
 SEGA|[Mednafen](https://github.com/mednafen/mednafen.github.io)|![Saturn.emu](./Saturn.emu/res/icons/icon-192.png)|arm64-v8a, x86_64|[Saturn.emu](https://play.google.com/store/apps/details?id=com.explusalpha.SaturnEmu)|[Saturn.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/SaturnEmu.zip)
 Sharp||||MZ.emu|MZ.emu
-Sharp||||X1.emu|X1.emu
+Sharp|[eX1](http://takeda-toshiya.my.coocan.jp/x1twin/index.html)|||X1.emu|X1.emu
 Sharp||||X68000|X68000
 Sinclair|[EightyOne](https://sourceforge.net/projects/eightyone-sinclair-emulator/)|||ZX.emu|ZX.emu
 SNK|[Gngeo](https://github.com/pepone42/gngeo)|![NEO.emu](./NEO.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[NEO.emu](https://play.google.com/store/apps/details?id=com.explusalpha.NeoEmu)|[NEO.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/NeoEmu.zip)
