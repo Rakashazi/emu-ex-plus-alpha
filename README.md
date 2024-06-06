@@ -11,7 +11,7 @@ Atari||||5200.emu|5200.emu
 Atari|[ProSystem Rikki & Vikki](https://github.com/tachimarten/ProSystem1_3/tree/rikki)|||7800.emu|7800.emu
 Atari||||Jaguar.emu|Jaguar.emu
 Atari|[Mednafen](https://github.com/mednafen/mednafen.github.io)|![Lynx.emu](./Lynx.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[Lynx.emu](https://play.google.com/store/apps/details?id=com.explusalpha.LynxEmu)|[Lynx.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/LynxEmu.zip)
-Atari||||ST|ST
+Atari|||||
 Bandai|[eRX-78](http://takeda-toshiya.my.coocan.jp/rx78/index.html)|||RX78.emu|RX78.emu
 Bandai|[Mednafen](https://github.com/mednafen/mednafen.github.io)|![Swan.emu](./Swan.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[Swan.emu](https://play.google.com/store/apps/details?id=com.explusalpha.SwanEmu)|[Swan.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/SwanEmu.zip)
 Casio|[ePV-1000](http://takeda-toshiya.my.coocan.jp/pv1000/index.html)|||PV-1000|PV-1000
@@ -25,6 +25,7 @@ Magnavox||||Odyssey²|Odyssey²
 Mattel||||INTV.emu|INTV.emu
 NEC|[Mednafen](https://github.com/mednafen/mednafen.github.io)|![PCE.emu](./PCE.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[PCE.emu](https://play.google.com/store/apps/details?id=com.PceEmu)|[PCE.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/PceEmu.zip)
 NEC|[Mednafen](https://github.com/mednafen/mednafen.github.io)|||PCFX.emu|PCFX.emu
+NEC|||||
 NEC||||PC98.emu|PC98.emu
 Nintendo|[FCEUX](https://github.com/TASEmulators/fceux)|![NES.emu](./NES.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[NES.emu](https://play.google.com/store/apps/details?id=com.explusalpha.NesEmu)|[NES.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/NesEmu.zip)
 Nintendo|[Snes9x](https://github.com/snes9xgit/snes9x)|![Snes9x EX+](./Snes9x/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[Snes9x EX+](https://play.google.com/store/apps/details?id=com.explusalpha.Snes9xPlus)|[Snes9x EX+](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/Snes9xEXPlus.zip)
