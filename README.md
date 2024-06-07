@@ -77,7 +77,7 @@ Welback|[SameDuck](https://github.com/LIJI32/SameBoy/tree/SameDuck)|||Mega Duck|
 # Contact
 email: info@explusalpha.com
 Play: [Robert Broglia](https://play.google.com/store/apps/developer?id=Robert+Broglia)
-Youtube: [explusalpha0](https://youtube.com/@explusalpha0)
+YouTube: [explusalpha0](https://youtube.com/@explusalpha0)
 X: [Robert Broglia](https://x.com/rakashazi)
 # Credit
 ©2024 Robert Broglia
