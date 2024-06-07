@@ -1,18 +1,23 @@
 # [EX Plus Alpha](https://www.explusalpha.com/)
 - Puzzle Orbs
-- [Atmel Flash Utility](https://www.explusalpha.com/contents/atmel-flash-utility) - Bluetooth firmware flasher (for iControlPad and other devices)
 - iControlPad Update
+- [Atmel Flash Utility](https://www.explusalpha.com/contents/atmel-flash-utility) - Bluetooth firmware flasher (for iControlPad and other devices)
 - [Imagine](https://www.explusalpha.com/contents/imagine) - Multi-platform game/multimedia engine
 - [EmuEX](https://www.explusalpha.com/contents/emuex) - Emulator app framework ([changelog](https://www.explusalpha.com/contents/emuex/updates))
 - ASCII [MSX.emu](https://www.explusalpha.com/contents/msx-emu) - MSX, MSX2(+), MSX turboR
 - Atari [2600.emu](https://www.explusalpha.com/contents/2600-emu) - 2600 Video Computer System / 2800 Video Computer System
+- Atari 5200.emu - 5200 SuperSystem, 8 bit
+- Atari 7800.emu - 7800 ProSystem
 - Atari [Lynx.emu] - Lynx
 - Bandai [Swan.emu] - WonderSwan (Color)
 - CBM [C64.emu](https://www.explusalpha.com/contents/c64-emu) - 8 bit
+- Magnavox O2.emu - Odyssey² / Videopac(+)
 - NEC [PCE.emu](https://www.explusalpha.com/contents/pce-emu) - PC Engine (SuperGrafx) / TurboGrafx-16
+- NEC PCFX.emu - PC-FX
 - Nintendo [NES.emu](https://www.explusalpha.com/contents/nes-emu) - Family Computer / Nintendo Entertainment System
 - Nintendo [Snes9x EX](https://www.explusalpha.com/contents/snes9x-ex) - Super Family Computer / Super Nintendo Entertainment System
 - Nintendo [GBC.emu](https://www.explusalpha.com/contents/gbc-emu) - Game Boy (Color)
+- Nintendo VB.emu - Virtual Boy
 - Nintendo [GBA.emu](https://www.explusalpha.com/contents/gba-emu) - Game Boy Advance
 - SEGA [MD.emu](https://www.explusalpha.com/contents/md-emu) - SG-1000, Mark III / Master System, Game Gear, Mega Drive / Genesis
 - SEGA [Saturn.emu] - Saturn, Titan
@@ -46,7 +51,7 @@ Fujitsu|[Mutsu](https://github.com/captainys/77AVEMU)|||FM7.emu|FM7.emu
 Fujitsu|[Tsugaru](https://github.com/captainys/TOWNSEMU)|||FM Towns|FM Towns
 Gakken|yaTVBOY|||TV Boy|TV Boy
 GCE||||Vectrex|Vectrex
-Magnavox||||Odyssey²|Odyssey²
+Magnavox||||O2.emu|O2.emu
 Mattel||||INTV.emu|INTV.emu
 NEC|[Mednafen](https://github.com/mednafen/mednafen.github.io)|![PCE.emu](./PCE.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[PCE.emu](https://play.google.com/store/apps/details?id=com.PceEmu)|[PCE.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/PceEmu.zip)
 NEC|[Mednafen](https://github.com/mednafen/mednafen.github.io)|||PCFX.emu|PCFX.emu
