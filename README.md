@@ -3,6 +3,7 @@ Brand|Source|Icon|ABI|Play|GitHub
 ---|---|---|---|---|---
 All|All|All|All|None|[All](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/EX-Emulators.zip)
 3DO||||3DO.emu|3DO.emu
+Acorn|||||
 Amiga||||Amiga.emu|Amiga.emu
 Amstrad||||CPC.emu|CPC.emu
 ASCII|[blueMSX](https://sourceforge.net/projects/bluemsx/)|![MSX.emu](./MSX.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[MSX.emu](https://play.google.com/store/apps/details?id=com.explusalpha.MsxEmu)|[MSX.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/MsxEmu.zip)
@@ -14,10 +15,10 @@ Atari|[Mednafen](https://github.com/mednafen/mednafen.github.io)|![Lynx.emu](./L
 Atari|||||
 Bandai|[eRX-78](http://takeda-toshiya.my.coocan.jp/rx78/index.html)|||RX78.emu|RX78.emu
 Bandai|[Mednafen](https://github.com/mednafen/mednafen.github.io)|![Swan.emu](./Swan.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[Swan.emu](https://play.google.com/store/apps/details?id=com.explusalpha.SwanEmu)|[Swan.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/SwanEmu.zip)
+BBC|||||
 Casio|[ePV-1000](http://takeda-toshiya.my.coocan.jp/pv1000/index.html)|||PV-1000|PV-1000
 Casio|[EmuGaki](http://takeda-toshiya.my.coocan.jp/pv2000/index.html)|||PV-2000|PV-2000
 CBM|[VICE](https://sourceforge.net/projects/vice-emu/)|![C64.emu](./C64.emu/res/icons/icon-144.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[C64.emu](https://play.google.com/store/apps/details?id=com.explusalpha.C64Emu)|[C64.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/C64Emu.zip)
-Enterprise|||||
 Epoch|[eSCV](http://takeda-toshiya.my.coocan.jp/scv/index.html)|||SCV.emu|SCV.emu
 Fujitsu|[Mutsu](https://github.com/captainys/77AVEMU)|||FM7.emu|FM7.emu
 Fujitsu|[Tsugaru](https://github.com/captainys/TOWNSEMU)|||FM Towns|FM Towns
