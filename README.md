@@ -1,20 +1,23 @@
 # [EX Plus Alpha](https://www.explusalpha.com/)
-- [Imagine](https://www.explusalpha.com/contents/imagine) - Multi-platform game/multimedia engine
-- [EmuEX](https://www.explusalpha.com/contents/emuex) - Emulator app framework ([changelog](https://www.explusalpha.com/contents/emuex/updates))
-- [2600.emu](https://www.explusalpha.com/contents/2600-emu) - Atari 2600 emulator
-- [C64.emu](https://www.explusalpha.com/contents/c64-emu) - Commodore 64 emulator
-- [GBA.emu](https://www.explusalpha.com/contents/gba-emu) - Gameboy Advance emulator
-- [GBC.emu](https://www.explusalpha.com/contents/gbc-emu) - Gameboy Color emulator
-- [MD.emu](https://www.explusalpha.com/contents/md-emu) - Mega Drive/Genesis/Master System/Mark III emulator
-- [MSX.emu](https://www.explusalpha.com/contents/msx-emu) - MSX computer emulator
-- [NEO.emu](https://www.explusalpha.com/contents/neo-emu) - Neogeo MVS/AES emulator
-- [NES.emu](https://www.explusalpha.com/contents/nes-emu) - Famicom/NES emulator
-- [NGP.emu](https://www.explusalpha.com/contents/ngp-emu) - Neogeo Pocket emulator
-- [PCE.emu](https://www.explusalpha.com/contents/pce-emu) - PC Engine/TurboGrafx-16 emulator
-- [Snes9x EX](https://www.explusalpha.com/contents/snes9x-ex) - Super Famicom/SNES emulator
+- Puzzle Orbs
 - [Atmel Flash Utility](https://www.explusalpha.com/contents/atmel-flash-utility) - Bluetooth firmware flasher (for iControlPad and other devices)
 - iControlPad Update
-- Puzzle Orbs
+- [Imagine](https://www.explusalpha.com/contents/imagine) - Multi-platform game/multimedia engine
+- [EmuEX](https://www.explusalpha.com/contents/emuex) - Emulator app framework ([changelog](https://www.explusalpha.com/contents/emuex/updates))
+- ASCII [MSX.emu](https://www.explusalpha.com/contents/msx-emu) - MSX, MSX2(+), MSX turboR
+- Atari [2600.emu](https://www.explusalpha.com/contents/2600-emu) - 2600 Video Computer System / 2800 Video Computer System
+- Atari [Lynx.emu]() - Lynx
+- Bandai [Swan.emu]() - WonderSwan (Color)
+- CBM [C64.emu](https://www.explusalpha.com/contents/c64-emu) - 8 bit
+- NEC [PCE.emu](https://www.explusalpha.com/contents/pce-emu) - PC Engine (SuperGrafx) / TurboGrafx-16
+- Nintendo [NES.emu](https://www.explusalpha.com/contents/nes-emu) - Family Computer / Nintendo Entertainment System
+- Nintendo [Snes9x EX](https://www.explusalpha.com/contents/snes9x-ex) - Super Family Computer / Super Nintendo Entertainment System
+- Nintendo [GBC.emu](https://www.explusalpha.com/contents/gbc-emu) - Game Boy (Color)
+- Nintendo [GBA.emu](https://www.explusalpha.com/contents/gba-emu) - Game Boy Advance
+- SEGA [MD.emu](https://www.explusalpha.com/contents/md-emu) - SG-1000, Mark III / Master System, Game Gear, Mega Drive / Genesis
+- SEGA [Saturn.emu]() - Saturn, Titan
+- SNK [NEO.emu](https://www.explusalpha.com/contents/neo-emu) - NeoGeo
+- SNK [NGP.emu](https://www.explusalpha.com/contents/ngp-emu) - NeoGeo Pocket (Color)
 # Emulator
 Play: Update app
 GitHub: Backup data, Clear data, Uninstall app, UnZIP, Install app, Restore data
