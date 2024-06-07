@@ -40,8 +40,8 @@ Atari|[ProSystem Rikki & Vikki](https://github.com/tachimarten/ProSystem1_3/tree
 Atari||||Jaguar.emu|Jaguar.emu
 Atari|[Mednafen](https://github.com/mednafen/mednafen.github.io)|![Lynx.emu](./Lynx.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[Lynx.emu](https://play.google.com/store/apps/details?id=com.explusalpha.LynxEmu)|[Lynx.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/LynxEmu.zip)
 Atari|||||
-Bandai|[eRX-78](http://takeda-toshiya.my.coocan.jp/rx78/index.html)|||RX78.emu|RX78.emu
 Bandai|[Mednafen](https://github.com/mednafen/mednafen.github.io)|![Swan.emu](./Swan.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[Swan.emu](https://play.google.com/store/apps/details?id=com.explusalpha.SwanEmu)|[Swan.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/SwanEmu.zip)
+Bandai|[eRX-78](http://takeda-toshiya.my.coocan.jp/rx78/index.html)|||RX78.emu|RX78.emu
 BBC|||||
 Casio|[ePV-1000](http://takeda-toshiya.my.coocan.jp/pv1000/index.html)|||PV-1000|PV-1000
 Casio|[EmuGaki](http://takeda-toshiya.my.coocan.jp/pv2000/index.html)|||PV-2000|PV-2000
