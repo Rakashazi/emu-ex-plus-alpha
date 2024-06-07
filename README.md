@@ -38,6 +38,7 @@ Nintendo|[Mednafen](https://github.com/mednafen/mednafen.github.io)|||VB.emu|VB.
 Nintendo|[VBA-M](https://github.com/visualboyadvance-m/visualboyadvance-m)|![GBA.emu](./GBA.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[GBA.emu](https://play.google.com/store/apps/details?id=com.explusalpha.GbaEmu)|[GBA.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/GbaEmu.zip)
 Nintendo||||Pokémon mini|Pokémon mini
 Philips||||CDi.emu|CDi.emu
+Philips|[M2000](https://github.com/p2000t/M2000)|||P2000|P2000
 Qualcomm|[Infuse](Open source in the future)|||BREW.emu|BREW.emu
 SEGA|Genesis Plus|![MD.emu](./MD.emu/res/icons/icon-192.png)|armeabi-v7a, arm64-v8a, x86, x86_64|[MD.emu](https://play.google.com/store/apps/details?id=com.explusalpha.MdEmu)|[MD.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/MdEmu.zip)
 SEGA|[Mednafen](https://github.com/mednafen/mednafen.github.io)|![Saturn.emu](./Saturn.emu/res/icons/icon-192.png)|arm64-v8a, x86_64|[Saturn.emu](https://play.google.com/store/apps/details?id=com.explusalpha.SaturnEmu)|[Saturn.emu](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/SaturnEmu.zip)
