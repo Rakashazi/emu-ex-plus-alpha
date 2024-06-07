@@ -1,4 +1,23 @@
-Play: Update app | GitHub: Backup data, Clear data, Uninstall app, UnZIP, Install app, Restore data
+# [EX Plus Alpha](https://www.explusalpha.com/)
+- [Imagine](https://www.explusalpha.com/contents/imagine) - Multi-platform game/multimedia engine
+- [EmuEX](https://www.explusalpha.com/contents/emuex) - Emulator app framework ([changelog](https://www.explusalpha.com/contents/emuex/updates))
+- [2600.emu](https://www.explusalpha.com/contents/2600-emu) - Atari 2600 emulator
+- [C64.emu](https://www.explusalpha.com/contents/c64-emu) - Commodore 64 emulator
+- [GBA.emu](https://www.explusalpha.com/contents/gba-emu) - Gameboy Advance emulator
+- [GBC.emu](https://www.explusalpha.com/contents/gbc-emu) - Gameboy Color emulator
+- [MD.emu](https://www.explusalpha.com/contents/md-emu) - Mega Drive/Genesis/Master System/Mark III emulator
+- [MSX.emu](https://www.explusalpha.com/contents/msx-emu) - MSX computer emulator
+- [NEO.emu](https://www.explusalpha.com/contents/neo-emu) - Neogeo MVS/AES emulator
+- [NES.emu](https://www.explusalpha.com/contents/nes-emu) - Famicom/NES emulator
+- [NGP.emu](https://www.explusalpha.com/contents/ngp-emu) - Neogeo Pocket emulator
+- [PCE.emu](https://www.explusalpha.com/contents/pce-emu) - PC Engine/TurboGrafx-16 emulator
+- [Snes9x EX](https://www.explusalpha.com/contents/snes9x-ex) - Super Famicom/SNES emulator
+- [Atmel Flash Utility](https://www.explusalpha.com/contents/atmel-flash-utility) - Bluetooth firmware flasher (for iControlPad and other devices)
+- iControlPad Update
+- Puzzle Orbs
+# Emulator
+Play: Update app
+GitHub: Backup data, Clear data, Uninstall app, UnZIP, Install app, Restore data
 Brand|Source|Icon|ABI|Play|GitHub
 ---|---|---|---|---|---
 All|All|All|All|None|[All](https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/EX-Emulators.zip)
@@ -55,3 +74,11 @@ Tomy|[ePyuTa](http://takeda-toshiya.my.coocan.jp/pyuta/index.html)|||Pyūta|Pyū
 VTech|[creatiVision](https://sourceforge.net/projects/creativisionemulator/)|||CreatiVision|CreatiVision
 Watara||||SV.emu|SV.emu
 Welback|[SameDuck](https://github.com/LIJI32/SameBoy/tree/SameDuck)|||Mega Duck|Mega Duck
+# Contact
+email: info@explusalpha.com
+Play: [Robert Broglia](https://play.google.com/store/apps/developer?id=Robert+Broglia)
+Youtube: [explusalpha0](https://youtube.com/@explusalpha0)
+X: [Robert Broglia](https://x.com/rakashazi)
+# Credit
+©2024 Robert Broglia
+GPL3, FLAC, MAME CHD, 7Z, ZIP
