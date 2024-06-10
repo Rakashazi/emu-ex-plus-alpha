@@ -40,7 +40,7 @@ public:
 	void setTitle(UTF16Convertible auto &&title) { text.resetString(IG_forward(title)); }
 	void prepareDraw() override;
 	void place() override;
-	bool inputEvent(const Input::Event &) override;
+	bool inputEvent(const Input::Event&, ViewInputEventParams p = {}) override;
 	void clearSelection() override;
 	virtual void showLeftBtn(bool show) = 0;
 	virtual void showRightBtn(bool show) = 0;
@@ -70,7 +70,7 @@ public:
 	BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, Gfx::TextureSpan leftRes, Gfx::TextureSpan rightRes);
 	void setBackImage(Gfx::TextureSpan img);
 	void setBackgroundGradient(std::span<const Gfx::LGradientStopDesc> gradStops);
-	void draw(Gfx::RendererCommands &__restrict__) override;
+	void draw(Gfx::RendererCommands &__restrict__, ViewDrawParams p = {}) const override;
 	void place() override;
 	void showLeftBtn(bool show) override;
 	void showRightBtn(bool show) override;

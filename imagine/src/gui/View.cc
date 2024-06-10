@@ -28,6 +28,24 @@ namespace IG
 
 constexpr SystemLogger log{"View"};
 
+void ViewI::prepareDraw() {}
+
+bool ViewI::inputEvent(const Input::Event&, ViewInputEventParams) { return false; }
+
+void ViewI::clearSelection() {}
+
+void ViewI::onShow() {}
+
+void ViewI::onHide() {}
+
+void ViewI::onAddedToController(ViewController *, const Input::Event &) {}
+
+void ViewI::setFocus(bool) {}
+
+std::u16string_view ViewI::name() const { return u""; }
+
+bool ViewI::onDocumentPicked(const DocumentPickerEvent& e) { return false; }
+
 Gfx::Renderer &ViewAttachParams::renderer() const
 {
 	return rendererTask.renderer();
@@ -163,18 +181,6 @@ int View::navBarHeight(const Gfx::GlyphTextureSet &face)
 	return makeEvenRoundedUp(int(face.nominalHeight() * 1.75f));
 }
 
-void View::clearSelection() {}
-
-void View::onShow() {}
-
-void View::onHide() {}
-
-void View::onAddedToController(ViewController *, const Input::Event &) {}
-
-void View::prepareDraw() {}
-
-void View::setFocus(bool) {}
-
 void View::setViewRect(WindowRect viewRect, WindowRect displayRect)
 {
 	this->viewRect_ = viewRect;
@@ -210,11 +216,6 @@ Gfx::RendererTask &View::rendererTask() const
 	return *rendererTask_;
 }
 
-ViewManager &View::manager()
-{
-	return *manager_;
-}
-
 ViewAttachParams View::attachParams() const
 {
 	return {*manager_, *win, *rendererTask_};
@@ -228,11 +229,6 @@ Screen *View::screen() const
 ApplicationContext View::appContext() const
 {
 	return window().appContext();
-}
-
-std::u16string_view View::name() const
-{
-	return u"";
 }
 
 bool View::onDocumentPicked(const DocumentPickerEvent& e)

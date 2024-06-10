@@ -29,18 +29,18 @@ GLDisplay GLManager::getDefaultDisplay(NativeDisplayConnection) const
 
 bool GLManager::bindAPI(GL::API api)
 {
-	return api == GL::API::OPENGL_ES;
+	return api == GL::API::OpenGLES;
 }
 
-std::optional<GLBufferConfig> GLManager::makeBufferConfig(ApplicationContext ctx, GLBufferConfigAttributes attr, GL::API api, int majorVersion) const
+std::optional<GLBufferConfig> GLManager::tryBufferConfig(ApplicationContext ctx, const GLBufferRenderConfigAttributes& attrs) const
 {
-	if(majorVersion > 2 && ctx.androidSDK() < 18)
+	if(attrs.version.major > 2 && ctx.androidSDK() < 18)
 	{
 		// need at least Android 4.3 to use ES 3 attributes
 		return {};
 	}
-	auto renderableType = makeRenderableType(GL::API::OPENGL_ES, majorVersion);
-	return chooseConfig(display(), renderableType, attr);
+	auto renderableType = makeRenderableType(GL::API::OpenGLES, attrs.version);
+	return chooseConfig(display(), renderableType, attrs);
 }
 
 NativeWindowFormat GLManager::nativeWindowFormat(ApplicationContext, GLBufferConfig glConfig) const

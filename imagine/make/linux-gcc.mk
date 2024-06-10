@@ -32,8 +32,4 @@ endif
 LDLIBS += -lpthread -lm
 LDFLAGS_SYSTEM += -Wl,-O3,--gc-sections,--as-needed,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all
 
-ifneq ($(ARCH),arm)
- LDFLAGS_SYSTEM += -fuse-ld=mold
-else
- LDFLAGS_SYSTEM += -fuse-ld=gold
-endif
+LDFLAGS_SYSTEM += -fuse-ld=mold

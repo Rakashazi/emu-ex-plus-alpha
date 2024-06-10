@@ -122,9 +122,26 @@ struct MenuId
 	constexpr operator Type() const { return val; }
 };
 
+struct MenuItemDrawAttrs
+{
+	WindowRect rect{};
+	int xIndent{};
+	Gfx::Color color{};
+	_2DOrigin align{};
+};
+
+struct MenuItemI
+{
+	virtual ~MenuItemI() = default;
+	virtual void place() = 0;
+	virtual void prepareDraw() = 0;
+	virtual void draw(Gfx::RendererCommands&__restrict__, MenuItemDrawAttrs a = {}) const = 0;
+	virtual bool inputEvent(const Input::Event&, ViewInputEventParams p = {});
+};
+
 constexpr MenuId defaultMenuId{std::numeric_limits<MenuId::Type>::min()};
 
-class MenuItem
+class MenuItem: public MenuItemI
 {
 public:
 	struct Config
@@ -142,16 +159,13 @@ public:
 		id{conf.id},
 		t{attach.rendererTask, IG_forward(name), conf.face ?: &attach.viewManager.defaultFace} {}
 
-	MenuItem(MenuItem &&) = default;
-	MenuItem &operator=(MenuItem &&) = default;
-	virtual ~MenuItem() = default;
-	virtual void prepareDraw();
-	virtual void draw(Gfx::RendererCommands &__restrict__, int xPos, int yPos, int xSize, int ySize,
-		int xIndent, _2DOrigin align, Gfx::Color) const;
-	virtual void compile();
+	MenuItem(MenuItem&&) = default;
+	MenuItem &operator=(MenuItem&&) = default;
+	void prepareDraw() override;
+	void draw(Gfx::RendererCommands&__restrict__, MenuItemDrawAttrs) const override;
+	void place() override;
 	int ySize() const;
 	int xSize() const;
-	virtual bool select(View &, const Input::Event &) = 0;
 	constexpr bool selectable() const { return flags.selectable; }
 	constexpr void setSelectable(bool on) { flags.selectable = on; }
 	constexpr bool active() const { return flags.active; }
@@ -162,10 +176,10 @@ public:
 	void compile(UTF16Convertible auto &&name)
 	{
 		t.resetString(IG_forward(name));
-		compile();
+		place();
 	}
 
-	void setName(UTF16Convertible auto &&name, Gfx::GlyphTextureSet *face = nullptr)
+	void setName(UTF16Convertible auto &&name, Gfx::GlyphTextureSet *face = {})
 	{
 		t.resetString(IG_forward(name));
 		if(face)
@@ -196,7 +210,7 @@ public:
 	TextMenuItem(UTF16Convertible auto &&name, ViewAttachParams attach, Config conf):
 		MenuItem{IG_forward(name), attach, conf} {}
 
-	bool select(View &parent, const Input::Event &e) override { return onSelect.callCopySafe(*this, parent, e); }
+	bool inputEvent(const Input::Event& e, ViewInputEventParams p) override;
 };
 
 class TextHeadingMenuItem : public MenuItem
@@ -211,8 +225,6 @@ public:
 	{
 		setSelectable(false);
 	}
-
-	bool select(View &, const Input::Event &) override { return true; }
 };
 
 class BaseDualTextMenuItem : public MenuItem
@@ -226,13 +238,11 @@ public:
 
 	void set2ndName(UTF16Convertible auto &&name) { t2.resetString(IG_forward(name)); }
 	void set2ndName() { t2.resetString(); }
-	void compile() override;
-	void compile2nd();
+	void place() override;
+	void place2nd();
 	void prepareDraw() override;
-	void draw2ndText(Gfx::RendererCommands &, int xPos, int yPos, int xSize, int ySize,
-		int xIndent, _2DOrigin align, Gfx::Color) const;
-	void draw(Gfx::RendererCommands &__restrict__, int xPos, int yPos, int xSize, int ySize,
-		int xIndent, _2DOrigin align, Gfx::Color) const override;
+	void draw2ndText(Gfx::RendererCommands&__restrict__, MenuItemDrawAttrs) const;
+	void draw(Gfx::RendererCommands&__restrict__, MenuItemDrawAttrs) const override;
 
 protected:
 	Gfx::Text t2;
@@ -253,9 +263,8 @@ public:
 		BaseDualTextMenuItem{IG_forward(name), IG_forward(name2), attach, conf},
 		onSelect{onSelect} {}
 
-	void draw(Gfx::RendererCommands &__restrict__, int xPos, int yPos, int xSize, int ySize,
-		int xIndent, _2DOrigin align, Gfx::Color) const override;
-	bool select(View &, const Input::Event &) override;
+	void draw(Gfx::RendererCommands&__restrict__, MenuItemDrawAttrs) const override;
+	bool inputEvent(const Input::Event&, ViewInputEventParams) override;
 };
 
 
@@ -296,9 +305,8 @@ public:
 	bool setBoolValue(bool val);
 	bool flipBoolValue(View &view);
 	bool flipBoolValue();
-	void draw(Gfx::RendererCommands &__restrict__, int xPos, int yPos, int xSize, int ySize,
-		int xIndent, _2DOrigin align, Gfx::Color) const override;
-	bool select(View &, const Input::Event &) override;
+	void draw(Gfx::RendererCommands&__restrict__, MenuItemDrawAttrs) const override;
+	bool inputEvent(const Input::Event&, ViewInputEventParams) override;
 
 protected:
 	UTF16String offStr{u"Off"}, onStr{u"On"};
@@ -309,7 +317,13 @@ class MultiChoiceMenuItem : public BaseDualTextMenuItem
 public:
 	struct ItemsMessage {const MultiChoiceMenuItem& item;};
 	struct GetItemMessage {const MultiChoiceMenuItem& item; size_t idx;};
-	using ItemMessage = std::variant<GetItemMessage, ItemsMessage>;
+	using ItemMessageVariant = std::variant<GetItemMessage, ItemsMessage>;
+	class ItemMessage: public ItemMessageVariant, public AddVisit
+	{
+	public:
+		using ItemMessageVariant::ItemMessageVariant;
+		using AddVisit::visit;
+	};
 	using ItemReply = std::variant<TextMenuItem*, size_t>;
 	using ItemSourceDelegate = MenuItemSourceDelegate<ItemMessage, ItemReply, ItemsMessage, GetItemMessage>;
 	using SelectDelegate = DelegateFunc<void (MultiChoiceMenuItem &, View &, const Input::Event &)>;
@@ -372,9 +386,8 @@ public:
 		}
 	}
 
-	void draw(Gfx::RendererCommands &__restrict__, int xPos, int yPos, int xSize, int ySize,
-		int xIndent, _2DOrigin align, Gfx::Color) const override;
-	void compile() override;
+	void draw(Gfx::RendererCommands&__restrict__, MenuItemDrawAttrs) const override;
+	void place() override;
 	int selected() const;
 	size_t items() const;
 	TextMenuItem& item(size_t idx) { return item(itemSrc, idx); }
@@ -384,7 +397,7 @@ public:
 	bool setSelected(MenuId);
 	int cycleSelected(int offset, View &view);
 	int cycleSelected(int offset);
-	bool select(View &, const Input::Event &) override;
+	bool inputEvent(const Input::Event&, ViewInputEventParams) override;
 	std::unique_ptr<TableView> makeTableView(ViewAttachParams attach);
 	void defaultOnSelect(View &, const Input::Event &);
 	void updateDisplayString();

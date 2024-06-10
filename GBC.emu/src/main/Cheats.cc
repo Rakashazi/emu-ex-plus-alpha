@@ -181,7 +181,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 					writeCheatFile(system());
 					static_cast<GbcSystem&>(app().system()).applyCheats();
 					ggCode.set2ndName(str);
-					ggCode.compile();
+					ggCode.place();
 					postDraw();
 					return true;
 				});
@@ -207,7 +207,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		attach,
 		[this](ItemMessage msg) -> ItemReply
 		{
-			return visit(overloaded
+			return msg.visit(overloaded
 			{
 				[&](const ItemsMessage &m) -> ItemReply { return 1 + cheat.size(); },
 				[&](const GetItemMessage &m) -> ItemReply
@@ -218,7 +218,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						default: return &cheat[m.idx - 1];
 					}
 				},
-			}, msg);
+			});
 		}
 	},
 	addGGGS

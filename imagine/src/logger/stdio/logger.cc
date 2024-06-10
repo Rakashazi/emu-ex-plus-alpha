@@ -107,18 +107,6 @@ static int severityToLogLevel(LoggerSeverity severity)
 	#endif
 }
 
-constexpr std::string_view severityToColorCode(LoggerSeverity severity)
-{
-	switch(severity)
-	{
-		case LOGGER_DEBUG_MESSAGE: return "\033[1;36m";
-		default: [[fallthrough]];
-		case LOGGER_MESSAGE: return "\033[0m";
-		case LOGGER_WARNING: return "\033[1;33m";
-		case LOGGER_ERROR: return "\033[1;31m";
-	}
-}
-
 void logger_vprintf(LoggerSeverity severity, const char* msg, va_list args)
 {
 	if(!logEnabled)
@@ -159,7 +147,7 @@ void logger_vprintf(LoggerSeverity severity, const char* msg, va_list args)
 	else
 		asl_vlog(nullptr, nullptr, severityToLogLevel(severity), msg, args);
 	#else
-	fprintf(stderr, "%s", severityToColorCode(severity).data());
+	fprintf(stderr, "%s", IG::Log::severityToColorCode(severity));
 	vfprintf(stderr, msg, args);
 	#endif
 }
@@ -177,34 +165,32 @@ void logger_printf(LoggerSeverity severity, const char* msg, ...)
 namespace IG::Log
 {
 
+void printMsg(LoggerSeverity lv, const char* str, size_t strSize)
+{
+	const char newLine = '\n';
+	if(logExternalFile)
+	{
+		fwrite(str, 1, strSize, logExternalFile);
+		fwrite(&newLine, 1, 1, logExternalFile);
+		fflush(logExternalFile);
+	}
+	#ifdef __ANDROID__
+	__android_log_write(severityToLogLevel(lv), "imagine", str);
+	#elif defined __APPLE__
+	asl_log(nullptr, nullptr, severityToLogLevel(lv), "%s", str);
+	#else
+	fwrite(str, 1, strSize, stderr);
+	fwrite(&newLine, 1, 1, stderr);
+	#endif
+}
+
 void print(LoggerSeverity lv, std::string_view tag, std::string_view format, std::format_args args)
 {
 	if(!logEnabled || lv > loggerVerbosity)
 		return;
 	StaticString<4096> str;
-	if(Config::envIsLinux)
-	{
-		str += severityToColorCode(lv);
-	}
-	if(tag.size())
-	{
-		str += tag;
-		str += ": ";
-	}
-	std::vformat_to(std::back_inserter(str), format, args);
-	if(logExternalFile)
-	{
-		fwrite(str.data(), 1, str.size(), logExternalFile);
-		fflush(logExternalFile);
-	}
-	#ifdef __ANDROID__
-	__android_log_write(severityToLogLevel(lv), "imagine", str.c_str());
-	#elif defined __APPLE__
-	asl_log(nullptr, nullptr, severityToLogLevel(lv), "%s", str.c_str());
-	#else
-	str += '\n';
-	fwrite(str.data(), 1, str.size(), stderr);
-	#endif
+	Log::beginMsg(str, lv, tag, format, args);
+	printMsg(lv, str.c_str(), str.size());
 }
 
 }

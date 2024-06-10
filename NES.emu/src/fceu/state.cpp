@@ -63,6 +63,7 @@ using namespace std;
 
 static void (*SPreSave)(void) = NULL;
 static void (*SPostSave)(void) = NULL;
+static void (*SPostLoad)(bool) = NULL;
 
 static int SaveStateStatus[10];
 static int StateShow;
@@ -640,6 +641,11 @@ int FCEUSS_LoadFP_old(EMUFILE* is, ENUM_SSLOADPARAMS params)
 	return(x);
 }
 
+#ifdef __QT_DRIVER__
+// Qt Driver NetPlay state load handler. This is to control state loading
+// during netplay, only hosts can load states and clients can request loads.
+bool NetPlayStateLoadReq(EMUFILE* is);
+#endif
 
 bool FCEUSS_LoadFP(EMUFILE* is, ENUM_SSLOADPARAMS params)
 {
@@ -666,6 +672,13 @@ bool FCEUSS_LoadFP(EMUFILE* is, ENUM_SSLOADPARAMS params)
 		return ret;
 	}
 
+#ifdef __QT_DRIVER__
+	if ( NetPlayStateLoadReq(is) )
+	{
+		return false;
+	}
+#endif
+
 	size_t totalsize  = FCEU_de32lsb(header + 4);
 	int stateversion  = FCEU_de32lsb(header + 8);
 	uint32_t comprlen = FCEU_de32lsb(header + 12);
@@ -688,7 +701,8 @@ bool FCEUSS_LoadFP(EMUFILE* is, ENUM_SSLOADPARAMS params)
 		int error = uncompress(memory_savestate.buf(), &uncomprlen, &compressed_buf[0], comprlen);
 		if(error != Z_OK || uncomprlen != totalsize)
 			return false;	// we dont need to restore the backup here because we havent messed with the emulator state yet
-	} else
+	}
+	else
 	{
 		// the savestate is not compressed: just read from is to memory_savestate.vec
 		is->fread(memory_savestate.buf(), totalsize);
@@ -711,15 +725,25 @@ bool FCEUSS_LoadFP(EMUFILE* is, ENUM_SSLOADPARAMS params)
 		FCEUPPU_LoadState(stateversion);
 		FCEUSND_LoadState(stateversion);
 		x=FCEUMOV_PostLoad();
-	} else if (backup)
+	}
+	else if (backup)
 	{
 		msBackupSavestate.fseek(0,SEEK_SET);
 		FCEUSS_LoadFP(&msBackupSavestate,SSLOADPARAM_NOBACKUP);
 	}
 
+	// Post state load callback that is used to notify driver code that a new state load occurred.
+	if (SPostLoad != NULL)
+	{
+		SPostLoad(x);
+	}
 	return x;
 }
 
+void FCEUSS_SetLoadCallback( void (*cb)(bool) )
+{
+	SPostLoad = cb;
+}
 
 bool FCEUSS_Load(const char *fname, bool display_message)
 {

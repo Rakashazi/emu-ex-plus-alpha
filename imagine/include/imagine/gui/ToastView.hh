@@ -44,8 +44,7 @@ public:
 	void postError(UTF16Convertible auto &&msg, int secs) { post(IG_forward(msg), secs, true); }
 	void unpost();
 	void prepareDraw() final;
-	void draw(Gfx::RendererCommands &__restrict__) final;
-	bool inputEvent(const Input::Event &) final;
+	void draw(Gfx::RendererCommands &__restrict__, ViewDrawParams p = {}) const final;
 
 private:
 	Gfx::Text text;

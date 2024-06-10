@@ -21,6 +21,7 @@
 #include <imagine/gui/ScrollView.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/concepts.hh>
+#include <imagine/util/variant.hh>
 #include <string_view>
 
 namespace IG::Input
@@ -38,7 +39,13 @@ class TableView : public ScrollView
 public:
 	struct ItemsMessage {const TableView& item;};
 	struct GetItemMessage {const TableView& item; size_t idx;};
-	using ItemMessage = std::variant<GetItemMessage, ItemsMessage>;
+	using ItemMessageVariant = std::variant<GetItemMessage, ItemsMessage>;
+	class ItemMessage: public ItemMessageVariant, public AddVisit
+	{
+	public:
+		using ItemMessageVariant::ItemMessageVariant;
+		using AddVisit::visit;
+	};
 	using ItemReply = std::variant<MenuItem*, size_t>;
 	using ItemSourceDelegate = MenuItemSourceDelegate<ItemMessage, ItemReply, ItemsMessage, GetItemMessage>;
 	using SelectElementDelegate = DelegateFunc<void (const Input::Event &, int i, MenuItem &)>;
@@ -52,19 +59,19 @@ public:
 		TableView{UTF16String{}, attach, itemSrc} {}
 
 	void prepareDraw() override;
-	void draw(Gfx::RendererCommands &__restrict__) override;
+	void draw(Gfx::RendererCommands &__restrict__, ViewDrawParams p = {}) const override;
 	void place() override;
 	void setScrollableIfNeeded(bool yes);
 	void scrollToFocusRect();
 	void resetScroll();
-	bool inputEvent(const Input::Event &) override;
+	bool inputEvent(const Input::Event&, ViewInputEventParams p = {}) override;
 	void clearSelection() override;
 	void onShow() override;
 	void onHide() override;
 	void onAddedToController(ViewController *, const Input::Event &) override;
 	void setFocus(bool focused) override;
 	void setOnSelectElement(SelectElementDelegate del);
-	MenuItem& item(size_t idx) { return item(itemSrc, idx); }
+	auto& item(this auto&& self, size_t idx) { return self.item(self.itemSrc, idx); }
 	size_t cells() const;
 	WSize cellSize() const;
 	void highlightCell(int idx);
@@ -95,12 +102,15 @@ protected:
 	void setYCellSize(int s);
 	WRect focusRect();
 	void onSelectElement(const Input::Event &, size_t i, MenuItem &);
-	bool elementIsSelectable(MenuItem &item);
 	int nextSelectableElement(int start, int items);
 	int prevSelectableElement(int start, int items);
 	bool handleTableInput(const Input::Event &, bool &movedSelected);
 	virtual void drawElement(Gfx::RendererCommands &__restrict__, size_t i, MenuItem &item, WRect rect, int xIndent) const;
-	MenuItem& item(ItemSourceDelegate, size_t idx);
+
+	auto& item(this auto&& self, ItemSourceDelegate src, size_t idx)
+	{
+		return *getAs<MenuItem*>(src(GetItemMessage{self, idx}));
+	}
 };
 
 }

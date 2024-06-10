@@ -41,9 +41,9 @@ public:
 		} { init(); }
 
 	void place() override;
-	bool inputEvent(const Input::Event &) override;
+	bool inputEvent(const Input::Event&, ViewInputEventParams p = {}) override;
 	void prepareDraw() override;
-	void draw(Gfx::RendererCommands &__restrict__) override;
+	void draw(Gfx::RendererCommands &__restrict__, ViewDrawParams p = {}) const override;
 	void onAddedToController(ViewController *, const Input::Event &) override;
 	void setLabel(UTF16Convertible auto &&label) { text.resetString(IG_forward(label)); }
 

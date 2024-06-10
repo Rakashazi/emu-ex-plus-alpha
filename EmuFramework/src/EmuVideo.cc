@@ -90,11 +90,6 @@ bool EmuVideo::setFormat(IG::PixmapDesc desc, EmuSystemTaskContext taskCtx)
 	return true;
 }
 
-void EmuVideo::dispatchFormatChanged()
-{
-	onFormatChanged(*this);
-}
-
 EmuVideoImage EmuVideo::startFrame(EmuSystemTaskContext taskCtx)
 {
 	auto lockedTex = vidImg.lock();
@@ -140,12 +135,6 @@ void EmuVideo::startFrameWithAltFormat(EmuSystemTaskContext taskCtx, IG::PixmapV
 void EmuVideo::startUnchangedFrame(EmuSystemTaskContext taskCtx)
 {
 	postFrameFinished(taskCtx);
-}
-
-void EmuVideo::dispatchFrameFinished()
-{
-	//log.debug("frame finished");
-	onFrameFinished(*this);
 }
 
 void EmuVideo::postFrameFinished(EmuSystemTaskContext taskCtx)
@@ -257,16 +246,6 @@ WSize EmuVideo::size() const
 bool EmuVideo::formatIsEqual(IG::PixmapDesc desc) const
 {
 	return vidImg && desc == vidImg.pixmapDesc();
-}
-
-void EmuVideo::setOnFrameFinished(FrameFinishedDelegate del)
-{
-	onFrameFinished = del;
-}
-
-void EmuVideo::setOnFormatChanged(FormatChangedDelegate del)
-{
-	onFormatChanged = del;
 }
 
 void EmuVideo::setTextureBufferMode(EmuSystem &sys, Gfx::TextureBufferMode mode)

@@ -66,7 +66,7 @@ public:
 		fpsText.compile();
 	}
 
-	bool inputEvent(const Input::Event &e) final
+	bool inputEvent(const Input::Event& e, ViewInputEventParams) final
 	{
 		if(e.keyEvent() && e.keyEvent()->pushed(Input::DefaultKey::CANCEL))
 		{
@@ -77,7 +77,7 @@ public:
 		return false;
 	}
 
-	void draw(Gfx::RendererCommands &__restrict__ cmds) final
+	void draw(Gfx::RendererCommands&__restrict__ cmds, ViewDrawParams) const final
 	{
 		using namespace IG::Gfx;
 		cmds.basicEffect().enableAlphaTexture(cmds);

@@ -34,7 +34,29 @@
 
 namespace IG::GL
 {
-enum class API {OPENGL, OPENGL_ES};
+
+enum class API {OpenGL, OpenGLES};
+
+struct Version
+{
+	int major{1}, minor{};
+};
+
+#if defined CONFIG_OS_IOS || defined __ANDROID__
+constexpr auto defaultApi = IG::GL::API::OpenGLES;
+#else
+constexpr auto defaultApi = IG::GL::API::OpenGL;
+#endif
+
+}
+
+namespace Config
+{
+#if !defined NDEBUG && !defined __APPLE__
+constexpr bool OpenGLDebugContext = true;
+#else
+constexpr bool OpenGLDebugContext = false;
+#endif
 }
 
 namespace IG
@@ -46,9 +68,8 @@ class ApplicationContext;
 
 constexpr bool useEGLPlatformAPI = Config::envIsLinux && !Config::MACHINE_IS_PANDORA;
 
-class GLBufferConfigAttributes
+struct GLBufferConfigAttributes
 {
-public:
 	PixelFormat pixelFormat{};
 	bool useAlpha{};
 	bool useDepth{};
@@ -56,21 +77,21 @@ public:
 	bool translucentWindow{};
 };
 
-class GLContextAttributes
+struct GLBufferRenderConfigAttributes
 {
-public:
-	int majorVersion{1};
-	int minorVersion{};
-	bool glesApi{};
+	GLBufferConfigAttributes bufferAttrs{};
+	GL::Version version{};
+	GL::API api{};
+
+	constexpr operator GLBufferConfigAttributes() const { return bufferAttrs; }
+};
+
+struct GLContextAttributes
+{
+	GL::Version version{};
+	GL::API api{};
 	bool debug{};
 	bool noError{};
-
-	constexpr GLContextAttributes() = default;
-
-	constexpr GLContextAttributes(int majorVer, int minorVer, GL::API api):
-		majorVersion{majorVer},
-		minorVersion{minorVer},
-		glesApi{api == GL::API::OPENGL_ES} {}
 };
 
 enum class GLColorSpace : uint8_t
@@ -79,9 +100,8 @@ enum class GLColorSpace : uint8_t
 	SRGB
 };
 
-class GLDrawableAttributes
+struct GLDrawableAttributes
 {
-public:
 	GLBufferConfig bufferConfig{};
 	GLColorSpace colorSpace{};
 	int wantedRenderBuffers{};
@@ -136,7 +156,9 @@ public:
 	GLManager(NativeDisplayConnection, GL::API);
 	GLDisplay display() const;
 	GLDisplay getDefaultDisplay(NativeDisplayConnection) const;
-	std::optional<GLBufferConfig> makeBufferConfig(ApplicationContext, GLBufferConfigAttributes, GL::API, int majorVersion = 0) const;
+	std::optional<GLBufferConfig> tryBufferConfig(ApplicationContext, const GLBufferRenderConfigAttributes&) const;
+	GLBufferConfig makeBufferConfig(ApplicationContext, const GLBufferRenderConfigAttributes&) const;
+	GLBufferConfig makeBufferConfig(ApplicationContext, std::span<const GLBufferRenderConfigAttributes>) const;
 	NativeWindowFormat nativeWindowFormat(ApplicationContext, GLBufferConfig) const;
 	GLContext makeContext(GLContextAttributes, GLBufferConfig, NativeGLContext shareContext);
 	GLContext makeContext(GLContextAttributes, GLBufferConfig);

@@ -35,7 +35,7 @@ class TouchConfigView final: public TableView, public EmuAppHelper
 public:
 	TouchConfigView(ViewAttachParams attach, VController &vController);
 	void place() final;
-	void draw(Gfx::RendererCommands &__restrict__) final;
+	void draw(Gfx::RendererCommands&__restrict__, ViewDrawParams p = {}) const final;
 	void reloadItems();
 	void onShow() final;
 

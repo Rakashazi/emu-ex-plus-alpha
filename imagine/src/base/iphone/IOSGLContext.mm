@@ -75,7 +75,7 @@ static EAGLRenderingAPI majorVersionToAPI(int version)
 
 IOSGLContext::IOSGLContext(GLContextAttributes attr, NativeGLContext shareContext_)
 {
-	assert(attr.glesApi);
+	assert(attr.api == GL::API::OpenGLES);
 	EAGLRenderingAPI api = majorVersionToAPI(attr.majorVersion);
 	auto shareContext = (__bridge EAGLContext*)shareContext_;
 	EAGLSharegroup *sharegroup = [shareContext sharegroup];
@@ -140,7 +140,7 @@ void GLManager::logInfo() const {}
 
 bool GLManager::bindAPI(GL::API api)
 {
-	return api == GL::API::OPENGL_ES;
+	return api == GL::API::OpenGLES;
 }
 
 GLDrawable GLManager::makeDrawable(Window &win, GLDrawableAttributes config) const
@@ -177,10 +177,10 @@ bool GLManager::hasCurrentDrawable()
 
 GLDisplay GLManager::display() const { return {}; }
 
-std::optional<GLBufferConfig> GLManager::makeBufferConfig(ApplicationContext, GLBufferConfigAttributes attr, GL::API, int) const
+std::optional<GLBufferConfig> GLManager::tryBufferConfig(ApplicationContext, const GLBufferRenderConfigAttributes& attrs) const
 {
 	GLBufferConfig conf;
-	if(attr.pixelFormat == PixelFmtRGB565)
+	if(attrs.bufferAttrs.pixelFormat == PixelFmtRGB565)
 	{
 		conf.useRGB565 = true;
 	}

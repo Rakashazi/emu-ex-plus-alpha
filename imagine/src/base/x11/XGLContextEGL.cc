@@ -58,19 +58,19 @@ GLDisplay GLManager::getDefaultDisplay(NativeDisplayConnection nativeDpy) const
 
 bool GLManager::bindAPI(GL::API api)
 {
-	if(api == GL::API::OPENGL_ES)
+	if(api == GL::API::OpenGLES)
 		return eglBindAPI(EGL_OPENGL_ES_API);
 	else
 		return eglBindAPI(EGL_OPENGL_API);
 }
 
-std::optional<GLBufferConfig> GLManager::makeBufferConfig(ApplicationContext ctx, GLBufferConfigAttributes attr, GL::API api, int majorVersion) const
+std::optional<GLBufferConfig> GLManager::tryBufferConfig(ApplicationContext ctx, const GLBufferRenderConfigAttributes& attrs) const
 {
-	auto renderableType = makeRenderableType(api, majorVersion);
-	if(attr.translucentWindow)
+	auto renderableType = makeRenderableType(attrs.api, attrs.version);
+	if(attrs.bufferAttrs.translucentWindow)
 	{
 		std::array<EGLConfig, 4> configs;
-		auto configCount = chooseConfigs(display(), renderableType, attr, configs);
+		auto configCount = chooseConfigs(display(), renderableType, attrs, configs);
 		if(!configCount)
 		{
 			log.error("no usable EGL configs found with renderable type:{}", eglRenderableTypeToStr(renderableType));
@@ -96,7 +96,7 @@ std::optional<GLBufferConfig> GLManager::makeBufferConfig(ApplicationContext ctx
 	}
 	else
 	{
-		return chooseConfig(display(), renderableType, attr);
+		return chooseConfig(display(), renderableType, attrs);
 	}
 }
 

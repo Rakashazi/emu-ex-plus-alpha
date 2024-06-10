@@ -53,7 +53,7 @@ public:
 	void setRendererTask(Gfx::RendererTask &);
 	bool hasRendererTask() const;
 	bool setFormat(IG::PixmapDesc desc, EmuSystemTaskContext task = {});
-	void dispatchFormatChanged();
+	void dispatchFormatChanged() { onFormatChanged(*this); }
 	void resetImage(IG::PixelFormat newFmt = {});
 	IG::PixmapDesc deleteImage();
 	EmuVideoImage startFrame(EmuSystemTaskContext);
@@ -64,7 +64,7 @@ public:
 	void startUnchangedFrame(EmuSystemTaskContext);
 	void finishFrame(EmuSystemTaskContext, Gfx::LockedTextureBuffer texBuff);
 	void finishFrame(EmuSystemTaskContext, IG::PixmapView pix);
-	void dispatchFrameFinished();
+	void dispatchFrameFinished() { onFrameFinished(*this); }
 	void clear();
 	void takeGameScreenshot();
 	bool isExternalTexture() const;
@@ -73,8 +73,6 @@ public:
 	IG::ApplicationContext appContext() const;
 	WSize size() const;
 	bool formatIsEqual(IG::PixmapDesc desc) const;
-	void setOnFrameFinished(FrameFinishedDelegate del);
-	void setOnFormatChanged(FormatChangedDelegate del);
 	void setTextureBufferMode(EmuSystem &, Gfx::TextureBufferMode mode);
 	void setSampler(Gfx::TextureSamplerConfig);
 	constexpr auto colorSpace() const { return colSpace; }
@@ -87,8 +85,10 @@ public:
 protected:
 	Gfx::RendererTask *rTask{};
 	Gfx::PixmapBufferTexture vidImg;
+public:
 	FrameFinishedDelegate onFrameFinished;
 	FormatChangedDelegate onFormatChanged;
+protected:
 	IG::PixelFormat renderFmt;
 	Gfx::TextureBufferMode bufferMode{};
 	bool screenshotNextFrame{};

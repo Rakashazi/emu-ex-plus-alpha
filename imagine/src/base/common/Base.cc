@@ -106,6 +106,22 @@ void GLManager::resetCurrentContext() const
 	display().resetCurrentContext();
 }
 
+GLBufferConfig GLManager::makeBufferConfig(ApplicationContext ctx, const GLBufferRenderConfigAttributes& attrs) const
+{
+	return makeBufferConfig(ctx, std::span{&attrs, 1});
+}
+
+GLBufferConfig GLManager::makeBufferConfig(ApplicationContext ctx, std::span<const GLBufferRenderConfigAttributes> attrsSpan) const
+{
+	for(const auto &attrs : attrsSpan)
+	{
+		auto config = tryBufferConfig(ctx, attrs);
+		if(config)
+			return *config;
+	}
+	throw std::runtime_error("Error finding a GL configuration");
+}
+
 SteadyClockTimePoint FrameParams::presentTime(int frames) const
 {
 	if(frames <= 0)

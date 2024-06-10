@@ -53,7 +53,7 @@ bool TextEntry::isAcceptingInput() const
 
 bool TextEntry::inputEvent(View &parentView, const Input::Event &e)
 {
-	return visit(overloaded
+	return e.visit(overloaded
 	{
 		[&](const Input::MotionEvent &motionEv)
 		{
@@ -109,7 +109,7 @@ bool TextEntry::inputEvent(View &parentView, const Input::Event &e)
 			}
 			return false;
 		}
-	}, e);
+	});
 }
 
 void TextEntry::prepareDraw(Gfx::Renderer &r)
@@ -117,7 +117,7 @@ void TextEntry::prepareDraw(Gfx::Renderer &r)
 	t.makeGlyphs();
 }
 
-void TextEntry::draw(Gfx::RendererCommands &__restrict__ cmds)
+void TextEntry::draw(Gfx::RendererCommands &__restrict__ cmds) const
 {
 	using namespace Gfx;
 	cmds.basicEffect().enableAlphaTexture(cmds);
@@ -227,9 +227,9 @@ void CollectTextInputView::place()
 		});
 }
 
-bool CollectTextInputView::inputEvent(const Input::Event &e)
+bool CollectTextInputView::inputEvent(const Input::Event& e, ViewInputEventParams)
 {
-	if(visit(overloaded
+	if(e.visit(overloaded
 		{
 			[&](const Input::MotionEvent &e) -> bool
 			{
@@ -239,7 +239,7 @@ bool CollectTextInputView::inputEvent(const Input::Event &e)
 				});
 			},
 			[&](const Input::KeyEvent &e)	{ return e.pushed(Input::DefaultKey::CANCEL); }
-		}, e))
+		}))
 	{
 		dismiss();
 		return true;
@@ -275,7 +275,7 @@ void CollectTextInputView::prepareDraw()
 		});
 }
 
-void CollectTextInputView::draw(Gfx::RendererCommands &__restrict__ cmds)
+void CollectTextInputView::draw(Gfx::RendererCommands &__restrict__ cmds, ViewDrawParams) const
 {
 	using namespace Gfx;
 	auto &basicEffect = cmds.basicEffect();

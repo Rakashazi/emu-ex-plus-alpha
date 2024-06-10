@@ -36,7 +36,7 @@ EmuInputView::EmuInputView(ViewAttachParams attach, VController &vCtrl, EmuVideo
 	vController{&vCtrl},
 	videoLayer{&videoLayer} {}
 
-void EmuInputView::draw(Gfx::RendererCommands &__restrict__ cmds)
+void EmuInputView::draw(Gfx::RendererCommands&__restrict__ cmds, ViewDrawParams) const
 {
 	vController->draw(cmds);
 }
@@ -73,7 +73,7 @@ void EmuInputView::updateRunSpeed(AltSpeedMode mode)
 	app().setRunSpeed(speedToggleActive ? app().altSpeedAsDouble(mode) : 1.);
 }
 
-bool EmuInputView::inputEvent(const Input::Event &e)
+bool EmuInputView::inputEvent(const Input::Event& e, ViewInputEventParams)
 {
 	return e.visit(overloaded
 	{

@@ -70,7 +70,7 @@ FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu)
 					auto fPicker = makeView<FilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
 					auto userSavePath = system().userSaveDirectory();
 					fPicker->setPath(userSavePath.size() && userSavePath != optionSavePathDefaultToken ? userSavePath
-						: app().contentSearchPath(), e);
+						: app().contentSearchPath, e);
 					fPicker->setOnSelectPath(
 						[this](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)
 						{

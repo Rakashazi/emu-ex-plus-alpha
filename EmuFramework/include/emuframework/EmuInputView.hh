@@ -34,8 +34,8 @@ public:
 	EmuInputView();
 	EmuInputView(ViewAttachParams attach, VController &vCtrl, EmuVideoLayer &videoLayer);
 	void place() final;
-	void draw(Gfx::RendererCommands &__restrict__) final;
-	bool inputEvent(const Input::Event &) final;
+	void draw(Gfx::RendererCommands &__restrict__, ViewDrawParams p = {}) const final;
+	bool inputEvent(const Input::Event&, ViewInputEventParams p = {}) final;
 	void resetInput();
 	bool toggleAltSpeedMode(AltSpeedMode);
 	bool setAltSpeedMode(AltSpeedMode, bool on);

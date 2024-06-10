@@ -23,30 +23,33 @@
 namespace IG
 {
 
+bool MenuItemI::inputEvent(const Input::Event&, ViewInputEventParams) { return false; }
+
 void MenuItem::prepareDraw()
 {
 	t.makeGlyphs();
 }
 
-void MenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPos, int yPos, int xSize, int ySize,
-	int xIndent, _2DOrigin align, Gfx::Color color) const
+void MenuItem::draw(Gfx::RendererCommands&__restrict__ cmds, MenuItemDrawAttrs attrs) const
 {
+	auto [xPos, yPos] = attrs.rect.pos(LT2DO);
+	auto xSize = attrs.rect.size().x;
 	if(!active())
 	{
 		// half-bright color
-		color.r /= 2.f;
-		color.g /= 2.f;
-		color.b /= 2.f;
+		attrs.color.r /= 2.f;
+		attrs.color.g /= 2.f;
+		attrs.color.b /= 2.f;
 	}
-	if(align.isXCentered())
-		xPos += xSize/2;
+	if(attrs.align.isXCentered())
+		xPos += xSize / 2;
 	else
-		xPos += xIndent;
+		xPos += attrs.xIndent;
 	cmds.basicEffect().enableAlphaTexture(cmds);
-	t.draw(cmds, {xPos, yPos}, align,color);
+	t.draw(cmds, {xPos, yPos}, attrs.align, attrs.color);
 }
 
-void MenuItem::compile()
+void MenuItem::place()
 {
 	t.compile();
 }
@@ -66,13 +69,15 @@ const Gfx::Text &MenuItem::text() const
 	return t;
 }
 
-void BaseDualTextMenuItem::compile()
+bool TextMenuItem::inputEvent(const Input::Event& e, ViewInputEventParams p) { return onSelect.callCopySafe(*this, *p.parentPtr, e); }
+
+void BaseDualTextMenuItem::place()
 {
-	MenuItem::compile();
-	compile2nd();
+	MenuItem::place();
+	place2nd();
 }
 
-void BaseDualTextMenuItem::compile2nd()
+void BaseDualTextMenuItem::place2nd()
 {
 	t2.compile();
 }
@@ -83,38 +88,38 @@ void BaseDualTextMenuItem::prepareDraw()
 	t2.makeGlyphs();
 }
 
-void BaseDualTextMenuItem::draw2ndText(Gfx::RendererCommands &cmds, int xPos, int yPos, int xSize, int ySize,
-	int xIndent, _2DOrigin align, Gfx::Color color) const
+void BaseDualTextMenuItem::draw2ndText(Gfx::RendererCommands &cmds, MenuItemDrawAttrs attrs) const
 {
 	cmds.basicEffect().enableAlphaTexture(cmds);
-	t2.draw(cmds, {(xPos + xSize) - xIndent, yPos}, RC2DO, color);
+	auto [xPos, yPos] = attrs.rect.pos(LT2DO);
+	auto xSize = attrs.rect.size().x;
+	t2.draw(cmds, {(xPos + xSize) - attrs.xIndent, yPos}, RC2DO, attrs.color);
 }
 
-void BaseDualTextMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPos, int yPos, int xSize, int ySize,
-	int xIndent, _2DOrigin align, Gfx::Color color) const
+void BaseDualTextMenuItem::draw(Gfx::RendererCommands&__restrict__ cmds, MenuItemDrawAttrs attrs) const
 {
-	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, color);
-	BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, color);
+	MenuItem::draw(cmds, attrs);
+	BaseDualTextMenuItem::draw2ndText(cmds, attrs);
 }
 
-void DualTextMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPos, int yPos, int xSize, int ySize,
-	int xIndent, _2DOrigin align, Gfx::Color color) const
+void DualTextMenuItem::draw(Gfx::RendererCommands&__restrict__ cmds, MenuItemDrawAttrs attrs) const
 {
-	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, color);
-	Gfx::Color color2 = text2Color != Gfx::Color{} ? text2Color : color;
-	draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, color2);
+	MenuItem::draw(cmds, attrs);
+	if(text2Color != Gfx::Color{})
+		attrs.color = text2Color;
+	draw2ndText(cmds, attrs);
 }
 
-bool DualTextMenuItem::select(View &parent, const Input::Event &e)
+bool DualTextMenuItem::inputEvent(const Input::Event& e, ViewInputEventParams p)
 {
 	//logMsg("calling delegate");
-	onSelect.callCopySafe(*this, parent, e);
+	onSelect.callCopySafe(*this, *p.parentPtr, e);
 	return true;
 }
 
-bool BoolMenuItem::select(View &parent, const Input::Event &e)
+bool BoolMenuItem::inputEvent(const Input::Event& e, ViewInputEventParams p)
 {
-	onSelect.callCopySafe(*this, parent, e);
+	onSelect.callCopySafe(*this, *p.parentPtr, e);
 	return true;
 }
 
@@ -159,18 +164,16 @@ bool BoolMenuItem::flipBoolValue()
 	return boolValue();
 }
 
-void BoolMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPos, int yPos, int xSize, int ySize,
-	int xIndent, _2DOrigin align, Gfx::Color color) const
+void BoolMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, MenuItemDrawAttrs attrs) const
 {
-	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, color);
-	Gfx::Color color2;
+	MenuItem::draw(cmds, attrs);
 	if(!(flags.impl & onOffStyleFlag)) // custom strings
-		color2 = Gfx::Color{0.f, .8f, 1.f};
+		attrs.color = Gfx::Color{0.f, .8f, 1.f};
 	else if(boolValue())
-		color2 = Gfx::Color{.27f, 1.f, .27f};
+		attrs.color = Gfx::Color{.27f, 1.f, .27f};
 	else
-		color2 = Gfx::Color{1.f, .27f, .27f};
-	draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, color2);
+		attrs.color = Gfx::Color{1.f, .27f, .27f};
+	draw2ndText(cmds, attrs);
 }
 
 class MenuItemTableView : public TableView
@@ -184,15 +187,14 @@ public:
 		activeItem{active},
 		src{src}
 	{
-		setOnSelectElement(
-			[this](const Input::Event &e, int i, MenuItem &item)
+		setOnSelectElement([this](const Input::Event& e, int i, MenuItem& item)
+		{
+			if(item.inputEvent(e, {.parentPtr = this}))
 			{
-				if(item.select(*this, e))
-				{
-					this->src.setSelected(i, *this);
-					dismiss();
-				}
-			});
+				this->src.setSelected(i, *this);
+				dismiss();
+			}
+		});
 	}
 
 	void onAddedToController(ViewController *, const Input::Event &e) final
@@ -203,22 +205,23 @@ public:
 
 	void drawElement(Gfx::RendererCommands &__restrict__ cmds, size_t i, MenuItem &item, WRect rect, int xIndent) const final
 	{
-		item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), xIndent, TableView::align, menuTextColor((int)i == activeItem));
+		MenuItemDrawAttrs attrs{.rect = {{rect.x, rect.pos(C2DO).y}, rect.size()},
+				.xIndent = xIndent, .color = menuTextColor((int)i == activeItem), .align = TableView::align};
+		item.draw(cmds, attrs);
 	}
 };
 
-void MultiChoiceMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, int xPos, int yPos, int xSize, int ySize,
-	int xIndent, _2DOrigin align, Gfx::Color color) const
+void MultiChoiceMenuItem::draw(Gfx::RendererCommands &__restrict__ cmds, MenuItemDrawAttrs attrs) const
 {
-	MenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, color);
-	auto color2 = Gfx::Color{0.f, .8f, 1.f};
-	BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, color2);
+	MenuItem::draw(cmds, attrs);
+	attrs.color = Gfx::Color{0.f, .8f, 1.f};
+	BaseDualTextMenuItem::draw2ndText(cmds, attrs);
 }
 
-void MultiChoiceMenuItem::compile()
+void MultiChoiceMenuItem::place()
 {
 	setDisplayString(selected_);
-	BaseDualTextMenuItem::compile();
+	BaseDualTextMenuItem::place();
 }
 
 int MultiChoiceMenuItem::selected() const
@@ -290,10 +293,10 @@ int MultiChoiceMenuItem::cycleSelected(int offset)
 	return selected_;
 }
 
-bool MultiChoiceMenuItem::select(View &parent, const Input::Event &e)
+bool MultiChoiceMenuItem::inputEvent(const Input::Event& e, ViewInputEventParams p)
 {
 	//logMsg("calling delegate");
-	onSelect.callCopySafe(*this, parent, e);
+	onSelect.callCopySafe(*this, *p.parentPtr, e);
 	return true;
 }
 
@@ -306,11 +309,11 @@ std::unique_ptr<TableView> MultiChoiceMenuItem::makeTableView(ViewAttachParams a
 		selected_ < (ssize_t)items() ? selected_ : -1,
 		[this](TableView::ItemMessage msg) -> TableView::ItemReply
 		{
-			return visit(overloaded
+			return msg.visit(overloaded
 			{
 				[&](const TableView::ItemsMessage &m) -> TableView::ItemReply { return items(); },
 				[&](const TableView::GetItemMessage &m) -> TableView::ItemReply { return &item(m.idx); },
-			}, msg);
+			});
 		},
 		*this
 	);

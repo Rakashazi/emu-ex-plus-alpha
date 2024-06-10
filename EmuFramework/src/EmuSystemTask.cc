@@ -46,7 +46,7 @@ void EmuSystemTask::start()
 				std::binary_semaphore *syncSemPtr{};
 				for(auto msg : msgs)
 				{
-					bool threadIsRunning = visit(overloaded
+					bool threadIsRunning = msg.command.visit(overloaded
 					{
 						[&](FrameParamsCommand &cmd)
 						{
@@ -71,7 +71,7 @@ void EmuSystemTask::start()
 							EventLoop::forThread().stop();
 							return false;
 						},
-					}, msg.command);
+					});
 					if(!threadIsRunning)
 						return false;
 				}

@@ -27,7 +27,7 @@ BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 		attach,
 		[this](ItemMessage msg) -> ItemReply
 		{
-			return visit(overloaded
+			return msg.visit(overloaded
 			{
 				[&](const ItemsMessage &m) -> ItemReply { return 1 + cheat.size(); },
 				[&](const GetItemMessage &m) -> ItemReply
@@ -37,7 +37,7 @@ BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 					else
 						return &cheat[m.idx - 1];
 				},
-			}, msg);
+			});
 		}
 	},
 	edit

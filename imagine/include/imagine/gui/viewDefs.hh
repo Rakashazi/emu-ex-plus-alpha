@@ -103,4 +103,28 @@ public:
 	}
 };
 
+struct ViewInputEventParams
+{
+	View* parentPtr{};
+};
+
+struct ViewDrawParams{};
+
+struct ViewI
+{
+	constexpr ViewI() = default;
+	virtual ~ViewI() = default;
+	virtual void place() = 0;
+	virtual void prepareDraw();
+	virtual void draw(Gfx::RendererCommands&__restrict__, ViewDrawParams p = {}) const = 0;
+	virtual bool inputEvent(const Input::Event&, ViewInputEventParams p = {});
+	virtual void clearSelection(); // de-select any items from previous input
+	virtual void onShow();
+	virtual void onHide();
+	virtual void onAddedToController(ViewController*, const Input::Event&);
+	virtual void setFocus(bool focused);
+	virtual std::u16string_view name() const;
+	virtual bool onDocumentPicked(const DocumentPickerEvent&);
+};
+
 }

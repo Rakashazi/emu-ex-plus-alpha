@@ -150,7 +150,7 @@ void ScrollView::setContentSize(WSize contentSize)
 	scrollBarQuads.write(0, {.bounds = scrollBarRect.as<int16_t>()});
 }
 
-void ScrollView::drawScrollContent(Gfx::RendererCommands &cmds)
+void ScrollView::drawScrollContent(Gfx::RendererCommands &cmds) const
 {
 	using namespace IG::Gfx;
 	if(contentIsBiggerThanView && (allowScrollWholeArea_ || dragTracker.isDragging()))

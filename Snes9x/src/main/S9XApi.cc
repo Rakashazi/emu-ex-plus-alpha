@@ -27,6 +27,7 @@ using namespace EmuEx;
 uint16 SSettings::DisplayColor{};
 uint32 SSettings::SkipFrames{};
 uint32 SSettings::TurboSkipFrames{};
+bool8 SSettings::StopEmulation{};
 std::string SGFX::InfoString;
 uint32 SGFX::InfoStringTimeout{};
 char SGFX::FrameDisplayString[256]{};

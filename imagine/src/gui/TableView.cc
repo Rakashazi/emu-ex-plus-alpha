@@ -67,7 +67,7 @@ void TableView::prepareDraw()
 	}
 }
 
-void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
+void TableView::draw(Gfx::RendererCommands &__restrict__ cmds, ViewDrawParams) const
 {
 	ssize_t cells_ = cells();
 	if(!cells_)
@@ -121,7 +121,7 @@ void TableView::draw(Gfx::RendererCommands &__restrict__ cmds)
 			{
 				int ySize = regularYSize;
 				auto color = regularColor;
-				if(!elementIsSelectable(item(src, i - 1)))
+				if(!item(src, i - 1).selectable())
 				{
 					ySize = headingYSize;
 					color = headingColor;
@@ -175,8 +175,8 @@ void TableView::place()
 	auto src = itemSrc;
 	for(auto i : iotaCount(cells_))
 	{
-		//log.debug("compile item:{}", i);
-		item(src, i).compile();
+		//log.debug("place item:{}", i);
+		item(src, i).place();
 	}
 	if(cells_)
 	{
@@ -246,7 +246,7 @@ void TableView::resetScroll()
 	setScrollOffset(0);
 }
 
-bool TableView::inputEvent(const Input::Event &e)
+bool TableView::inputEvent(const Input::Event& e, ViewInputEventParams)
 {
 	bool handleScroll = !onlyScrollIfNeeded || contentIsBiggerThanView;
 	auto motionEv = e.motionEvent();
@@ -292,7 +292,7 @@ int TableView::nextSelectableElement(int start, int items)
 	auto src = itemSrc;
 	for(auto i : iotaCount(items))
 	{
-		if(elementIsSelectable(item(src, elem)))
+		if(item(src, elem).selectable())
 		{
 			return elem;
 		}
@@ -307,7 +307,7 @@ int TableView::prevSelectableElement(int start, int items)
 	auto src = itemSrc;
 	for(auto i : iotaCount(items))
 	{
-		if(elementIsSelectable(item(src, elem)))
+		if(item(src, elem).selectable())
 		{
 			return elem;
 		}
@@ -319,7 +319,7 @@ int TableView::prevSelectableElement(int start, int items)
 bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 {
 	ssize_t cells_ = cells();
-	return visit(overloaded
+	return e.visit(overloaded
 	{
 		[&](const Input::KeyEvent &keyEv)
 		{
@@ -467,7 +467,7 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 			{
 				//log.info("input pushed on cell:{}", i);
 				hasFocus = true;
-				if(i >= 0 && i < cells_ && elementIsSelectable(it))
+				if(i >= 0 && i < cells_ && it.selectable())
 				{
 					selected = i;
 					postDraw();
@@ -476,7 +476,7 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 			else if(motionEv.isOff()) // TODO, need to check that Input::PUSHED was sent on entry
 			{
 				//log.info("input released on cell:{}", i);
-				if(i >= 0 && i < cells_ && selected == i && elementIsSelectable(it))
+				if(i >= 0 && i < cells_ && selected == i && it.selectable())
 				{
 					postDraw();
 					selected = -1;
@@ -490,14 +490,15 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 			}
 			return true;
 		}
-	}, e);
+	});
 }
 
 void TableView::drawElement(Gfx::RendererCommands &__restrict__ cmds, size_t i, MenuItem &item, WRect rect, int xIndent) const
 {
 	static constexpr Gfx::Color highlightColor{0.f, .8f, 1.f};
-	item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), xIndent, align,
-		item.highlighted() ? highlightColor : Gfx::Color(Gfx::ColorName::WHITE));
+	MenuItemDrawAttrs attrs{.rect = {{rect.x, rect.pos(C2DO).y}, rect.size()},
+			.xIndent = xIndent, .color = item.highlighted() ? highlightColor : Gfx::Color(Gfx::ColorName::WHITE), .align = align};
+	item.draw(cmds, attrs);
 }
 
 void TableView::onSelectElement(const Input::Event &e, size_t i, MenuItem &item)
@@ -505,12 +506,7 @@ void TableView::onSelectElement(const Input::Event &e, size_t i, MenuItem &item)
 	if(selectElementDel)
 		selectElementDel(e, i, item);
 	else
-		item.select(*this, e);
-}
-
-bool TableView::elementIsSelectable(MenuItem &item)
-{
-	return item.selectable();
+		item.inputEvent(e, {.parentPtr = this});
 }
 
 std::u16string_view TableView::name() const
@@ -521,11 +517,6 @@ std::u16string_view TableView::name() const
 TableUIState TableView::saveUIState() const
 {
 	return {.highlightedCell = highlightedCell(), .scrollOffset = scrollOffset()};
-}
-
-MenuItem& TableView::item(ItemSourceDelegate src, size_t idx)
-{
-	return *getAs<MenuItem*>(src(GetItemMessage{*this, idx}));
 }
 
 void TableView::restoreUIState(TableUIState state)

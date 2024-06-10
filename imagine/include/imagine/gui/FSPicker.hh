@@ -65,9 +65,9 @@ public:
 	FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::TextureSpan closeRes,
 			FilterFunc filter = {}, Mode mode = Mode::FILE, Gfx::GlyphTextureSet *face = {});
 	void place() override;
-	bool inputEvent(const Input::Event &) override;
+	bool inputEvent(const Input::Event&, ViewInputEventParams p = {}) override;
 	void prepareDraw() override;
-	void draw(Gfx::RendererCommands &__restrict__) override;
+	void draw(Gfx::RendererCommands &__restrict__, ViewDrawParams p = {}) const override;
 	void onAddedToController(ViewController *, const Input::Event &) override;
 	void setOnChangePath(OnChangePathDelegate);
 	void setOnSelectPath(OnSelectPathDelegate);

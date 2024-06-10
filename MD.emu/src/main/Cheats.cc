@@ -535,7 +535,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_, Ref
 					updateCheats();
 					writeCheatFile(system());
 					code.set2ndName(str);
-					code.compile();
+					code.place();
 					postDraw();
 					return true;
 				});
@@ -579,7 +579,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		attach,
 		[this](ItemMessage msg) -> ItemReply
 		{
-			return visit(overloaded
+			return msg.visit(overloaded
 			{
 				[&](const ItemsMessage &m) -> ItemReply { return 1 + cheat.size(); },
 				[&](const GetItemMessage &m) -> ItemReply
@@ -590,7 +590,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						default: return &cheat[m.idx - 1];
 					}
 				},
-			}, msg);
+			});
 		}
 	},
 	addCode

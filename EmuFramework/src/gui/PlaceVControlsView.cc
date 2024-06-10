@@ -82,7 +82,7 @@ void PlaceVControlsView::place()
 	gridIdxs.reset(2 + hLines + vLines);
 }
 
-bool PlaceVControlsView::inputEvent(const Input::Event &e)
+bool PlaceVControlsView::inputEvent(const Input::Event& e, ViewInputEventParams)
 {
 	return e.visit(overloaded
 	{
@@ -173,7 +173,7 @@ bool PlaceVControlsView::inputEvent(const Input::Event &e)
 	});
 }
 
-void PlaceVControlsView::draw(Gfx::RendererCommands &__restrict__ cmds)
+void PlaceVControlsView::draw(Gfx::RendererCommands &__restrict__ cmds, ViewDrawParams) const
 {
 	using namespace IG::Gfx;
 	cmds.setColor({.5, .5, .5});

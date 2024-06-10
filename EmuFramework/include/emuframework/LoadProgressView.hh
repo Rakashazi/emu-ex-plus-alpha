@@ -35,8 +35,7 @@ public:
 	void setPos(int val);
 	void setLabel(UTF16Convertible auto &&label) { text.resetString(IG_forward(label)); }
 	void place() final;
-	bool inputEvent(const Input::Event &) final;
-	void draw(Gfx::RendererCommands &__restrict__) final;
+	void draw(Gfx::RendererCommands&__restrict__, ViewDrawParams p = {}) const final;
 	MessagePortType &messagePort();
 
 private:

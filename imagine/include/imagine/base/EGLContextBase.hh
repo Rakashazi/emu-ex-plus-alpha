@@ -31,6 +31,7 @@
 namespace IG::GL
 {
 enum class API;
+struct Version;
 }
 
 namespace IG
@@ -38,8 +39,8 @@ namespace IG
 
 class GLDisplay;
 class GLDrawable;
-class GLContextAttributes;
-class GLBufferConfigAttributes;
+struct GLContextAttributes;
+struct GLBufferConfigAttributes;
 
 using NativeGLDrawable = EGLSurface;
 using NativeGLContext = EGLContext;
@@ -134,7 +135,7 @@ public:
 
 	constexpr EGLManager() = default;
 	static const char *errorString(EGLint error);
-	static int makeRenderableType(GL::API, int majorVersion);
+	static int makeRenderableType(GL::API, GL::Version version);
 	explicit operator bool() const { return (bool)dpy; }
 
 protected:

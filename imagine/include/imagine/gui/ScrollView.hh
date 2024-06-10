@@ -64,7 +64,7 @@ protected:
 	bool allowScrollWholeArea_{};
 
 	void setContentSize(WSize size);
-	void drawScrollContent(Gfx::RendererCommands &cmds);
+	void drawScrollContent(Gfx::RendererCommands &cmds) const;
 	bool scrollInputEvent(const Input::MotionEvent &);
 	void stopScrollAnimation();
 };

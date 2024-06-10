@@ -20,6 +20,7 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/string/CStringView.hh>
 #include <imagine/util/enum.hh>
+#include <imagine/util/variant.hh>
 #include <vector>
 #include <memory>
 #include <string_view>
@@ -266,10 +267,17 @@ struct FreeCachesEvent{bool running;};
 // Sent when a Screen is connected/disconnected or its properties change
 struct ScreenChangeEvent{Screen &screen; ScreenChange change;};
 
-using ApplicationEvent = std::variant<DocumentPickerEvent, FreeCachesEvent,
+using ApplicationEventVariant = std::variant<DocumentPickerEvent, FreeCachesEvent,
 	ScreenChangeEvent, Input::DeviceChangeEvent, Input::DevicesEnumeratedEvent>;
 
-using OnApplicationEvent = DelegateFunc<void(ApplicationContext, ApplicationEvent)>;
+class ApplicationEvent: public ApplicationEventVariant, public AddVisit
+{
+public:
+	using ApplicationEventVariant::ApplicationEventVariant;
+	using AddVisit::visit;
+};
+
+using OnApplicationEvent = DelegateFunc<void(ApplicationContext, const ApplicationEvent&)>;
 using MainThreadMessageDelegate = DelegateFunc<void(ApplicationContext)>;
 using ResumeDelegate = DelegateFunc<bool (ApplicationContext, bool focused)>;
 using ExitDelegate = DelegateFunc<bool (ApplicationContext, bool backgrounded)>;
@@ -303,12 +311,14 @@ struct DismissRequestEvent{};
 // Sent when the window is dismissed
 struct DismissEvent{};
 
-using WindowEvent = std::variant<WindowSurfaceChangeEvent, DrawEvent,
+using WindowEventVariant = std::variant<WindowSurfaceChangeEvent, DrawEvent,
 	Input::Event, FocusChangeEvent, DragDropEvent,
 	DismissRequestEvent, DismissEvent>;
 
-using OnWindowEvent = DelegateFunc<bool(Window &, WindowEvent)>;
-using WindowInitDelegate = DelegateFunc<void (ApplicationContext, Window &)>;
+class WindowEvent;
+
+using OnWindowEvent = DelegateFunc<bool(Window&, const WindowEvent&)>;
+using WindowInitDelegate = DelegateFunc<void (ApplicationContext, Window&)>;
 
 using PollEventDelegate = DelegateFunc<bool (int fd, int event)>;
 

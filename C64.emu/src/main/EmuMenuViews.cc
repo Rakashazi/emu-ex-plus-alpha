@@ -528,7 +528,7 @@ private:
 	void onShow() final
 	{
 		updateTapeCounter();
-		tapeCounter.compile();
+		tapeCounter.place();
 	}
 };
 
@@ -546,7 +546,7 @@ public:
 	void onTapeMediaChange()
 	{
 		updateTapeText();
-		tapeSlot.compile();
+		tapeSlot.place();
 	}
 
 	void addTapeFilePickerView(Input::Event e, bool dismissPreviousView)
@@ -621,7 +621,7 @@ public:
 	void onROMMediaChange()
 	{
 		updateROMText();
-		romSlot.compile();
+		romSlot.place();
 	}
 
 	void addCartFilePickerView(Input::Event e, bool dismissPreviousView)
@@ -682,7 +682,7 @@ private:
 	void onDiskMediaChange(int slot)
 	{
 		updateDiskText(slot);
-		diskSlot[slot].compile();
+		diskSlot[slot].place();
 	}
 
 	void addDiskFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)

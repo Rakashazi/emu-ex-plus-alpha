@@ -81,7 +81,7 @@ protected:
 	Renderer *r{};
 	ConditionalMember<Config::Gfx::GLDRAWABLE_NEEDS_FRAMEBUFFER, GLuint> defaultFB{};
 	GLuint fbo = 0;
-	ConditionalMember<Config::Gfx::OPENGL_DEBUG_CONTEXT, bool> debugEnabled{};
+	ConditionalMember<Config::OpenGLDebugContext, bool> debugEnabled{};
 
 	void doPreDraw(Window &win, WindowDrawParams winParams, DrawParams &params) const;
 	void updateDrawable(Drawable, IRect viewportRect, int swapInterval);

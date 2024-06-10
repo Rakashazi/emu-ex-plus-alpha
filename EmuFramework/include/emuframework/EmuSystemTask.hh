@@ -18,7 +18,7 @@
 #include <imagine/base/MessagePort.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/time/Time.hh>
-#include <variant>
+#include <imagine/util/variant.hh>
 
 namespace EmuEx
 {
@@ -42,11 +42,17 @@ public:
 	struct ExitCommand {};
 
 	using CommandVariant = std::variant<FrameParamsCommand, FramePresentedCommand, PauseCommand, ExitCommand>;
+	class Command: public CommandVariant, public AddVisit
+	{
+	public:
+		using CommandVariant::CommandVariant;
+		using AddVisit::visit;
+	};
 
 	struct CommandMessage
 	{
 		std::binary_semaphore *semPtr{};
-		CommandVariant command{PauseCommand{}};
+		Command command{PauseCommand{}};
 
 		void setReplySemaphore(std::binary_semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
 	};

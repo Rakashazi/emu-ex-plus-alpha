@@ -50,7 +50,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 		attach,
 		[this](ItemMessage msg) -> ItemReply
 		{
-			return visit(overloaded
+			return msg.visit(overloaded
 			{
 				[&](const ItemsMessage &m) -> ItemReply { return resetItemsSize + cat.keys.size(); },
 				[&](const GetItemMessage &m) -> ItemReply
@@ -62,7 +62,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 					else
 						return &btn[m.idx - resetItemsSize];
 				},
-			}, msg);
+			});
 		}
 	},
 	rootIMView{rootIMView_},
@@ -141,10 +141,10 @@ void ButtonConfigView::onSet(int catIdx, MappedKeys mapKey)
 	devConf.buildKeyMap(app().inputManager);
 	auto &b = btn[catIdx];
 	b.set2ndName(keyNames(mapKey, devConf.device()));
-	b.compile2nd();
+	b.place2nd();
 }
 
-bool ButtonConfigView::inputEvent(const Input::Event &e)
+bool ButtonConfigView::inputEvent(const Input::Event& e, ViewInputEventParams)
 {
 	if(e.keyEvent() && e.keyEvent()->pushed(Input::DefaultKey::LEFT) && selected >= resetItemsSize)
 	{
@@ -171,7 +171,7 @@ void ButtonConfigView::updateKeyNames(const KeyConfig &conf)
 	for(auto &&[i, key]: enumerate(cat.keys))
 	{
 		btn[i].set2ndName(keyNames(conf.get(key), devConf.device()));
-		btn[i].compile2nd();
+		btn[i].place2nd();
 	}
 }
 
@@ -186,7 +186,7 @@ ButtonConfigSetView::ButtonConfigSetView(ViewAttachParams attach,
 		rootIMView{rootIMView},
 		actionStr{actionName} {}
 
-bool ButtonConfigSetView::pointerUIIsInit()
+bool ButtonConfigSetView::pointerUIIsInit() const
 {
 	return unbindB.x != unbindB.x2;
 }
@@ -224,7 +224,7 @@ void ButtonConfigSetView::place()
 	}
 }
 
-bool ButtonConfigSetView::inputEvent(const Input::Event &e)
+bool ButtonConfigSetView::inputEvent(const Input::Event& e, ViewInputEventParams)
 {
 	return e.visit(overloaded
 	{
@@ -311,7 +311,7 @@ void ButtonConfigSetView::finalize()
 	onSet(mappedKeys);
 }
 
-void ButtonConfigSetView::draw(Gfx::RendererCommands &__restrict__ cmds)
+void ButtonConfigSetView::draw(Gfx::RendererCommands&__restrict__ cmds, ViewDrawParams) const
 {
 	using namespace IG::Gfx;
 	auto &basicEffect = cmds.basicEffect();

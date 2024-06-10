@@ -454,7 +454,7 @@ constexpr RomListEntry romlist[]
 
 static FS::PathString gameFilePath(EmuApp &app, std::string_view name)
 {
-	auto basePath = app.contentSearchPath(name);
+	auto basePath = app.inContentSearchPath(name);
 	auto ctx = app.appContext();
 	if(auto zipPath = basePath + ".zip";
 		ctx.fileUriExists(zipPath))
@@ -506,7 +506,7 @@ public:
 		fileList.reserve(4095); // avoid initial small re-allocations
 		try
 		{
-			ctx.forEachInDirectoryUri(app().contentSearchPath(),
+			ctx.forEachInDirectoryUri(app().contentSearchPath,
 				[&](auto &entry)
 				{
 					if(entry.type() == FS::file_type::directory)

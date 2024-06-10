@@ -294,7 +294,7 @@ public:
 	{
 		hdName[slot] = name;
 		updateHDText(slot);
-		hdSlot[slot].compile();
+		hdSlot[slot].place();
 	}
 
 	void addHDFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
@@ -362,7 +362,7 @@ public:
 	{
 		system().cartName[slot] = name;
 		updateROMText(slot);
-		romSlot[slot].compile();
+		romSlot[slot].place();
 		updateHDStatusFromCartSlot(slot);
 	}
 
@@ -444,7 +444,7 @@ public:
 	{
 		system().diskName[slot] = name;
 		updateDiskText(slot);
-		diskSlot[slot].compile();
+		diskSlot[slot].place();
 	}
 
 	void addDiskFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)

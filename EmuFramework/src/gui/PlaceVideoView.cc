@@ -63,7 +63,7 @@ void PlaceVideoView::place()
 	Quad{{.bounds = resetBounds.as<int16_t>()}}.write(map, 3);
 }
 
-bool PlaceVideoView::inputEvent(const Input::Event &e)
+bool PlaceVideoView::inputEvent(const Input::Event& e, ViewInputEventParams)
 {
 	return e.visit(overloaded
 	{
@@ -153,7 +153,7 @@ bool PlaceVideoView::inputEvent(const Input::Event &e)
 	});
 }
 
-void PlaceVideoView::draw(Gfx::RendererCommands &__restrict__ cmds)
+void PlaceVideoView::draw(Gfx::RendererCommands&__restrict__ cmds, ViewDrawParams) const
 {
 	using namespace IG::Gfx;
 	vController.draw(cmds, true);

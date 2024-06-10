@@ -83,9 +83,9 @@ bool NavView::selectNextRightButton()
 	return false;
 }
 
-bool NavView::inputEvent(const Input::Event &e)
+bool NavView::inputEvent(const Input::Event &e, ViewInputEventParams)
 {
-	return visit(overloaded
+	return e.visit(overloaded
 	{
 		[&](const Input::KeyEvent &keyEv)
 		{
@@ -141,7 +141,7 @@ bool NavView::inputEvent(const Input::Event &e)
 			}
 			return false;
 		}
-	}, e);
+	});
 }
 
 void NavView::prepareDraw()
@@ -222,7 +222,7 @@ void BasicNavView::setBackgroundGradient(std::span<const Gfx::LGradientStopDesc>
 	std::ranges::copy(gradStops, gradientStops.begin());
 }
 
-void BasicNavView::draw(Gfx::RendererCommands &__restrict__ cmds)
+void BasicNavView::draw(Gfx::RendererCommands &__restrict__ cmds, ViewDrawParams) const
 {
 	using namespace IG::Gfx;
 	auto const &textRect = control[1].rect;

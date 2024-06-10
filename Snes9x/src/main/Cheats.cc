@@ -231,7 +231,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 					}
 					writeCheatsFile(system());
 					addr.set2ndName(addrStr);
-					addr.compile();
+					addr.place();
 					postDraw();
 					return true;
 				});
@@ -266,7 +266,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 					}
 					writeCheatsFile(system());
 					value.set2ndName(valueStr);
-					value.compile();
+					value.place();
 					postDraw();
 					return true;
 				});
@@ -322,7 +322,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 						}
 						writeCheatsFile(system());
 						saved.set2ndName(savedStr);
-						saved.compile();
+						saved.place();
 						postDraw();
 					}
 					view.dismiss();
@@ -381,7 +381,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		attach,
 		[this](ItemMessage msg) -> ItemReply
 		{
-			return visit(overloaded
+			return msg.visit(overloaded
 			{
 				[&](const ItemsMessage &m) -> ItemReply { return 1 + cheat.size(); },
 				[&](const GetItemMessage &m) -> ItemReply
@@ -392,7 +392,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						default: return &cheat[m.idx - 1];
 					}
 				},
-			}, msg);
+			});
 		}
 	},
 	addCode

@@ -51,7 +51,7 @@ class EmuMenuViewStack : public ViewStack
 {
 public:
 	EmuMenuViewStack(ViewAttachParams, EmuApp &);
-	bool inputEvent(const Input::Event &) final;
+	bool inputEvent(const Input::Event&) final;
 	constexpr EmuApp &app() { return *emuAppPtr; }
 
 protected:
@@ -70,7 +70,7 @@ public:
 	void popTo(View &v) final;
 	void dismissView(View &v, bool refreshLayout) final;
 	void dismissView(int idx, bool refreshLayout) final;
-	bool inputEvent(const Input::Event &) final;
+	bool inputEvent(const Input::Event&) final;
 	bool extraWindowInputEvent(const Input::Event &e);
 	void showEmulationView(FrameTimeConfig);
 	void showMenuView(bool updateTopView);

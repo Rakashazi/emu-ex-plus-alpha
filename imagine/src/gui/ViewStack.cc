@@ -82,7 +82,7 @@ void BasicViewController::place()
 	view->place();
 }
 
-bool BasicViewController::inputEvent(const Input::Event &e)
+bool BasicViewController::inputEvent(const Input::Event& e)
 {
 	return view->inputEvent(e);
 }

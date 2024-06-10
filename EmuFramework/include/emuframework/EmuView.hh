@@ -36,16 +36,15 @@ public:
 	EmuView(ViewAttachParams, EmuVideoLayer *, EmuSystem &);
 	void place() final;
 	void prepareDraw() final;
-	void draw(Gfx::RendererCommands &__restrict__) final;
+	void draw(Gfx::RendererCommands &__restrict__, ViewDrawParams p = {}) const final;
 	void drawframeTimeStatsText(Gfx::RendererCommands &__restrict__);
-	bool inputEvent(const Input::Event &) final;
 	bool hasLayer() const { return layer; }
 	void setLayoutInputView(EmuInputView *view) { inputView = view; }
 	void updateFrameTimeStats(FrameTimeStats, SteadyClockTimePoint currentFrameTimestamp);
 	void updateAudioStats(int underruns, int overruns, int callbacks, double avgCallbackFrames, int frames);
 	void clearAudioStats();
 	EmuVideoLayer *videoLayer() const { return layer; }
-	EmuSystem &system() { return *sysPtr; }
+	auto& system(this auto&& self) { return *self.sysPtr; }
 
 private:
 	EmuVideoLayer *layer{};

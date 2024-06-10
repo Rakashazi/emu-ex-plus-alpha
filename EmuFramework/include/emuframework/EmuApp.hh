@@ -190,9 +190,7 @@ public:
 	bool loadState(CStringView path);
 	bool loadStateWithSlot(int slot);
 	bool shouldOverwriteExistingState() const;
-	const auto &contentSearchPath() const { return contentSearchPath_; }
-	FS::PathString contentSearchPath(std::string_view name) const;
-	void setContentSearchPath(auto &&path) { contentSearchPath_ = IG_forward(path); }
+	FS::PathString inContentSearchPath(std::string_view name) const;
 	FS::PathString validSearchPath(const FS::PathString &) const;
 	static void updateLegacySavePath(IG::ApplicationContext, CStringView path);
 	auto screenshotDirectory() const { return system().userPath(userScreenshotPath); }
@@ -219,6 +217,7 @@ public:
 	void unsetDisabledInputKeys();
 	Gfx::TextureSpan asset(AssetID) const;
 	Gfx::TextureSpan asset(AssetDesc) const;
+	Gfx::TextureSpan collectTextCloseAsset() const;
 	VController &defaultVController() { return inputManager.vController; }
 	std::unique_ptr<View> makeView(ViewAttachParams, ViewID);
 	std::unique_ptr<YesNoAlertView> makeCloseContentView();
@@ -331,11 +330,10 @@ public:
 		postMessage(secs, true, IG_forward(msg));
 	}
 
-protected:
+public:
 	IG::FontManager fontManager;
 	mutable Gfx::Renderer renderer;
 	ViewManager viewManager;
-public:
 	EmuAudio audio;
 	EmuVideo video;
 	EmuVideoLayer videoLayer;
@@ -349,7 +347,6 @@ protected:
 	EmuSystemTask emuSystemTask{*this};
 	mutable Gfx::Texture assetBuffImg[wise_enum::size<AssetFileID>];
 	int savedAdvancedFrames{};
-	FS::PathString contentSearchPath_;
 	[[no_unique_address]] IG::Data::PixmapReader pixmapReader;
 	[[no_unique_address]] IG::Data::PixmapWriter pixmapWriter;
 	[[no_unique_address]] PerformanceHintManager perfHintManager;
@@ -361,6 +358,7 @@ protected:
 public:
 	BluetoothAdapter bluetoothAdapter;
 	RecentContent recentContent;
+	FS::PathString contentSearchPath;
 	std::string userScreenshotPath;
 	Property<IG::PixelFormat, CFGKEY_RENDER_PIXEL_FORMAT,
 		PropertyDesc<IG::PixelFormat>{.isValid = renderPixelFormatIsValid}> renderPixelFormat;
@@ -418,13 +416,13 @@ public:
 	ConditionalMember<Gfx::supportsPresentationTime, PresentationTimeMode> presentationTimeMode{PresentationTimeMode::basic};
 	Property<bool, CFGKEY_BLANK_FRAME_INSERTION> allowBlankFrameInsertion;
 
+protected:
 	struct ConfigParams
 	{
 		Gfx::DrawableConfig windowDrawableConf{};
 	};
 
 	void onMainWindowCreated(ViewAttachParams, const Input::Event &);
-	Gfx::TextureSpan collectTextCloseAsset() const;
 	ConfigParams loadConfigFile(IG::ApplicationContext);
 	void saveConfigFile(IG::ApplicationContext);
 	void saveConfigFile(FileIO &);

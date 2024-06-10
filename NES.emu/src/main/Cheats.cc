@@ -55,7 +55,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 		u"",
 		[this](ItemMessage msg) -> ItemReply
 		{
-			return visit(overloaded
+			return msg.visit(overloaded
 			{
 				[&](const ItemsMessage &m) -> ItemReply { return type ? 3uz : 5uz; },
 				[&](const GetItemMessage &m) -> ItemReply
@@ -81,7 +81,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 						}
 					}
 				},
-			}, msg);
+			});
 		},
 		[this](TextMenuItem &, View &, Input::Event)
 		{
@@ -116,7 +116,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 					addrStr = a ? str : "0";
 					syncCheat();
 					addr.set2ndName(addrStr);
-					addr.compile();
+					addr.place();
 					postDraw();
 					return true;
 				});
@@ -143,7 +143,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 					valueStr = a ? str : "0";
 					syncCheat();
 					value.set2ndName(valueStr);
-					value.compile();
+					value.place();
 					postDraw();
 					return true;
 				});
@@ -179,7 +179,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 							comp.set2ndName();
 						}
 						syncCheat();
-						comp.compile();
+						comp.place();
 						postDraw();
 					}
 					view.dismiss();
@@ -205,7 +205,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 					ggCodeStr = str;
 					syncCheat();
 					ggCode.set2ndName(str);
-					ggCode.compile();
+					ggCode.place();
 					postDraw();
 					return true;
 				});
@@ -312,7 +312,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		attach,
 		[this](ItemMessage msg) -> ItemReply
 		{
-			return visit(overloaded
+			return msg.visit(overloaded
 			{
 				[&](const ItemsMessage &m) -> ItemReply { return 2 + cheat.size(); },
 				[&](const GetItemMessage &m) -> ItemReply
@@ -324,7 +324,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						default: return &cheat[m.idx - 2];
 					}
 				},
-			}, msg);
+			});
 		}
 	},
 	addGG

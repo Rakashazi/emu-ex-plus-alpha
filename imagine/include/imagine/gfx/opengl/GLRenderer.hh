@@ -124,13 +124,8 @@ public:
 	#ifdef __ANDROID__
 	void (GL_APIENTRYP glEGLImageTargetTexStorageEXT)(GLenum target, GLeglImageOES image, const GLint* attrib_list){};
 	#endif
-	#if defined CONFIG_GFX_OPENGL_DEBUG_CONTEXT && defined CONFIG_GFX_OPENGL_ES
-	void GL_APIENTRY (*glDebugMessageCallback)(GLDEBUGPROCKHR callback, const void *userParam){};
-	static constexpr auto DEBUG_OUTPUT = GL_DEBUG_OUTPUT_KHR;
-	#elif defined CONFIG_GFX_OPENGL_DEBUG_CONTEXT
-	void GL_APIENTRY (*glDebugMessageCallback)(GLDEBUGPROC callback, const void *userParam){};
-	static constexpr auto DEBUG_OUTPUT = GL_DEBUG_OUTPUT;
-	#endif
+	using GLDebugMessageCallback = void (GL_APIENTRY *)(GLDEBUGPROC callback, const void *userParam);
+	ConditionalMember<Config::OpenGLDebugContext, GLDebugMessageCallback> glDebugMessageCallback{};
 	ConditionalMemberOr<(bool)Config::Gfx::OPENGL_ES, GLenum, GL_RED> luminanceFormat{GL_LUMINANCE};
 	ConditionalMemberOr<(bool)Config::Gfx::OPENGL_ES, GLenum, GL_R8>  luminanceInternalFormat{GL_LUMINANCE8};
 	ConditionalMemberOr<(bool)Config::Gfx::OPENGL_ES, GLenum, GL_RG>  luminanceAlphaFormat{GL_LUMINANCE_ALPHA};
@@ -147,7 +142,7 @@ public:
 	ConditionalMemberOr<(bool)Config::Gfx::OPENGL_ES, bool, true> hasPBOFuncs{};
 	ConditionalMemberOr<(bool)Config::Gfx::OPENGL_ES, bool, false> useLegacyGLSL{true};
 	ConditionalMemberOr<(bool)Config::Gfx::OPENGL_ES, bool, true> hasSrgbWriteControl{};
-	ConditionalMember<Config::Gfx::OPENGL_DEBUG_CONTEXT, bool> hasDebugOutput{};
+	ConditionalMember<Config::OpenGLDebugContext, bool> hasDebugOutput{};
 	ConditionalMember<!Config::Gfx::OPENGL_ES, bool> hasBufferStorage{};
 	ConditionalMember<Config::envIsAndroid, bool> hasEGLImages{};
 	ConditionalMember<Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL, bool> hasExternalEGLImages{};
@@ -199,7 +194,6 @@ protected:
 	void setupAppleFenceSync();
 	void setupEglFenceSync(std::string_view eglExtenstionStr);
 	void checkExtensionString(std::string_view extStr);
-	void checkFullExtensionString(const char *fullExtStr);
 	bool attachWindow(Window &, GLBufferConfig, GLColorSpace);
 	NativeWindowFormat nativeWindowFormat(GLBufferConfig) const;
 	bool initBasicEffect();

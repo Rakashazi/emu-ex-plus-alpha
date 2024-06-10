@@ -39,8 +39,9 @@ void TextTableView::onAddedToController(ViewController *c, const Input::Event &e
 
 void TextTableView::drawElement(Gfx::RendererCommands &__restrict__ cmds, size_t i, MenuItem &item, WRect rect, int xIndent) const
 {
-	item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(),
-		xIndent, TableView::align, menuTextColor((int)i == activeItem));
+	MenuItemDrawAttrs attrs{.rect = {{rect.x, rect.pos(C2DO).y}, rect.size()},
+		.xIndent = xIndent, .color = menuTextColor((int)i == activeItem), .align = TableView::align};
+	item.draw(cmds, attrs);
 }
 
 }

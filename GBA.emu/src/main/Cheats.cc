@@ -155,7 +155,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		attach,
 		[this](ItemMessage msg) -> ItemReply
 		{
-			return visit(overloaded
+			return msg.visit(overloaded
 			{
 				[&](const ItemsMessage &m) -> ItemReply { return 2 + cheat.size(); },
 				[&](const GetItemMessage &m) -> ItemReply
@@ -167,7 +167,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						default: return &cheat[m.idx - 2];
 					}
 				},
-			}, msg);
+			});
 		}
 	},
 	addGS12CBCode

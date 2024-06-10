@@ -85,7 +85,7 @@ static bool shouldExitFromViewRootWithoutPrompt(const Input::KeyEvent &e)
 EmuMenuViewStack::EmuMenuViewStack(ViewAttachParams attach, EmuApp &app):
 	ViewStack(attach), emuAppPtr{&app} {}
 
-bool EmuMenuViewStack::inputEvent(const Input::Event &e)
+bool EmuMenuViewStack::inputEvent(const Input::Event& e)
 {
 	if(ViewStack::inputEvent(e))
 	{
@@ -154,7 +154,7 @@ void EmuViewController::dismissView(int idx, bool refreshLayout)
 	viewStack.dismissView(idx, showingEmulation ? false : refreshLayout);
 }
 
-bool EmuViewController::inputEvent(const Input::Event &e)
+bool EmuViewController::inputEvent(const Input::Event& e)
 {
 	if(showingEmulation)
 	{

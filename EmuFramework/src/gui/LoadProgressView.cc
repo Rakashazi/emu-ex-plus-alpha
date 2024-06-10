@@ -127,12 +127,7 @@ void LoadProgressView::place()
 	updateProgressRect();
 }
 
-bool LoadProgressView::inputEvent(const Input::Event &e)
-{
-	return true;
-}
-
-void LoadProgressView::draw(Gfx::RendererCommands &__restrict__ cmds)
+void LoadProgressView::draw(Gfx::RendererCommands&__restrict__ cmds, ViewDrawParams) const
 {
 	if(!text.isVisible())
 		return;

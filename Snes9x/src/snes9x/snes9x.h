@@ -8,7 +8,7 @@
 #define _SNES9X_H_
 
 #ifndef VERSION
-#define VERSION	"1.62.3"
+#define VERSION	"1.63"
 #endif
 
 #include "port.h"
@@ -279,7 +279,7 @@ struct SSettings
 
 	static const bool8	ForcedPause = 0;
 	static const bool8	Paused = 0;
-	static const bool8	StopEmulation = 0;
+	static bool8	StopEmulation;
 
 	static uint32	SkipFrames;
 	static uint32	TurboSkipFrames;

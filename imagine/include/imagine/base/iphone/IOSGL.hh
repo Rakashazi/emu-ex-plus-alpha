@@ -31,7 +31,7 @@ namespace IG
 
 class GLDisplay;
 class GLContext;
-class GLContextAttributes;
+struct GLContextAttributes;
 
 class GLManagerImpl
 {

@@ -52,7 +52,7 @@ bool8 S9xGraphicsInit (void)
 
 	GFX.ScreenBuffer.resize(MAX_SNES_WIDTH * (MAX_SNES_HEIGHT + 64));
 	GFX.Screen = &GFX.ScreenBuffer[GFX.RealPPL * 32];
-	GFX.ZERO = (uint16 *) calloc(sizeof(uint16), 0x10000);
+	GFX.ZERO = (uint16 *) calloc(0x10000, sizeof(uint16));
 	GFX.SubScreen  = (uint16 *) calloc(GFX.ScreenSize, sizeof(uint16));
 	GFX.ZBuffer    = (uint8 *)  calloc(GFX.ScreenSize, 1);
 	GFX.SubZBuffer = (uint8 *)  calloc(GFX.ScreenSize, 1);

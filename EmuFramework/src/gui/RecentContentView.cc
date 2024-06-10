@@ -28,11 +28,11 @@ RecentContentView::RecentContentView(ViewAttachParams attach, RecentContent &rec
 		"Recent Content", attach,
 		[this](TableView::ItemMessage msg)
 		{
-			return visit(overloaded
+			return msg.visit(overloaded
 			{
 				[&](const ItemsMessage &m) -> ItemReply { return 1 + recentItems.size(); },
 				[&](const GetItemMessage &m) -> ItemReply { return m.idx < recentItems.size() ? &recentItems[m.idx] : &clear; },
-			}, msg);
+			});
 		}
 	},
 	clear

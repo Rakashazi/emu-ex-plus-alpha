@@ -45,13 +45,6 @@ namespace Config
 	static constexpr bool OPENGL_TEXTURE_TARGET_EXTERNAL = false;
 	#endif
 
-	#if !defined NDEBUG && !defined __APPLE__
-	#define CONFIG_GFX_OPENGL_DEBUG_CONTEXT
-	static constexpr bool OPENGL_DEBUG_CONTEXT = true;
-	#else
-	static constexpr bool OPENGL_DEBUG_CONTEXT = false;
-	#endif
-
 	#if defined CONFIG_OS_IOS
 	static constexpr bool GLDRAWABLE_NEEDS_FRAMEBUFFER = true;
 	#else
@@ -62,51 +55,10 @@ namespace Config
 
 // Header Locations For Platform
 
-#if defined CONFIG_OS_IOS
-#import <OpenGLES/ES2/gl.h>
-#import <OpenGLES/ES2/glext.h>
-#elif defined CONFIG_BASE_MACOSX
-#import <OpenGL/gl3.h>
-#import <OpenGL/gl3ext.h>
-#elif defined CONFIG_BASE_WIN32
-#include <util/windows/windows.h>
-#define GLEW_STATIC
-#include <GL/glew.h>
-#include <GL/wglew.h>
-#elif defined CONFIG_GFX_OPENGL_ES // Generic OpenGL ES headers
-#define GL_GLEXT_PROTOTYPES
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
-#undef GL_GLEXT_PROTOTYPES
-#else // Generic OpenGL headers
-#define GL_GLEXT_PROTOTYPES
-#include <GL/gl.h>
-#include <GL/glext.h>
-#undef GL_GLEXT_PROTOTYPES
-#endif
-
-// Symbol Re-mapping
-
 #if defined CONFIG_GFX_OPENGL_ES
-	#ifndef GL_BGRA
-	#define GL_BGRA GL_BGRA_EXT
-	#endif
-	#ifndef GL_ALPHA8
-	#define GL_ALPHA8 0x803C
-	#endif
-	#ifndef GL_LUMINANCE8
-	#define GL_LUMINANCE8 0x8040
-	#endif
-	#ifndef GL_LUMINANCE8_ALPHA8
-	#define GL_LUMINANCE8_ALPHA8 0x8045
-	#endif
-	#ifndef GL_SYNC_FLUSH_COMMANDS_BIT
-	#define GL_SYNC_FLUSH_COMMANDS_BIT 0x00000001
-	#endif
-#endif
-
-#ifndef GL_APIENTRY
-#define GL_APIENTRY GLAPIENTRY
+#include <imagine/util/opengl/glesDefs.h>
+#else
+#include <imagine/util/opengl/glDefs.h>
 #endif
 
 namespace IG::Gfx

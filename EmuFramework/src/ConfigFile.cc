@@ -103,7 +103,7 @@ void EmuApp::saveConfigFile(FileIO &io)
 	writeOptionValueIfNotDefault(io, presentMode);
 	if(renderer.supportsPresentationTime())
 		writeOptionValueIfNotDefault(io, CFGKEY_RENDERER_PRESENTATION_TIME, presentationTimeMode, PresentationTimeMode::basic);
-	writeStringOptionValue(io, CFGKEY_LAST_DIR, contentSearchPath());
+	writeStringOptionValue(io, CFGKEY_LAST_DIR, contentSearchPath);
 	writeStringOptionValue(io, CFGKEY_SAVE_PATH, system().userSaveDirectory());
 	writeStringOptionValue(io, CFGKEY_SCREENSHOTS_PATH, userScreenshotPath);
 	system().writeConfig(ConfigType::MAIN, io);
@@ -171,7 +171,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_FRAME_RATE: return readOptionValue<FrameTime>(io, [&](auto &&val){outputTimingManager.setFrameTimeOption(VideoSystem::NATIVE_NTSC, val);});
 				case CFGKEY_FRAME_RATE_PAL: return readOptionValue<FrameTime>(io, [&](auto &&val){outputTimingManager.setFrameTimeOption(VideoSystem::PAL, val);});
 				case CFGKEY_LAST_DIR:
-					return readStringOptionValue<FS::PathString>(io, [&](auto &&path){setContentSearchPath(path);});
+					return readStringOptionValue<FS::PathString>(io, [&](auto &&path){contentSearchPath = path;});
 				case CFGKEY_FONT_Y_SIZE: return readOptionValue(io, fontSize);
 				case CFGKEY_GAME_ORIENTATION: return readOptionValue(io, emuOrientation);
 				case CFGKEY_MENU_ORIENTATION: return readOptionValue(io, menuOrientation);

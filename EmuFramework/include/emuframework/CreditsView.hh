@@ -30,9 +30,9 @@ public:
 	CreditsView(ViewAttachParams attach, UTF16String str);
 	~CreditsView();
 	void prepareDraw() final;
-	void draw(Gfx::RendererCommands &__restrict__) final;
+	void draw(Gfx::RendererCommands&__restrict__, ViewDrawParams p = {}) const final;
 	void place() final;
-	bool inputEvent(const Input::Event &) final;
+	bool inputEvent(const Input::Event&, ViewInputEventParams p = {}) final;
 	std::u16string_view name() const final;
 
 private:

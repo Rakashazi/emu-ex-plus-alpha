@@ -43,8 +43,8 @@ public:
 
 	IdentInputDeviceView(ViewAttachParams attach);
 	void place() final;
-	bool inputEvent(const Input::Event &) final;
-	void draw(Gfx::RendererCommands &__restrict__) final;
+	bool inputEvent(const Input::Event&, ViewInputEventParams p = {}) final;
+	void draw(Gfx::RendererCommands&__restrict__, ViewDrawParams p = {}) const final;
 
 private:
 	Gfx::Text text;

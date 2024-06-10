@@ -110,17 +110,17 @@ EmuApp::EmuApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	if(needsGlobalInstance)
 		gAppPtr = this;
 	ctx.setAcceptIPC(true);
-	onEvent = [this](ApplicationContext ctx, ApplicationEvent appEvent)
+	onEvent = [this](ApplicationContext ctx, const ApplicationEvent& appEvent)
 	{
-		visit(overloaded
+		appEvent.visit(overloaded
 		{
-			[&](DocumentPickerEvent& e)
+			[&](const DocumentPickerEvent& e)
 			{
 				log.info("document picked with URI:{}", e.uri);
 				system().setInitialLoadPath(e.uri);
 			},
 			[](auto &) {}
-		}, appEvent);
+		});
 	};
 	initOptions(ctx);
 }
@@ -144,7 +144,7 @@ public:
 		}
 	}
 
-	bool inputEvent(const Input::Event &e) final
+	bool inputEvent(const Input::Event &e, ViewInputEventParams) final
 	{
 		if(e.keyEvent() && e.keyEvent()->pushed(Input::DefaultKey::CANCEL))
 		{
@@ -459,12 +459,11 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 			winData.viewController.placeElements();
 			winData.viewController.pushAndShow(makeView(viewAttach, ViewID::MAIN_MENU));
 			configureSecondaryScreens();
-			video.setOnFormatChanged(
-				[this, &viewController = winData.viewController](EmuVideo &)
-				{
-					videoLayer.onVideoFormatChanged(videoEffectPixelFormat());
-					viewController.placeEmuViews();
-				});
+			video.onFormatChanged =  [this, &viewController = winData.viewController](EmuVideo&)
+			{
+				videoLayer.onVideoFormatChanged(videoEffectPixelFormat());
+				viewController.placeEmuViews();
+			};
 			video.setRendererTask(renderer.task());
 			video.setTextureBufferMode(system(), textureBufferMode);
 			videoLayer.setRendererTask(renderer.task());
@@ -476,18 +475,18 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 				return true;
 			};
 
-			win.onEvent = [this](Window &win, WindowEvent winEvent)
+			win.onEvent = [this](Window& win, const WindowEvent& winEvent)
 			{
-				return visit(overloaded
+				return winEvent.visit(overloaded
 				{
-					[&](Input::Event &e) { return viewController().inputEvent(e); },
-					[&](DrawEvent &e)
+					[&](const Input::Event& e) { return viewController().inputEvent(e); },
+					[&](const DrawEvent& e)
 					{
 						record(FrameTimeStatEvent::startOfDraw);
 						auto reportTime = scopeGuard([&]{ reportFrameWorkTime(); });
 						return viewController().drawMainWindow(win, e.params, renderer.task());
 					},
-					[&](WindowSurfaceChangeEvent &e)
+					[&](const WindowSurfaceChangeEvent& e)
 					{
 						if(e.change.resized())
 						{
@@ -496,36 +495,36 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 						renderer.task().updateDrawableForSurfaceChange(win, e.change);
 						return true;
 					},
-					[&](DragDropEvent &e)
+					[&](const DragDropEvent& e)
 					{
 						log.info("got DnD:{}", e.filename);
 						handleOpenFileCommand(e.filename);
 						return true;
 					},
-					[&](FocusChangeEvent &e)
+					[&](const FocusChangeEvent& e)
 					{
 						windowData(win).focused = e.in;
 						onFocusChange(e.in);
 						return true;
 					},
-					[](auto &){ return false; }
-				}, winEvent);
+					[](auto&){ return false; }
+				});
 			};
 
 			onMainWindowCreated(viewAttach, ctx.defaultInputEvent());
 
-			onEvent = [this](ApplicationContext ctx, ApplicationEvent appEvent)
+			onEvent = [this](ApplicationContext ctx, const ApplicationEvent& appEvent)
 			{
-				visit(overloaded
+				appEvent.visit(overloaded
 				{
-					[&](DocumentPickerEvent& e)
+					[&](const DocumentPickerEvent& e)
 					{
 						log.info("document picked with URI:{}", e.uri);
 						if(!viewController().isShowingEmulation() && viewController().top().onDocumentPicked(e))
 							return;
 						handleOpenFileCommand(e.uri);
 					},
-					[&](ScreenChangeEvent &e)
+					[&](const ScreenChangeEvent &e)
 					{
 						if(e.change == ScreenChange::added)
 						{
@@ -554,12 +553,12 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 							}
 						}
 					},
-					[&](Input::DevicesEnumeratedEvent &)
+					[&](const Input::DevicesEnumeratedEvent &)
 					{
 						log.info("input devs enumerated");
 						inputManager.updateInputDevices(ctx);
 					},
-					[&](Input::DeviceChangeEvent &e)
+					[&](const Input::DeviceChangeEvent &e)
 					{
 						log.info("got input dev change");
 						inputManager.updateInputDevices(ctx);
@@ -573,7 +572,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 						}
 						viewController().onInputDevicesChanged();
 					},
-					[&](FreeCachesEvent &e)
+					[&](const FreeCachesEvent &e)
 					{
 						viewManager.defaultFace.freeCaches();
 						viewManager.defaultBoldFace.freeCaches();
@@ -581,7 +580,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 							viewController().prepareDraw();
 					},
 					[](auto &) {}
-				}, appEvent);
+				});
 			};
 
 			ctx.addOnExit(
@@ -792,7 +791,7 @@ void EmuApp::handleOpenFileCommand(CStringView path)
 		log.info("changing to dir {} from external command", path);
 		showUI(false);
 		viewController().popToRoot();
-		setContentSearchPath(path);
+		contentSearchPath = path;
 		viewController().pushAndShow(
 			FilePicker::forLoading(attachParams(), appContext().defaultInputEvent()),
 			appContext().defaultInputEvent(),
@@ -834,14 +833,13 @@ void EmuApp::startEmulation()
 	if(!viewController().isShowingEmulation())
 		return;
 	videoLayer.setBrightnessScale(1.f);
-	video.setOnFrameFinished(
-		[&, &viewController = viewController()](EmuVideo &)
-		{
-			auto &win = viewController.emuWindow();
-			record(FrameTimeStatEvent::aboutToPostDraw);
-			win.setDrawEventPriority(1);
-			win.postDraw(1);
-		});
+	video.onFrameFinished = [&, &viewController = viewController()](EmuVideo&)
+	{
+		auto &win = viewController.emuWindow();
+		record(FrameTimeStatEvent::aboutToPostDraw);
+		win.setDrawEventPriority(1);
+		win.postDraw(1);
+	};
 	frameTimeStats = {};
 	emuSystemTask.start();
 	setCPUNeedsLowLatency(appContext(), true);
@@ -863,7 +861,7 @@ void EmuApp::pauseEmulation()
 {
 	setCPUNeedsLowLatency(appContext(), false);
 	emuSystemTask.pause();
-	video.setOnFrameFinished([](EmuVideo &){});
+	video.onFrameFinished = [](EmuVideo&){};
 	system().pause(*this);
 	setRunSpeed(1.);
 	videoLayer.setBrightnessScale(pausedVideoBrightnessScale);
@@ -1115,16 +1113,16 @@ bool EmuApp::loadStateWithSlot(int slot)
 	return loadState(system().statePath(slot));
 }
 
-FS::PathString EmuApp::contentSearchPath(std::string_view name) const
+FS::PathString EmuApp::inContentSearchPath(std::string_view name) const
 {
-	return FS::uriString(contentSearchPath_, name);
+	return FS::uriString(contentSearchPath, name);
 }
 
 FS::PathString EmuApp::validSearchPath(const FS::PathString &path) const
 {
 	auto ctx = appContext();
 	if(path.empty())
-		return contentSearchPath();
+		return contentSearchPath;
 	return hasArchiveExtension(path) ? FS::dirnameUri(path) : path;
 }
 
@@ -1456,17 +1454,17 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 				extraWinData.updateWindowViewport(win, makeViewport(win), renderer);
 				viewController().moveEmuViewToWindow(win);
 
-				win.onEvent = [this](Window &win, WindowEvent winEvent)
+				win.onEvent = [this](Window& win, const WindowEvent& winEvent)
 				{
-					return visit(overloaded
+					return winEvent.visit(overloaded
 					{
-						[&](Input::Event &e) { return viewController().extraWindowInputEvent(e); },
-						[&](DrawEvent &e)
+						[&](const Input::Event& e) { return viewController().extraWindowInputEvent(e); },
+						[&](const DrawEvent& e)
 						{
 							auto reportTime = scopeGuard([&]{ reportFrameWorkTime(); });
 							return viewController().drawExtraWindow(win, e.params, renderer.task());
 						},
-						[&](WindowSurfaceChangeEvent &e)
+						[&](const WindowSurfaceChangeEvent& e)
 						{
 							if(e.change.resized())
 							{
@@ -1475,24 +1473,24 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 							renderer.task().updateDrawableForSurfaceChange(win, e.change);
 							return true;
 						},
-						[&](DragDropEvent &e)
+						[&](const DragDropEvent& e)
 						{
 							log.info("got DnD:{}", e.filename);
 							handleOpenFileCommand(e.filename);
 							return true;
 						},
-						[&](FocusChangeEvent &e)
+						[&](const FocusChangeEvent& e)
 						{
 							windowData(win).focused = e.in;
 							onFocusChange(e.in);
 							return true;
 						},
-						[&](DismissRequestEvent &e)
+						[&](const DismissRequestEvent& e)
 						{
 							win.dismiss();
 							return true;
 						},
-						[&](DismissEvent &e)
+						[&](const DismissEvent& e)
 						{
 							system().resetFrameTime();
 							log.info("setting emu view on main window");
@@ -1508,8 +1506,8 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 							}
 							return true;
 						},
-						[](auto &){ return false; }
-					}, winEvent);
+						[](auto&){ return false; }
+					});
 				};
 
 				win.show();

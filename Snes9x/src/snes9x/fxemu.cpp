@@ -153,7 +153,7 @@ uint8 S9xGetSuperFX (uint16 address)
 
 void S9xSuperFXExec (void)
 {
-	if ((Memory.FillRAM[0x3000 + GSU_SFR] & FLG_G) && (Memory.FillRAM[0x3000 + GSU_SCMR] & 0x18) == 0x18)
+	if ((Memory.FillRAM[0x3000 + GSU_SFR] & FLG_G) && (Memory.FillRAM[0x3000 + GSU_SCMR] & 0x18) != 0)
 	{
 		FxEmulate((Memory.FillRAM[0x3000 + GSU_CLSR] & 1) ? SuperFX.speedPerLine2x : SuperFX.speedPerLine);
 
@@ -350,29 +350,19 @@ static bool8 fx_checkStartAddress (void)
 {
 	// Check if we start inside the cache
 	if (GSU.bCacheActive && R15 >= GSU.vCacheBaseReg && R15 < (GSU.vCacheBaseReg + 512))
-		return (TRUE);
+		return true;
 
-	/*
-	// Check if we're in an unused area
-	if (GSU.vPrgBankReg < 0x40 && R15 < 0x8000)
-		return (FALSE);
-	*/
 
-	if (GSU.vPrgBankReg >= 0x60 && GSU.vPrgBankReg <= 0x6f)
-		return (FALSE);
+	if (SCMR & (1 << 4))
+	{
+		if (GSU.vPrgBankReg <= 0x5f || GSU.vPrgBankReg >= 0x80)
+			return true;
+	}
 
-	if (GSU.vPrgBankReg >= 0x74)
-		return (FALSE);
+	if (GSU.vPrgBankReg <= 0x7f && (SCMR & (1 << 3)))
+		return true;
 
-	// Check if we're in RAM and the RAN flag is not set
-	if (GSU.vPrgBankReg >= 0x70 && GSU.vPrgBankReg <= 0x73 && !(SCMR & (1 << 3)))
-		return (FALSE);
-
-	// If not, we're in ROM, so check if the RON flag is set
-	if (!(SCMR & (1 << 4)))
-		return (FALSE);
-
-	return (TRUE);
+	return false;
 }
 
 // Execute until the next stop instruction

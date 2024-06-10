@@ -28,6 +28,13 @@
 namespace IG
 {
 
+class WindowEvent: public WindowEventVariant, public AddVisit
+{
+public:
+	using WindowEventVariant::WindowEventVariant;
+	using AddVisit::visit;
+};
+
 class BaseWindow
 {
 public:

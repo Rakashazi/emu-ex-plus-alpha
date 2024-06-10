@@ -39,7 +39,7 @@ void EmuView::prepareDraw()
 	#endif
 }
 
-void EmuView::draw(Gfx::RendererCommands &__restrict__ cmds)
+void EmuView::draw(Gfx::RendererCommands&__restrict__ cmds, ViewDrawParams) const
 {
 	using namespace IG::Gfx;
 	if(layer && system().isStarted())
@@ -106,11 +106,6 @@ void EmuView::placeFrameTimeStats()
 			stats.bgQuads.write(0, {.bounds = rect.as<int16_t>()});
 		}
 	});
-}
-
-bool EmuView::inputEvent(const Input::Event &e)
-{
-	return false;
 }
 
 void EmuView::updateFrameTimeStats(FrameTimeStats stats, SteadyClockTimePoint currentFrameTimestamp)

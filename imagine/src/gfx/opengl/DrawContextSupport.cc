@@ -234,21 +234,18 @@ static LoggerSeverity severityToLogger(GLenum severity)
 
 void DrawContextSupport::setGLDebugOutput(bool on)
 {
-	#ifdef CONFIG_GFX_OPENGL_DEBUG_CONTEXT
 	if(!hasDebugOutput)
 		return;
 	if(!on)
 	{
-		glDisable(DEBUG_OUTPUT);
+		glDisable(GL_DEBUG_OUTPUT);
 	}
 	else
 	{
 		if(!glDebugMessageCallback) [[unlikely]]
 		{
-			auto glDebugMessageCallbackStr =
-					Config::Gfx::OPENGL_ES ? "glDebugMessageCallbackKHR" : "glDebugMessageCallback";
-			log.warn("enabling debug output with {}", glDebugMessageCallbackStr);
-			glDebugMessageCallback = (typeof(glDebugMessageCallback))GLManager::procAddress(glDebugMessageCallbackStr);
+			log.warn("enabling debug output with {}", glDebugMessageCallbackName);
+			glDebugMessageCallback = (typeof(glDebugMessageCallback))GLManager::procAddress(glDebugMessageCallbackName);
 		}
 		glDebugMessageCallback(
 			GL_APIENTRY [](GLenum source, GLenum type, GLuint id,
@@ -266,9 +263,8 @@ void DrawContextSupport::setGLDebugOutput(bool on)
 				if(severity == GL_DEBUG_SEVERITY_HIGH && type != GL_DEBUG_TYPE_PERFORMANCE)
 					abort();
 			}, nullptr);
-		glEnable(DEBUG_OUTPUT);
+		glEnable(GL_DEBUG_OUTPUT);
 	}
-	#endif
 }
 
 }
