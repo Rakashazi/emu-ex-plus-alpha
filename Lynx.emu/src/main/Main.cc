@@ -42,7 +42,7 @@ bool EmuApp::needsGlobalInstance = true;
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
-		return endsWithAnyCaseless(name, ".lnx", ".o");
+		return endsWithAnyCaseless(name, ".lnx", ".lyx", ".bll", ".o");
 	};
 
 using namespace Mednafen;

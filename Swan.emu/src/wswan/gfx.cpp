@@ -600,7 +600,36 @@ void WSwan_SetLayerEnableMask(uint64 mask)
  LayerEnabled = mask;
 }
 
-void WSwan_SetPixelFormat(const MDFN_PixelFormat &format)
+#define LERP_MONO_PALETTE_COLOR(start, end, offset) (uint32)(((float)(((15 - offset) * start) + (offset * end)) / 15.0f) + 0.5f)
+
+void WSwan_SetMonoPalette(int depth, uint32 mono_start, uint32 mono_end)
+{
+   unsigned i;
+
+   uint32 r_start = (mono_start >> 16) & 0xFF;
+   uint32 g_start = (mono_start >>  8) & 0xFF;
+   uint32 b_start = (mono_start      ) & 0xFF;
+
+   uint32 r_end   = (mono_end   >> 16) & 0xFF;
+   uint32 g_end   = (mono_end   >>  8) & 0xFF;
+   uint32 b_end   = (mono_end        ) & 0xFF;
+
+   for(i = 0; i < 16; i++)
+   {
+      uint32 neo_r = LERP_MONO_PALETTE_COLOR(r_start, r_end, i);
+      uint32 neo_g = LERP_MONO_PALETTE_COLOR(g_start, g_end, i);
+      uint32 neo_b = LERP_MONO_PALETTE_COLOR(b_start, b_end, i);
+
+      switch(depth)
+      {
+         case 15: ColorMapG[i] = MAKECOLOR_15(neo_r, neo_g, neo_b, 0); break;
+         case 16: ColorMapG[i] = MAKECOLOR_16(neo_r, neo_g, neo_b, 0); break;
+         case 24: ColorMapG[i] = MAKECOLOR_24(neo_r, neo_g, neo_b, 0); break;
+      }
+   }
+}
+
+void WSwan_SetPixelFormat(int depth, uint32 mono_start, uint32 mono_end)
 {
  for(int r = 0; r < 16; r++)
   for(int g = 0; g < 16; g++)
@@ -615,15 +644,7 @@ void WSwan_SetPixelFormat(const MDFN_PixelFormat &format)
     ColorMap[(r << 8) | (g << 4) | (b << 0)] = format.MakeColor(neo_r, neo_g, neo_b); //(neo_r << rs) | (neo_g << gs) | (neo_b << bs);
    }
 
- for(int i = 0; i < 16; i++)
- {
-  uint32 neo_r, neo_g, neo_b;
-
-  neo_r = (i) * 17;
-  neo_g = (i) * 17;
-  neo_b = (i) * 17;
-
-  ColorMapG[i] = format.MakeColor(neo_r, neo_g, neo_b); //(neo_r << rs) | (neo_g << gs) | (neo_b << bs);
+   WSwan_SetMonoPalette(depth, mono_start, mono_end);
  }
 }
 

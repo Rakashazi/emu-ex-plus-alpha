@@ -24,7 +24,8 @@ MDFN_HIDE extern uint32	dx_r,dx_g,dx_b,dx_sr,dx_sg,dx_sb;
 MDFN_HIDE extern uint32	dx_bits,dx_pitch,cmov,dx_linewidth_blit,dx_buffer_line;
 
 
-void WSwan_SetPixelFormat(const MDFN_PixelFormat &format);
+void WSwan_SetMonoPalette(int depth, uint32 mono_start, uint32 mono_end);
+void WSwan_SetPixelFormat(int depth, uint32 mono_start, uint32 mono_end);
 
 void WSwan_GfxInit(void) MDFN_COLD;
 void WSwan_GfxReset(void);
