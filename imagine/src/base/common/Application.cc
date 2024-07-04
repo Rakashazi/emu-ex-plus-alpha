@@ -45,7 +45,7 @@ void BaseApplication::addWindow(std::unique_ptr<Window> winPtr)
 
 std::unique_ptr<Window> BaseApplication::moveOutWindow(Window &win)
 {
-	return IG::moveOutIf(window_, [&](auto &w){ return *w == win; });
+	return moveOut(window_, [&](const auto& w){ return *w == win; });
 }
 
 void BaseApplication::deinitWindows()
@@ -72,19 +72,14 @@ Screen &BaseApplication::addScreen(ApplicationContext ctx, std::unique_ptr<Scree
 	return *newScreen;
 }
 
-Screen *BaseApplication::findScreen(ScreenId id) const
+Screen* BaseApplication::findScreen(ScreenId id) const
 {
-	auto it = std::ranges::find_if(screen_, [&](const auto &s) { return *s == id; });
-	if(it == screen_.end())
-	{
-		return nullptr;
-	}
-	return it->get();
+	return findPtr(screen_, [&](const auto &s) { return *s == id; });
 }
 
 std::unique_ptr<Screen> BaseApplication::removeScreen(ApplicationContext ctx, ScreenId id, bool notify)
 {
-	auto removedScreen = IG::moveOutIf(screen_, [&](const auto &s){ return *s == id; });
+	auto removedScreen = moveOut(screen_, [&](const auto &s){ return *s == id; });
 	if(notify && removedScreen)
 		onEvent(ctx, ScreenChangeEvent{*removedScreen, ScreenChange::removed});
 	return removedScreen;

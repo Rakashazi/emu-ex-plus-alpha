@@ -55,7 +55,6 @@ public:
 	void clear() { recentContentList.clear(); }
 	void writeConfig(FileIO &) const;
 	bool readConfig(MapIO &, unsigned key, const EmuSystem &);
-	bool readLegacyConfig(MapIO &, const EmuSystem &);
 
 private:
 	std::vector<RecentContentInfo> recentContentList;

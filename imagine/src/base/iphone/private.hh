@@ -16,7 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <CoreGraphics/CGColorSpace.h>
-#include <imagine/base/iphone/config.h>
 #ifdef __OBJC__
 #import <UIKit/UIKit.h>
 #endif

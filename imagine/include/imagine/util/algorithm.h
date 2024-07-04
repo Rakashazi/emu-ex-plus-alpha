@@ -15,72 +15,77 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/concepts.hh>
 #include <algorithm>
 #include <iterator>
 #include <ranges>
+#include <optional>
 
 namespace IG
 {
 
-constexpr static auto emptyIteratorValue(Iterable auto &&c)
+template<std::ranges::range Range>
+constexpr void fill(Range&& r)
 {
-	return std::remove_cvref_t<decltype(*std::begin(c))>{};
+	std::ranges::fill(r, std::ranges::range_value_t<Range>{});
 }
 
-constexpr void fill(Iterable auto &c)
+template<std::ranges::range Range>
+constexpr std::ranges::iterator_t<Range> findIt(Range&& r, auto&& compare)
 {
-	std::ranges::fill(c, emptyIteratorValue(c));
+	if constexpr(requires {std::ranges::find_if(r, compare);})
+		return std::ranges::find_if(r, compare);
+	else
+		return std::ranges::find(r, compare);
 }
 
-constexpr int findIndex(Iterable auto &&c, const auto &val, int notFound = -1)
+template<std::ranges::range Range>
+constexpr std::optional<std::ranges::iterator_t<Range>> find(Range&& r, auto&& compare)
 {
-	auto it = std::find(std::begin(c), std::end(c), val);
-	if(it == std::end(c))
+	auto it = findIt(r, compare);
+	if(it == std::ranges::end(r))
+		return {};
+	return it;
+}
+
+constexpr ptrdiff_t findIndex(std::ranges::range auto&& r, auto&& compare, int notFound = -1)
+{
+	auto optIt = find(r, compare);
+	if(!optIt)
 		return notFound;
-	return std::distance(std::begin(c), it);
+	return std::ranges::distance(std::ranges::begin(r), optIt.value());
 }
 
-constexpr int findIndexIf(Iterable auto &&c, auto pred, int notFound = -1)
+template<std::ranges::range Range>
+constexpr std::ranges::range_value_t<Range>::pointer findPtr(Range&& r, auto&& compare)
 {
-	auto it = std::find_if(std::begin(c), std::end(c), pred);
-	if(it == std::end(c))
-		return notFound;
-	return std::distance(std::begin(c), it);
+	auto opt = find(r, compare);
+	return opt ? opt.value()->get() : nullptr;
 }
 
-constexpr bool contains(Iterable auto &&c, const auto &val)
+// TODO: replace with std::ranges::contains when libc++ 19 is released
+constexpr bool contains(std::ranges::range auto&& r, const auto& val)
 {
-	return std::find(std::begin(c), std::end(c), val) != std::end(c);
+	return find(r, val).has_value();
 }
 
-constexpr bool containsIf(Iterable auto &&c, auto pred)
+constexpr bool eraseFirst(std::ranges::range auto&& r, auto&& compare)
 {
-	return std::find_if(std::begin(c), std::end(c), pred) != std::end(c);
-}
-
-constexpr bool eraseFirst(Iterable auto &c, const auto &val)
-{
-	auto it = std::find(c.begin(), c.end(), val);
-	if(it == c.end())
+	auto optIt = find(r, compare);
+	if(!optIt)
 		return false;
-	c.erase(it);
+	r.erase(optIt.value());
 	return true;
 }
 
-constexpr auto moveOutIf(Iterable auto &c, auto pred)
+template<std::ranges::range Range>
+constexpr std::ranges::range_value_t<Range> moveOut(Range&& r, auto&& compare)
 {
-	if(auto it = std::find_if(c.begin(), c.end(), pred);
-		it != c.end())
-	{
-		auto val = std::move(*it);
-		c.erase(it);
-		return val;
-	}
-	else
-	{
-		return emptyIteratorValue(c);
-	}
+	auto optIt = find(r, compare);
+	if(!optIt)
+		return {};
+	auto val = std::move(*optIt.value());
+	r.erase(optIt.value());
+	return val;
 }
 
 template<typename InputIt, class Size, typename OutputIt, typename UnaryOperation>

@@ -276,7 +276,7 @@ static const char *parseCommandArgs(IG::CommandArgs arg)
 
 bool EmuApp::setWindowDrawableConfig(Gfx::DrawableConfig conf)
 {
-	windowDrawableConf = conf;
+	windowDrawableConfig = conf;
 	auto ctx = appContext();
 	for(auto &w : ctx.windows())
 	{
@@ -287,23 +287,9 @@ bool EmuApp::setWindowDrawableConfig(Gfx::DrawableConfig conf)
 	return true;
 }
 
-std::optional<IG::PixelFormat> EmuApp::windowDrawablePixelFormatOption() const
-{
-	if(windowDrawableConf.pixelFormat)
-		return windowDrawableConf.pixelFormat;
-	return {};
-}
-
-std::optional<Gfx::ColorSpace> EmuApp::windowDrawableColorSpaceOption() const
-{
-	if(windowDrawableConf.colorSpace != Gfx::ColorSpace{})
-		return windowDrawableConf.colorSpace;
-	return {};
-}
-
 IG::PixelFormat EmuApp::windowPixelFormat() const
 {
-	auto fmt = windowDrawableConfig().pixelFormat;
+	auto fmt = windowDrawableConfig.pixelFormat.value();
 	if(fmt)
 		return fmt;
 	return appContext().defaultWindowPixelFormat();
@@ -327,7 +313,7 @@ void EmuApp::applyRenderPixelFormat()
 		log.info("Using RGB565 render format since emulated system can't render RGBA8888");
 		fmt = IG::PixelFmtRGB565;
 	}
-	videoLayer.setFormat(system(), fmt, videoEffectPixelFormat(), windowDrawableConf.colorSpace);
+	videoLayer.setFormat(system(), fmt, videoEffectPixelFormat(), windowDrawableConfig.colorSpace);
 }
 
 void EmuApp::renderSystemFramebuffer(EmuVideo &video)
@@ -401,7 +387,7 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 	system().setInitialLoadPath(parseCommandArgs(initParams.commandArgs()));
 	audio.manager.setMusicVolumeControlHint();
 	if(!renderer.supportsColorSpace())
-		windowDrawableConf.colorSpace = {};
+		windowDrawableConfig.colorSpace = {};
 	applyOSNavStyle(ctx, false);
 
 	ctx.addOnResume(
@@ -435,11 +421,11 @@ void EmuApp::mainInitCommon(IG::ApplicationInitParams initParams, IG::Applicatio
 		});
 
 	IG::WindowConfig winConf{ .title = ctx.applicationName };
-	winConf.setFormat(windowDrawableConf.pixelFormat);
+	winConf.setFormat(windowDrawableConfig.pixelFormat);
 	ctx.makeWindow(winConf,
 		[this, appConfig](IG::ApplicationContext ctx, IG::Window &win)
 		{
-			renderer.initMainTask(&win, windowDrawableConfig());
+			renderer.initMainTask(&win, windowDrawableConfig);
 			textureBufferMode = renderer.validateTextureBufferMode(textureBufferMode);
 			viewManager.defaultFace = {renderer, fontManager.makeSystem(), fontSettings(win)};
 			viewManager.defaultBoldFace = {renderer, fontManager.makeBoldSystem(), fontSettings(win)};
@@ -1175,13 +1161,19 @@ bool EmuApp::hasSavedSessionOptions()
 	return system().sessionOptionsAreSet() || appContext().fileUriExists(sessionConfigPath());
 }
 
+void EmuApp::resetSessionOptions()
+{
+	inputManager.resetSessionOptions(appContext());
+	system().resetSessionOptions(*this);
+}
+
 void EmuApp::deleteSessionOptions()
 {
 	if(!hasSavedSessionOptions())
 	{
 		return;
 	}
-	system().resetSessionOptions(*this);
+	resetSessionOptions();
 	system().resetSessionOptionsSet();
 	appContext().removeFileUri(sessionConfigPath());
 }
@@ -1197,6 +1189,7 @@ void EmuApp::saveSessionOptions()
 		auto configFile = ctx.openFileUri(configFilePath, OpenFlags::newFile());
 		writeConfigHeader(configFile);
 		system().writeConfig(ConfigType::SESSION, configFile);
+		inputManager.writeSessionConfig(configFile);
 		system().resetSessionOptionsSet();
 		if(configFile.size() == 1)
 		{
@@ -1218,21 +1211,17 @@ void EmuApp::saveSessionOptions()
 
 void EmuApp::loadSessionOptions()
 {
-	if(!system().resetSessionOptions(*this))
-		return;
-	if(readConfigKeys(FileUtils::bufferFromUri(appContext(), sessionConfigPath(), {.test = true}),
-		[this](uint16_t key, auto &io)
+	resetSessionOptions();
+	auto ctx = appContext();
+	if(readConfigKeys(FileUtils::bufferFromUri(ctx, sessionConfigPath(), {.test = true}),
+		[this, ctx](auto key, auto &io) -> bool
 		{
-			switch(key)
-			{
-				default:
-				{
-					if(!system().readConfig(ConfigType::SESSION, io, key))
-					{
-						log.info("skipping unknown key {}", key);
-					}
-				}
-			}
+			if(inputManager.readSessionConfig(ctx, io, key))
+				return true;
+			if(system().readConfig(ConfigType::SESSION, io, key))
+				return true;
+			log.info("skipping unknown key {}", key);
+			return false;
 		}))
 	{
 		system().onSessionOptionsLoaded(*this);
@@ -1436,11 +1425,11 @@ void EmuApp::setEmuViewOnExtraWindow(bool on, IG::Screen &screen)
 		log.info("setting emu view on extra window");
 		IG::WindowConfig winConf{ .title = ctx.applicationName };
 		winConf.setScreen(screen);
-		winConf.setFormat(windowDrawableConfig().pixelFormat);
+		winConf.setFormat(windowDrawableConfig.pixelFormat);
 		auto extraWin = ctx.makeWindow(winConf,
 			[this](IG::ApplicationContext ctx, IG::Window &win)
 			{
-				renderer.attachWindow(win, windowDrawableConfig());
+				renderer.attachWindow(win, windowDrawableConfig);
 				auto &mainWinData = windowData(ctx.mainWindow());
 				auto &extraWinData = win.makeAppData<WindowData>();
 				extraWinData.hasPopup = false;

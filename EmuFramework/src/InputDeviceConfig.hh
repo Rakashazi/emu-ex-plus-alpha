@@ -23,40 +23,57 @@
 namespace EmuEx
 {
 
+struct InputDeviceSessionConfig
+{
+	std::string_view keyConfName;
+	int8_t player{playerIndexUnset};
+};
+
 class InputDeviceConfig
 {
 public:
-	static constexpr int8_t PLAYER_MULTI = -1;
-
 	constexpr InputDeviceConfig() = default;
 	InputDeviceConfig(Input::Device &dev):
-		dev{&dev},
-		player_{int8_t(dev.enumId() < EmuSystem::maxPlayers ? dev.enumId() : 0)} {}
+		dev{&dev} {}
 
-	void deleteConf(InputManager &);
+	void deleteConf(InputManager&);
+	void deleteSessionConf(InputManager&);
 	void setICadeMode(bool on);
 	bool iCadeMode();
 	bool joystickAxesAsKeys(Input::AxisSetId);
 	void setJoystickAxesAsKeys(Input::AxisSetId, bool on);
-	KeyConfigDesc keyConf(const InputManager &) const;
+	InputDeviceSessionConfig sessionConfig(const InputManager&) const;
+	KeyConfigDesc keyConf(const InputManager&) const;
 	void setDefaultKeyConf();
-	void setKeyConfName(InputManager &, std::string_view name);
-	KeyConfig *mutableKeyConf(InputManager &) const;
-	KeyConfig *makeMutableKeyConf(EmuApp &);
-	KeyConfig *setKeyConfCopiedFromExisting(InputManager &, std::string_view name);
-	void save(InputManager &);
-	void setSavedConf(const InputManager &, InputDeviceSavedConfig *savedConf, bool updateKeymap = true);
-	bool hasSavedConf(const InputDeviceSavedConfig &conf) const { return savedConf && *savedConf == conf; };
-	bool setKey(EmuApp &, KeyInfo, MappedKeys);
-	void buildKeyMap(const InputManager &);
-	constexpr Input::Device &device() { return *dev; }
-	void setPlayer(const InputManager &, int);
-	constexpr int8_t player() const { return player_; }
+	void setKeyConfName(InputManager&, std::string_view name);
+	std::string_view sessionKeyConfName() const
+	{
+		if(sessionSavedConf)
+			return sessionSavedConf->keyConfName;
+		else return "Default";
+	}
+	void setSessionKeyConfName(InputManager&, std::string_view name);
+	KeyConfig *mutableKeyConf(InputManager&) const;
+	KeyConfig *makeMutableKeyConf(EmuApp&);
+	KeyConfig *setKeyConfCopiedFromExisting(InputManager&, std::string_view name);
+	InputDeviceSavedConfig& save(InputManager&);
+	InputDeviceSavedSessionConfig& saveSession(InputManager&);
+	void setSavedConf(const InputManager&, InputDeviceSavedConfig*, bool updateKeymap = true);
+	void setSavedConf(const InputManager&, InputDeviceSavedSessionConfig*, bool updateKeymap = true);
+	bool hasSavedConf(const InputDeviceSavedConfig& conf) const { return savedConf && *savedConf == conf; };
+	bool hasSavedConf(const InputDeviceSavedSessionConfig& conf) const { return sessionSavedConf && *sessionSavedConf == conf; };
+	bool setKey(EmuApp&, KeyInfo, MappedKeys);
+	void buildKeyMap(const InputManager&);
+	constexpr Input::Device& device() { return *dev; }
+	void setSavedPlayer(InputManager&, int);
+	void setSavedSessionPlayer(InputManager&, int);
+	int8_t savedPlayer() const { return savedConf ? savedConf->player : int8_t(dev->enumId() < EmuSystem::maxPlayers ? dev->enumId() : 0); }
+	int8_t savedSessionPlayer() const { return sessionSavedConf ? sessionSavedConf->player : playerIndexUnset; }
 
 protected:
-	Input::Device *dev{};
-	InputDeviceSavedConfig *savedConf{};
-	int8_t player_{};
+	Input::Device* dev{};
+	InputDeviceSavedConfig* savedConf{};
+	InputDeviceSavedSessionConfig* sessionSavedConf{};
 public:
 	bool isEnabled{true};
 	ConditionalMember<Config::envIsAndroid, bool> shouldHandleUnboundKeys{};

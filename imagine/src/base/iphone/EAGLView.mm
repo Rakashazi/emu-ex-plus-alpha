@@ -133,7 +133,6 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 	[self deleteDrawable];
 }
 
-#ifdef CONFIG_BASE_IOS_RETINA_SCALE
 - (void)willMoveToWindow:(UIWindow *)newWindow
 {
 	if(newWindow)
@@ -147,7 +146,6 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 		logMsg("view %p removed from window", self);
 	}
 }
-#endif
 
 - (void)layoutSubviews
 {

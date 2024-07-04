@@ -20,9 +20,9 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/ranges.hh>
+#include <imagine/util/algorithm.h>
 #include <imagine/base/android/AndroidInputDevice.hh>
 #include <android/input.h>
-#include <ranges>
 
 namespace IG
 {
@@ -31,16 +31,9 @@ extern int32_t (*AMotionEvent_getActionButton_)(const AInputEvent* motion_event)
 
 static const char* aInputSourceToStr(uint32_t source);
 
-Input::Device *AndroidApplication::inputDeviceForId(int id) const
+Input::Device* AndroidApplication::inputDeviceForId(int id) const
 {
-	auto existingIt = std::ranges::find_if(inputDev,
-		[=](const auto &e)
-		{ return e->map() == Input::Map::SYSTEM && e->id() == id; });
-	if(existingIt == inputDev.end())
-	{
-		return nullptr;
-	}
-	return existingIt->get();
+	return findPtr(inputDev, [=](const auto &e) { return e->map() == Input::Map::SYSTEM && e->id() == id; });
 }
 
 std::pair<Input::Device*, int> AndroidApplication::inputDeviceForEvent(AInputEvent *event)

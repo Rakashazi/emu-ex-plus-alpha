@@ -24,18 +24,28 @@ constexpr SystemLogger log{"InputDevData"};
 
 InputDeviceData::InputDeviceData(const InputManager &mgr, Input::Device &dev):
 	devConf{dev},
-	displayName{makeDisplayName(dev.name(), dev.enumId())}
+	displayName{dev.displayName()}
 {
 	dev.setJoystickAxesAsKeys(Input::AxisSetId::stick1, true);
 	dev.setJoystickAxesAsKeys(Input::AxisSetId::hat, true);
 	dev.setJoystickAxesAsKeys(Input::AxisSetId::triggers, true);
 	dev.setJoystickAxesAsKeys(Input::AxisSetId::pedals, true);
-	for(auto &savedPtr : mgr.savedInputDevs)
+	for(auto &savedPtr : mgr.savedDevConfigs)
 	{
 		if(savedPtr->matchesDevice(dev))
 		{
-			log.info("has saved config");
+			log.info("{} has saved config", dev.name());
 			devConf.setSavedConf(mgr, savedPtr.get(), false);
+			break;
+		}
+	}
+	for(auto &savedPtr : mgr.savedSessionDevConfigs)
+	{
+		if(savedPtr->matchesDevice(dev))
+		{
+			log.info("{} has saved session config", dev.name());
+			devConf.setSavedConf(mgr, savedPtr.get(), false);
+			break;
 		}
 	}
 	buildKeyMap(mgr, dev);
@@ -46,13 +56,14 @@ void InputDeviceData::buildKeyMap(const InputManager &mgr, const Input::Device &
 	auto totalKeys = Input::KeyEvent::mapNumKeys(d.map());
 	if(!totalKeys || !devConf.isEnabled) [[unlikely]]
 		return;
-	log.info("allocating key mapping for:{} with player:{}", d.name(), devConf.player() + 1);
+	auto conf = devConf.sessionConfig(mgr);
+	log.info("allocating key mapping for:{} with player:{}", d.name(), conf.player + 1);
 	actionTable = {totalKeys};
 	keyCombos.clear();
-	for(auto [key, mapKeys] : devConf.keyConf(mgr).keyMap)
+	for(auto [key, mapKeys] : mgr.keyConfig(conf.keyConfName, d).keyMap)
 	{
 		if(!key.isAppKey())
-			key = mgr.transpose(key, devConf.player());
+			key = mgr.transpose(key, conf.player);
 		if(mapKeys.size() > 1)
 		{
 			bool hasModifierKeys{};
@@ -91,18 +102,6 @@ void InputDeviceData::buildKeyMap(const InputManager &mgr, const Input::Device &
 			log.info("mapped key {} to {} ({})", d.keyName(i), mgr.toString(key), key.codes[0]);
 		}
 	}*/
-}
-
-std::string InputDeviceData::makeDisplayName(std::string_view name, int id)
-{
-	if(id)
-	{
-		return std::format("{} #{}", name, id + 1);
-	}
-	else
-	{
-		return std::string{name};
-	}
 }
 
 void InputDeviceData::updateInputKey(const Input::KeyEvent &keyEv)

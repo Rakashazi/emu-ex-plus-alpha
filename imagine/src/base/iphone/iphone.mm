@@ -14,10 +14,10 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 static_assert(__has_feature(objc_arc), "This file requires ARC");
-#define LOGTAG "Base"
 #import "MainApp.hh"
 #import <dlfcn.h>
 #import <unistd.h>
+#include <mach/mach_time.h>
 #include <imagine/base/Application.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Screen.hh>
@@ -28,21 +28,18 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/time/Time.hh>
 #include <imagine/util/coreFoundation.h>
 #include "ios.hh"
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < 110000
-#include <variant>
-#endif
 
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
 #import <Foundation/NSPathUtilities.h>
 
-#if defined __ARM_ARCH_6K__
-// firstObject is availible since iOS 4.0
-// but not declared in the 5.1 SDK
-@interface NSArray (FirstObject)
-- (id)firstObject;
-@end
-#endif
+struct PlatformVersion
+{
+	int major{}, minor{}, subminor{};
+};
+
+static PlatformVersion platformVersion;
+static mach_timebase_info_data_t timebaseInfo;
 
 namespace IG::Input
 {
@@ -52,6 +49,7 @@ namespace IG::Input
 namespace IG
 {
 
+constexpr SystemLogger log{"app"};
 MainApp *mainApp{};
 Application *appPtr{};
 bool isIPad = false;
@@ -102,15 +100,19 @@ IOSApplication::IOSApplication(ApplicationInitParams initParams):
 {
 	ApplicationContext ctx{(__bridge UIApplication*)initParams.uiAppPtr};
 	auto sharedApp = ctx.uiApp();
+	mach_timebase_info(&timebaseInfo);
+	auto dev = [UIDevice currentDevice];
+	auto verStr = [[dev systemVersion] cStringUsingEncoding: NSASCIIStringEncoding];
+	sscanf(verStr, "%d.%d.%d", &platformVersion.major, &platformVersion.minor, &platformVersion.subminor);
 	if(Config::DEBUG_BUILD)
 	{
-		//logMsg("in didFinishLaunchingWithOptions(), UUID %s", [[[UIDevice currentDevice] uniqueIdentifier] cStringUsingEncoding: NSASCIIStringEncoding]);
-		logMsg("iOS version %s", [[[UIDevice currentDevice] systemVersion] cStringUsingEncoding: NSASCIIStringEncoding]);
+		//log.debug("in didFinishLaunchingWithOptions(), UUID {}", [[[UIDevice currentDevice] uniqueIdentifier] cStringUsingEncoding: NSASCIIStringEncoding]);
+		log.info("iOS version:{}", verStr);
 	}
-	if(UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
+	if([dev userInterfaceIdiom] == UIUserInterfaceIdiomPad)
 	{
-		isIPad = 1;
-		logMsg("running on iPad");
+		isIPad = true;
+		log.info("running on iPad");
 	}
 	Input::init(ctx);
 	if(hasAtLeastIOS7())
@@ -137,11 +139,11 @@ IOSApplication::IOSApplication(ApplicationInitParams initParams):
 			object:nil queue:nil usingBlock:
 			^(NSNotification *note)
 			{
-				logMsg("screen connected");
+				log.info("screen connected");
 				UIScreen *screen = [note object];
 				if(findScreen((__bridge void*)screen))
 				{
-					logMsg("screen %p already in list", screen);
+					log.info("screen {} already in list", (__bridge void*)screen);
 					return;
 				}
 				auto &s = setupUIScreen(ctx, screen, true);
@@ -150,7 +152,7 @@ IOSApplication::IOSApplication(ApplicationInitParams initParams):
 			object:nil queue:nil usingBlock:
 			^(NSNotification *note)
 			{
-				logMsg("screen disconnected");
+				log.info("screen disconnected");
 				UIScreen *screen = [note object];
 				if(auto removedScreen = removeScreen(ctx, (__bridge void*)screen, true);
 					removedScreen)
@@ -164,7 +166,7 @@ IOSApplication::IOSApplication(ApplicationInitParams initParams):
 				object:nil queue:nil usingBlock:
 				^(NSNotification *note)
 				{
-					logMsg("screen mode change");
+					log.info("screen mode change");
 				}];
 		}
 	}
@@ -234,14 +236,14 @@ static Rotation iOSOrientationToGfx(UIDeviceOrientation orientation)
 	ApplicationContext ctx{uiApp};
 	ctx.dispatchOnInit(initParams);
 	if(!ctx.windows().size())
-		logWarn("didn't create a window");
-	logMsg("exiting didFinishLaunchingWithOptions");
+		IG::log.warn("didn't create a window");
+	IG::log.info("exiting didFinishLaunchingWithOptions");
 	return YES;
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application
 {
-	logMsg("resign active");
+	IG::log.info("resign active");
 	ApplicationContext ctx{application};
 	for(auto &w : ctx.windows())
 	{
@@ -252,7 +254,7 @@ static Rotation iOSOrientationToGfx(UIDeviceOrientation orientation)
 
 - (void)applicationDidBecomeActive:(UIApplication *)application
 {
-	logMsg("became active");
+	IG::log.info("became active");
 	ApplicationContext ctx{application};
 	for(auto &w : ctx.windows())
 	{
@@ -262,27 +264,27 @@ static Rotation iOSOrientationToGfx(UIDeviceOrientation orientation)
 
 - (void)applicationWillTerminate:(UIApplication *)application
 {
-	logMsg("app exiting");
+	IG::log.info("app exiting");
 	ApplicationContext ctx{application};
 	ctx.application().setExitingActivityState();
 	ctx.dispatchOnExit(false);
-	logMsg("app exited");
+	IG::log.info("app exited");
 }
 
 - (void)applicationDidEnterBackground:(UIApplication *)application
 {
-	logMsg("entering background");
+	IG::log.info("entering background");
 	ApplicationContext ctx{application};
 	ctx.application().setPausedActivityState();
 	ctx.dispatchOnExit(true);
 	ctx.application().setActiveForAllScreens(false);
 	ctx.application().deinitKeyRepeatTimer();
-	logMsg("entered background");
+	IG::log.info("entered background");
 }
 
 - (void)applicationWillEnterForeground:(UIApplication *)application
 {
-	logMsg("entered foreground");
+	IG::log.info("entered foreground");
 	ApplicationContext ctx{application};
 	ctx.application().setRunningActivityState();
 	ctx.application().setActiveForAllScreens(true);
@@ -295,7 +297,7 @@ static Rotation iOSOrientationToGfx(UIDeviceOrientation orientation)
 
 - (void)applicationDidReceiveMemoryWarning:(UIApplication *)application
 {
-	logMsg("got memory warning");
+	IG::log.info("got memory warning");
 	ApplicationContext ctx{application};
 	ctx.application().dispatchOnFreeCaches(ctx, ctx.isRunning());
 }
@@ -332,7 +334,7 @@ namespace IG
 
 static void setStatusBarHidden(ApplicationContext ctx, bool hidden)
 {
-	logMsg("setting status bar hidden: %d", (int)hidden);
+	IG::log.info("setting status bar hidden:{}", hidden);
 	[ctx.uiApp() setStatusBarHidden: (hidden ? YES : NO) withAnimation: UIStatusBarAnimationFade];
 	if(ctx.deviceWindow())
 	{
@@ -369,12 +371,12 @@ void ApplicationContext::setDeviceOrientationChangeSensor(bool enable)
 	auto notificationsAreOn = currDev.generatesDeviceOrientationNotifications;
 	if(enable && !notificationsAreOn)
 	{
-		logMsg("enabling device orientation notifications");
+		IG::log.info("enabling device orientation notifications");
 		[currDev beginGeneratingDeviceOrientationNotifications];
 	}
 	else if(!enable && notificationsAreOn)
 	{
-		logMsg("disabling device orientation notifications");
+		IG::log.info("disabling device orientation notifications");
 		[currDev endGeneratingDeviceOrientationNotifications];
 	}
 }
@@ -409,7 +411,7 @@ void ApplicationContext::setOnDeviceOrientationChanged(DeviceOrientationChangedD
 
 void ApplicationContext::setSystemOrientation(Rotation o)
 {
-	logMsg("setting system orientation %s", wise_enum::to_string(o).data());
+	IG::log.info("setting system orientation:{}", wise_enum::to_string(o));
 	auto sharedApp = uiApp();
 	[sharedApp setStatusBarOrientation:gfxOrientationToUIInterfaceOrientation(o) animated:YES];
 	if(deviceWindow())
@@ -448,7 +450,7 @@ void ApplicationContext::setIdleDisplayPowerSave(bool on)
 	uiApp().idleTimerDisabled = on ? NO : YES;
 	if(Config::DEBUG_BUILD)
 	{
-		logMsg("set idleTimerDisabled %d", (int)uiApp().idleTimerDisabled);
+		IG::log.info("set idleTimerDisabled:{}", uiApp().idleTimerDisabled);
 	}
 }
 
@@ -550,64 +552,11 @@ bool hasAtLeastIOS8()
 
 void ApplicationContext::exitWithMessage(int exitVal, const char *msg)
 {
-	logErr("%s", msg);
+	IG::log.error("{}", msg);
 	::exit(exitVal);
 }
 
-#ifdef CONFIG_BASE_IOS_SETUID
-
-uid_t realUID = 0, effectiveUID = 0;
-static void setupUID()
-{
-	realUID = getuid();
-	effectiveUID = geteuid();
-	seteuid(realUID);
 }
-
-void setUIDReal()
-{
-	seteuid(realUID);
-}
-
-bool setUIDEffective()
-{
-	return seteuid(effectiveUID) == 0;
-}
-
-#endif
-
-}
-
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < 110000
-void *operator new(unsigned long size, std::align_val_t align)
-{
-	void *ptr{};
-	::posix_memalign(&ptr, (size_t)align, size);
-	return ptr;
-}
-
-void *operator new[](unsigned long size, std::align_val_t align)
-{
-	return ::operator new[](size);
-}
-
-void operator delete(void* ptr, std::align_val_t align) noexcept
-{
-	::free(ptr);
-}
-
-void operator delete[](void* ptr, std::align_val_t align) noexcept
-{
-	::operator delete[](ptr);
-}
-
-namespace std
-{
-
-const char *bad_variant_access::what() const noexcept { return ""; };
-
-};
-#endif
 
 int main(int argc, char *argv[])
 {
@@ -615,26 +564,61 @@ int main(int argc, char *argv[])
 	// check if running from system apps directory
 	if(strlen(argv[0]) >= 14 && memcmp(argv[0], "/Applications/", 14) == 0)
 	{
-		logMsg("launched as system app from: %s", argv[0]);
+		IG::log.info("launched as system app from:{}", argv[0]);
 		isRunningAsSystemApp = true;
 	}
-	#ifdef CONFIG_BASE_IOS_SETUID
-	setupUID();
-	#endif
 	logger_setLogDirectoryPrefix("/var/mobile");
 	appPath = FS::makeAppPathFromLaunchCommand(argv[0]);
-	
-	#ifdef CONFIG_BASE_IOS_SETUID
-	logMsg("real UID %d, effective UID %d", realUID, effectiveUID);
-	if(access("/Library/MobileSubstrate/DynamicLibraries/Backgrounder.dylib", F_OK) == 0)
-	{
-		logMsg("manually loading Backgrounder.dylib");
-		dlopen("/Library/MobileSubstrate/DynamicLibraries/Backgrounder.dylib", RTLD_LAZY | RTLD_GLOBAL);
-	}
-	#endif
 
 	@autoreleasepool
 	{
 		return UIApplicationMain(argc, argv, @"MainUIApp", @"MainApp");
 	}
 }
+
+CLINK int32_t __isOSVersionAtLeast(int32_t major, int32_t minor, int32_t subminor)
+{
+	assert(platformVersion.major);
+	if(major < platformVersion.major)
+		return 1;
+	if(major > platformVersion.major)
+		return 0;
+	if(minor < platformVersion.minor)
+		return 1;
+	if(minor > platformVersion.minor)
+		return 0;
+	return subminor <= platformVersion.subminor;
+}
+
+CLINK int32_t __isPlatformVersionAtLeast(uint32_t Platform, uint32_t major, uint32_t minor, uint32_t subminor)
+{
+	return __isOSVersionAtLeast(major, minor, subminor);
+}
+
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < 100000
+CLINK int clock_gettime(clockid_t clock_id, struct timespec *tp)
+{
+	if(clock_id == CLOCK_MONOTONIC)
+	{
+		auto nanos = mach_absolute_time() * timebaseInfo.numer / timebaseInfo.denom;
+		tp->tv_sec = nanos / 1000000000ULL;
+		tp->tv_nsec = nanos % 1000000000ULL;
+	}
+	else
+	{
+		timeval tv;
+		gettimeofday(&tv, 0);
+		TIMEVAL_TO_TIMESPEC(&tv, tp);
+	}
+	return 0;
+}
+#endif
+
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < 130000
+CLINK void* aligned_alloc(size_t alignment, size_t size)
+{
+	void *ret{};
+	posix_memalign(&ret, alignment, size);
+	return ret;
+}
+#endif

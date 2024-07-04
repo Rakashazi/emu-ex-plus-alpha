@@ -18,7 +18,7 @@
 #include <imagine/input/Event.hh>
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/container/ArrayList.hh>
-#include <algorithm>
+#include <imagine/util/algorithm.h>
 #include <concepts>
 
 namespace IG::Input
@@ -142,14 +142,9 @@ protected:
 	StaticArrayList<State, MAX_POINTERS> state_;
 	int dragStartPixels{};
 
-	State *state(PointerId id)
+	State* state(PointerId id)
 	{
-		auto s = std::ranges::find_if(state_, [id](const auto &s){ return s.dragState.id() == id; });
-		if(s == state_.end())
-		{
-			return nullptr;
-		}
-		return s;
+		return find(state_, [id](const auto &s){ return s.dragState.id() == id; }).value_or(nullptr);
 	}
 };
 

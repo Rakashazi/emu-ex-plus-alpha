@@ -245,7 +245,7 @@ void BluetoothAdapter::setL2capService(uint32_t psm, bool active, OnStatusDelega
 	if(!active)
 	{
 		logMsg("unregistering psm: 0x%X", psm);
-		if(auto removedServer = IG::moveOutIf(serverList, [&](L2CapServer &server){ return server.psm == psm; });
+		if(auto removedServer = moveOut(serverList, [&](const L2CapServer& server){ return server.psm == psm; });
 			removedServer.fd != -1)
 		{
 			::close(removedServer.fd);

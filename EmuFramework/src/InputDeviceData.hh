@@ -40,7 +40,6 @@ struct InputDeviceData
 
 	InputDeviceData(const InputManager &, Input::Device &);
 	void buildKeyMap(const InputManager &, const Input::Device &d);
-	static std::string makeDisplayName(std::string_view name, int id);
 	void updateInputKey(const Input::KeyEvent &);
 	void addInputKey(Input::Key);
 	void removeInputKey(Input::Key);

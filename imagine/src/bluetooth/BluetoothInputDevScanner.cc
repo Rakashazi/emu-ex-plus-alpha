@@ -284,7 +284,7 @@ void BaseApplication::bluetoothInputDeviceStatus(ApplicationContext ctx, Input::
 		case BluetoothSocketState::Opened:
 		{
 			logMsg("back %p, param %p", btInputDevPendingList.back().get(), &dev);
-			auto devPtr = IG::moveOutIf(btInputDevPendingList, [&](auto &devPtr){ return devPtr.get() == &dev; });
+			auto devPtr = moveOut(btInputDevPendingList, [&](auto &devPtr){ return devPtr.get() == &dev; });
 			logMsg("moving %p", devPtr.get());
 			if(devPtr)
 			{

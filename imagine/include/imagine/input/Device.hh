@@ -133,6 +133,8 @@ public:
 	uint8_t enumId() const { return visit([](auto &d){ return d.enumId_; }); }
 	void setEnumId(uint8_t id) { visit([&](auto &d){ d.enumId_ = id; }); }
 	std::string_view name() const { return visit([](auto &d){ return std::string_view{d.name_}; }); }
+	std::string displayName() const;
+	static std::string makeDisplayName(std::string_view name, int id);
 	Map map() const;
 	DeviceTypeFlags typeFlags() const
 	{

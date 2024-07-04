@@ -520,7 +520,7 @@ void FSPicker::listDirectory(CStringView path, ThreadStop &stop)
 					item.text.setActive(false);
 				return true;
 			});
-		std::sort(dir.begin(), dir.end(),
+		std::ranges::sort(dir,
 			[](const FileEntry &e1, const FileEntry &e2)
 			{
 				if(e1.isDir() && !e2.isDir())

@@ -418,6 +418,23 @@ std::string Device::keyString(Key k, KeyNameFlags flags) const
 	}
 }
 
+std::string Device::displayName() const
+{
+	return makeDisplayName(name(), enumId());
+}
+
+std::string Device::makeDisplayName(std::string_view name, int id)
+{
+	if(id)
+	{
+		return std::format("{} #{}", name, id + 1);
+	}
+	else
+	{
+		return std::string{name};
+	}
+}
+
 Map Device::map() const
 {
 	return visit([](auto &d){ return d.map_; });

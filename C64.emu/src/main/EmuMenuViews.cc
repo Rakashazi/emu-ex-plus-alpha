@@ -157,7 +157,7 @@ class CustomVideoOptionView : public VideoOptionView, public MainAppHelper
 	MultiChoiceMenuItem defaultPalette
 	{
 		"Default Palette", attachParams(),
-		[this]()
+		[this]() -> int
 		{
 			if(system().defaultPaletteName.empty())
 				return 0;
@@ -1004,7 +1004,7 @@ class MachineOptionView : public TableView, public MainAppHelper
 	MultiChoiceMenuItem palette
 	{
 		"Palette", attachParams(),
-		[this]()
+		[this]() -> int
 		{
 			if(!system().usingExternalPalette())
 				return 0;

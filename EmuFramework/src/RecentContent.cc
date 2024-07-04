@@ -72,15 +72,13 @@ bool RecentContent::readConfig(MapIO &io, unsigned key, const EmuSystem &system)
 	}
 	else if(key == CFGKEY_RECENT_CONTENT_V2)
 	{
-		auto len = io.get<uint16_t>();
 		FS::PathString path;
-		auto bytesRead = io.readSized(path, len);
-		if(bytesRead == -1)
+		if(readSizedData<uint16_t>(io, path) == -1)
 		{
 			log.error("error reading string option");
 			return true;
 		}
-		if(!bytesRead)
+		if(path.empty())
 			return true; // don't add empty paths
 		auto displayName = system.contentDisplayNameForPath(path);
 		if(displayName.empty())
@@ -94,50 +92,6 @@ bool RecentContent::readConfig(MapIO &io, unsigned key, const EmuSystem &system)
 		return true;
 	}
 	return false;
-}
-
-bool RecentContent::readLegacyConfig(MapIO &io, const EmuSystem &system)
-{
-	log.info("reading legacy config");
-	auto readSize = io.size();
-	while(readSize)
-	{
-		if(readSize < 2)
-		{
-			log.info("expected string length but only {} bytes left", readSize);
-			return false;
-		}
-
-		auto len = io.get<uint16_t>();
-		readSize -= 2;
-
-		if(len > readSize)
-		{
-			log.info("string length {} longer than {} bytes left", len, readSize);
-			return false;
-		}
-
-		FS::PathString path;
-		auto bytesRead = io.readSized(path, len);
-		if(bytesRead == -1)
-		{
-			log.error("error reading string option");
-			return false;
-		}
-		if(!bytesRead)
-			continue; // don't add empty paths
-		readSize -= len;
-		auto displayName = system.contentDisplayNameForPath(path);
-		if(displayName.empty())
-		{
-			log.info("skipping missing recent content:{}", path);
-			continue;
-		}
-		RecentContentInfo info{path, displayName};
-		const auto &added = recentContentList.emplace_back(info);
-		log.info("added game to recent list:{}, name:{}", added.path, added.name);
-	}
-	return true;
 }
 
 }

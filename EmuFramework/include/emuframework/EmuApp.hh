@@ -44,7 +44,6 @@
 #include <imagine/util/used.hh>
 #include <imagine/util/enum.hh>
 #include <cstring>
-#include <optional>
 #include <span>
 #include <string>
 
@@ -117,6 +116,20 @@ WISE_ENUM_CLASS((PresentationTimeMode, uint8_t),
 WISE_ENUM_CLASS((CPUAffinityMode, uint8_t),
 	Auto, Any, Manual
 );
+
+struct DrawableConfig
+{
+	Property<PixelFormat, CFGKEY_WINDOW_PIXEL_FORMAT> pixelFormat;
+	Property<Gfx::ColorSpace, CFGKEY_VIDEO_COLOR_SPACE> colorSpace;
+
+	constexpr DrawableConfig() = default;
+	constexpr DrawableConfig(Gfx::DrawableConfig c)
+	{
+		pixelFormat.setUnchecked(c.pixelFormat);
+		colorSpace.setUnchecked(c.colorSpace);
+	}
+	constexpr operator Gfx::DrawableConfig() const { return {.pixelFormat = pixelFormat, .colorSpace = colorSpace}; }
+};
 
 constexpr float menuVideoBrightnessScale = .25f;
 
@@ -203,6 +216,7 @@ public:
 	void saveSessionOptions();
 	void loadSessionOptions();
 	bool hasSavedSessionOptions();
+	void resetSessionOptions();
 	void deleteSessionOptions();
 	void syncEmulationThread();
 	void startAudio();
@@ -236,8 +250,6 @@ public:
 	void setMogaManagerActive(bool on, bool notify);
 	void closeBluetoothConnections();
 	ViewAttachParams attachParams();
-	auto &customKeyConfigList() { return inputManager.customKeyConfigs; };
-	auto &savedInputDeviceList() { return inputManager.savedInputDevs; };
 	IG::Viewport makeViewport(const Window &win) const;
 	void setEmuViewOnExtraWindow(bool on, IG::Screen &);
 	void record(FrameTimeStatEvent, SteadyClockTimePoint t = {});
@@ -256,7 +268,6 @@ public:
 
 	// Video Options
 	bool setWindowDrawableConfig(Gfx::DrawableConfig);
-	Gfx::DrawableConfig windowDrawableConfig() const { return windowDrawableConf; }
 	IG::PixelFormat windowPixelFormat() const;
 	void setRenderPixelFormat(IG::PixelFormat);
 	bool setVideoAspectRatio(float val);
@@ -330,6 +341,25 @@ public:
 		postMessage(secs, true, IG_forward(msg));
 	}
 
+	void forEachKeyConfig(Input::Map map, auto&& func) const
+	{
+		for(auto& confPtr : inputManager.customKeyConfigs)
+		{
+			auto& conf = *confPtr;
+			if(conf.desc().map == map)
+			{
+				func(conf);
+			}
+		}
+		for(const auto& conf : defaultKeyConfigs())
+		{
+			if(conf.map == map)
+			{
+				func(conf);
+			}
+		}
+	}
+
 public:
 	IG::FontManager fontManager;
 	mutable Gfx::Renderer renderer;
@@ -352,10 +382,10 @@ protected:
 	[[no_unique_address]] PerformanceHintManager perfHintManager;
 	[[no_unique_address]] PerformanceHintSession perfHintSession;
 	ConditionalMember<MOGA_INPUT, std::unique_ptr<Input::MogaManager>> mogaManagerPtr;
-	Gfx::DrawableConfig windowDrawableConf;
 	ConditionalMember<Config::TRANSLUCENT_SYSTEM_UI, bool> layoutBehindSystemUI{};
 	bool enableBlankFrameInsertion{};
 public:
+	DrawableConfig windowDrawableConfig;
 	BluetoothAdapter bluetoothAdapter;
 	RecentContent recentContent;
 	FS::PathString contentSearchPath;
@@ -419,7 +449,7 @@ public:
 protected:
 	struct ConfigParams
 	{
-		Gfx::DrawableConfig windowDrawableConf{};
+		Gfx::DrawableConfig windowDrawableConf;
 	};
 
 	void onMainWindowCreated(ViewAttachParams, const Input::Event &);
@@ -428,8 +458,6 @@ protected:
 	void saveConfigFile(FileIO &);
 	void initOptions(IG::ApplicationContext);
 	void applyRenderPixelFormat();
-	std::optional<IG::PixelFormat> windowDrawablePixelFormatOption() const;
-	std::optional<Gfx::ColorSpace> windowDrawableColorSpaceOption() const;
 	FS::PathString sessionConfigPath();
 	void loadSystemOptions();
 	void saveSystemOptions();

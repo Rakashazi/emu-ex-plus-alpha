@@ -54,8 +54,6 @@ public:
 		reset();
 	}
 
-	constexpr operator T() const { return r; }
-
 	constexpr T release() { return std::exchange(r, NULL_VALUE); }
 
 	void reset()
@@ -65,13 +63,10 @@ public:
 		del(release());
 	}
 
-	constexpr T &get() { return r; }
-
-	constexpr const T &get() const { return r; }
-
-	constexpr Deleter &get_deleter() { return del; }
-
-	constexpr const Deleter &get_deleter() const { return del; }
+	constexpr auto& get(this auto&& self) { return self.r; }
+	constexpr auto& get_deleter(this auto&& self) { return self.del; }
+	constexpr operator const T&() const { return r; }
+	constexpr auto operator->(this auto&& self) { return &self.r; }
 
 protected:
 	T r{NULL_VALUE};

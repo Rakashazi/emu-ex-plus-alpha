@@ -62,8 +62,8 @@ void EmuApp::saveConfigFile(FileIO &io)
 	writeOptionValue(io, CFGKEY_BACK_NAVIGATION, viewManager.needsBackControlOption());
 	writeOptionValue(io, CFGKEY_SWAPPED_GAMEPAD_CONFIM, swappedConfirmKeysOption());
 	writeOptionValue(io, CFGKEY_AUDIO_SOLO_MIX, audio.manager.soloMixOption());
-	writeOptionValue(io, CFGKEY_WINDOW_PIXEL_FORMAT, windowDrawablePixelFormatOption());
-	writeOptionValue(io, CFGKEY_VIDEO_COLOR_SPACE, windowDrawableColorSpaceOption());
+	writeOptionValueIfNotDefault(io, windowDrawableConfig.pixelFormat);
+	writeOptionValueIfNotDefault(io, windowDrawableConfig.colorSpace);
 	writeOptionValueIfNotDefault(io, renderPixelFormat);
 	writeOptionValueIfNotDefault(io, textureBufferMode);
 	writeOptionValueIfNotDefault(io, showOnSecondScreen);
@@ -178,8 +178,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 				case CFGKEY_MENU_SCALE: return readOptionValue(io, menuScale);
 				case CFGKEY_SHOW_ON_2ND_SCREEN: return readOptionValue(io, showOnSecondScreen);
 				case CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT: return readOptionValue(io, imageEffectPixelFormat);
-				case CFGKEY_RENDER_PIXEL_FORMAT: return EmuSystem::canRenderRGBA8888 ? readOptionValue(io, renderPixelFormat) : false;
-				case CFGKEY_RECENT_CONTENT: return recentContent.readLegacyConfig(io, system());
+				case CFGKEY_RENDER_PIXEL_FORMAT: return EmuSystem::canRenderMultipleFormats() ? readOptionValue(io, renderPixelFormat) : false;
 				case CFGKEY_SWAPPED_GAMEPAD_CONFIM:
 					setSwappedConfirmKeys(readOptionValue<bool>(io));
 					return true;
@@ -241,7 +240,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(IG::ApplicationContext ctx)
 	{
 		if(pendingWindowDrawableConf.colorSpace != Gfx::ColorSpace{} && pendingWindowDrawableConf.pixelFormat != IG::PixelFmtRGBA8888)
 			pendingWindowDrawableConf.colorSpace = {};
-		windowDrawableConf = pendingWindowDrawableConf;
+		windowDrawableConfig = pendingWindowDrawableConf;
 	}
 
 	return appConfig;

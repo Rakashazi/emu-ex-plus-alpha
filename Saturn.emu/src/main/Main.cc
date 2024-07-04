@@ -53,6 +53,7 @@ bool EmuSystem::handlesArchiveFiles = true;
 bool EmuSystem::hasResetModes = true;
 bool EmuSystem::hasRectangularPixels = true;
 bool EmuSystem::hasPALVideoSystem = true;
+bool EmuSystem::canRenderRGB565 = false;
 bool EmuSystem::stateSizeChangesAtRuntime = true;
 bool EmuApp::needsGlobalInstance = true;
 

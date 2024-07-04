@@ -26,6 +26,8 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 namespace IG
 {
 
+constexpr SystemLogger log{"EAGL"};
+
 // GLDisplay
 
 void GLDisplay::resetCurrentContext() const
@@ -68,7 +70,7 @@ static EAGLRenderingAPI majorVersionToAPI(int version)
 		case 2: return kEAGLRenderingAPIOpenGLES2;
 		case 3: return kEAGLRenderingAPIOpenGLES3;
 		default:
-			logErr("unsupported OpenGL ES major version:%u", version);
+			log.error("unsupported OpenGL ES major version:{}", version);
 			return kEAGLRenderingAPIOpenGLES2;
 	}
 }
@@ -76,10 +78,10 @@ static EAGLRenderingAPI majorVersionToAPI(int version)
 IOSGLContext::IOSGLContext(GLContextAttributes attr, NativeGLContext shareContext_)
 {
 	assert(attr.api == GL::API::OpenGLES);
-	EAGLRenderingAPI api = majorVersionToAPI(attr.majorVersion);
+	EAGLRenderingAPI api = majorVersionToAPI(attr.version.major);
 	auto shareContext = (__bridge EAGLContext*)shareContext_;
 	EAGLSharegroup *sharegroup = [shareContext sharegroup];
-	logMsg("making context with version: %d.%d sharegroup:%p", attr.majorVersion, attr.minorVersion, sharegroup);
+	log.info("making context with version:{} sharegroup:{}", attr.version.major, (__bridge void*)sharegroup);
 	EAGLContext *newContext = [[EAGLContext alloc] initWithAPI:api sharegroup:sharegroup];
 	if(!newContext)
 	{
@@ -104,7 +106,7 @@ void GLContext::setCurrentDrawable(NativeGLDrawable drawable) const
 {
 	if(!drawable)
 		return;
-	logMsg("setting view:%p current", drawable);
+	log.info("setting view:{} current", drawable);
 	auto glView = (__bridge EAGLView*)drawable;
 	[glView bindDrawable];
 }
@@ -122,7 +124,7 @@ GLManager::GLManager(NativeDisplayConnection ctx, GL::API api)
 {
 	if(!bindAPI(api))
 	{
-		logErr("error binding requested API");
+		log.error("error binding requested API");
 	}
 }
 

@@ -17,7 +17,6 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/BaseWindow.hh>
-#include <imagine/base/iphone/config.h>
 #include <imagine/util/rectangle2.h>
 #import <CoreGraphics/CGBase.h>
 
@@ -31,22 +30,14 @@ namespace IG
 struct NativeWindowFormat {};
 using NativeWindow = void*;
 
-#ifdef CONFIG_BASE_IOS_RETINA_SCALE
 extern uint32_t screenPointScale;
-#else
-static constexpr uint32_t screenPointScale = 1;
-#endif
 
 class IOSWindow : public BaseWindow
 {
 public:
 	void *uiWin_{}; // UIWindow in ObjC
 	WRect contentRect{}; // active window content
-	#ifdef CONFIG_BASE_IOS_RETINA_SCALE
 	CGFloat pointScale{1.};
-	#else
-	static constexpr CGFloat pointScale{1.};
-	#endif
 
 	using BaseWindow::BaseWindow;
 	~IOSWindow();

@@ -83,12 +83,10 @@ IOSScreen::IOSScreen(ApplicationContext, InitParams initParams)
 	}
 	if(Config::DEBUG_BUILD)
 	{
-		#ifdef CONFIG_BASE_IOS_RETINA_SCALE
 		if(hasAtLeastIOS8())
 		{
 			logMsg("has %f point scaling (%f native)", (double)[screen scale], (double)[screen nativeScale]);
 		}
-		#endif
 		for(UIScreenMode *mode in screen.availableModes)
 		{
 			logMsg("has mode: %dx%d", (int)mode.size.width, (int)mode.size.height);

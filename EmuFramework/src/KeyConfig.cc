@@ -15,6 +15,7 @@
 
 #include <emuframework/EmuInput.hh>
 #include <emuframework/EmuOptions.hh>
+#include <emuframework/Option.hh>
 #include <imagine/io/MapIO.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/logger/logger.h>
@@ -29,8 +30,7 @@ KeyConfig KeyConfig::readConfig(MapIO &io)
 	KeyConfig keyConf;
 	keyConf.map = Input::Map(io.get<uint8_t>());
 	const auto keyMax = Input::KeyEvent::mapNumKeys(keyConf.map);
-	auto nameLen = io.get<uint8_t>();
-	io.readSized(keyConf.name, nameLen);
+	readSizedData<uint8_t>(io, keyConf.name);
 	auto mappings = io.get<uint8_t>();
 	keyConf.keyMap.reserve(mappings);
 	for(auto mappingIdx : iotaCount(mappings))

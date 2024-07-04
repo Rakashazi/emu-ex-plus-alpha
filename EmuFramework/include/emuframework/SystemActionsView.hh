@@ -32,7 +32,7 @@ public:
 	void onShow() override;
 	void loadStandardItems();
 
-	static constexpr int STANDARD_ITEMS = 10;
+	static constexpr int STANDARD_ITEMS = 11;
 	static constexpr int MAX_SYSTEM_ITEMS = 6;
 
 protected:
@@ -42,6 +42,7 @@ protected:
 	TextMenuItem autosaveNow;
 	TextMenuItem revertAutosave;
 	TextMenuItem stateSlot;
+	TextMenuItem inputOverrides;
 	ConditionalMember<Config::envIsAndroid, TextMenuItem> addLauncherIcon;
 	TextMenuItem screenshot;
 	TextMenuItem resetSessionOptions;

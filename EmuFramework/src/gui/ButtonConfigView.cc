@@ -15,8 +15,8 @@
 
 #include <emuframework/ButtonConfigView.hh>
 #include <emuframework/AppKeyCode.hh>
-#include <emuframework/InputManagerView.hh>
 #include <emuframework/EmuApp.hh>
+#include "InputManagerView.hh"
 #include "../InputDeviceConfig.hh"
 #include "../InputDeviceData.hh"
 #include <imagine/gfx/RendererCommands.hh>

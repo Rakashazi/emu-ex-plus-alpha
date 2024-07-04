@@ -247,7 +247,7 @@ void BaseApplication::removeInputDevice(ApplicationContext ctx, Input::Map map, 
 
 void BaseApplication::removeInputDevices(ApplicationContext ctx, Input::Map map, bool notify)
 {
-	while(auto removedDevice = IG::moveOutIf(inputDev, [&](const auto &iDev){ return iDev->map() == map; }))
+	while(auto removedDevice = moveOut(inputDev, [&](const auto &iDev){ return iDev->map() == map; }))
 	{
 		if(notify)
 		{

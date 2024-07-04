@@ -19,9 +19,9 @@
 #include <emuframework/CreditsView.hh>
 #include <emuframework/FilePicker.hh>
 #include <emuframework/VideoOptionView.hh>
-#include <emuframework/InputManagerView.hh>
 #include <emuframework/TouchConfigView.hh>
 #include <emuframework/BundledGamesView.hh>
+#include "InputManagerView.hh"
 #include "RecentContentView.hh"
 #include "FrameTimingView.hh"
 #include <emuframework/EmuOptions.hh>

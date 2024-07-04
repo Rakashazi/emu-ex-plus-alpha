@@ -38,6 +38,7 @@ gui/FilePicker.cc \
 gui/FrameTimingView.cc \
 gui/GUIOptionView.cc \
 gui/InputManagerView.cc \
+gui/InputOverridesView.cc \
 gui/LoadProgressView.cc \
 gui/MainMenuView.cc \
 gui/PlaceVControlsView.cc \

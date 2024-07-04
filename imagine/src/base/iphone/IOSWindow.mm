@@ -38,10 +38,6 @@ constexpr SystemLogger log{"Window"};
 static unsigned validO = UIInterfaceOrientationMaskAllButUpsideDown;
 #endif
 
-#ifndef CONFIG_BASE_IOS_RETINA_SCALE
-constexpr CGFloat IOSWindow::pointScale;
-#endif
-
 UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(Rotation orientation);
 
 const char *uiInterfaceOrientationToStr(UIInterfaceOrientation o)
@@ -178,11 +174,9 @@ Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate):
 	CGRect rect = screen()->uiScreen().bounds;
 	// Create a full-screen window
 	uiWin_ = (void*)CFBridgingRetain([[UIWindow alloc] initWithFrame:rect]);
-	#ifdef CONFIG_BASE_IOS_RETINA_SCALE
 	pointScale = hasAtLeastIOS8() ? [screen()->uiScreen() nativeScale] : [screen()->uiScreen() scale];
 	if(pointScale > 1.)
 		log.info("using point scale:{:g}", pointScale);
-	#endif
 	#ifndef CONFIG_GFX_SOFT_ORIENTATION
 	validO = defaultValidOrientationMask();
 	#endif

@@ -31,17 +31,15 @@ namespace EmuEx
 {
 
 using namespace IG;
-class InputDeviceConfig;
 class EmuInputView;
-struct KeyCategory;
 
 class IdentInputDeviceView : public View
 {
 public:
-	using OnIdentInputDelegate = DelegateFunc<void (const Input::KeyEvent &)>;
+	using OnIdentInputDelegate = DelegateFunc<void (const Input::KeyEvent&)>;
 	OnIdentInputDelegate onIdentInput;
 
-	IdentInputDeviceView(ViewAttachParams attach);
+	IdentInputDeviceView(ViewAttachParams);
 	void place() final;
 	bool inputEvent(const Input::Event&, ViewInputEventParams p = {}) final;
 	void draw(Gfx::RendererCommands&__restrict__, ViewDrawParams p = {}) const final;
@@ -54,13 +52,13 @@ private:
 class InputManagerView final: public TableView, public EmuAppHelper
 {
 public:
-	InputManagerView(ViewAttachParams attach, InputManager &);
+	InputManagerView(ViewAttachParams, InputManager&);
 	~InputManagerView() final;
 	void onShow() final;
 	void pushAndShowDeviceView(const Input::Device &, const Input::Event &);
 
 private:
-	InputManager &inputManager;
+	InputManager& inputManager;
 	TextMenuItem deleteDeviceConfig;
 	TextMenuItem deleteProfile;
 	ConditionalMember<Config::envIsAndroid, TextMenuItem> rescanOSDevices;
@@ -76,7 +74,7 @@ private:
 class InputManagerOptionsView : public TableView, public EmuAppHelper
 {
 public:
-	InputManagerOptionsView(ViewAttachParams attach, EmuInputView *emuInputView);
+	InputManagerOptionsView(ViewAttachParams, EmuInputView&);
 
 private:
 	ConditionalMember<MOGA_INPUT, BoolMenuItem> mogaInputSystem;
@@ -88,19 +86,19 @@ private:
 	ConditionalMember<Config::Bluetooth::scanCache, BoolMenuItem> btScanCache;
 	BoolMenuItem altGamepadConfirm;
 	StaticArrayList<MenuItem*, 10> item;
-	EmuInputView *emuInputView{};
+	EmuInputView& emuInputView;
 };
 
 class InputManagerDeviceView : public TableView, public EmuAppHelper
 {
 public:
 	InputManagerDeviceView(UTF16String name, ViewAttachParams,
-		InputManagerView &rootIMView, const Input::Device &, InputManager &);
+		InputManagerView& rootIMView, const Input::Device&, InputManager&);
 	void onShow() final;
 
 private:
-	InputManager &inputManager;
-	InputManagerView &rootIMView;
+	InputManager& inputManager;
+	InputManagerView& rootIMView;
 	DynArray<TextMenuItem> playerItems;
 	MultiChoiceMenuItem player;
 	TextMenuItem loadProfile;
@@ -120,11 +118,11 @@ private:
 	TextHeadingMenuItem joystickSetup;
 	std::vector<TextMenuItem> inputCategory;
 	std::vector<MenuItem*> item;
-	InputDeviceConfig &devConf;
+	InputDeviceConfig& devConf;
 
 	void confirmICadeMode();
 	void loadItems();
-	void addCategoryItem(const KeyCategory &cat);
+	void addCategoryItem(const KeyCategory&);
 };
 
 }

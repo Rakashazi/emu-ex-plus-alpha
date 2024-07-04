@@ -185,6 +185,7 @@ public:
 	static bool inputHasKeyboard;
 	static bool hasBundledGames;
 	static bool hasPALVideoSystem;
+	static bool canRenderRGB565;
 	static bool canRenderRGBA8888;
 	static bool hasResetModes;
 	static bool handlesArchiveFiles;
@@ -233,6 +234,7 @@ public:
 	WSize multiresVideoBaseSize() const;
 	double videoAspectRatioScale() const;
 	bool onVideoRenderFormatChange(EmuVideo &, PixelFormat);
+	static bool canRenderMultipleFormats() {return canRenderRGBA8888 && canRenderRGB565;}
 	void loadBackupMemory(EmuApp &);
 	void onFlushBackupMemory(EmuApp &, BackupMemoryDirtyFlags);
 	WallClockTimePoint backupMemoryLastWriteTime(const EmuApp &) const;

@@ -20,9 +20,9 @@
 #include <emuframework/EmuViewController.hh>
 #include <emuframework/CreditsView.hh>
 #include <emuframework/StateSlotView.hh>
-#include <emuframework/InputManagerView.hh>
 #include <emuframework/BundledGamesView.hh>
 #include <emuframework/viewUtils.hh>
+#include "InputOverridesView.hh"
 #include "AutosaveSlotView.hh"
 #include "ResetAlertView.hh"
 #include <imagine/gui/TextEntry.hh>
@@ -125,6 +125,14 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<StateSlotView>(), e);
+		}
+	},
+	inputOverrides
+	{
+		"Input Overrides", attach,
+		[this](const Input::Event &e)
+		{
+			pushAndShow(makeView<InputOverridesView>(app().inputManager), e);
 		}
 	},
 	addLauncherIcon
@@ -231,6 +239,7 @@ void SystemActionsView::loadStandardItems()
 	item.emplace_back(&revertAutosave);
 	item.emplace_back(&autosaveNow);
 	item.emplace_back(&stateSlot);
+	item.emplace_back(&inputOverrides);
 	if(used(addLauncherIcon))
 		item.emplace_back(&addLauncherIcon);
 	item.emplace_back(&screenshot);

@@ -597,8 +597,7 @@ static bool readVControllerElement(InputManager &mgr, MapIO &io, std::vector<VCo
 			VControllerUIButtonGroup::Config config;
 			io.read(config.layout.rowItems);
 			config.layout.origin = _2DOrigin::unpack(io.get<_2DOrigin::PackedType>());
-			auto keys = io.get<uint8_t>();
-			io.readSized(config.keys, keys);
+			readSizedData<uint8_t>(io, config.keys);
 			config.validate(mgr);
 			elems.emplace_back(std::in_place_type<VControllerUIButtonGroup>, std::move(config));
 		}
@@ -612,8 +611,7 @@ static bool readVControllerElement(InputManager &mgr, MapIO &io, std::vector<VCo
 			io.read(config.layout.staggerType);
 			config.layout.origin = _2DOrigin::unpack(io.get<_2DOrigin::PackedType>());
 			io.read(config.layout.showBoundingArea);
-			auto keys = io.get<uint8_t>();
-			io.readSized(config.keys, keys);
+			readSizedData<uint8_t>(io, config.keys);
 			config.validate(mgr);
 			elems.emplace_back(std::in_place_type<VControllerButtonGroup>, std::move(config));
 		}
@@ -713,18 +711,14 @@ static void writeToConfig(const VControllerElement &e, FileIO &io)
 			io.put(config.layout.staggerType);
 			io.put(config.layout.origin.pack());
 			io.put(config.layout.showBoundingArea);
-			auto keyCount = uint8_t(std::min(config.keys.size(), 255zu));
-			io.put(keyCount);
-			io.write(config.keys.data(), keyCount);
+			writeSizedData<uint8_t>(io, config.keys);
 		},
 		[&](const VControllerUIButtonGroup &e)
 		{
 			auto config = e.config();
 			io.put(config.layout.rowItems);
 			io.put(config.layout.origin.pack());
-			auto keyCount = uint8_t(std::min(config.keys.size(), 255zu));
-			io.put(keyCount);
-			io.write(config.keys.data(), keyCount);
+			writeSizedData<uint8_t>(io, config.keys);
 		},
 		[&](const VControllerDPad &e)
 		{

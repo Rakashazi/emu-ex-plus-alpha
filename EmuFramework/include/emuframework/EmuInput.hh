@@ -34,6 +34,9 @@ using namespace IG;
 class InputDeviceConfig;
 struct InputAction;
 
+constexpr int8_t playerIndexMulti = -1;
+constexpr int8_t playerIndexUnset = -2;
+
 struct KeyCategory
 {
 	std::string_view name;
@@ -146,12 +149,27 @@ struct InputDeviceSavedConfig
 	ConditionalMember<hasICadeInput, bool> iCadeMode{};
 	ConditionalMember<Config::envIsAndroid, bool> handleUnboundEvents{};
 
-	bool operator ==(InputDeviceSavedConfig const& rhs) const
+	constexpr bool operator ==(InputDeviceSavedConfig const& rhs) const
 	{
 		return enumId == rhs.enumId && name == rhs.name;
 	}
 
-	bool matchesDevice(const Input::Device &dev) const;
+	bool matchesDevice(const Input::Device& dev) const;
+};
+
+struct InputDeviceSavedSessionConfig
+{
+	std::string keyConfName;
+	std::string name;
+	uint8_t enumId{};
+	int8_t player{};
+
+	constexpr bool operator ==(InputDeviceSavedSessionConfig const& rhs) const
+	{
+		return enumId == rhs.enumId && name == rhs.name;
+	}
+
+	bool matchesDevice(const Input::Device& dev) const;
 };
 
 struct SystemKeyInputFlags
@@ -164,7 +182,8 @@ class InputManager
 public:
 	VController vController;
 	std::vector<std::unique_ptr<KeyConfig>> customKeyConfigs;
-	std::vector<std::unique_ptr<InputDeviceSavedConfig>> savedInputDevs;
+	std::vector<std::unique_ptr<InputDeviceSavedConfig>> savedDevConfigs;
+	std::vector<std::unique_ptr<InputDeviceSavedSessionConfig>> savedSessionDevConfigs;
 	TurboInput turboActions;
 	ToggleInput toggleInput;
 	DelegateFunc<void ()> onUpdateDevices;
@@ -179,6 +198,13 @@ public:
 	KeyConfig *customKeyConfig(std::string_view name, const Input::Device &) const;
 	KeyConfigDesc keyConfig(std::string_view name, const Input::Device &) const;
 	void deleteKeyProfile(ApplicationContext, KeyConfig *);
+	void deleteDeviceSavedConfig(ApplicationContext, const InputDeviceSavedConfig&);
+	void deleteDeviceSavedConfig(ApplicationContext, const InputDeviceSavedSessionConfig&);
+	void resetSessionOptions(ApplicationContext);
+	bool readSessionConfig(ApplicationContext, MapIO&, uint16_t);
+	void writeSessionConfig(FileIO &io) const;
+	bool readInputDeviceSessionConfigs(ApplicationContext, MapIO&);
+	void writeInputDeviceSessionConfigs(FileIO&) const;
 	void writeCustomKeyConfigs(FileIO &) const;
 	void writeSavedInputDevices(ApplicationContext, FileIO &) const;
 	bool readCustomKeyConfig(MapIO &);

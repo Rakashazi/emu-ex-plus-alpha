@@ -16,7 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/base/iphone/config.h>
 #include <imagine/base/iphone/IOSWindow.hh>
 #include <imagine/util/memory/UniqueCFObject.hh>
 #include <type_traits>

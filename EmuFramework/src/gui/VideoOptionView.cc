@@ -398,7 +398,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 	windowPixelFormat
 	{
 		"Display Color Format", attach,
-		MenuId{pack(app().windowDrawableConfig())},
+		MenuId{pack(app().windowDrawableConfig)},
 		windowPixelFormatItem,
 		{
 			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
@@ -571,7 +571,7 @@ void VideoOptionView::loadStockItems()
 	{
 		item.emplace_back(&windowPixelFormat);
 	}
-	if(EmuSystem::canRenderRGBA8888)
+	if(EmuSystem::canRenderMultipleFormats())
 		item.emplace_back(&renderPixelFormat);
 	item.emplace_back(&imgEffectPixelFormat);
 	if(used(secondDisplay))
