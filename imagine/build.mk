@@ -49,6 +49,7 @@ ifdef libNameExt
 endif
 
 CFLAGS_WARN += -Werror
+CFLAGS_LANG = -std=gnu23
 
 include $(IMAGINE_PATH)/make/imagineStaticLibTarget.mk
 
