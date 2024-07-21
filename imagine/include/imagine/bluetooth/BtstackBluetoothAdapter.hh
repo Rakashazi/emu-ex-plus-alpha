@@ -65,7 +65,7 @@ class BtstackBluetoothSocket
 {
 public:
 	constexpr BtstackBluetoothSocket() = default;
-	BtstackBluetoothSocket(ApplicationContext ctx) {}
+	BtstackBluetoothSocket(ApplicationContext) {}
 	~BtstackBluetoothSocket();
 	void close();
 	const void *pin(uint32_t &size);

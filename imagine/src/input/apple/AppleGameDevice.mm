@@ -38,10 +38,10 @@ AppleGameDevice::AppleGameDevice(ApplicationContext ctx, GCController *gcControl
 	{
 		typeFlags_.joystick = true;
 		subtype_ = Subtype::APPLE_EXTENDED_GAMEPAD;
-		axis[0] = {Map::APPLE_GAME_CONTROLLER, Input::AxisId::X};
-		axis[1] = {Map::APPLE_GAME_CONTROLLER, Input::AxisId::Y};
-		axis[2] = {Map::APPLE_GAME_CONTROLLER, Input::AxisId::Z};
-		axis[3] = {Map::APPLE_GAME_CONTROLLER, Input::AxisId::RZ};
+		axis[0] = {Input::AxisId::X};
+		axis[1] = {Input::AxisId::Y};
+		axis[2] = {Input::AxisId::Z};
+		axis[3] = {Input::AxisId::RZ};
 	}
 	log.info("controller vendor:{}", name_);
 }
@@ -52,92 +52,92 @@ AppleGameDevice::~AppleGameDevice()
 }
 
 template <class T>
-void AppleGameDevice::setGamepadBlocks(Device &dev, GCController *controller, T gamepad)
+void AppleGameDevice::setGamepadBlocks(Device& dev, GCController*, T gamepad)
 {
 	gamepad.buttonA.valueChangedHandler =
-		^(GCControllerButtonInput *button, float value, BOOL pressed)
+		^(GCControllerButtonInput*, float value, [[maybe_unused]] BOOL pressed)
 		{
 			this->handleKey(dev, AppleGC::A, value != 0.f);
 		};
 	gamepad.buttonB.valueChangedHandler =
-		^(GCControllerButtonInput *button, float value, BOOL pressed)
+		^(GCControllerButtonInput*, float value, [[maybe_unused]] BOOL pressed)
 		{
 			this->handleKey(dev, AppleGC::B, value != 0.f);
 		};
 	gamepad.buttonX.valueChangedHandler =
-		^(GCControllerButtonInput *button, float value, BOOL pressed)
+		^(GCControllerButtonInput*, float value, [[maybe_unused]] BOOL pressed)
 		{
 			this->handleKey(dev, AppleGC::X, value != 0.f);
 		};
 	gamepad.buttonY.valueChangedHandler =
-		^(GCControllerButtonInput *button, float value, BOOL pressed)
+		^(GCControllerButtonInput*, float value, [[maybe_unused]] BOOL pressed)
 		{
 			this->handleKey(dev, AppleGC::Y, value != 0.f);
 		};
 	gamepad.leftShoulder.valueChangedHandler =
-		^(GCControllerButtonInput *button, float value, BOOL pressed)
+		^(GCControllerButtonInput*, float value, [[maybe_unused]] BOOL pressed)
 		{
 			this->handleKey(dev, AppleGC::L1, value != 0.f);
 		};
 	gamepad.rightShoulder.valueChangedHandler =
-		^(GCControllerButtonInput *button, float value, BOOL pressed)
+		^(GCControllerButtonInput*, float value, [[maybe_unused]] BOOL pressed)
 		{
 			this->handleKey(dev, AppleGC::R1, value != 0.f);
 		};
 	gamepad.dpad.up.valueChangedHandler =
-		^(GCControllerButtonInput *button, float value, BOOL pressed)
+		^(GCControllerButtonInput*, [[maybe_unused]] float value, BOOL pressed)
 		{
 			this->handleKey(dev, AppleGC::UP, pressed);
 		};
 	gamepad.dpad.down.valueChangedHandler =
-		^(GCControllerButtonInput *button, float value, BOOL pressed)
+		^(GCControllerButtonInput*, [[maybe_unused]] float value, BOOL pressed)
 		{
 			this->handleKey(dev, AppleGC::DOWN, pressed);
 		};
 	gamepad.dpad.left.valueChangedHandler =
-		^(GCControllerButtonInput *button, float value, BOOL pressed)
+		^(GCControllerButtonInput*, [[maybe_unused]] float value, BOOL pressed)
 		{
 			this->handleKey(dev, AppleGC::LEFT, pressed);
 		};
 	gamepad.dpad.right.valueChangedHandler =
-		^(GCControllerButtonInput *button, float value, BOOL pressed)
+		^(GCControllerButtonInput*, [[maybe_unused]] float value, BOOL pressed)
 		{
 			this->handleKey(dev, AppleGC::RIGHT, pressed);
 		};
 }
 
-void AppleGameDevice::setExtendedGamepadBlocks(Device &dev, GCController *controller, GCExtendedGamepad *extGamepad)
+void AppleGameDevice::setExtendedGamepadBlocks(Device &dev, GCController*, GCExtendedGamepad* extGamepad)
 {
 	extGamepad.leftTrigger.valueChangedHandler =
-		^(GCControllerButtonInput *button, float value, BOOL pressed)
+		^(GCControllerButtonInput*, [[maybe_unused]] float value, BOOL pressed)
 		{
 			this->handleKey(dev, AppleGC::L2, pressed);
 		};
 	extGamepad.rightTrigger.valueChangedHandler =
-		^(GCControllerButtonInput *button, float value, BOOL pressed)
+		^(GCControllerButtonInput*, [[maybe_unused]] float value, BOOL pressed)
 		{
 			this->handleKey(dev, AppleGC::R2, pressed);
 		};
 	extGamepad.leftThumbstick.xAxis.valueChangedHandler =
-		^(GCControllerAxisInput *, float value)
+		^(GCControllerAxisInput*, float value)
 		{
 			if(axis[0].dispatchInputEvent(value, Map::APPLE_GAME_CONTROLLER, SteadyClock::now(), dev, ctx.mainWindow()))
 				ctx.endIdleByUserActivity();
 		};
 	extGamepad.leftThumbstick.yAxis.valueChangedHandler =
-		^(GCControllerAxisInput *, float value)
+		^(GCControllerAxisInput*, float value)
 		{
 			if(axis[1].dispatchInputEvent(value, Map::APPLE_GAME_CONTROLLER, SteadyClock::now(), dev, ctx.mainWindow()))
 				ctx.endIdleByUserActivity();
 		};
 	extGamepad.rightThumbstick.xAxis.valueChangedHandler =
-		^(GCControllerAxisInput *, float value)
+		^(GCControllerAxisInput*, float value)
 		{
 			if(axis[2].dispatchInputEvent(value, Map::APPLE_GAME_CONTROLLER, SteadyClock::now(), dev, ctx.mainWindow()))
 				ctx.endIdleByUserActivity();
 		};
 	extGamepad.rightThumbstick.yAxis.valueChangedHandler =
-		^(GCControllerAxisInput *, float value)
+		^(GCControllerAxisInput*, float value)
 		{
 			if(axis[3].dispatchInputEvent(value, Map::APPLE_GAME_CONTROLLER, SteadyClock::now(), dev, ctx.mainWindow()))
 				ctx.endIdleByUserActivity();
@@ -182,7 +182,7 @@ void AppleGameDevice::setKeys(Device &dev)
 		setGamepadBlocks(dev, gcController(), gamepad);
 	}
 	gcController().controllerPausedHandler =
-		^(GCController *controller)
+		^(GCController*)
 		{
 			this->handleKey(dev, AppleGC::PAUSE, true, false);
 			this->handleKey(dev, AppleGC::PAUSE, false, false);

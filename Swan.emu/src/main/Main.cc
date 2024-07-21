@@ -68,7 +68,7 @@ FS::FileString WsSystem::stateFilename(int slot, std::string_view name) const
 }
 
 size_t WsSystem::stateSize() { return stateSizeMDFN(); }
-void WsSystem::readState(EmuApp &app, std::span<uint8_t> buff) { readStateMDFN(app, buff); }
+void WsSystem::readState(EmuApp&, std::span<uint8_t> buff) { readStateMDFN(buff); }
 size_t WsSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags) { return writeStateMDFN(buff, flags); }
 
 void WsSystem::loadBackupMemory(EmuApp &app)

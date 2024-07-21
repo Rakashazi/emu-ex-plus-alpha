@@ -316,18 +316,18 @@ static GLuint makeCompatGLShader(RendererTask &rTask, std::span<std::string_view
 	}
 	StaticArrayList<std::string_view, maxSourceStrings> compatSrcs;
 	std::string_view version = Config::Gfx::OPENGL_ES ? "#version 300 es\n"sv : "#version 330\n"sv;
-	std::string_view legacyVertDefs // for GL ES 2.0
+	constexpr std::string_view legacyVertDefs // for GL ES 2.0
 	{
 		"#define in attribute\n"
 		"#define out varying\n"
 	};
-	std::string_view legacyFragDefs // for GL ES 2.0
+	constexpr std::string_view legacyFragDefs // for GL ES 2.0
 	{
 		"#define in varying\n"
 		"#define texture texture2D\n"
 		"#define FRAGCOLOR gl_FragColor\n"
 	};
-	std::string_view fragDefs
+	constexpr std::string_view fragDefs
 	{
 		"out mediump vec4 FRAGCOLOR;\n"
 	};

@@ -79,5 +79,5 @@ template<class T, int Tag>
 struct std::formatter<IG::UnusedType<T, Tag>>
 {
 	constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
-	constexpr auto format(const IG::UnusedType<T, Tag> &obj, auto &ctx) const { return ctx.out(); }
+	constexpr auto format(const IG::UnusedType<T, Tag>&, auto &ctx) const { return ctx.out(); }
 };

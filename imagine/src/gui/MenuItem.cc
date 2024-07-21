@@ -32,8 +32,6 @@ void MenuItem::prepareDraw()
 
 void MenuItem::draw(Gfx::RendererCommands&__restrict__ cmds, MenuItemDrawAttrs attrs) const
 {
-	auto [xPos, yPos] = attrs.rect.pos(LT2DO);
-	auto xSize = attrs.rect.size().x;
 	if(!active())
 	{
 		// half-bright color
@@ -41,12 +39,10 @@ void MenuItem::draw(Gfx::RendererCommands&__restrict__ cmds, MenuItemDrawAttrs a
 		attrs.color.g /= 2.f;
 		attrs.color.b /= 2.f;
 	}
-	if(attrs.align.isXCentered())
-		xPos += xSize / 2;
-	else
-		xPos += attrs.xIndent;
+	if(!attrs.align.isXCentered())
+		attrs.rect += WPt{attrs.xIndent, 0};
 	cmds.basicEffect().enableAlphaTexture(cmds);
-	t.draw(cmds, {xPos, yPos}, attrs.align, attrs.color);
+	t.draw(cmds, attrs.rect.pos(attrs.align), attrs.align, attrs.color);
 }
 
 void MenuItem::place()
@@ -91,9 +87,8 @@ void BaseDualTextMenuItem::prepareDraw()
 void BaseDualTextMenuItem::draw2ndText(Gfx::RendererCommands &cmds, MenuItemDrawAttrs attrs) const
 {
 	cmds.basicEffect().enableAlphaTexture(cmds);
-	auto [xPos, yPos] = attrs.rect.pos(LT2DO);
-	auto xSize = attrs.rect.size().x;
-	t2.draw(cmds, {(xPos + xSize) - attrs.xIndent, yPos}, RC2DO, attrs.color);
+	attrs.rect -= WPt{attrs.xIndent, 0};
+	t2.draw(cmds, attrs.rect.pos(RC2DO), RC2DO, attrs.color);
 }
 
 void BaseDualTextMenuItem::draw(Gfx::RendererCommands&__restrict__ cmds, MenuItemDrawAttrs attrs) const
@@ -205,8 +200,8 @@ public:
 
 	void drawElement(Gfx::RendererCommands &__restrict__ cmds, size_t i, MenuItem &item, WRect rect, int xIndent) const final
 	{
-		MenuItemDrawAttrs attrs{.rect = {{rect.x, rect.pos(C2DO).y}, rect.size()},
-				.xIndent = xIndent, .color = menuTextColor((int)i == activeItem), .align = TableView::align};
+		MenuItemDrawAttrs attrs{.rect = rect, .xIndent = xIndent,
+			.color = menuTextColor((int)i == activeItem), .align = TableView::align};
 		item.draw(cmds, attrs);
 	}
 };
@@ -311,8 +306,8 @@ std::unique_ptr<TableView> MultiChoiceMenuItem::makeTableView(ViewAttachParams a
 		{
 			return msg.visit(overloaded
 			{
-				[&](const TableView::ItemsMessage &m) -> TableView::ItemReply { return items(); },
-				[&](const TableView::GetItemMessage &m) -> TableView::ItemReply { return &item(m.idx); },
+				[&](const TableView::ItemsMessage&) -> TableView::ItemReply { return items(); },
+				[&](const TableView::GetItemMessage& m) -> TableView::ItemReply { return &item(m.idx); },
 			});
 		},
 		*this

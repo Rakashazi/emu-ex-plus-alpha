@@ -55,11 +55,11 @@ protected:
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	struct L2CapServer
 	{
-		constexpr L2CapServer() = default;
-		constexpr L2CapServer(uint32_t psm, int fd): psm(psm), fd(fd) {}
+		L2CapServer() = default;
+		L2CapServer(uint32_t psm, int fd): psm(psm), fd(fd) {}
 		uint32_t psm = 0;
 		int fd = -1;
-		FDEventSource connectSrc;
+		FDEventSource connectSrc{};
 	};
 	StaticArrayList<L2CapServer, 2> serverList;
 	#endif
@@ -73,16 +73,15 @@ using BluetoothAdapterImpl = BluezBluetoothAdapter;
 class BluezBluetoothSocket
 {
 public:
-	constexpr BluezBluetoothSocket() = default;
 	BluezBluetoothSocket(ApplicationContext) {}
 	~BluezBluetoothSocket();
 	void close();
-	bool readPendingData(int events);
+	bool readPendingData(PollEventFlags);
 
 protected:
 	FDEventSource fdSrc{};
 	int fd = -1;
-	void setupFDEvents(int events);
+	void setupFDEvents(PollEventFlags);
 };
 
 using BluetoothSocketImpl = BluezBluetoothSocket;

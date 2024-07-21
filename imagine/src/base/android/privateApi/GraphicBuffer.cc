@@ -64,12 +64,12 @@ GraphicBuffer::GraphicBuffer()
 {
 	initAllocDev();
 	common.incRef =
-		[](struct android_native_base_t *ptr)
+		[](struct android_native_base_t*)
 		{
 			//logMsg("called incRef:%p", ptr);
 		};
 	common.decRef =
-		[](struct android_native_base_t *ptr)
+		[](struct android_native_base_t*)
 		{
 			//logMsg("called decRef:%p", ptr);
 		};

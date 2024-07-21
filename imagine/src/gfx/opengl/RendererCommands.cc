@@ -295,11 +295,6 @@ Color RendererCommands::color() const
 	return vColor;
 }
 
-void RendererCommands::setImgMode(EnvMode mode)
-{
-	// TODO
-}
-
 void RendererCommands::setDither(bool on)
 {
 	rTask->verifyCurrentContext();

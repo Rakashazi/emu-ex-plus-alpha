@@ -55,7 +55,6 @@ Application *appPtr{};
 bool isIPad = false;
 static bool isRunningAsSystemApp = false;
 UIApplication *sharedApp{};
-static const char *docPath{};
 static FS::PathString appPath{};
 static id onOrientationChangedObserver = nil;
 
@@ -91,7 +90,6 @@ static Screen &setupUIScreen(ApplicationContext ctx, UIScreen *screen, bool setO
 		screen.overscanCompensation = UIScreenOverscanCompensationInsetApplicationFrame;
 	IOSScreen::InitParams initParams{(__bridge void*)screen};
 	auto s = std::make_unique<Screen>(ctx, initParams);
-	[s->displayLink() addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
 	return ctx.application().addScreen(ctx, std::move(s), true);
 }
 
@@ -146,7 +144,7 @@ IOSApplication::IOSApplication(ApplicationInitParams initParams):
 					log.info("screen {} already in list", (__bridge void*)screen);
 					return;
 				}
-				auto &s = setupUIScreen(ctx, screen, true);
+				setupUIScreen(ctx, screen, true);
 			}];
 		[nCenter addObserverForName:UIScreenDidDisconnectNotification
 			object:nil queue:nil usingBlock:
@@ -157,14 +155,14 @@ IOSApplication::IOSApplication(ApplicationInitParams initParams):
 				if(auto removedScreen = removeScreen(ctx, (__bridge void*)screen, true);
 					removedScreen)
 				{
-					[removedScreen->displayLink() removeFromRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+					log.info("screen removed from list");
 				}
 			}];
 		if(Config::DEBUG_BUILD)
 		{
 			[nCenter addObserverForName:UIScreenModeDidChangeNotification
 				object:nil queue:nil usingBlock:
-				^(NSNotification *note)
+				^(NSNotification*)
 				{
 					log.info("screen mode change");
 				}];
@@ -176,7 +174,6 @@ IOSApplication::IOSApplication(ApplicationInitParams initParams):
 	}
 	#else
 	mainScreen().init([UIScreen mainScreen]);
-	[mainScreen().displayLink() addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
 	#endif
 }
 
@@ -392,7 +389,7 @@ void ApplicationContext::setOnDeviceOrientationChanged(DeviceOrientationChangedD
 		}
 		onOrientationChangedObserver = [nCenter addObserverForName:UIDeviceOrientationDidChangeNotification
 		                               object:nil queue:nil usingBlock:
-		                               ^(NSNotification *note)
+		                               ^(NSNotification*)
 		                               {
 		                              	auto o = iOSOrientationToGfx([[UIDevice currentDevice] orientation]);
 		                              	if(o != Rotation::ANY)
@@ -427,7 +424,7 @@ Orientations ApplicationContext::defaultSystemOrientations() const
 	return isIPad ? Orientations::all() : Orientations::allButUpsideDown();
 }
 
-void ApplicationContext::setOnSystemOrientationChanged(SystemOrientationChangedDelegate del)
+void ApplicationContext::setOnSystemOrientationChanged(SystemOrientationChangedDelegate)
 {
 	// TODO
 }
@@ -590,7 +587,7 @@ CLINK int32_t __isOSVersionAtLeast(int32_t major, int32_t minor, int32_t submino
 	return subminor <= platformVersion.subminor;
 }
 
-CLINK int32_t __isPlatformVersionAtLeast(uint32_t Platform, uint32_t major, uint32_t minor, uint32_t subminor)
+CLINK int32_t __isPlatformVersionAtLeast([[maybe_unused]] uint32_t Platform, uint32_t major, uint32_t minor, uint32_t subminor)
 {
 	return __isOSVersionAtLeast(major, minor, subminor);
 }
@@ -598,7 +595,7 @@ CLINK int32_t __isPlatformVersionAtLeast(uint32_t Platform, uint32_t major, uint
 #if __IPHONE_OS_VERSION_MIN_REQUIRED < 100000
 CLINK int clock_gettime(clockid_t clock_id, struct timespec *tp)
 {
-	if(clock_id == CLOCK_MONOTONIC)
+	if(clock_id == CLOCK_MONOTONIC_RAW)
 	{
 		auto nanos = mach_absolute_time() * timebaseInfo.numer / timebaseInfo.denom;
 		tp->tv_sec = nanos / 1000000000ULL;

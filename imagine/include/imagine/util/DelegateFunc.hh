@@ -40,7 +40,7 @@ public:
 	constexpr DelegateFuncBase(std::nullptr_t) {}
 
 	constexpr DelegateFuncBase(DelegateFuncDefaultInit):
-		DelegateFuncBase{[](Args ...args){ return R(); }} {}
+		DelegateFuncBase{[](Args...){ return R(); }} {}
 
 	template<CallableClass<R, Args...> F>
 	requires (sizeof(F) <= StorageSize && Align >= std::alignment_of_v<F>)

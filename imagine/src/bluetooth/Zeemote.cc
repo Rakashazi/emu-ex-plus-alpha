@@ -91,7 +91,7 @@ void Zeemote::close()
 	sock.close();
 }
 
-uint32_t Zeemote::statusHandler(Input::Device &dev, BluetoothSocket &sock, BluetoothSocketState status)
+uint32_t Zeemote::statusHandler(Input::Device& dev, BluetoothSocket&, BluetoothSocketState status)
 {
 	if(status == BluetoothSocketState::Opened)
 	{

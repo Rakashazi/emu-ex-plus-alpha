@@ -165,7 +165,7 @@ void GLRendererTask::destroyDrawable(GLDrawable &drawable)
 	if(!drawable)
 		return;
 	GLTask::runSync(
-		[this, drawable = (Drawable)drawable](TaskContext ctx)
+		[this, drawable = (Drawable)drawable](TaskContext)
 		{
 			// unset the drawable if it's currently in use
 			if(GLManager::hasCurrentDrawable(drawable))

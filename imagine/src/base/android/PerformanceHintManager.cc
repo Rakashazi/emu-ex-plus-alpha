@@ -25,7 +25,7 @@ namespace IG
 
 static APerformanceHintSession* (*APerformanceHint_createSession)(APerformanceHintManager* manager,
 	const int32_t* threadIds, size_t size, int64_t initialTargetWorkDurationNanos);
-static int64_t (*APerformanceHint_getPreferredUpdateRateNanos)(APerformanceHintManager* manager); // unused
+//static int64_t (*APerformanceHint_getPreferredUpdateRateNanos)(APerformanceHintManager* manager); // unused
 static int (*APerformanceHint_updateTargetWorkDuration)(APerformanceHintSession* session, int64_t targetDurationNanos);
 static int (*APerformanceHint_reportActualWorkDuration)(APerformanceHintSession* session, int64_t actualDurationNanos);
 static void (*APerformanceHint_closeSession)(APerformanceHintSession* session);

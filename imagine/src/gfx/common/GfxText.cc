@@ -187,7 +187,7 @@ bool Text::compile(TextLayoutConfig conf)
 			}
 			std::unreachable();
 		};
-		for(auto i : iotaCount(lines))
+		for([[maybe_unused]] auto i : iotaCount(lines))
 		{
 			auto [xLineSize, charsToDraw] = LineSpan::decode({spansPtr, LineSpan::encodedChar16Size});
 			spansPtr += LineSpan::encodedChar16Size;
@@ -252,7 +252,7 @@ void Text::draw(RendererCommands &cmds, WPt pos, _2DOrigin o) const
 		auto s = textStr.data();
 		auto spansPtr = &textStr[sizeBeforeLineSpans];
 		int spriteOffset = 0;
-		for(auto i : iotaCount(lines))
+		for([[maybe_unused]] auto i : iotaCount(lines))
 		{
 			auto [xLineSize, charsToDraw] = LineSpan::decode({spansPtr, LineSpan::encodedChar16Size});
 			spansPtr += LineSpan::encodedChar16Size;

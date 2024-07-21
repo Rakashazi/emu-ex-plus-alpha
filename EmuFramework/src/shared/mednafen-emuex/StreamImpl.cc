@@ -54,7 +54,7 @@ std::pair<IG::OpenFlags, uint8_t> modeToAttribs(uint32 mode)
 	}
 }
 
-FileStream::FileStream(const std::string& path, const uint32 mode, const int do_lock, const uint32 buffer_size)
+FileStream::FileStream(const std::string& path, const uint32 mode, const int do_lock, [[maybe_unused]] const uint32 buffer_size)
 try:
 	io{EmuEx::gAppContext().openFileUri(path, modeToAttribs(mode).first)},
  attribs{modeToAttribs(mode).second}
@@ -182,12 +182,12 @@ void MemoryStream::setSize(size_t size)
 	data_buffer_size = size;
 }
 
-uint64 Stream::readAtPos(void *data, uint64 count, uint64 pos)
+uint64 Stream::readAtPos(void*, [[maybe_unused]] uint64 count, [[maybe_unused]] uint64 pos)
 {
 	bug_unreachable("Stream::readAtPos not implemented");
 	return 0;
 }
 
-void Stream::advise(off_t offset, size_t bytes, IG::IOAdvice advice) {}
+void Stream::advise(off_t, size_t, IG::IOAdvice) {}
 
 }

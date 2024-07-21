@@ -29,22 +29,16 @@ enum class FrameTimeStatEvent
 {
 	startOfFrame,
 	startOfEmulation,
-	aboutToSubmitFrame,
-	aboutToPostDraw,
-	startOfDraw,
-	aboutToPresent,
-	endOfDraw,
+	waitForPresent,
+	endOfFrame,
 };
 
 struct FrameTimeStats
 {
 	SteadyClockTimePoint startOfFrame{};
 	SteadyClockTimePoint startOfEmulation{};
-	SteadyClockTimePoint aboutToSubmitFrame{};
-	SteadyClockTimePoint aboutToPostDraw{};
-	SteadyClockTimePoint startOfDraw{};
-	SteadyClockTimePoint aboutToPresent{};
-	SteadyClockTimePoint endOfDraw{};
+	SteadyClockTimePoint waitForPresent{};
+	SteadyClockTimePoint endOfFrame{};
 	int missedFrameCallbacks{};
 };
 

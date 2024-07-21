@@ -30,7 +30,7 @@ public:
 			TextMenuItem
 			{
 				"Soft Reset", attach,
-				[this, &app]()
+				[&app]()
 				{
 					app.system().reset(app, EmuSystem::ResetMode::SOFT);
 					app.showEmulation();
@@ -39,7 +39,7 @@ public:
 			TextMenuItem
 			{
 				"Hard Reset", attach,
-				[this, &app]()
+				[&app]()
 				{
 					app.system().reset(app, EmuSystem::ResetMode::HARD);
 					app.showEmulation();

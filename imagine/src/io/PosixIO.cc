@@ -39,9 +39,9 @@ constexpr SystemLogger log{"PosixIO"};
 constexpr int MAP_POPULATE = 0;
 #endif
 
-static auto flagsString(OpenFlags openFlags)
+constexpr auto flagsString(OpenFlags openFlags)
 {
-	StaticString<5> logFlagsStr{};
+	StaticString<5> logFlagsStr;
 	if(openFlags.read) logFlagsStr += 'r';
 	if(openFlags.write) logFlagsStr += 'w';
 	if(openFlags.create) logFlagsStr += 'c';
@@ -49,9 +49,9 @@ static auto flagsString(OpenFlags openFlags)
 	return logFlagsStr;
 }
 
-static auto protectionFlagsString(int flags)
+constexpr auto protectionFlagsString(int flags)
 {
-	StaticString<3> logFlagsStr{};
+	StaticString<3> logFlagsStr;
 	if(flags & PROT_READ) logFlagsStr += 'r';
 	if(flags & PROT_WRITE) logFlagsStr += 'w';
 	return logFlagsStr;
@@ -247,7 +247,7 @@ static int adviceToFAdv(IOAdvice advice)
 }
 #endif
 
-void PosixIO::advise(off_t offset, size_t bytes, Advice advice)
+void PosixIO::advise([[maybe_unused]] off_t offset, [[maybe_unused]] size_t bytes, [[maybe_unused]] Advice advice)
 {
 	#ifdef __APPLE__
 	if(advice == Advice::Sequential || advice == Advice::WillNeed)
@@ -309,7 +309,7 @@ IOBuffer PosixIO::byteBufferFromMmap(void *data, size_t size)
 			log.info("unmapping:{} ({} bytes)", (void*)ptr, size);
 			if(munmap((void*)ptr, size) == -1)
 			{
-				if(Config::DEBUG_BUILD)
+				if constexpr(Config::DEBUG_BUILD)
 					log.error("munmap({}, {}) error:{}", (void*)ptr, size, strerror(errno));
 			}
 		}

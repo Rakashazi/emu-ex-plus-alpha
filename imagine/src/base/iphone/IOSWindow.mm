@@ -83,7 +83,7 @@ bool Window::setValidOrientations(Orientations o)
 	return true;
 }
 
-bool Window::requestOrientationChange(Rotation o)
+bool Window::requestOrientationChange(Rotation)
 {
 	// no-op, OS manages orientation changes
 	return false;
@@ -229,9 +229,9 @@ Window *windowForUIWindow(ApplicationContext ctx, UIWindow *uiWin)
 	return nullptr;
 }
 
-void Window::setTitle(const char *name) {}
+void Window::setTitle(const char*) {}
 
-void Window::setAcceptDnd(bool on) {}
+void Window::setAcceptDnd(bool) {}
 
 NativeWindow Window::nativeObject() const
 {
@@ -265,7 +265,7 @@ IG::PixelFormat Window::pixelFormat() const
 	return PixelFmtRGBA8888;
 }
 
-void Window::setIntendedFrameRate(FrameRate rate) {}
+void Window::setIntendedFrameRate(FrameRate) {}
 
 void WindowConfig::setFormat(IG::PixelFormat) {}
 

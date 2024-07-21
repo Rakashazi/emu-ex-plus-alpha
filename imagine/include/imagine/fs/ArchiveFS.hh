@@ -57,12 +57,12 @@ private:
 	std::shared_ptr<ArchiveIO> impl;
 };
 
-static const auto &begin(const ArchiveIterator &iter)
+inline const auto &begin(const ArchiveIterator &iter)
 {
 	return iter;
 }
 
-static auto end(const ArchiveIterator &)
+inline auto end(const ArchiveIterator &)
 {
 	return ArchiveIterator::Sentinel{};
 }

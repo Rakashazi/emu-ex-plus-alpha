@@ -56,7 +56,7 @@ public:
 class NullOutputStream
 {
 public:
-	StreamError open(OutputStreamConfig config) { return {}; }
+	StreamError open(OutputStreamConfig) { return {}; }
 	void play() {}
 	void pause() {}
 	void close() {}

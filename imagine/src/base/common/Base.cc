@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/base/EventLoop.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/sharedLibrary.hh>
@@ -55,17 +54,6 @@ std::string_view asString(Orientations o)
 		case Orientations::all(): return "All";
 	}
 	return "Unknown";
-}
-
-FDEventSource::FDEventSource(const char *debugLabel, MaybeUniqueFileDescriptor fd, EventLoop loop, PollEventDelegate callback, uint32_t events):
-	FDEventSource{debugLabel, std::move(fd)}
-{
-	attach(loop, callback, events);
-}
-
-bool FDEventSource::attach(PollEventDelegate callback, uint32_t events)
-{
-	return attach({}, callback, events);
 }
 
 SharedLibraryRef openSharedLibrary(const char *name, OpenSharedLibraryFlags flags)
@@ -164,7 +152,7 @@ WRect Viewport::relRectBestFit(WPt pos, float aspectRatio, _2DOrigin posOrigin, 
 }
 
 #ifndef __ANDROID__
-static void logBacktrace()
+inline void logBacktrace()
 {
 	void *arr[10];
 	auto size = backtrace(arr, 10);

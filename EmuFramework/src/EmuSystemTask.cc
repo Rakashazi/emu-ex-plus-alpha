@@ -27,79 +27,57 @@ constexpr SystemLogger log{"EmuSystemTask"};
 EmuSystemTask::EmuSystemTask(EmuApp &app):
 	app{app} {}
 
-using FrameParamsCommand = EmuSystemTask::FrameParamsCommand;
-using PauseCommand = EmuSystemTask::PauseCommand;
-using ExitCommand = EmuSystemTask::ExitCommand;
-
-void EmuSystemTask::start()
+void EmuSystemTask::start(Window& win)
 {
 	if(taskThread.joinable())
 		return;
+	win.setDrawEventPriority(Window::drawEventPriorityLocked); // block UI from posting draws
+	winPtr = &win;
 	taskThread = makeThreadSync(
 		[this](auto &sem)
 		{
 			threadId_ = thisThreadId();
 			auto eventLoop = EventLoop::makeForThread();
+			winPtr->setFrameEventsOnThisThread();
+			app.addOnFrameDelayed();
 			bool started = true;
 			commandPort.attach(eventLoop, [this, &started](auto msgs)
 			{
-				std::binary_semaphore *syncSemPtr{};
 				for(auto msg : msgs)
 				{
 					bool threadIsRunning = msg.command.visit(overloaded
 					{
-						[&](FrameParamsCommand &cmd)
+						[&](SetWindowCommand &cmd)
 						{
-							frameParams = cmd.params;
-							return true;
-						},
-						[&](FramePresentedCommand &cmd)
-						{
-							framePending = false;
-							return true;
-						},
-						[&](PauseCommand &)
-						{
-							//log.debug("got pause command");
+							//log.debug("got set window command");
+							cmd.winPtr->moveOnFrame(*winPtr, app.system().onFrameUpdate, app.frameTimeSource);
+							winPtr = cmd.winPtr;
 							assumeExpr(msg.semPtr);
-							syncSemPtr = msg.semPtr;
+							msg.semPtr->release();
+							suspendSem.acquire();
+							return true;
+						},
+						[&](SuspendCommand &)
+						{
+							//log.debug("got suspend command");
+							isSuspended = true;
+							assumeExpr(msg.semPtr);
+							msg.semPtr->release();
+							suspendSem.acquire();
 							return true;
 						},
 						[&](ExitCommand &)
 						{
 							started = false;
+							app.removeOnFrame();
+							winPtr->removeFrameEvents();
+							threadId_ = 0;
 							EventLoop::forThread().stop();
 							return false;
 						},
 					});
 					if(!threadIsRunning)
 						return false;
-				}
-				if(hasTime(frameParams.timestamp))
-				{
-					if(!framePending)
-					{
-						auto params = std::exchange(frameParams, {});
-						bool renderingFrame = app.advanceFrames(params, this);
-						if(params.isFromRenderer())
-						{
-							framePending = false;
-							if(!renderingFrame)
-							{
-								app.emuWindow().postDraw(1);
-							}
-						}
-					}
-					else
-					{
-						log.debug("previous async frame not ready yet");
-						doIfUsed(app.frameTimeStats, [&](auto &stats) { stats.missedFrameCallbacks++; });
-					}
-				}
-				if(syncSemPtr)
-				{
-					framePending = false;
-					syncSemPtr->release();
 				}
 				return true;
 			});
@@ -111,44 +89,50 @@ void EmuSystemTask::start()
 		});
 }
 
-void EmuSystemTask::pause()
+EmuSystemTask::SuspendContext EmuSystemTask::setWindow(Window& win)
 {
+	assert(!isSuspended);
 	if(!taskThread.joinable())
-		return;
-	commandPort.send({.command = PauseCommand{}}, MessageReplyMode::wait);
+		return {};
+	auto oldWinPtr = winPtr;
+	commandPort.send({.command = SetWindowCommand{&win}}, MessageReplyMode::wait);
+	oldWinPtr->setFrameEventsOnThisThread();
+	oldWinPtr->setDrawEventPriority(); // allow UI to post draws again
 	app.flushMainThreadMessages();
+	return {this};
+}
+
+EmuSystemTask::SuspendContext EmuSystemTask::suspend()
+{
+	if(!taskThread.joinable() || isSuspended)
+		return {};
+	commandPort.send({.command = SuspendCommand{}}, MessageReplyMode::wait);
+	app.flushMainThreadMessages();
+	return {this};
+}
+
+void EmuSystemTask::resume()
+{
+	if(!taskThread.joinable() || !isSuspended)
+		return;
+	suspendSem.release();
 }
 
 void EmuSystemTask::stop()
 {
 	if(!taskThread.joinable())
 		return;
+	assert(threadId_ != thisThreadId());
 	commandPort.send({.command = ExitCommand{}});
 	taskThread.join();
-	threadId_ = 0;
+	winPtr->setFrameEventsOnThisThread();
+	winPtr->setDrawEventPriority(); // allow UI to post draws again
 	app.flushMainThreadMessages();
-}
-
-void EmuSystemTask::updateFrameParams(FrameParams params)
-{
-	if(!taskThread.joinable()) [[unlikely]]
-		return;
-	commandPort.send({.command = FrameParamsCommand{params}});
-}
-
-void EmuSystemTask::notifyFramePresented()
-{
-	if(!taskThread.joinable()) [[unlikely]]
-		return;
-	commandPort.send({.command = FramePresentedCommand{}});
 }
 
 void EmuSystemTask::sendVideoFormatChangedReply(EmuVideo &video)
 {
-	app.runOnMainThread([&video](ApplicationContext)
-	{
-		video.dispatchFormatChanged();
-	});
+	video.dispatchFormatChanged();
 }
 
 void EmuSystemTask::sendFrameFinishedReply(EmuVideo &video)
@@ -158,7 +142,7 @@ void EmuSystemTask::sendFrameFinishedReply(EmuVideo &video)
 
 void EmuSystemTask::sendScreenshotReply(bool success)
 {
-	app.runOnMainThread([&app = app, success](ApplicationContext ctx)
+	app.runOnMainThread([&app = app, success](ApplicationContext)
 	{
 		app.printScreenshotResult(success);
 	});

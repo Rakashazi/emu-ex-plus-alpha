@@ -346,7 +346,7 @@ bool Texture::setFormat(PixmapDesc desc, int levels, ColorSpace colorSpace, Text
 						r.support.glTexStorage2D(GL_TEXTURE_2D, levels, internalFormat, desc.w(), desc.h());
 					}, "glTexStorage2D()");
 				setSwizzleForFormatInGL(r, desc.format, texName);
-				setSamplerParamsInGL(r, samplerParams);
+				setSamplerParamsInGL(samplerParams);
 			});
 	}
 	else
@@ -383,7 +383,7 @@ bool Texture::setFormat(PixmapDesc desc, int levels, ColorSpace colorSpace, Text
 				}
 				setSwizzleForFormatInGL(r, desc.format, texName);
 				if(remakeTexName)
-					setSamplerParamsInGL(r, samplerParams);
+					setSamplerParamsInGL(samplerParams);
 			}, remakeTexName ? MessageReplyMode::wait : MessageReplyMode::none);
 	}
 	updateFormatInfo(desc, levels);
@@ -562,7 +562,7 @@ WSize Texture::size(int level) const
 {
 	assert(levels_);
 	int w = pixDesc.w(), h = pixDesc.h();
-	for(auto i : iotaCount(level))
+	for([[maybe_unused]] auto i : iotaCount(level))
 	{
 		w = std::max(1, (w / 2));
 		h = std::max(1, (h / 2));
@@ -580,10 +580,10 @@ void Texture::setSampler(TextureSamplerConfig samplerConf)
 	if(!texName()) [[unlikely]]
 		return;
 	task().run(
-		[&r = std::as_const(renderer()), target = target(), texName = texName(), params = asSamplerParams(samplerConf)]()
+		[target = target(), texName = texName(), params = asSamplerParams(samplerConf)]()
 		{
 			glBindTexture(target, texName);
-			setSamplerParamsInGL(r, params, target);
+			setSamplerParamsInGL(params, target);
 		});
 }
 
@@ -675,7 +675,7 @@ static void setTexParameteri(GLenum target, GLenum pname, GLint param)
 		}, "glTexParameteri()");
 }
 
-void GLTexture::setSamplerParamsInGL(const Renderer &r, SamplerParams params, GLenum target)
+void GLTexture::setSamplerParamsInGL(SamplerParams params, GLenum target)
 {
 	assert(params.magFilter);
 	setTexParameteri(target, GL_TEXTURE_MAG_FILTER, params.magFilter);
@@ -718,7 +718,7 @@ void GLTexture::initWithEGLImage(EGLImageKHR eglImg, PixmapDesc desc, SamplerPar
 				}
 				ctx.notifySemaphore();
 				setSwizzleForFormatInGL(r, formatID, texName);
-				setSamplerParamsInGL(r, samplerParams);
+				setSamplerParamsInGL(samplerParams);
 			});
 	}
 	else
@@ -747,7 +747,7 @@ void GLTexture::initWithEGLImage(EGLImageKHR eglImg, PixmapDesc desc, SamplerPar
 				ctx.notifySemaphore();
 				setSwizzleForFormatInGL(r, formatID, texName);
 				if(madeTexName)
-					setSamplerParamsInGL(r, samplerParams);
+					setSamplerParamsInGL(samplerParams);
 			});
 	}
 	updateFormatInfo(desc, 1);
@@ -756,7 +756,7 @@ void GLTexture::initWithEGLImage(EGLImageKHR eglImg, PixmapDesc desc, SamplerPar
 void GLTexture::updateWithEGLImage(EGLImageKHR eglImg)
 {
 	task().GLTask::run(
-		[=, texName = texName()](GLTask::TaskContext ctx)
+		[=, texName = texName()](GLTask::TaskContext)
 		{
 			glBindTexture(GL_TEXTURE_2D, texName);
 			assumeExpr(eglImg);

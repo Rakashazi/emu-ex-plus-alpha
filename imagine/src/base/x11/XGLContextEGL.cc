@@ -79,7 +79,7 @@ std::optional<GLBufferConfig> GLManager::tryBufferConfig(ApplicationContext ctx,
 		// find the config with a visual bits/channel == 8
 		for(auto conf : configs | std::views::take(configCount))
 		{
-			auto visualId = eglConfigAttrib(display(), conf, EGL_NATIVE_VISUAL_ID);
+			[[maybe_unused]] auto visualId = eglConfigAttrib(display(), conf, EGL_NATIVE_VISUAL_ID);
 			auto found = findVisualType(ctx.application().xScreen(), 32, [&](const xcb_visualtype_t& v)
 			{
 				return v.bits_per_rgb_value == 8;

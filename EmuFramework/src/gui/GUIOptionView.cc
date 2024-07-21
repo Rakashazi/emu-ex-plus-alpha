@@ -75,7 +75,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		MenuId{app().fontSize},
 		fontSizeItem,
 		{
-			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			.onSetDisplayString = [this](auto, Gfx::Text& t)
 			{
 				t.resetString(std::format("{:g}", app().fontSize / 1000.));
 				return true;

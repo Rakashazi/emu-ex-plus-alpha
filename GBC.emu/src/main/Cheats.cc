@@ -122,7 +122,7 @@ void readCheatFile(EmuSystem &sys_)
 		return;
 	}
 	auto size = file.get<uint16_t>();
-	for(auto i : iotaCount(size))
+	for([[maybe_unused]] auto i : iotaCount(size))
 	{
 		if(cheatList.isFull())
 		{
@@ -162,7 +162,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 		"Code",
 		cheat_.code,
 		attach,
-		[this](DualTextMenuItem &item, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			pushAndShowNewCollectValueInputView<const char*>(attachParams(), e,
 				"Input xxxxxxxx (GS) or xxx-xxx-xxx (GG) code", cheat->code,
@@ -206,8 +206,8 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		{
 			return msg.visit(overloaded
 			{
-				[&](const ItemsMessage &m) -> ItemReply { return 1 + cheat.size(); },
-				[&](const GetItemMessage &m) -> ItemReply
+				[&](const ItemsMessage&) -> ItemReply { return 1 + cheat.size(); },
+				[&](const GetItemMessage& m) -> ItemReply
 				{
 					switch(m.idx)
 					{
@@ -221,7 +221,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	addGGGS
 	{
 		"Add Game Genie / GameShark Code", attach,
-		[this](TextMenuItem &item, View &, Input::Event e)
+		[this](const Input::Event& e)
 		{
 			pushAndShowNewCollectTextInputView(attachParams(), e,
 				"Input xxxxxxxx (GS) or xxx-xxx-xxx (GG) code", "",
@@ -310,7 +310,7 @@ void EmuCheatsView::loadCheatItems()
 	{
 		auto &thisCheat = *it;
 		cheat.emplace_back(thisCheat.name, attachParams(), thisCheat.isOn(),
-			[this, cIdx](BoolMenuItem &item, View &, Input::Event e)
+			[this, cIdx](BoolMenuItem &item)
 			{
 				item.flipBoolValue(*this);
 				auto &c = cheatList[cIdx];

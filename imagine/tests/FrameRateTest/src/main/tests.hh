@@ -89,15 +89,15 @@ public:
 
 	TestFramework(ViewAttachParams);
 	virtual ~TestFramework() {}
-	virtual void placeTest(WRect testRect) {}
+	virtual void placeTest(WRect) {}
 	virtual void frameUpdateTest(Gfx::RendererTask &, Screen &, SteadyClockTimePoint) = 0;
 	virtual void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) = 0;
-	virtual void presentedTest(Gfx::RendererCommands &cmds) {}
-	void place(Gfx::Renderer &r, WRect viewBounds, WRect testRect);
+	virtual void presentedTest(Gfx::RendererCommands&) {}
+	void place(WRect viewBounds, WRect testRect);
 	void frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::FrameParams frameParams);
 	void prepareDraw();
 	void draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, int xIndent);
-	void finish(Gfx::RendererTask &, SteadyClockTimePoint);
+	void finish(SteadyClockTimePoint);
 	void setCPUFreqText(std::string_view str);
 	void setCPUUseText(std::string_view str);
 

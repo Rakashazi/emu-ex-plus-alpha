@@ -542,11 +542,6 @@ AssetDesc C64App::vControllerAssetDesc(KeyInfo key) const
 	}
 }
 
-static bool isEmuKeyInKeyboardRange(KeyCode emuKey)
-{
-	return emuKey >= KeyCode(C64Key::KeyboardFirstEnum) && emuKey <= KeyCode(C64Key::KeyboardLastEnum);
-}
-
 VController::KbMap C64System::vControllerKeyboardMap(VControllerKbMode mode)
 {
 	static constexpr VController::KbMap kbToEventMap =
@@ -691,7 +686,7 @@ void C64System::handleInputAction(EmuApp *app, InputAction a)
 			if(app)
 			{
 				log.info("pushed restore key");
-				app->syncEmulationThread();
+				auto emuThreadResumer = app->suspendEmulationThread();
 				plugin.machine_set_restore_key(a.state == Input::Action::PUSHED);
 			}
 			break;

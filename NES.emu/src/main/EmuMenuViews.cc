@@ -118,7 +118,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper
 		MenuId{system().optionVideoSystem},
 		videoSystemItem,
 		{
-			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			.onSetDisplayString = [](auto idx, Gfx::Text &t)
 			{
 				if(idx == 0)
 				{
@@ -698,7 +698,7 @@ private:
 	TextMenuItem insertEject
 	{
 		"Eject", attachParams(),
-		[this](View &view, Input::Event e)
+		[](View& view)
 		{
 			if(FCEU_FDSInserted())
 			{

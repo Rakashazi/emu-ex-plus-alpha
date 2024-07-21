@@ -198,8 +198,8 @@ public:
 	void readState(std::span<uint8_t> buff);
 	size_t writeState(std::span<uint8_t> buff, SaveStateFlags = {});
 	DynArray<uint8_t> saveState();
-	bool saveState(CStringView path);
-	bool saveStateWithSlot(int slot);
+	bool saveState(CStringView path, bool notify);
+	bool saveStateWithSlot(int slot, bool notify);
 	bool loadState(CStringView path);
 	bool loadStateWithSlot(int slot);
 	bool shouldOverwriteExistingState() const;
@@ -218,7 +218,8 @@ public:
 	bool hasSavedSessionOptions();
 	void resetSessionOptions();
 	void deleteSessionOptions();
-	void syncEmulationThread();
+	[[nodiscard]]
+	EmuSystemTask::SuspendContext suspendEmulationThread();
 	void startAudio();
 	EmuViewController &viewController();
 	const EmuViewController &viewController() const;
@@ -242,6 +243,10 @@ public:
 	void skipFrames(EmuSystemTaskContext, int frames, EmuAudio *);
 	bool skipForwardFrames(EmuSystemTaskContext, int frames);
 	void notifyWindowPresented();
+	void reportFrameWorkTime();
+	void addOnFrameDelayed();
+	void addOnFrame();
+	void removeOnFrame();
 	void renderSystemFramebuffer(EmuVideo &);
 	void renderSystemFramebuffer() { renderSystemFramebuffer(video); }
 	bool writeScreenshot(IG::PixmapView, CStringView path);
@@ -328,6 +333,7 @@ public:
 
 	void postMessage(int secs, bool error, UTF16Convertible auto &&msg)
 	{
+		auto suspendCtx = suspendEmulationThread();
 		toastView().post(IG_forward(msg), secs, error);
 	}
 
@@ -375,8 +381,9 @@ public:
 	[[no_unique_address]] IG::VibrationManager vibrationManager;
 protected:
 	EmuSystemTask emuSystemTask{*this};
-	mutable Gfx::Texture assetBuffImg[wise_enum::size<AssetFileID>];
+	std::binary_semaphore framePresentedSem{0};
 	int savedAdvancedFrames{};
+	mutable Gfx::Texture assetBuffImg[wise_enum::size<AssetFileID>];
 	[[no_unique_address]] IG::Data::PixmapReader pixmapReader;
 	[[no_unique_address]] IG::Data::PixmapWriter pixmapWriter;
 	[[no_unique_address]] PerformanceHintManager perfHintManager;
@@ -464,14 +471,10 @@ protected:
 	void saveSystemOptions(FileIO &);
 	bool allWindowsAreFocused() const;
 	void configureSecondaryScreens();
-	void addOnFrameDelayed();
-	void addOnFrame();
-	void removeOnFrame();
 	IG::OnFrameDelegate onFrameDelayed(int8_t delay);
 	void addOnFrameDelegate(IG::OnFrameDelegate);
 	void onFocusChange(bool in);
 	void configureAppForEmulation(bool running);
-	void reportFrameWorkTime();
 };
 
 // Global instance access if required by the emulated system, valid if EmuApp::needsGlobalInstance initialized to true

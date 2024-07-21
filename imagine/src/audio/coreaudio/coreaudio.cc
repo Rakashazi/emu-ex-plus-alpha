@@ -50,7 +50,7 @@ CAOutputStream::CAOutputStream()
 	AURenderCallbackStruct renderCallbackProp
 	{
 		[](void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags,
-			const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData) -> OSStatus
+			[[maybe_unused]] const AudioTimeStamp *inTimeStamp, [[maybe_unused]] UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData) -> OSStatus
 		{
 			auto thisPtr = static_cast<CAOutputStream*>(inRefCon);
 			auto *buff = ioData->mBuffers[0].mData;

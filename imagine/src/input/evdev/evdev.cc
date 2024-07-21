@@ -109,22 +109,14 @@ static constexpr bool isBitSetInArray(const T (&arr)[S], unsigned int bit)
 	return arr[bit / bits] & ((T)1 << (bit % bits));
 }
 
-EvdevInputDevice::EvdevInputDevice() {}
-
-EvdevInputDevice::EvdevInputDevice(int id, int fd, DeviceTypeFlags typeFlags, std::string name_, uint32_t vendorProductId):
+EvdevInputDevice::EvdevInputDevice(int id, UniqueFileDescriptor fd, DeviceTypeFlags typeFlags, std::string name_, uint32_t vendorProductId):
 	BaseDevice{id, Map::SYSTEM, typeFlags, std::move(name_)},
-	fd{fd}
+	fdSrc{std::move(fd), {.debugLabel = "EvdevInputDevice", .eventLoop = EventLoop::forThread()}, {}}
 {
 	subtype_ = DeviceSubtype::GENERIC_GAMEPAD;
 	updateGamepadSubtype(name_, vendorProductId);
 	if(setupJoystickBits())
 		typeFlags_.joystick = true;
-}
-
-EvdevInputDevice::~EvdevInputDevice()
-{
-	fdSrc.detach();
-	::close(fd);
 }
 
 void EvdevInputDevice::processInputEvents(Device &dev, LinuxApplication &app, std::span<const input_event> events)
@@ -165,14 +157,14 @@ void EvdevInputDevice::processInputEvents(Device &dev, LinuxApplication &app, st
 bool EvdevInputDevice::setupJoystickBits()
 {
 	ulong evBit[IG::divRoundUp(EV_MAX, IG::bitSize<ulong>)]{};
-	bool isJoystick = (ioctl(fd, EVIOCGBIT(0, sizeof(evBit)), evBit) >= 0)
+	bool isJoystick = (ioctl(fd(), EVIOCGBIT(0, sizeof(evBit)), evBit) >= 0)
 		&& isBitSetInArray(evBit, EV_ABS);
 
 	if(!isJoystick)
 		return false;
 
 	ulong absBit[IG::divRoundUp(ABS_MAX, IG::bitSize<ulong>)]{};
-	if((ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(absBit)), absBit) < 0))
+	if((ioctl(fd(), EVIOCGBIT(EV_ABS, sizeof(absBit)), absBit) < 0))
 	{
 		log.error("unable to check abs bits");
 		return false;
@@ -189,14 +181,14 @@ bool EvdevInputDevice::setupJoystickBits()
 				continue;
 			log.info("joystick axis:{}", (int)axisId);
 			struct input_absinfo info;
-			if(ioctl(fd, EVIOCGABS((int)axisId), &info) < 0)
+			if(ioctl(fd(), EVIOCGABS((int)axisId), &info) < 0)
 			{
 				logErr("error getting absinfo");
 				continue;
 			}
 			auto rangeSize = info.maximum - info.minimum;
 			float scale = 2.f / rangeSize;
-			auto &currAxis = axis.emplace_back(Map::SYSTEM, axisId, scale);
+			auto &currAxis = axis.emplace_back(axisId, scale);
 			axisRangeOffset[axis.size() - 1] = currAxis.isTrigger() ? 0 : (std::abs(info.minimum) - std::abs(info.maximum)) / 2;
 			log.info("min:{} max:{} fuzz:{} flat:{} range offset:{}", info.minimum, info.maximum, info.fuzz, info.flat,
 				axisRangeOffset[axis.size() - 1]);
@@ -214,35 +206,34 @@ bool EvdevInputDevice::setupJoystickBits()
 void EvdevInputDevice::addPollEvent(Device &dev, LinuxApplication &app)
 {
 	auto &evDev = getAs<EvdevInputDevice>(dev);
-	assert(evDev.fd >= 0);
-	evDev.fdSrc = {"EvdevInputDevice", evDev.fd, {},
-		[&dev, &app](int fd, int pollEvents)
+	assert(evDev.fd() >= 0);
+	evDev.fdSrc.setCallback([&dev, &app](int fd, int pollEvents)
+	{
+		if(pollEvents & pollEventError) [[unlikely]]
 		{
-			if(pollEvents & POLLEV_ERR) [[unlikely]]
+			log.error("error:{} in input fd:{} ({})", errno, fd, dev.name());
+			app.removeInputDevice(ApplicationContext{static_cast<Application&>(app)}, dev, true);
+			return false;
+		}
+		else
+		{
+			struct input_event event[64];
+			int len;
+			while((len = read(fd, event, sizeof event)) > 0)
 			{
-				log.error("error:{} in input fd:{} ({})", errno, fd, dev.name());
+				uint32_t events = len / sizeof(struct input_event);
+				//logMsg("read %d bytes from input fd %d, %d events", len, this->fd, events);
+				processInputEvents(dev, app, {event, events});
+			}
+			if(len == -1 && errno != EAGAIN)
+			{
+				log.info("error:{} reading from input fd:{} ({})", errno, fd, dev.name());
 				app.removeInputDevice(ApplicationContext{static_cast<Application&>(app)}, dev, true);
 				return false;
 			}
-			else
-			{
-				struct input_event event[64];
-				int len;
-				while((len = read(fd, event, sizeof event)) > 0)
-				{
-					uint32_t events = len / sizeof(struct input_event);
-					//logMsg("read %d bytes from input fd %d, %d events", len, this->fd, events);
-					processInputEvents(dev, app, {event, events});
-				}
-				if(len == -1 && errno != EAGAIN)
-				{
-					log.info("error:{} reading from input fd:{} ({})", errno, fd, dev.name());
-					app.removeInputDevice(ApplicationContext{static_cast<Application&>(app)}, dev, true);
-					return false;
-				}
-			}
-			return true;
-		}};
+		}
+		return true;
+	});
 }
 
 static bool devIsGamepad(int fd)
@@ -341,9 +332,9 @@ void LinuxApplication::initEvdev(EventLoop loop)
 		int inputDevNotifyFd = inotify_init();
 		if(inputDevNotifyFd >= 0)
 		{
-			auto watch = inotify_add_watch(inputDevNotifyFd, DEV_NODE_PATH, IN_CREATE | IN_ATTRIB);
+			inotify_add_watch(inputDevNotifyFd, DEV_NODE_PATH, IN_CREATE | IN_ATTRIB);
 			fd_setNonblock(inputDevNotifyFd, 1);
-			evdevSrc = {"Evdev Inotify", inputDevNotifyFd, loop,
+			evdevSrc = {inputDevNotifyFd, {.debugLabel = "Evdev Inotify", .eventLoop = loop},
 				[this](int fd, int)
 				{
 					char event[sizeof(struct inotify_event) + 2048];
@@ -375,7 +366,8 @@ void LinuxApplication::initEvdev(EventLoop loop)
 						} while(len);
 					}
 					return true;
-				}};
+				}
+			};
 		}
 		else
 		{

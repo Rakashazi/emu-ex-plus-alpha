@@ -29,8 +29,8 @@ BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 		{
 			return msg.visit(overloaded
 			{
-				[&](const ItemsMessage &m) -> ItemReply { return 1 + cheat.size(); },
-				[&](const GetItemMessage &m) -> ItemReply
+				[&](const ItemsMessage&) -> ItemReply { return 1 + cheat.size(); },
+				[&](const GetItemMessage& m) -> ItemReply
 				{
 					if(m.idx == 0)
 						return &edit;

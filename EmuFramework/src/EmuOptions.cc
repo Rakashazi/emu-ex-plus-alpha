@@ -36,7 +36,7 @@ namespace EmuEx
 
 constexpr SystemLogger log{"App"};
 
-void EmuApp::initOptions(IG::ApplicationContext ctx)
+void EmuApp::initOptions([[maybe_unused]] IG::ApplicationContext ctx)
 {
 	#ifdef CONFIG_OS_IOS
 	if(ctx.deviceIsIPad())

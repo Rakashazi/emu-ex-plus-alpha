@@ -169,14 +169,13 @@ private:
 	JNI::ClassMethod<jstring(jlong)> jFormatDateTime;
 	std::variant<InputDeviceListenerImpl, INotifyImpl> inputDeviceChangeImpl;
 	SystemOrientationChangedDelegate onSystemOrientationChanged;
-	Timer userActivityCallback{"userActivityCallback"};
+	Timer userActivityCallback;
 	using ProcessInputFunc = void (AndroidApplication::*)(AInputQueue *);
 	ConditionalMember<Config::ENV_ANDROID_MIN_SDK < 12, ProcessInputFunc> processInput_{&AndroidApplication::processInputWithHasEvents};
 	AInputQueue *inputQueue{};
 	Input::Device *builtinKeyboardDev{};
 	Input::Device *virtualDev{};
 	Choreographer choreographer{};
-	pthread_key_t jEnvKey{};
 	uint32_t uiVisibilityFlags{};
 	int aHardKeyboardState{};
 	int aKeyboardType{};

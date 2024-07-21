@@ -170,11 +170,11 @@ const char *S9xBasename(const char *f)
 
 #else
 
-void S9xHandlePortCommand(s9xcommand_t cmd, int16 data1, int16 data2) {}
+void S9xHandlePortCommand(s9xcommand_t, int16, int16) {}
 bool8 S9xOpenSoundDevice() { return TRUE; }
-const char *S9xGetCrosshair(int idx) { return nullptr; }
+const char *S9xGetCrosshair(int) { return nullptr; }
 
-std::string S9xGetFilenameInc(std::string_view, enum s9x_getdirtype dirtype)
+std::string S9xGetFilenameInc(std::string_view, enum s9x_getdirtype)
 {
 	logErr("S9xGetFilenameInc not used yet");
 	return {};
@@ -195,7 +195,7 @@ std::string S9xGetFilename(std::string_view ex, enum s9x_getdirtype dirtype)
 		return std::string{sys.contentSaveFilePath(ex)};
 }
 
-std::string S9xGetFilename(std::string_view filename, std::string_view ex, enum s9x_getdirtype dirtype)
+std::string S9xGetFilename(std::string_view, std::string_view ex, enum s9x_getdirtype dirtype)
 {
 	return S9xGetFilename(ex, dirtype);
 }
@@ -264,12 +264,12 @@ std::string S9xBasename(std::string_view f)
 
 #endif
 
-bool S9xPollAxis(uint32 id, int16 *value)
+bool S9xPollAxis(uint32, int16*)
 {
 	return 0;
 }
 
-bool S9xPollPointer(uint32 id, int16 *x, int16 *y)
+bool S9xPollPointer(uint32, int16*, int16*)
 {
 	return 0;
 }
@@ -291,7 +291,7 @@ void S9xToggleSoundChannel(int c)
 	S9xSetSoundControl(sound_switch);
 }
 
-const char * S9xStringInput(const char *message)
+const char * S9xStringInput(const char*)
 {
 	bug_unreachable("should not be called");
 	return 0;

@@ -97,7 +97,7 @@ ssize_t IOUtils<IO>::writeAtPosGeneric(const void *buff, size_t bytes, off_t off
 }
 
 template <class IO>
-FILE *IOUtils<IO>::toFileStream(const char *opentype)
+FILE *IOUtils<IO>::toFileStream([[maybe_unused]] const char* opentype)
 {
 	auto &io = *static_cast<IO*>(this);
 	if(!io)

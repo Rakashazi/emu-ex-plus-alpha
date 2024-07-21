@@ -44,27 +44,24 @@ BaseWindow::BaseWindow(ApplicationContext ctx, WindowConfig config):
 					{
 						auto &win = *static_cast<Window*>(this);
 						win.setDrawEventPriority(savedDrawEventPriority);
-						attachDrawEvent();
+						drawEvent.attach();
 						return false;
 					}, WINDOW_ON_RESUME_PRIORITY
 				);
 			}
 			return true;
-		}, ctx, WINDOW_ON_EXIT_PRIORITY}
-{
-	attachDrawEvent();
-}
-
-void BaseWindow::attachDrawEvent()
-{
-	drawEvent.attach(
-		[&win = *static_cast<Window*>(this)]()
+		}, ctx, WINDOW_ON_EXIT_PRIORITY
+	},
+	drawEvent
+	{
+		{.debugLabel = "Window::drawEvent", .eventLoop = EventLoop::forThread()},
+		[&win = *static_cast<Window*>(this)]
 		{
 			//log.debug("running window events");
 			win.dispatchOnFrame();
 			win.dispatchOnDraw();
-		});
-}
+		}
+	} {}
 
 FrameTimeSource Window::evalFrameTimeSource(FrameTimeSource src) const
 {
@@ -206,12 +203,25 @@ void Window::postFrameReadyToMainThread()
 	postFrameReady();
 }
 
+void Window::setFrameEventsOnThisThread()
+{
+	unpostDraw();
+	screen()->setFrameEventsOnThisThread();
+	drawEvent.attach();
+}
+
+void Window::removeFrameEvents()
+{
+	unpostDraw();
+	screen()->removeFrameEvents();
+	drawEvent.detach();
+}
+
 int8_t Window::setDrawEventPriority(int8_t priority)
 {
 	if(priority == drawEventPriorityLocked)
 	{
 		setNeedsDraw(false);
-		drawPhase = DrawPhase::UPDATE;
 	}
 	return std::exchange(drawEventPriority_, priority);
 }
@@ -230,11 +240,11 @@ bool Window::dispatchInputEvent(Input::Event event)
 {
 	bool handled = onEvent.callCopy(*this, event);
 	return event.visit(overloaded{
-		[&](const Input::MotionEvent &e)
+		[&](const Input::MotionEvent& e)
 		{
 			return handled || (e.isPointer() && contentBounds().overlaps(e.pos()));
 		},
-		[&](const Input::KeyEvent &e) { return handled; }
+		[&](const Input::KeyEvent&) { return handled; }
 	});
 }
 

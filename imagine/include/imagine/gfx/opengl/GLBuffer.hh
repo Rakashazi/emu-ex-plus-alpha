@@ -53,7 +53,7 @@ public:
 	GLBufferRef name() const { return buffer.get(); }
 	void reset(ByteBufferConfig);
 	size_t sizeBytes() const { return sizeBytes_; }
-	MappedByteBuffer map(ssize_t offset, size_t size);
+	MappedByteBuffer map(ssize_t offset, size_t size, BufferMapMode);
 	void writeSubData(ssize_t offset, size_t size, const void *data);
 	static void writeSubData(GLuint name, ssize_t offset, size_t size, const void *data);
 
@@ -94,7 +94,7 @@ public:
 	template<class V>
 	void reset(const Buffer<V, BufferType::vertex> &buff, NativeBuffer idxs)
 	{
-		initArray(buff.name(), idxs, sizeof(V), vertexLayoutEnableMask<V>(), vertexLayoutDesc<V>());
+		initArray(buff.name(), idxs, sizeof(V), vertexLayoutDesc<V>());
 	}
 
 	RendererTask *taskPtr() const { return arr.get_deleter().rTaskPtr; }
@@ -105,7 +105,7 @@ public:
 protected:
 	UniqueGLVertexArrayRef arr;
 
-	void initArray(GLBufferRef vbo, GLBufferRef ibo, int stride, VertexLayoutFlags enabledLayout, VertexLayoutDesc layoutDesc);
+	void initArray(GLBufferRef vbo, GLBufferRef ibo, int stride, VertexLayoutDesc layoutDesc);
 };
 
 using VertexArrayImpl = GLVertexArray;

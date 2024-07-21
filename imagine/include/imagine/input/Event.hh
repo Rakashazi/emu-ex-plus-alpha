@@ -180,6 +180,6 @@ struct DirectionKeys
 	Key up{}, right{}, down{}, left{};
 };
 
-DirectionKeys directionKeys(Map map = Map::SYSTEM);
+DirectionKeys directionKeys();
 
 }

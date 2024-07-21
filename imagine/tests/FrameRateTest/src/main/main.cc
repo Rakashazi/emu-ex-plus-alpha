@@ -86,14 +86,14 @@ FrameRateTestApplication::FrameRateTestApplication(IG::ApplicationInitParams ini
 			setPickerHandlers(win);
 
 			ctx.addOnResume(
-				[this, &win](IG::ApplicationContext, bool focused)
+				[this, &win](IG::ApplicationContext, [[maybe_unused]] bool focused)
 				{
 					windowData(win).picker.prepareDraw();
 					return true;
 				});
 
 			ctx.addOnExit(
-				[this, &win](IG::ApplicationContext ctx, bool backgrounded)
+				[this, &win](IG::ApplicationContext, [[maybe_unused]] bool backgrounded)
 				{
 					if(backgrounded)
 					{
@@ -281,7 +281,7 @@ void FrameRateTestApplication::placeElements(const IG::Window &win)
 	}
 	else
 	{
-		activeTest->place(renderer, win.contentBounds(), winData.testRect);
+		activeTest->place(win.contentBounds(), winData.testRect);
 	}
 }
 
@@ -291,7 +291,7 @@ void FrameRateTestApplication::finishTest(Window &win, SteadyClockTimePoint fram
 	auto &activeTest = windowData(win).activeTest;
 	if(activeTest)
 	{
-		activeTest->finish(renderer.task(), frameTime);
+		activeTest->finish(frameTime);
 	}
 	renderer.mainTask.awaitPending();
 	activeTest.reset();
@@ -332,7 +332,6 @@ TestFramework *FrameRateTestApplication::startTest(IG::Window &win, const TestPa
 	initCPUFreqStatus();
 	initCPULoadStatus();
 	placeElements(win);
-	auto &winData = windowData(win);
 	setActiveTestHandlers(win);
 	return activeTest.get();
 }

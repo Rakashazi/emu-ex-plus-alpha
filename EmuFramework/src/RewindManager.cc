@@ -29,8 +29,8 @@ RewindManager::RewindManager(EmuApp &app):
 	saveTimer
 	{
 		defaultSaveFreq,
-		"RewindManager::saveStateTimer",
-		[this, &app]()
+		{.debugLabel = "RewindManager::saveStateTimer"},
+		[this, &app]
 		{
 			//log.debug("running rewind save state timer");
 			saveState(app);

@@ -102,7 +102,7 @@ bool DrawContextSupport::hasServerWaitSync() const
 	*/
 }
 
-GLsync DrawContextSupport::fenceSync(GLDisplay dpy)
+GLsync DrawContextSupport::fenceSync([[maybe_unused]] GLDisplay dpy)
 {
 	#ifdef CONFIG_BASE_GL_PLATFORM_EGL
 	return static_cast<GLsync>(eglCreateSync(dpy, EGL_SYNC_FENCE, nullptr));
@@ -111,7 +111,7 @@ GLsync DrawContextSupport::fenceSync(GLDisplay dpy)
 	#endif
 }
 
-void DrawContextSupport::deleteSync(GLDisplay dpy, GLsync sync)
+void DrawContextSupport::deleteSync([[maybe_unused]] GLDisplay dpy, GLsync sync)
 {
 	#ifdef CONFIG_BASE_GL_PLATFORM_EGL
 	if(bool success = eglDestroySync(dpy, sync);
@@ -124,7 +124,7 @@ void DrawContextSupport::deleteSync(GLDisplay dpy, GLsync sync)
 	#endif
 }
 
-GLenum DrawContextSupport::clientWaitSync(GLDisplay dpy, GLsync sync, GLbitfield flags, GLuint64 timeout)
+GLenum DrawContextSupport::clientWaitSync([[maybe_unused]] GLDisplay dpy, GLsync sync, GLbitfield flags, GLuint64 timeout)
 {
 	#ifdef CONFIG_BASE_GL_PLATFORM_EGL
 	if(auto status = eglClientWaitSync(dpy, sync, flags, timeout);
@@ -143,7 +143,7 @@ GLenum DrawContextSupport::clientWaitSync(GLDisplay dpy, GLsync sync, GLbitfield
 	#endif
 }
 
-void DrawContextSupport::waitSync(GLDisplay dpy, GLsync sync)
+void DrawContextSupport::waitSync(GLDisplay, GLsync)
 {
 	bug_unreachable("waitSync() not currently used");
 	/*#ifdef CONFIG_BASE_GL_PLATFORM_EGL
@@ -248,10 +248,12 @@ void DrawContextSupport::setGLDebugOutput(bool on)
 			glDebugMessageCallback = (typeof(glDebugMessageCallback))GLManager::procAddress(glDebugMessageCallbackName);
 		}
 		glDebugMessageCallback(
-			GL_APIENTRY [](GLenum source, GLenum type, GLuint id,
-				GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
+			GL_APIENTRY []([[maybe_unused]] GLenum source, GLenum type, [[maybe_unused]] GLuint id,
+				GLenum severity, [[maybe_unused]] GLsizei length, const GLchar* message, [[maybe_unused]] const void* userParam)
 			{
-				if(Config::envIsAndroid && std::string_view{message} == "FreeAllocationOnTimestamp - WaitForTimestamp")
+				std::string_view msgString{message, size_t(length)};
+				if(Config::envIsAndroid && (msgString == "FreeAllocationOnTimestamp - WaitForTimestamp"
+					|| msgString.contains("Submission has been flushed")))
 				{
 					return;
 				}

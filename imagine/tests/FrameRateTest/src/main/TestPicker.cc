@@ -39,9 +39,9 @@ void TestPicker::setTests(const TestDesc *testDesc, unsigned tests)
 	for(auto i : iotaCount(tests))
 	{
 		testEntry.emplace_back(testDesc[i].name, u"", attachParams(),
-			[this, i](IG::DualTextMenuItem &, IG::View &, IG::Input::Event e)
+			[this, i]
 			{
-				auto &app = mainApp(appContext());
+				auto &app = appContext().applicationAs<FrameRateTestApplication>();
 				auto test = app.startTest(window(), testParam[i]);
 				test->onTestFinished =
 					[this, i](TestFramework &test)

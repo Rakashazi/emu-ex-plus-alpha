@@ -107,7 +107,7 @@ void GLBuffer<type>::reset(ByteBufferConfig config)
 }
 
 template<BufferType type>
-MappedByteBuffer GLBuffer<type>::map(ssize_t offset, size_t size)
+MappedByteBuffer GLBuffer<type>::map(ssize_t offset, size_t size, BufferMapMode mode)
 {
 	assumeExpr(taskPtr());
 	if(!size)
@@ -115,7 +115,9 @@ MappedByteBuffer GLBuffer<type>::map(ssize_t offset, size_t size)
 	assert(offset + size <= sizeBytes());
 	if(!size)
 		return {};
-	if(hasBufferMap(task().renderer()))
+	if(mode == BufferMapMode::unset)
+		mode = BufferMapMode::direct;
+	if(mode == BufferMapMode::direct && hasBufferMap(task().renderer()))
 	{
 		void *ptr;
 		task().runSync([this, &ptr, offset, size]()
@@ -126,7 +128,7 @@ MappedByteBuffer GLBuffer<type>::map(ssize_t offset, size_t size)
 				offset, size, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 			//log.debug("mapped offset:{} size:{} of buffer:0x{:X} to {}", offset, size, name(), ptr);
 		});
-		return {{static_cast<uint8_t*>(ptr), size}, [this](const uint8_t *ptr, size_t)
+		return {{static_cast<uint8_t*>(ptr), size}, [this](const uint8_t*, size_t)
 		{
 			task().run([name = name(), &support = task().renderer().support]()
 			{
@@ -179,7 +181,7 @@ void destroyGLBufferRef(RendererTask &rTask, GLBufferRef name)
 template class GLBuffer<BufferType::vertex>;
 template class GLBuffer<BufferType::index>;
 
-void GLVertexArray::initArray(GLBufferRef vbo, GLBufferRef ibo, int stride, VertexLayoutFlags enabledLayout, VertexLayoutDesc layoutDesc)
+void GLVertexArray::initArray(GLBufferRef vbo, GLBufferRef ibo, int stride, VertexLayoutDesc layoutDesc)
 {
 	assumeExpr(taskPtr());
 	if(!task().renderer().support.hasVAOFuncs())

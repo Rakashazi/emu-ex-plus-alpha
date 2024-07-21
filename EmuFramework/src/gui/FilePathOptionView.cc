@@ -72,7 +72,7 @@ FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu)
 					fPicker->setPath(userSavePath.size() && userSavePath != optionSavePathDefaultToken ? userSavePath
 						: app().contentSearchPath, e);
 					fPicker->setOnSelectPath(
-						[this](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)
+						[this](FSPicker &picker, CStringView path, [[maybe_unused]] std::string_view displayName, const Input::Event&)
 						{
 							if(!hasWriteAccessToDir(path))
 							{
@@ -102,7 +102,7 @@ FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu)
 					view.dismiss();
 				});
 			multiChoiceView->appendItem("Legacy Game Data Folder",
-				[this](View &view, const Input::Event &e)
+				[this](View&, const Input::Event &e)
 				{
 					pushAndShowModal(makeView<YesNoAlertView>(
 						std::format("Please select the \"Game Data/{}\" folder from an old version of the app to use its existing saves "
@@ -114,7 +114,7 @@ FilePathOptionView::FilePathOptionView(ViewAttachParams attach, bool customMenu)
 								auto fPicker = makeView<FilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
 								fPicker->setPath("");
 								fPicker->setOnSelectPath(
-									[this](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)
+									[this](FSPicker &picker, CStringView path, [[maybe_unused]] std::string_view displayName, const Input::Event&)
 									{
 										auto ctx = appContext();
 										if(!hasWriteAccessToDir(path))

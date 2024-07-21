@@ -62,43 +62,43 @@ public:
 	constexpr MenuItemSelectDelegate(Callable<void, Item &, View &, const Input::Event &> auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, const Input::Event &e) { return callAndAutoReturnTrue(f, i, v, e); }
+			[=](Item& i, View& v, const Input::Event& e) { return callAndAutoReturnTrue(f, i, v, e); }
 		} {}
 
 	constexpr MenuItemSelectDelegate(std::invocable<Item &, const Input::Event &> auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, const Input::Event &e) { return callAndAutoReturnTrue(f, i, e); }
+			[=](Item& i, View&, const Input::Event& e) { return callAndAutoReturnTrue(f, i, e); }
 		} {}
 
 	constexpr MenuItemSelectDelegate(std::invocable<View &, const Input::Event &> auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, const Input::Event &e) { return callAndAutoReturnTrue(f, v, e); }
+			[=](Item&, View& v, const Input::Event& e) { return callAndAutoReturnTrue(f, v, e); }
 		} {}
 
 	constexpr MenuItemSelectDelegate(std::invocable<Item &> auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, const Input::Event &e) { return callAndAutoReturnTrue(f, i); }
+			[=](Item& i, View&, const Input::Event&) { return callAndAutoReturnTrue(f, i); }
 		} {}
 
 	constexpr MenuItemSelectDelegate(std::invocable<View &> auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, const Input::Event &e) { return callAndAutoReturnTrue(f, v); }
+			[=](Item&, View& v, const Input::Event&) { return callAndAutoReturnTrue(f, v); }
 		} {}
 
 	constexpr MenuItemSelectDelegate(std::invocable<const Input::Event &> auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, const Input::Event &e) { return callAndAutoReturnTrue(f, e); }
+			[=](Item&, View&, const Input::Event& e) { return callAndAutoReturnTrue(f, e); }
 		} {}
 
 	constexpr MenuItemSelectDelegate(std::invocable auto &&f):
 		DelegateFuncBase
 		{
-			[=](Item &i, View &v, const Input::Event &e) { return callAndAutoReturnTrue(f); }
+			[=](Item&, View&, const Input::Event&) { return callAndAutoReturnTrue(f); }
 		} {}
 };
 
@@ -359,7 +359,7 @@ public:
 		onSelect
 		{
 			conf.onSelect ? conf.onSelect :
-				[this](MultiChoiceMenuItem &item, View &view, const Input::Event &e)
+				[](MultiChoiceMenuItem &item, View &view, const Input::Event &e)
 				{
 					item.defaultOnSelect(view, e);
 				}

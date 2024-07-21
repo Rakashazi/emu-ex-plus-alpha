@@ -481,7 +481,6 @@ static inline uint8_t CPUReadByte(ARM7TDMI &cpu, uint32_t address)
 
 static inline void CPUWriteMemory(ARM7TDMI &cpu, uint32_t address, uint32_t value)
 {
-    auto &g_ioMem = cpu.gba->mem.ioMem.b;
 #ifdef GBA_LOGGING
     if (address & 3) {
         if (systemVerbose & VERBOSE_UNALIGNED_MEMORY) {

@@ -250,7 +250,10 @@ class ApplicationContext;
 class Application;
 struct ApplicationInitParams;
 class FrameTimer;
+struct FDEventSourceDesc;
 class FDEventSource;
+class EventLoop;
+struct TimerDesc;
 
 using WindowContainer = std::vector<std::unique_ptr<Window>>;
 using ScreenContainer = std::vector<std::unique_ptr<Screen>>;
@@ -320,14 +323,15 @@ class WindowEvent;
 using OnWindowEvent = DelegateFunc<bool(Window&, const WindowEvent&)>;
 using WindowInitDelegate = DelegateFunc<void (ApplicationContext, Window&)>;
 
-using PollEventDelegate = DelegateFunc<bool (int fd, int event)>;
+using PollEventFlags = int;
+using PollEventDelegate = DelegateFunc<bool (int fd, PollEventFlags)>;
 
 class CallbackDelegate : public DelegateFunc<bool ()>
 {
 public:
 	using DelegateFuncBase::DelegateFuncBase;
 
-	constexpr CallbackDelegate(Callable<void> auto &&f):
+	constexpr CallbackDelegate(Callable<void> auto&& f):
 		DelegateFuncBase
 		{
 			[=]()

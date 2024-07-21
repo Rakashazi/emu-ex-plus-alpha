@@ -1179,7 +1179,6 @@ static inline void gfxDrawSprites(GBALCD &lcd, uint32_t* lineOBJ, const uint16_t
 
 static inline void gfxDrawOBJWin(GBALCD &lcd, uint32_t* lineOBJWin, const uint16_t VCOUNT, const uint16_t DISPCNT)
 {
-	uint8_t (&g_paletteRAM)[0x400] = lcd.paletteRAM;
 	uint8_t (&g_vram)[0x20000] = lcd.vram;
 	uint8_t (&g_oam)[0x400] = lcd.oam;
 	const auto &coreOptions = lcd;

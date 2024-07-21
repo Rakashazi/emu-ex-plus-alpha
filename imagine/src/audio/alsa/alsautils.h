@@ -2,7 +2,7 @@
 
 #include <alsa/asoundlib.h>
 
-static const char *alsaPcmStateToString(snd_pcm_state_t state)
+constexpr const char *alsaPcmStateToString(snd_pcm_state_t state)
 {
 	switch(state)
 	{
@@ -19,7 +19,7 @@ static const char *alsaPcmStateToString(snd_pcm_state_t state)
 	}
 }
 
-static const char *alsaPcmWriteErrorToString(int error)
+constexpr const char *alsaPcmWriteErrorToString(int error)
 {
 	switch(error)
 	{

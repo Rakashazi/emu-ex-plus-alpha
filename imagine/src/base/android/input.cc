@@ -60,7 +60,7 @@ static auto makeTimeFromKeyEvent(AInputEvent *event)
 }
 
 static std::pair<int32_t, Input::Source> mapKeycodesForSpecialDevices(const Input::Device &dev,
-	int32_t keyCode, int32_t metaState, Input::Source src, AInputEvent *event)
+	int32_t keyCode, int32_t metaState, Input::Source src)
 {
 	using namespace IG::Input;
 	switch(dev.subtype())
@@ -93,7 +93,7 @@ static std::pair<int32_t, Input::Source> mapKeycodesForSpecialDevices(const Inpu
 	return {keyCode, src};
 }
 
-static const char *keyEventActionStr(uint32_t action)
+constexpr const char *keyEventActionStr(uint32_t action)
 {
 	switch(action)
 	{
@@ -244,7 +244,6 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Input::Device *de
 					float iX = x * 1000.f, iY = y * 1000.f;
 					auto pos = win.transformInputPos({iX, iY});
 					//logMsg("trackball ev %s %f %f", androidEventEnumToStr(action), x, y);
-					auto src = Source::KEYBOARD;
 					if(actionCode == AMOTION_EVENT_ACTION_MOVE)
 						win.dispatchInputEvent(MotionEvent{Map::REL_POINTER, 0, 0, Action::MOVED_RELATIVE, pos.x, pos.y, 0, Source::NAVIGATION, time, nullptr});
 					else
@@ -336,7 +335,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Input::Device *de
 				//	repeatCount, keyEventActionStr(AKeyEvent_getAction(event)), sourceStr(eventSource));
 			}
 			auto metaState = AKeyEvent_getMetaState(event);
-			auto [mappedKeyCode, mappedSource] = mapKeycodesForSpecialDevices(*devPtr, keyCode, metaState, eventSource, event);
+			auto [mappedKeyCode, mappedSource] = mapKeycodesForSpecialDevices(*devPtr, keyCode, metaState, eventSource);
 			keyCode = mappedKeyCode;
 			eventSource = mappedSource;
 			if(!keyCode) [[unlikely]] // ignore "unknown" key codes

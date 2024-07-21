@@ -335,9 +335,9 @@ void BaseVControllerButtonGroup<Group>::updateSprites()
 	if constexpr(requires {g.boundQuads;})
 	{
 		g.boundQuads.reset({.size = g.buttons.size()});
-		boundQuadsMap = g.boundQuads.map();
+		boundQuadsMap = g.boundQuads.map(Gfx::BufferMapMode::indirect);
 	}
-	auto quadsMap = g.quads.map();
+	auto quadsMap = g.quads.map(Gfx::BufferMapMode::indirect);
 	g.enabledBtns = 0;
 	for(auto &b : g.buttons)
 	{

@@ -88,8 +88,8 @@ std::span<const KeyCategory> NesApp::keyCategories()
 	{
 		KeyCategory{"Gamepad", gpKeyInfo},
 		KeyCategory{"Gamepad 2", gp2KeyInfo, 1},
-		KeyCategory{"Gamepad 3", gp2KeyInfo, 2},
-		KeyCategory{"Gamepad 4", gp2KeyInfo, 3},
+		KeyCategory{"Gamepad 3", gp3KeyInfo, 2},
+		KeyCategory{"Gamepad 4", gp4KeyInfo, 3},
 		KeyCategory{"Extra Functions", exKeyInfo},
 	};
 	return categories;
@@ -237,8 +237,9 @@ void NesSystem::handleInputAction(EmuApp *app, InputAction a)
 	{
 		if(!isFDS || !a.isPushed())
 			return;
+		EmuSystemTask::SuspendContext suspendCtx;
 		if(app)
-			app->syncEmulationThread();
+			suspendCtx = app->suspendEmulationThread();
 		if(FCEU_FDSInserted())
 		{
 			FCEU_FDSInsert();

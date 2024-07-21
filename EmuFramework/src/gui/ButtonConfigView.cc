@@ -52,8 +52,8 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 		{
 			return msg.visit(overloaded
 			{
-				[&](const ItemsMessage &m) -> ItemReply { return resetItemsSize + cat.keys.size(); },
-				[&](const GetItemMessage &m) -> ItemReply
+				[&](const ItemsMessage&) -> ItemReply { return resetItemsSize + cat.keys.size(); },
+				[&](const GetItemMessage& m) -> ItemReply
 				{
 					if(m.idx == 0)
 						return &resetDefaults;

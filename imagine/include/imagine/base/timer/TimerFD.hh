@@ -30,16 +30,14 @@ class TimerFD
 public:
 	using TimePoint = SteadyClockTimePoint;
 
-	constexpr TimerFD() = default;
-	TimerFD(CallbackDelegate c) : TimerFD{nullptr, c} {}
-	TimerFD(const char *debugLabel, CallbackDelegate c);
+	TimerFD(TimerDesc, CallbackDelegate);
+	const char* debugLabel() const { return fdSrc.debugLabel(); }
 
 protected:
-	ConditionalMember<Config::DEBUG_BUILD, const char *> debugLabel{};
 	std::unique_ptr<CallbackDelegate> callback_;
 	FDEventSource fdSrc;
 
-	bool arm(timespec ms, timespec repeatInterval, int flags, EventLoop loop);
+	bool arm(timespec ms, timespec repeatInterval, int flags);
 };
 
 using TimerImpl = TimerFD;

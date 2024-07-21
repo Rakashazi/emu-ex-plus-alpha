@@ -123,7 +123,7 @@ class CustomSystemOptionView : public SystemOptionView, public MainAppHelper
 	{
 		return
 		{
-			.onSetDisplayString = [](auto idx, Gfx::Text &t)
+			.onSetDisplayString = [](auto idx, Gfx::Text& t)
 			{
 				if(idx == -1)
 				{
@@ -564,7 +564,7 @@ private:
 		0,
 		machineItems,
 		{
-			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			.onSetDisplayString = [](auto idx, Gfx::Text& t)
 			{
 				if(idx == -1)
 				{

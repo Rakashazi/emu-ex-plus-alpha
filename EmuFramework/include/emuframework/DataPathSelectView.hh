@@ -61,7 +61,7 @@ public:
 				auto &thisView = asThis(view);
 				fPicker->setPath(thisView.searchDir, e);
 				fPicker->setOnSelectPath(
-					[=](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)
+					[=](FSPicker &picker, CStringView path, [[maybe_unused]] std::string_view displayName, const Input::Event&)
 					{
 						if(!onFileChange(path, FS::file_type::directory))
 							return;
@@ -82,7 +82,7 @@ public:
 					archiveMode == ArchivePathSelectMode::include);
 				fPicker->setPath(thisView.searchDir, e);
 				fPicker->setOnSelectPath(
-					[=](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event &e)
+					[=](FSPicker &picker, CStringView path, std::string_view displayName, const Input::Event&)
 					{
 						if(mode == DataPathSelectMode::Folder && !EmuApp::hasArchiveExtension(displayName))
 						{

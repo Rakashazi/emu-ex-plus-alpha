@@ -52,12 +52,12 @@ protected:
 	std::shared_ptr<DirectoryStream> impl;
 };
 
-static const directory_iterator &begin(const directory_iterator &iter)
+inline const directory_iterator &begin(const directory_iterator& iter)
 {
 	return iter;
 }
 
-static directory_iterator end(const directory_iterator &)
+inline directory_iterator end(const directory_iterator&)
 {
 	return {};
 }

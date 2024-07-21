@@ -31,46 +31,49 @@
 namespace IG
 {
 
+struct TimerDesc
+{
+	const char* debugLabel{};
+	EventLoop eventLoop{};
+};
+
 struct Timer : public TimerImpl
 {
 public:
 	using Time = TimePoint::duration;
-	struct NullInit{};
 
-	using TimerImpl::TimerImpl;
-	explicit constexpr Timer(NullInit) {}
-	Timer() : Timer{CallbackDelegate{}} {}
-	Timer(const char *debugLabel): Timer{debugLabel, CallbackDelegate{}} {}
-	void run(Time time, Time repeatTime, bool isAbsoluteTime = false, EventLoop loop = {}, CallbackDelegate c = {});
+	Timer(TimerDesc desc, CallbackDelegate del): TimerImpl{desc, del} {}
+	void run(Time time, Time repeatTime, bool isAbsoluteTime = false, CallbackDelegate c = {});
 	void cancel();
-	void setCallback(CallbackDelegate c);
+	void setCallback(CallbackDelegate);
+	void setEventLoop(EventLoop);
 	void dispatchEarly();
 	bool isArmed();
 	explicit operator bool() const;
 
 	void runIn(ChronoDuration auto time,
 		ChronoDuration auto repeatTime,
-		EventLoop loop = {}, CallbackDelegate f = {})
+		CallbackDelegate f = {})
 	{
-		run(time, repeatTime, false, loop, f);
+		run(time, repeatTime, false, f);
 	}
 
 	void runAt(TimePoint time,
 		ChronoDuration auto repeatTime,
-		EventLoop loop = {}, CallbackDelegate f = {})
+		CallbackDelegate f = {})
 	{
-		run(time.time_since_epoch(), repeatTime, true, loop, f);
+		run(time.time_since_epoch(), repeatTime, true, f);
 	}
 
 	// non-repeating timer
-	void runIn(ChronoDuration auto time, EventLoop loop = {}, CallbackDelegate f = {})
+	void runIn(ChronoDuration auto time, CallbackDelegate f = {})
 	{
-		run(time, Time{}, false, loop, f);
+		run(time, Time{}, false, f);
 	}
 
-	void runAt(TimePoint time, EventLoop loop = {}, CallbackDelegate f = {})
+	void runAt(TimePoint time, CallbackDelegate f = {})
 	{
-		run(time.time_since_epoch(), Time{}, true, loop, f);
+		run(time.time_since_epoch(), Time{}, true, f);
 	}
 };
 

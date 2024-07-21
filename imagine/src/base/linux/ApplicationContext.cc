@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "AppCtx"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/fs/FS.hh>
@@ -24,6 +23,7 @@
 namespace IG
 {
 
+constexpr SystemLogger log{"AppCtx"};
 constexpr mode_t defaultDirMode = S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH;
 
 void ApplicationContext::exit(int returnVal)
@@ -36,8 +36,8 @@ void ApplicationContext::exit(int returnVal)
 
 void ApplicationContext::openURL(CStringView url) const
 {
-	logMsg("opening url:%s", url.data());
-	auto ret = system(std::format("xdg-open {}", url).data());
+	log.info("opening url:{}", url);
+	[[maybe_unused]] auto ret = system(std::format("xdg-open {}", url).data());
 }
 
 FS::PathString ApplicationContext::assetPath(const char *) const
@@ -61,7 +61,7 @@ FS::PathString ApplicationContext::supportPath(const char *appName) const
 		g_mkdir_with_parents(path.data(), defaultDirMode);
 		return path;
 	}
-	logErr("XDG_DATA_HOME and HOME env variables not defined");
+	log.error("XDG_DATA_HOME and HOME env variables not defined");
 	return {};
 }
 
@@ -81,7 +81,7 @@ FS::PathString ApplicationContext::cachePath(const char *appName) const
 		g_mkdir_with_parents(path.data(), defaultDirMode);
 		return path;
 	}
-	logErr("XDG_DATA_HOME and HOME env variables not defined");
+	log.error("XDG_DATA_HOME and HOME env variables not defined");
 	return {};
 }
 
@@ -94,7 +94,7 @@ FS::PathString ApplicationContext::sharedStoragePath() const
 		{
 			if(entry.type() == FS::file_type::directory && std::string_view{entry.name()} == "mmcblk")
 			{
-				//logMsg("storage dir: %s", entry.path().data());
+				//log.info("storage dir:{}", entry.path());
 				return entry.path();
 			}
 		}
@@ -105,7 +105,7 @@ FS::PathString ApplicationContext::sharedStoragePath() const
 	{
 		return home;
 	}
-	logErr("HOME env variable not defined");
+	log.error("HOME env variable not defined");
 	return {};
 }
 
@@ -136,7 +136,7 @@ FS::PathString ApplicationContext::libPath(const char *) const
 void ApplicationContext::exitWithMessage(int exitVal, const char *msg)
 {
 	auto cmd = std::format("zenity --warning --title='Exited with error' --text='{}'", msg);
-	auto cmdResult = system(cmd.data());
+	[[maybe_unused]] auto cmdResult = system(cmd.data());
 	::exit(exitVal);
 }
 

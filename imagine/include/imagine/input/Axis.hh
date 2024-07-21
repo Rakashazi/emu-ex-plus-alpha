@@ -48,7 +48,7 @@ class Axis
 {
 public:
 	constexpr Axis() = default;
-	Axis(Map, AxisId, float scaler = 1.f);
+	Axis(AxisId, float scaler = 1.f);
 	void setEmulatesKeys(Map, bool);
 	bool emulatesKeys() const;
 	constexpr AxisId id() const { return id_; }

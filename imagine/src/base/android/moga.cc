@@ -84,7 +84,7 @@ std::unique_ptr<Input::Device> MogaManager::makeMOGADevice(const char *name)
 		static constexpr AxisId stickAxes[] { AxisId::X, AxisId::Y, AxisId::Z, AxisId::RZ };
 		for(auto axisId : stickAxes)
 		{
-			axes.emplace_back(Map::SYSTEM, axisId);
+			axes.emplace_back(axisId);
 		}
 	}
 	// set trigger axes
@@ -92,7 +92,7 @@ std::unique_ptr<Input::Device> MogaManager::makeMOGADevice(const char *name)
 		static constexpr AxisId triggerAxes[] { AxisId::LTRIGGER, AxisId::RTRIGGER };
 		for(auto axisId : triggerAxes)
 		{
-			axes.emplace_back(Map::SYSTEM, axisId);
+			axes.emplace_back(axisId);
 		}
 	}
 	return devPtr;
@@ -132,7 +132,7 @@ void MogaManager::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 		{
 			"keyEvent", "(JIIJ)V",
 			(void*)(void (*)(JNIEnv*, jobject, jlong, jint, jint, jlong))
-			([](JNIEnv* env, jobject thiz, jlong mogaManagerPtr, jint action, jint keyCode, jlong timestamp)
+			([](JNIEnv*, jobject, jlong mogaManagerPtr, jint action, jint keyCode, jlong timestamp)
 			{
 				auto &mogaManager = *((MogaManager*)mogaManagerPtr);
 				auto &mogaDev = *mogaManager.mogaDev;
@@ -149,7 +149,7 @@ void MogaManager::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 		{
 			"motionEvent", "(JFFFFFFJ)V",
 			(void*)(void (*)(JNIEnv*, jobject, jlong, jfloat, jfloat, jfloat, jfloat, jfloat, jfloat, jlong))
-			([](JNIEnv* env, jobject thiz, jlong mogaManagerPtr, jfloat x, jfloat y, jfloat z, jfloat rz, jfloat lTrigger, jfloat rTrigger, jlong timestamp)
+			([](JNIEnv*, jobject, jlong mogaManagerPtr, jfloat x, jfloat y, jfloat z, jfloat rz, jfloat lTrigger, jfloat rTrigger, jlong timestamp)
 			{
 				auto &mogaManager = *((MogaManager*)mogaManagerPtr);
 				auto &mogaDev = *mogaManager.mogaDev;
@@ -170,7 +170,7 @@ void MogaManager::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 		{
 			"stateEvent", "(JII)V",
 			(void*)(void (*)(JNIEnv*, jobject, jlong, jint, jint))
-			([](JNIEnv* env, jobject thiz, jlong mogaManagerPtr, jint state, jint action)
+			([](JNIEnv* env, jobject, jlong mogaManagerPtr, jint state, jint action)
 			{
 				logMsg("MOGA state event: %d %d", state, action);
 				if(state == STATE_CONNECTION)

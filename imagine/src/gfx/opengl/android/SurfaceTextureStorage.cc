@@ -51,7 +51,7 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 			updateSurfaceTextureImage(env, surfaceTex); // set the initial display & context
 			this->surfaceTex = env->NewGlobalRef(surfaceTex);
 			ctx.notifySemaphore();
-			setSamplerParamsInGL(renderer(), samplerParams, GL_TEXTURE_EXTERNAL_OES);
+			setSamplerParamsInGL(samplerParams, GL_TEXTURE_EXTERNAL_OES);
 		});
 	if(!surfaceTex) [[unlikely]]
 	{
@@ -120,7 +120,7 @@ void SurfaceTextureStorage::deinit()
 	}
 }
 
-bool SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, TextureSamplerConfig)
+bool SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, ColorSpace, TextureSamplerConfig)
 {
 	logMsg("setting size:%dx%d format:%s", desc.w(), desc.h(), desc.format.name());
 	int winFormat = toAHardwareBufferFormat(desc.format);

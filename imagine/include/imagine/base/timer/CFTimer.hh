@@ -28,6 +28,7 @@ struct CFTimerInfo
 {
 	CallbackDelegate callback{};
 	CFRunLoopRef loop{};
+	CFRunLoopRef setLoop{};
 };
 
 class CFTimer
@@ -35,15 +36,14 @@ class CFTimer
 public:
 	using TimePoint = SteadyClockTimePoint;
 
-	constexpr CFTimer() = default;
-	CFTimer(CallbackDelegate c) : CFTimer{nullptr, c} {}
-	CFTimer(const char *debugLabel, CallbackDelegate c);
-	CFTimer(CFTimer &&o) noexcept;
-	CFTimer &operator=(CFTimer &&o) noexcept;
+	CFTimer(TimerDesc, CallbackDelegate);
+	CFTimer(CFTimer&&) noexcept;
+	CFTimer &operator=(CFTimer&&) noexcept;
 	~CFTimer();
+	const char* debugLabel() const { return debugLabel_; }
 
 protected:
-	ConditionalMember<Config::DEBUG_BUILD, const char *> debugLabel{};
+	ConditionalMember<Config::DEBUG_BUILD, const char *> debugLabel_{};
 	CFRunLoopTimerRef timer{};
 	std::unique_ptr<CFTimerInfo> info;
 

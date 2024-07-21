@@ -302,7 +302,7 @@ void Wiimote::sendDataModeByExtension()
 	}
 }
 
-bool Wiimote::dataHandler(Input::Device &dev, const char *packetPtr, size_t size)
+bool Wiimote::dataHandler(Input::Device& dev, const char* packetPtr, size_t)
 {
 	using namespace IG::Input;
 	auto packet = (const uint8_t*)packetPtr;
@@ -395,10 +395,10 @@ bool Wiimote::dataHandler(Input::Device &dev, const char *packetPtr, size_t size
 						std::ranges::fill(prevExtData, 0xFF);
 						static constexpr float axisClassicLScaler = 1./31.;
 						static constexpr float axisClassicRScaler = 1./15.;
-						axis[0] = {Map::WII_CC, Input::AxisId::X, axisClassicLScaler};
-						axis[1] = {Map::WII_CC, Input::AxisId::Y, axisClassicLScaler};
-						axis[2] = {Map::WII_CC, Input::AxisId::Z, axisClassicRScaler};
-						axis[3] = {Map::WII_CC, Input::AxisId::RZ, axisClassicRScaler};
+						axis[0] = {Input::AxisId::X, axisClassicLScaler};
+						axis[1] = {Input::AxisId::Y, axisClassicLScaler};
+						axis[2] = {Input::AxisId::Z, axisClassicRScaler};
+						axis[3] = {Input::AxisId::RZ, axisClassicRScaler};
 						assert(!extDevicePtr);
 						extDevicePtr = &ctx.application().addInputDevice(ctx,
 							std::make_unique<Input::Device>(std::in_place_type<WiimoteExtDevice>, Input::Map::WII_CC, DeviceTypeFlags{.gamepad = true}, "Wii Classic Controller"), true);
@@ -410,8 +410,8 @@ bool Wiimote::dataHandler(Input::Device &dev, const char *packetPtr, size_t size
 						sendDataModeByExtension();
 						std::ranges::fill(prevExtData, 0xFF);
 						static constexpr float axisNunchukScaler = 1./127.;
-						axis[0] = {Input::Map::WIIMOTE, Input::AxisId::X, axisNunchukScaler};
-						axis[1] = {Input::Map::WIIMOTE, Input::AxisId::Y, axisNunchukScaler};
+						axis[0] = {Input::AxisId::X, axisNunchukScaler};
+						axis[1] = {Input::AxisId::Y, axisNunchukScaler};
 					}
 					else if(memcmp(&packet[8], wiiUProType, sizeof(ccType)) == 0)
 					{
@@ -420,10 +420,10 @@ bool Wiimote::dataHandler(Input::Device &dev, const char *packetPtr, size_t size
 						sendDataModeByExtension();
 						std::ranges::fill(prevExtData, 0xFF);
 						static constexpr float axisClassicProScaler = 1./2047.;
-						axis[0] = {Input::Map::WII_CC, Input::AxisId::X, axisClassicProScaler};
-						axis[1] = {Input::Map::WII_CC, Input::AxisId::Y, axisClassicProScaler};
-						axis[2] = {Input::Map::WII_CC, Input::AxisId::Z, axisClassicProScaler};
-						axis[3] = {Input::Map::WII_CC, Input::AxisId::RZ, axisClassicProScaler};
+						axis[0] = {Input::AxisId::X, axisClassicProScaler};
+						axis[1] = {Input::AxisId::Y, axisClassicProScaler};
+						axis[2] = {Input::AxisId::Z, axisClassicProScaler};
+						axis[3] = {Input::AxisId::RZ, axisClassicProScaler};
 						map_ = Input::Map::WII_CC;
 						name_ = "Wii U Pro Controller";
 					}

@@ -74,12 +74,10 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 namespace IG::Input
 {
 
-static constexpr int GSEVENT_TYPE = 2;
-static constexpr int GSEVENT_FLAGS = 12;
-static constexpr int GSEVENT_TYPE_KEYDOWN = 10;
-static constexpr int GSEVENT_TYPE_KEYUP = 11;
-
-static constexpr double MSEC_PER_SEC = 1000;
+constexpr inline int GSEVENT_TYPE = 2;
+constexpr inline int GSEVENT_FLAGS = 12;
+constexpr inline int GSEVENT_TYPE_KEYDOWN = 10;
+constexpr inline int GSEVENT_TYPE_KEYUP = 11;
 
 static Input::Device *keyDevPtr;
 static bool hardwareKBAttached = false;
@@ -150,7 +148,8 @@ static void setupTextView(ApplicationContext ctx, UITextField *vkbdField, NSStri
 	logMsg("init vkeyboard");
 }
 
-UIKitTextField::UIKitTextField(ApplicationContext ctx, TextFieldDelegate del, CStringView initialText, CStringView promptText, int fontSizePixels):
+UIKitTextField::UIKitTextField(ApplicationContext ctx, TextFieldDelegate del, CStringView initialText,
+	[[maybe_unused]] CStringView promptText, [[maybe_unused]] int fontSizePixels):
 	ctx{ctx}
 {
 	auto uiTextField = [[UITextField alloc] initWithFrame: toCGRect(*ctx.deviceWindow(), textRect)];

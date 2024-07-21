@@ -66,7 +66,8 @@ public:
 	bool hasTask() const { return BaseBuffer::taskPtr(); }
 	void reset(BufferConfig<T> config) { BaseBuffer::reset(config.toByteConfig()); }
 	size_t size() const { return BaseBuffer::sizeBytes() / elemSize; }
-	MappedBuffer<T> map(ssize_t offset, size_t size) { return {BaseBuffer::map(offset * elemSize, size * elemSize)}; }
+	MappedBuffer<T> map(ssize_t offset, size_t size, BufferMapMode mode = BufferMapMode::unset) { return {BaseBuffer::map(offset * elemSize, size * elemSize, mode)}; }
+	MappedBuffer<T> map(BufferMapMode mode) { return map(0, 0, mode); }
 	MappedBuffer<T> map() { return map(0, 0); }
 };
 
@@ -107,7 +108,7 @@ public:
 	ObjectVertexBuffer(RendererTask &rTask, ObjectBufferConfig<T> config): VertexBuffer<Vertex>{rTask, config.toBufferConfig()} {}
 	void reset(ObjectBufferConfig<T> config) { VertexBuffer<Vertex>::reset(config.toBufferConfig()); }
 	size_t size() const { return BaseBuffer::size() / T::vertexCount; }
-	MappedBuffer<Vertex> map(ssize_t offset, size_t size) { return BaseBuffer::map(offset * T::vertexCount, size * T::vertexCount); }
+	MappedBuffer<Vertex> map(ssize_t offset, size_t size, BufferMapMode mode = BufferMapMode::unset) { return BaseBuffer::map(offset * T::vertexCount, size * T::vertexCount, mode); }
 	void write(ssize_t offset, T obj) { obj.write(*this, offset); }
 	void write(ssize_t offset, T::InitParams params) { write(offset, T{params}); }
 };

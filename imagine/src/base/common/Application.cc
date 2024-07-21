@@ -226,13 +226,13 @@ void BaseApplication::dispatchOnExit(ApplicationContext ctx, bool backgrounded)
 	}
 }
 
-[[gnu::weak]] void ApplicationContext::setIdleDisplayPowerSave(bool on) {}
+[[gnu::weak]] void ApplicationContext::setIdleDisplayPowerSave(bool) {}
 
 [[gnu::weak]] void ApplicationContext::endIdleByUserActivity() {}
 
-[[gnu::weak]] bool ApplicationContext::registerInstance(ApplicationInitParams, const char *) { return false; }
+[[gnu::weak]] bool ApplicationContext::registerInstance(ApplicationInitParams, const char*) { return false; }
 
-[[gnu::weak]] void ApplicationContext::setAcceptIPC(bool on, const char *) {}
+[[gnu::weak]] void ApplicationContext::setAcceptIPC(bool, const char*) {}
 
 void Application::runOnMainThread(MainThreadMessageDelegate del)
 {

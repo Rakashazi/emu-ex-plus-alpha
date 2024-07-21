@@ -71,7 +71,7 @@ FS::FileString NgpSystem::stateFilename(int slot, std::string_view name) const
 }
 
 size_t NgpSystem::stateSize() { return stateSizeMDFN(); }
-void NgpSystem::readState(EmuApp &app, std::span<uint8_t> buff) { readStateMDFN(app, buff); }
+void NgpSystem::readState(EmuApp&, std::span<uint8_t> buff) { readStateMDFN(buff); }
 size_t NgpSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags) { return writeStateMDFN(buff, flags); }
 
 static FS::PathString saveFilename(const EmuApp &app)
@@ -163,7 +163,7 @@ void system_io_flash_write(uint8_t* buffer, uint32 len)
 		return;
 	auto saveStr = saveFilename(gApp());
 	logMsg("writing flash %s", saveStr.data());
-	IG::FileUtils::writeToUri(gAppContext(), saveStr, {buffer, len}) != -1;
+	IG::FileUtils::writeToUri(gAppContext(), saveStr, {buffer, len});
 }
 
 }

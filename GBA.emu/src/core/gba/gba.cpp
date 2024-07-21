@@ -2666,7 +2666,6 @@ void CPUUpdateRegister(ARM7TDMI &cpu, uint32_t address, uint16_t value)
 	auto &busPrefetchCount = cpu.busPrefetchCount;
 	auto &busPrefetch = cpu.busPrefetch;
 	auto &busPrefetchEnable = cpu.busPrefetchEnable;
-	auto &g_ioMem = cpu.gba->mem.ioMem;
 	auto &gba = *cpu.gba;
 
   switch (address) {
@@ -3227,8 +3226,6 @@ void CPUUpdateRegister(ARM7TDMI &cpu, uint32_t address, uint16_t value)
 
 void applyTimer(GBASys &gba, ARM7TDMI &cpu)
 {
-	auto &ioMem = gba.mem.ioMem;
-
   if (timerOnOffDelay & 1) {
     timer0ClockReload = TIMER_TICKS[timer0Value & 3];
     if (!timer0On && (timer0Value & 0x80)) {

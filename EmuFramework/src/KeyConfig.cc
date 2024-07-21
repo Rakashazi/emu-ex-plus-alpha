@@ -33,7 +33,7 @@ KeyConfig KeyConfig::readConfig(MapIO &io)
 	readSizedData<uint8_t>(io, keyConf.name);
 	auto mappings = io.get<uint8_t>();
 	keyConf.keyMap.reserve(mappings);
-	for(auto mappingIdx : iotaCount(mappings))
+	for([[maybe_unused]] auto mappingIdx : iotaCount(mappings))
 	{
 		KeyMapping m;
 		io.read(m.key.codes.data(), m.key.codes.capacity());
@@ -86,7 +86,7 @@ void KeyConfig::set(KeyInfo key, MappedKeys mapKey)
 {
 	if(!mapKey[0])
 	{
-		std::ranges::remove_if(keyMap, [&](auto &val){ return val.key == key; });
+		std::erase_if(keyMap, [&](auto &val){ return val.key == key; });
 		return;
 	}
 	if(auto it = find(key);

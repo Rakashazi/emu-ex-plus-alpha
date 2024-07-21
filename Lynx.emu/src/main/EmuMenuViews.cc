@@ -46,7 +46,7 @@ class CustomFilePathOptionView : public FilePathOptionView, public MainAppHelper
 		{
 			pushAndShow(makeViewWithName<DataFileSelectView<ArchivePathSelectMode::exclude>>("BIOS",
 				app().validSearchPath(FS::dirnameUri(system().biosPath)),
-				[this](CStringView path, FS::file_type type)
+				[this](CStringView path, FS::file_type)
 				{
 					system().biosPath = path;
 					logMsg("set BIOS:%s", system().biosPath.data());

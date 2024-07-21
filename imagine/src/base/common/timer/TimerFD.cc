@@ -66,49 +66,47 @@ namespace IG
 
 constexpr SystemLogger log{"Timer"};
 
-TimerFD::TimerFD(const char *debugLabel, CallbackDelegate c):
-	debugLabel{debugLabel ? debugLabel : "unnamed"},
-	callback_{std::make_unique<CallbackDelegate>(c)},
-	fdSrc{debugLabel, UniqueFileDescriptor{timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC)}}
+static void cancelTimer(int fd)
 {
-	if(fdSrc.fd() == -1)
-	{
-		log.error("error creating timerfd");
-	}
+	struct itimerspec newTime{};
+	timerfd_settime(fd, 0, &newTime, nullptr);
 }
 
-bool TimerFD::arm(timespec time, timespec repeatInterval, int flags, EventLoop loop)
-{
-	if(!fdSrc.hasEventLoop())
+TimerFD::TimerFD(TimerDesc desc, CallbackDelegate del):
+	callback_{std::make_unique<CallbackDelegate>(del)},
+	fdSrc
 	{
-		if(!loop)
-			loop = EventLoop::forThread();
-		fdSrc.attach(loop,
-			[callback = callback_.get()](int fd, int)
+		UniqueFileDescriptor{timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC)},
+		{.debugLabel = desc.debugLabel, .eventLoop = desc.eventLoop},
+		[callback = callback_.get()](int fd, int)
+		{
+			//log.debug("callback ready for fd:{}", fd);
+			uint64_t timesFired;
+			auto ret = ::read(fd, &timesFired, 8);
+			if(ret == -1)
 			{
-				//log.debug("callback ready for fd:{}", fd);
-				uint64_t timesFired;
-				auto ret = ::read(fd, &timesFired, 8);
-				if(ret == -1)
-				{
-					if(Config::DEBUG_BUILD && errno != EAGAIN)
-						log.error("error reading timerfd in callback");
-					return false;
-				}
-				bool keepTimer = (*callback)();
-				return keepTimer;
-			});
-	}
+				if(Config::DEBUG_BUILD && errno != EAGAIN)
+					log.error("error reading timerfd in callback");
+				return true;
+			}
+			if(!(*callback)())
+				cancelTimer(fd);
+			return true;
+		}
+	} {}
+
+bool TimerFD::arm(timespec time, timespec repeatInterval, int flags)
+{
 	struct itimerspec newTime{repeatInterval, time};
 	if(timerfd_settime(fdSrc.fd(), flags, &newTime, nullptr) != 0)
 	{
-		log.error("error in timerfd_settime:{} ({})", strerror(errno), debugLabel);
+		log.error("error in timerfd_settime:{} ({})", strerror(errno), fdSrc.debugLabel());
 		return false;
 	}
 	return true;
 }
 
-void Timer::run(Time time, Time repeatTime, bool isAbsTime, EventLoop loop, CallbackDelegate callback)
+void Timer::run(Time time, Time repeatTime, bool isAbsTime, CallbackDelegate callback)
 {
 	if(callback)
 		setCallback(callback);
@@ -120,9 +118,9 @@ void Timer::run(Time time, Time repeatTime, bool isAbsTime, EventLoop loop, Call
 	{
 		FloatSeconds relTime = isAbsTime ? time - SteadyClock::now().time_since_epoch() : time;
 		log.info("arming fd:{} ({}) to run in:{}s repeats:{}s",
-			fdSrc.fd(), debugLabel, relTime.count(), IG::FloatSeconds(repeatTime).count());
+			fdSrc.fd(), fdSrc.debugLabel(), relTime.count(), FloatSeconds(repeatTime).count());
 	}
-	if(!arm({seconds, leftoverNs}, {repeatSeconds, repeatLeftoverNs}, isAbsTime ? TFD_TIMER_ABSTIME : 0, loop))
+	if(!arm({seconds, leftoverNs}, {repeatSeconds, repeatLeftoverNs}, isAbsTime ? TFD_TIMER_ABSTIME : 0))
 	{
 		log.error("failed to setup timer, OS resources may be low or bad parameters present");
 	}
@@ -130,14 +128,18 @@ void Timer::run(Time time, Time repeatTime, bool isAbsTime, EventLoop loop, Call
 
 void Timer::cancel()
 {
-	fdSrc.detach();
-	struct itimerspec newTime{};
-	timerfd_settime(fdSrc.fd(), 0, &newTime, nullptr);
+	cancelTimer(fdSrc.fd());
 }
 
 void Timer::setCallback(CallbackDelegate callback)
 {
 	*callback_ = callback;
+}
+
+void Timer::setEventLoop(EventLoop loop)
+{
+	cancel();
+	fdSrc.attach(loop);
 }
 
 void Timer::dispatchEarly()
@@ -148,7 +150,9 @@ void Timer::dispatchEarly()
 
 bool Timer::isArmed()
 {
-	return fdSrc.hasEventLoop();
+	struct itimerspec currTime{};
+	timerfd_gettime(fdSrc.fd(), &currTime);
+	return currTime.it_value.tv_nsec || currTime.it_value.tv_sec;
 }
 
 Timer::operator bool() const

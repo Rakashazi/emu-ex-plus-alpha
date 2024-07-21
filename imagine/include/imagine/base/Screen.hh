@@ -50,6 +50,8 @@ public:
 	bool containsOnFrame(OnFrameDelegate) const;
 	size_t onFrameDelegates() const;
 	void setVariableFrameTime(bool);
+	void setFrameEventsOnThisThread();
+	void removeFrameEvents();
 	FrameParams makeFrameParams(SteadyClockTimePoint timestamp) const;
 	bool frameRateIsReliable() const;
 	FrameRate frameRate() const;

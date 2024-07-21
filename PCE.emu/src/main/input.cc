@@ -80,7 +80,7 @@ std::span<const KeyCategory> PceApp::keyCategories()
 		KeyCategory{"Gamepad 2", gp2KeyInfo, 1},
 		KeyCategory{"Gamepad 3", gp3KeyInfo, 2},
 		KeyCategory{"Gamepad 4", gp4KeyInfo, 3},
-		KeyCategory{"Gamepad 5", gp4KeyInfo, 4},
+		KeyCategory{"Gamepad 5", gp5KeyInfo, 4},
 	};
 	return categories;
 }

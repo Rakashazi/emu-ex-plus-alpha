@@ -227,7 +227,7 @@ FS::RootPathInfo ApplicationContext::rootPathInfo(std::string_view path) const
 	return nearestPtr->root.info;
 }
 
-AssetIO ApplicationContext::openAsset(CStringView name, OpenFlags openFlags, const char *appName) const
+AssetIO ApplicationContext::openAsset(CStringView name, OpenFlags openFlags, [[maybe_unused]] const char* appName) const
 {
 	#ifdef __ANDROID__
 	return {*this, name, openFlags};
@@ -236,7 +236,7 @@ AssetIO ApplicationContext::openAsset(CStringView name, OpenFlags openFlags, con
 	#endif
 }
 
-FS::AssetDirectoryIterator ApplicationContext::openAssetDirectory(CStringView path, const char *appName)
+FS::AssetDirectoryIterator ApplicationContext::openAssetDirectory(CStringView path, [[maybe_unused]] const char* appName)
 {
 	#ifdef __ANDROID__
 	return {aAssetManager(), path};
@@ -321,12 +321,9 @@ const InputDeviceContainer &ApplicationContext::inputDevices() const
 	return application().inputDevices();
 }
 
-Input::Device *ApplicationContext::inputDevice(std::string_view name, int enumId) const
+Input::Device* ApplicationContext::inputDevice(std::string_view name, int enumId) const
 {
-	auto it = std::ranges::find_if(inputDevices(), [&](auto &devPtr){ return devPtr->name() == name; });
-	if(it == inputDevices().end())
-		return {};
-	return it->get();
+	return findPtr(inputDevices(), [&](auto &devPtr){ return devPtr->enumId() == enumId && devPtr->name() == name; });
 }
 
 void ApplicationContext::setHintKeyRepeat(bool on)
@@ -381,13 +378,13 @@ void ApplicationContext::setSwappedConfirmKeys(std::optional<bool> opt)
 
 [[gnu::weak]] bool ApplicationContext::usesPermission(Permission) const { return false; }
 
-[[gnu::weak]] bool ApplicationContext::permissionIsRestricted(Permission p) const { return false; }
+[[gnu::weak]] bool ApplicationContext::permissionIsRestricted(Permission) const { return false; }
 
 [[gnu::weak]] bool ApplicationContext::requestPermission(Permission) { return false; }
 
-[[gnu::weak]] void ApplicationContext::addNotification(CStringView onShow, CStringView title, CStringView message) {}
+[[gnu::weak]] void ApplicationContext::addNotification(CStringView, CStringView, CStringView) {}
 
-[[gnu::weak]] void ApplicationContext::addLauncherIcon(CStringView name, CStringView path) {}
+[[gnu::weak]] void ApplicationContext::addLauncherIcon(CStringView, CStringView) {}
 
 [[gnu::weak]] bool VibrationManager::hasVibrator() const { return false; }
 
@@ -404,14 +401,14 @@ void ApplicationContext::setSwappedConfirmKeys(std::optional<bool> opt)
 	#endif
 }
 
-[[gnu::weak]] int ApplicationContext::maxCPUFrequencyKHz(int cpuIdx) const
+[[gnu::weak]] int ApplicationContext::maxCPUFrequencyKHz([[maybe_unused]] int cpuIdx) const
 {
 	#ifdef __linux__
 	auto maxFreqFile = UniqueFileStream{fopen(std::format("/sys/devices/system/cpu/cpu{}/cpufreq/cpuinfo_max_freq", cpuIdx).c_str(), "r")};
 	if(!maxFreqFile)
 		return 0;
 	int freq{};
-	auto items = fscanf(maxFreqFile.get(), "%d", &freq);
+	[[maybe_unused]] auto items = fscanf(maxFreqFile.get(), "%d", &freq);
 	return freq;
 	#else
 	return 0;
@@ -446,7 +443,7 @@ void ApplicationContext::setSwappedConfirmKeys(std::optional<bool> opt)
 
 [[gnu::weak]] PerformanceHintManager ApplicationContext::performanceHintManager() { return {}; }
 
-[[gnu::weak]] bool ApplicationContext::packageIsInstalled(CStringView name) const { return false; }
+[[gnu::weak]] bool ApplicationContext::packageIsInstalled(CStringView) const { return false; }
 
 [[gnu::weak]] int32_t ApplicationContext::androidSDK() const
 {
@@ -454,7 +451,7 @@ void ApplicationContext::setSwappedConfirmKeys(std::optional<bool> opt)
 }
 
 [[gnu::weak]] bool ApplicationContext::hasSustainedPerformanceMode() const { return false; }
-[[gnu::weak]] void ApplicationContext::setSustainedPerformanceMode(bool on) {}
+[[gnu::weak]] void ApplicationContext::setSustainedPerformanceMode(bool) {}
 
 [[gnu::weak]] std::string ApplicationContext::formatDateAndTime(WallClockTimePoint time)
 {

@@ -13,8 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "BaseAlertView"
-
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/ViewManager.hh>
 #include <imagine/gfx/RendererCommands.hh>
@@ -27,6 +25,8 @@
 namespace IG
 {
 
+constexpr SystemLogger log{"AlertView"};
+
 void BaseAlertView::init()
 {
 	menu.setAlign(C2DO);
@@ -36,7 +36,7 @@ void BaseAlertView::init()
 		bool shouldDismiss = item.inputEvent(e, {.parentPtr = this});
 		if(shouldDismiss)
 		{
-			logMsg("dismissing");
+			log.info("dismissing via item #{}", i);
 			dismiss();
 		}
 	});

@@ -32,6 +32,7 @@ public:
 	void scheduleVSync();
 	void cancel();
 	void setFrameRate(FrameRate) {}
+	void setEventsOnThisThread(ApplicationContext);
 	static bool testSupport();
 
 	explicit operator bool() const
@@ -40,7 +41,7 @@ public:
 	}
 
 private:
-	FDEventSource fdSrc{};
+	FDEventSource fdSrc;
 	std::thread thread{};
 	std::binary_semaphore sem{0};
 	bool requested{};

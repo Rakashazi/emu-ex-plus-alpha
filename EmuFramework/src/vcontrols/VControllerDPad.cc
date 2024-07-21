@@ -216,7 +216,7 @@ void VControllerDPad::updateSprite()
 		colors[2] = colors[2].multiplyRGB(2.f);
 	for(auto &&[i, vtx] : enumerate(spr)) { vtx.color = colors[i]; }
 	for(auto &&[i, vtx] : enumerate(mapSpr)) { vtx.color = colors[i]; }
-	auto map = spriteQuads.map();
+	auto map = spriteQuads.map(Gfx::BufferMapMode::indirect);
 	spr.write(map, 0);
 	if(config.visualizeBounds)
 		mapSpr.write(map, 1);

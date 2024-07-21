@@ -24,16 +24,7 @@ template<class Frequency>
 class PausableTimer
 {
 public:
-	struct NullInit{};
-
-	explicit constexpr PausableTimer(NullInit) {}
-	PausableTimer(Frequency f) : timer{CallbackDelegate{}} {}
-	PausableTimer(Frequency f, CallbackDelegate c):
-		timer{nullptr, c}, frequency{f} {}
-	PausableTimer(Frequency f, const char *debugLabel):
-		timer{debugLabel, CallbackDelegate{}}, frequency{f} {}
-	PausableTimer(Frequency f, const char *debugLabel, CallbackDelegate c):
-		timer{debugLabel, c}, frequency{f} {}
+	PausableTimer(Frequency f, TimerDesc desc, CallbackDelegate del):timer{desc, del}, frequency{f} {}
 
 	void start()
 	{

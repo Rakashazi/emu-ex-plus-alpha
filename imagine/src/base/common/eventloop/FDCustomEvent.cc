@@ -48,7 +48,7 @@ static IG::UniqueFileDescriptor makeEventFD()
 #endif
 }
 
-static void notifyEventFD(int fd, const char *debugLabel)
+static void notifyEventFD(int fd, [[maybe_unused]] const char *debugLabel)
 {
 #ifdef USE_EVENTFD
 	eventfd_t counter = 1;
@@ -64,7 +64,7 @@ static void notifyEventFD(int fd, const char *debugLabel)
 #endif
 }
 
-static void cancelEventFD(int fd, const char *debugLabel)
+static void cancelEventFD(int fd, [[maybe_unused]] const char *debugLabel)
 {
 #ifdef USE_EVENTFD
 	eventfd_t counter;
@@ -81,19 +81,13 @@ static void cancelEventFD(int fd, const char *debugLabel)
 #endif
 }
 
-FDCustomEvent::FDCustomEvent(const char *debugLabel):
-	debugLabel{debugLabel ? debugLabel : "unnamed"},
-	fdSrc{debugLabel, makeEventFD()}
+FDCustomEvent::FDCustomEvent(FDEventSourceDesc desc, PollEventDelegate del):
+	fdSrc{makeEventFD(), {.debugLabel = desc.debugLabel, .eventLoop = desc.eventLoop}, del}
 {
 	if(fdSrc.fd() == -1)
 	{
-		log.error("error creating fd ({})", debugLabel);
+		log.error("error creating fd ({})", desc.debugLabel);
 	}
-}
-
-void FDCustomEvent::attach(EventLoop loop, PollEventDelegate del)
-{
-	fdSrc.attach(loop, del);
 }
 
 void CustomEvent::detach()
@@ -103,12 +97,12 @@ void CustomEvent::detach()
 
 void CustomEvent::notify()
 {
-	notifyEventFD(fdSrc.fd(), debugLabel);
+	notifyEventFD(fdSrc.fd(), debugLabel());
 }
 
 void CustomEvent::cancel()
 {
-	cancelEventFD(fdSrc.fd(), debugLabel);
+	cancelEventFD(fdSrc.fd(), debugLabel());
 }
 
 bool CustomEvent::isAttached() const

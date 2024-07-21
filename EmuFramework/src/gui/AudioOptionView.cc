@@ -68,7 +68,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, EmuAudio& audio_, bool
 		MenuId{audio_.maxVolume()},
 		soundVolumeItem,
 		{
-			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			.onSetDisplayString = [this](auto, Gfx::Text& t)
 			{
 				t.resetString(std::format("{}%", audio.maxVolume()));
 				return true;

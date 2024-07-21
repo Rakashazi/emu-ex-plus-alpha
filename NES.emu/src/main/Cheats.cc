@@ -218,7 +218,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	int compare;
 	{
 		std::string nameStr{};
-		int gotCheat = FCEUI_GetCheat(cheatIdx, &nameStr, &a, &v, &compare, 0, &type);
+		FCEUI_GetCheat(cheatIdx, &nameStr, &a, &v, &compare, 0, &type);
 		logMsg("got cheat with addr 0x%.4x val 0x%.2x comp %d", a, v, compare);
 		name.setName(std::move(nameStr));
 	}

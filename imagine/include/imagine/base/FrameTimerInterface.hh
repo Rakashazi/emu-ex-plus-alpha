@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/variant.hh>
 
@@ -32,6 +33,7 @@ public:
 	void scheduleVSync() { visit([](auto &e){ e.scheduleVSync(); }); }
 	void cancel() { visit([](auto &e){ e.cancel(); }); }
 	void setFrameRate(FrameRate rate) { visit([&](auto &e){ e.setFrameRate(rate); }); }
+	void setEventsOnThisThread(ApplicationContext ctx) { visit([&](auto &e){ e.setEventsOnThisThread(ctx); }); }
 };
 
 }

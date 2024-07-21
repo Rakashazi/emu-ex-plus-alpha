@@ -52,9 +52,4 @@ private:
 	void updateWindowSurface(Window &, Window::SurfaceChange);
 };
 
-static FrameRateTestApplication &mainApp(IG::ApplicationContext ctx)
-{
-	return static_cast<FrameRateTestApplication &>(ctx.application());
-}
-
 }

@@ -30,11 +30,17 @@ namespace IG
 
 constexpr SystemLogger log{"X11"};
 
+static void initXFixes(xcb_connection_t& conn);
+
 XApplication::XApplication(ApplicationInitParams initParams):
 	LinuxApplication{initParams},
-	supportedFrameTimer{testFrameTimers()}
+	supportedFrameTimer{testFrameTimers()},
+	xEventSrc{makeXDisplayConnection(initParams.eventLoop)}
 {
-	xEventSrc = makeXDisplayConnection(initParams.eventLoop);
+	ApplicationContext appCtx{static_cast<Application&>(*this)};
+	addScreen(appCtx, std::make_unique<Screen>(appCtx, Screen::InitParams{*xConn, *xScr}), false);
+	initXFixes(*xConn);
+	initInputSystem();
 }
 
 XApplication::~XApplication()
@@ -296,16 +302,16 @@ FDEventSource XApplication::makeXDisplayConnection(EventLoop loop)
 	auto &screen = *xcb_setup_roots_iterator(xcb_get_setup(&conn)).data;
 	xScr = &screen;
 	log.info("created X connection:{} screen:{}", (void*)&conn, (void*)&screen);
-	ApplicationContext appCtx{static_cast<Application&>(*this)};
-	addScreen(appCtx, std::make_unique<Screen>(appCtx, Screen::InitParams{conn, screen}), false);
-	initXFixes(conn);
-	initInputSystem();
-	FDEventSource x11Src{"XServer", xcb_get_file_descriptor(&conn)};
-	x11Src.attach(loop, [this, &conn](int fd, int event)
+	FDEventSource x11Src
 	{
-		runX11Events(conn);
-		return true;
-	});
+		xcb_get_file_descriptor(&conn),
+		{.debugLabel = "XServer", .eventLoop = loop},
+		[this, &conn](int, int)
+		{
+			runX11Events(conn);
+			return true;
+		}
+	};
 	return x11Src;
 }
 

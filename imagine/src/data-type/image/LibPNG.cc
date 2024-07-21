@@ -105,13 +105,13 @@ PixelFormat PngImage::pixelFormat()
 		return PixelFmtRGBA8888;
 }
 
-static png_voidp png_memAlloc(png_structp png_ptr, png_size_t size)
+static png_voidp png_memAlloc(png_structp, png_size_t size)
 {
 	//log_mPrintf(LOG_MSG, "about to allocate %d bytes", size);
 	return new uint8_t[size];
 }
 
-static void png_memFree(png_structp png_ptr, png_voidp ptr)
+static void png_memFree(png_structp, png_voidp ptr)
 {
 	delete[] (uint8_t*)ptr;
 }
@@ -195,7 +195,7 @@ bool PngImage::hasAlphaChannel()
 				( png_get_valid(png, info, PNG_INFO_tRNS) ) ) ? 1 : 0;
 }
 
-void PngImage::setTransforms(PixelFormat outFormat, png_infop transInfo)
+void PngImage::setTransforms(PixelFormat outFormat)
 {
 	int addingAlphaChannel = 0;
 	
@@ -290,7 +290,7 @@ std::errc PngImage::readImage(MutablePixmapView dest)
 			png_infopp pngInfopAddr = &transInfo;
 			png_destroy_info_struct(png, pngInfopAddr);
 		});
-	setTransforms(dest.format(), transInfo);
+	setTransforms(dest.format());
 	
 	//log_mPrintf(LOG_MSG,"after transforms, rowbytes = %u", (uint32_t)png_get_rowbytes(data->png, data->info));
 
@@ -431,7 +431,7 @@ bool PixmapWriter::writeToFile(PixmapView pix, const char *path) const
 				//png_error(pngPtr, "Write Error");
 			}
 		},
-		[](png_structp pngPtr)
+		[](png_structp)
 		{
 			logMsg("called png_ioFlush");
 		});
@@ -447,7 +447,7 @@ bool PixmapWriter::writeToFile(PixmapView pix, const char *path) const
 		int rowBytes = png_get_rowbytes(pngPtr, infoPtr);
 		assert(rowBytes == tempPix.pitchBytes());
 		auto rowData = (png_const_bytep)tempPix.data();
-		for(auto i : iotaCount(tempPix.h()))
+		for([[maybe_unused]] auto i : iotaCount(tempPix.h()))
 		{
 			png_write_row(pngPtr, rowData);
 			rowData += tempPix.pitchBytes();

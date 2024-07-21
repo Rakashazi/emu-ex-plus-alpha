@@ -19,6 +19,7 @@
 #include <imagine/thread/Thread.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/variant.hh>
+#include <imagine/util/ScopeGuard.hh>
 
 namespace EmuEx
 {
@@ -32,16 +33,14 @@ class EmuApp;
 class EmuSystemTask
 {
 public:
-	struct FrameParamsCommand
+	struct SuspendCommand {};
+	struct ExitCommand {};
+	struct SetWindowCommand
 	{
-		FrameParams params;
+		Window* winPtr;
 	};
 
-	struct FramePresentedCommand {};
-	struct PauseCommand {};
-	struct ExitCommand {};
-
-	using CommandVariant = std::variant<FrameParamsCommand, FramePresentedCommand, PauseCommand, ExitCommand>;
+	using CommandVariant = std::variant<SuspendCommand, ExitCommand, SetWindowCommand>;
 	class Command: public CommandVariant, public AddVisit
 	{
 	public:
@@ -51,31 +50,58 @@ public:
 
 	struct CommandMessage
 	{
-		std::binary_semaphore *semPtr{};
-		Command command{PauseCommand{}};
+		std::binary_semaphore* semPtr{};
+		Command command{SuspendCommand{}};
 
 		void setReplySemaphore(std::binary_semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
 	};
 
-	EmuSystemTask(EmuApp &);
-	void start();
-	void pause();
+	struct SuspendContext
+	{
+		SuspendContext() = default;
+		SuspendContext(EmuSystemTask* taskPtr):taskPtr{taskPtr} {}
+		SuspendContext(SuspendContext&& rhs) noexcept { *this = std::move(rhs); }
+		SuspendContext& operator=(SuspendContext&& rhs)
+		{
+			taskPtr = std::exchange(rhs.taskPtr, nullptr);
+			return *this;
+		}
+
+		void resume()
+		{
+			if(taskPtr)
+				std::exchange(taskPtr, nullptr)->resume();
+		}
+
+		~SuspendContext() { resume(); }
+
+	private:
+		EmuSystemTask* taskPtr{};
+	};
+
+	EmuSystemTask(EmuApp&);
+	void start(Window&);
+	[[nodiscard]]
+	SuspendContext setWindow(Window&);
+	[[nodiscard]]
+	SuspendContext suspend();
 	void stop();
-	void updateFrameParams(FrameParams);
-	void notifyFramePresented();
-	void sendVideoFormatChangedReply(EmuVideo &);
-	void sendFrameFinishedReply(EmuVideo &);
+	void sendVideoFormatChangedReply(EmuVideo&);
+	void sendFrameFinishedReply(EmuVideo&);
 	void sendScreenshotReply(bool success);
 	auto threadId() const { return threadId_; }
+	Window &window() { return *winPtr; }
 
 private:
 	EmuApp &app;
+	Window *winPtr{};
 	MessagePort<CommandMessage> commandPort{"EmuSystemTask Command"};
 	std::thread taskThread;
 	ThreadId threadId_{};
-	FrameParams frameParams;
-public:
-	bool framePending{};
+	std::binary_semaphore suspendSem{0};
+	bool isSuspended{};
+
+	void resume();
 };
 
 }

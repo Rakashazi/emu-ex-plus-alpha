@@ -28,7 +28,7 @@ EmuFrameTimeInfo EmuTiming::advanceFrames(FrameParams params)
 {
 	auto frameTimeDiff = params.timestamp - lastFrameTimestamp_;
 	auto framesDiff  = params.elapsedFrames(lastFrameTimestamp_);
-	auto lastTimestamp = std::exchange(lastFrameTimestamp_, params.timestamp);
+	std::exchange(lastFrameTimestamp_, params.timestamp);
 	if(exactFrameDivisor > 0)
 	{
 		savedAdvancedFrames += framesDiff;
@@ -52,7 +52,7 @@ EmuFrameTimeInfo EmuTiming::advanceFrames(FrameParams params)
 		}
 		assumeExpr(timePerVideoFrame.count() > 0);
 		assumeExpr(startFrameTime.time_since_epoch().count() > 0);
-		assumeExpr(params.timestamp > startFrameTime);
+		assumeExpr(params.timestamp >= startFrameTime);
 		auto timeTotal = params.timestamp - startFrameTime;
 		auto now = divRoundClosestPositive(timeTotal.count(), timePerVideoFrame.count());
 		int elapsedFrames = now - lastFrame;

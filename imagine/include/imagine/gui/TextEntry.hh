@@ -35,10 +35,10 @@ public:
 	void setAcceptingInput(bool on);
 	bool isAcceptingInput() const;
 	bool inputEvent(View &parentView, const Input::Event &);
-	void prepareDraw(Gfx::Renderer &r);
+	void prepareDraw();
 	void draw(Gfx::RendererCommands &__restrict__) const;
-	void place(Gfx::Renderer &r);
-	void place(Gfx::Renderer &r, WRect rect);
+	void place();
+	void place(WRect rect);
 	const char *textStr() const;
 	WRect bgRect() const;
 

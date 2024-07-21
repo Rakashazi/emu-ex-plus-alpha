@@ -120,7 +120,7 @@ void GLContext::setSwapInterval(int) {}
 
 // GLManager
 
-GLManager::GLManager(NativeDisplayConnection ctx, GL::API api)
+GLManager::GLManager(NativeDisplayConnection, GL::API api)
 {
 	if(!bindAPI(api))
 	{

@@ -54,16 +54,12 @@ bool Screen::containsOnFrame(OnFrameDelegate del) const
 
 void Screen::runOnFrameDelegates(SteadyClockTimePoint timestamp)
 {
+	postFrame();
 	auto params = makeFrameParams(timestamp);
 	onFrameDelegate.runAll([&](OnFrameDelegate del)
-		{
-			return del(params);
-		});
-	if(onFrameDelegate.size())
 	{
-		//logDMsg("posting next frame");
-		postFrame();
-	}
+		return del(params);
+	});
 }
 
 size_t Screen::onFrameDelegates() const

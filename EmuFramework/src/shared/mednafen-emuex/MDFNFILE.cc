@@ -47,7 +47,7 @@ static bool hasKnownExtension(std::string_view name, const std::vector<FileExten
 }
 
 MDFNFILE::MDFNFILE(VirtualFS* vfs, const std::string& path, const std::vector<FileExtensionSpecStruct>& known_ext,
-	const char* purpose, int* monocomp_double_ext)
+	[[maybe_unused]] const char* purpose, [[maybe_unused]] int* monocomp_double_ext)
 {
 	if(IG::FS::hasArchiveExtension(path))
 	{
@@ -83,10 +83,10 @@ MDFNFILE::MDFNFILE(VirtualFS* vfs, const std::string& path, const std::vector<Fi
 	}
 }
 
-MDFNFILE::MDFNFILE(VirtualFS* vfs, std::unique_ptr<Stream> str):
+MDFNFILE::MDFNFILE(VirtualFS*, std::unique_ptr<Stream> str):
 	str{std::move(str)} {}
 
-extern int openFdHelper(const char *file, int oflag, mode_t mode)
+extern int openFdHelper(const char *file, int oflag, mode_t)
 {
 	auto openFlags = (oflag & O_CREAT) ? IG::OpenFlags::newFile() : IG::OpenFlags{};
 	return EmuEx::gAppContext().openFileUriFd(file, openFlags | IG::OpenFlags{.test = true}).release();

@@ -46,9 +46,7 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 	viewStack{viewAttach, app()}
 {
 	inputView.setController(this);
-	auto &win = viewAttach.window;
 	auto &face = viewAttach.viewManager.defaultFace;
-	auto &screen = *viewAttach.window.screen();
 	{
 		auto viewNav = std::make_unique<BasicNavView>
 		(
@@ -353,9 +351,14 @@ void EmuViewController::prepareDraw()
 	viewStack.prepareDraw();
 }
 
+static Gfx::DrawAsyncMode drawAsyncMode(bool showingEmulation)
+{
+	return showingEmulation ? Gfx::DrawAsyncMode::FULL : Gfx::DrawAsyncMode::AUTO;
+}
+
 bool EmuViewController::drawMainWindow(IG::Window &win, IG::WindowDrawParams params, Gfx::RendererTask &task)
 {
-	return task.draw(win, params, {},
+	return task.draw(win, params, {.asyncMode = drawAsyncMode(showingEmulation)},
 		[this, isBlankFrame = std::exchange(drawBlankFrame, {})](IG::Window &win, Gfx::RendererCommands &cmds)
 	{
 		auto &winData = windowData(win);
@@ -371,9 +374,7 @@ bool EmuViewController::drawMainWindow(IG::Window &win, IG::WindowDrawParams par
 				emuView.drawframeTimeStatsText(cmds);
 			if(winData.hasPopup)
 				popup.draw(cmds);
-			app().record(FrameTimeStatEvent::aboutToPresent);
 			cmds.present(presentTime);
-			app().record(FrameTimeStatEvent::endOfDraw);
 			app().notifyWindowPresented();
 		}
 		else
@@ -392,7 +393,7 @@ bool EmuViewController::drawMainWindow(IG::Window &win, IG::WindowDrawParams par
 
 bool EmuViewController::drawExtraWindow(IG::Window &win, IG::WindowDrawParams params, Gfx::RendererTask &task)
 {
-	return task.draw(win, params, {},
+	return task.draw(win, params, {.asyncMode = drawAsyncMode(showingEmulation)},
 		[this](IG::Window &win, Gfx::RendererCommands &cmds)
 	{
 		auto &winData = windowData(win);

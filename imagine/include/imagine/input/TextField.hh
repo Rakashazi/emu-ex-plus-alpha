@@ -28,7 +28,7 @@ namespace IG::Input
 class TextFieldImpl
 {
 public:
-	constexpr TextFieldImpl(ApplicationContext, TextFieldDelegate, const char *initialText, const char *promptText, int fontSizePixels) {}
+	constexpr TextFieldImpl(ApplicationContext, TextFieldDelegate, const char*, const char*, int) {}
 };
 }
 #endif

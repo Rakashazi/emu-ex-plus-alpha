@@ -71,7 +71,7 @@ public:
 	{
 		return visit(overloaded
 		{
-			[&](const ItemsMessage& m) -> ItemReply { return std::size(items); },
+			[&](const ItemsMessage&) -> ItemReply { return std::size(items); },
 			[&](const GetItemMessage& m) -> ItemReply
 			{
 				auto itemPtr = &indirect(std::data(items)[m.idx]);

@@ -201,7 +201,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper
 		MenuId{system().cartType},
 		cartTypeItems,
 		{
-			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			.onSetDisplayString = [](auto idx, Gfx::Text &t)
 			{
 				if(idx == 0)
 				{
@@ -238,7 +238,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper
 		MenuId{system().region},
 		regionItems,
 		{
-			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			.onSetDisplayString = [](auto idx, Gfx::Text &t)
 			{
 				if(idx == 0)
 				{

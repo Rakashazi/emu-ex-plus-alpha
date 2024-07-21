@@ -111,7 +111,7 @@ KeyInfo VControllerKeyboard::translateInput(int idx) const
 	return table[0][idx];
 }
 
-bool VControllerKeyboard::keyInput(VController &v, Gfx::Renderer &r, const Input::KeyEvent &e)
+bool VControllerKeyboard::keyInput(VController& v, const Input::KeyEvent& e)
 {
 	if(selected.x == -1)
 	{
@@ -140,7 +140,7 @@ bool VControllerKeyboard::keyInput(VController &v, Gfx::Renderer &r, const Input
 			if(!e.pushed() || e.repeated())
 				return false;
 			log.info("switch kb mode");
-			cycleMode(v.system(), r);
+			cycleMode(v.system());
 			v.resetInput();
 		}
 		else if(e.pushed())
@@ -223,14 +223,14 @@ void VControllerKeyboard::unselectKey()
 IG::WindowRect VControllerKeyboard::extendKeySelection(IG::WindowRect selected)
 {
 	auto key = currentKey(selected.x, selected.y);
-	for(auto i : iotaCount(selected.x))
+	for([[maybe_unused]] auto i : iotaCount(selected.x))
 	{
 		if(table[selected.y][selected.x - 1] == key)
 			selected.x--;
 		else
 			break;
 	}
-	for(auto i : iotaCount((VKEY_COLS - 1) - selected.x2))
+	for([[maybe_unused]] auto i : iotaCount((VKEY_COLS - 1) - selected.x2))
 	{
 		if(table[selected.y][selected.x2 + 1] == key)
 			selected.x2++;
@@ -251,16 +251,16 @@ KeyInfo VControllerKeyboard::currentKey() const
 	return currentKey(selected.x, selected.y);
 }
 
-void VControllerKeyboard::setMode(EmuSystem &sys, Gfx::Renderer &r, VControllerKbMode mode)
+void VControllerKeyboard::setMode(EmuSystem& sys, VControllerKbMode mode)
 {
 	mode_ = mode;
 	updateImg();
 	updateKeyboardMapping(sys);
 }
 
-void VControllerKeyboard::cycleMode(EmuSystem &sys, Gfx::Renderer &r)
+void VControllerKeyboard::cycleMode(EmuSystem& sys)
 {
-	setMode(sys, r,
+	setMode(sys,
 		mode() == VControllerKbMode::LAYOUT_1 ? VControllerKbMode::LAYOUT_2
 		: VControllerKbMode::LAYOUT_1);
 }
@@ -271,7 +271,7 @@ void VControllerKeyboard::applyMap(KbMap map)
 	// 1st row
 	auto *__restrict tablePtr = &table[0][0];
 	auto *__restrict mapPtr = &map[0];
-	for(auto i : iotaCount(10))
+	for([[maybe_unused]] auto i : iotaCount(10))
 	{
 		tablePtr[0] = *mapPtr;
 		tablePtr[1] = *mapPtr;
@@ -283,7 +283,7 @@ void VControllerKeyboard::applyMap(KbMap map)
 	if(mode_ == VControllerKbMode::LAYOUT_1)
 	{
 		tablePtr = &table[1][1];
-		for(auto i : iotaCount(9))
+		for([[maybe_unused]] auto i : iotaCount(9))
 		{
 			tablePtr[0] = *mapPtr;
 			tablePtr[1] = *mapPtr;
@@ -294,7 +294,7 @@ void VControllerKeyboard::applyMap(KbMap map)
 	else
 	{
 		tablePtr = &table[1][0];
-		for(auto i : iotaCount(10))
+		for([[maybe_unused]] auto i : iotaCount(10))
 		{
 			tablePtr[0] = *mapPtr;
 			tablePtr[1] = *mapPtr;
@@ -307,7 +307,7 @@ void VControllerKeyboard::applyMap(KbMap map)
 	table[2][0] = table[2][1] = table[2][2] = *mapPtr;
 	mapPtr++;
 	tablePtr = &table[2][3];
-	for(auto i : iotaCount(7))
+	for([[maybe_unused]] auto i : iotaCount(7))
 	{
 		tablePtr[0] = *mapPtr;
 		tablePtr[1] = *mapPtr;
@@ -320,7 +320,7 @@ void VControllerKeyboard::applyMap(KbMap map)
 	table[3][3] = table[3][4] = table[3][5] = VController::CHANGE_KEYBOARD_MODE;
 	tablePtr = &table[3][6];
 	mapPtr = &map[33];
-	for(auto i : iotaCount(8))
+	for([[maybe_unused]] auto i : iotaCount(8))
 	{
 		*tablePtr++ = *mapPtr;
 	}

@@ -290,7 +290,7 @@ int TableView::nextSelectableElement(int start, int items)
 {
 	int elem = wrapMinMax(start, 0, items);
 	auto src = itemSrc;
-	for(auto i : iotaCount(items))
+	for([[maybe_unused]] auto i : iotaCount(items))
 	{
 		if(item(src, elem).selectable())
 		{
@@ -305,7 +305,7 @@ int TableView::prevSelectableElement(int start, int items)
 {
 	int elem = wrapMinMax(start, 0, items);
 	auto src = itemSrc;
-	for(auto i : iotaCount(items))
+	for([[maybe_unused]] auto i : iotaCount(items))
 	{
 		if(item(src, elem).selectable())
 		{
@@ -493,11 +493,11 @@ bool TableView::handleTableInput(const Input::Event &e, bool &movedSelected)
 	});
 }
 
-void TableView::drawElement(Gfx::RendererCommands &__restrict__ cmds, size_t i, MenuItem &item, WRect rect, int xIndent) const
+void TableView::drawElement(Gfx::RendererCommands &__restrict__ cmds, size_t, MenuItem &item, WRect rect, int xIndent) const
 {
 	static constexpr Gfx::Color highlightColor{0.f, .8f, 1.f};
-	MenuItemDrawAttrs attrs{.rect = {{rect.x, rect.pos(C2DO).y}, rect.size()},
-			.xIndent = xIndent, .color = item.highlighted() ? highlightColor : Gfx::Color(Gfx::ColorName::WHITE), .align = align};
+	MenuItemDrawAttrs attrs{.rect = rect, .xIndent = xIndent,
+		.color = item.highlighted() ? highlightColor : Gfx::Color(Gfx::ColorName::WHITE), .align = align};
 	item.draw(cmds, attrs);
 }
 

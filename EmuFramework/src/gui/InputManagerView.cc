@@ -161,7 +161,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach,
 	rescanOSDevices
 	{
 		"Re-scan OS Input Devices", attach,
-		[this](const Input::Event &e)
+		[this]
 		{
 			appContext().enumInputDevices();
 			int devices = 0;
@@ -552,7 +552,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 	{
 		"Handle Unbound Keys", attach,
 		inputDevData(dev).devConf.shouldHandleUnboundKeys,
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem& item)
 		{
 			devConf.shouldHandleUnboundKeys = item.flipBoolValue(*this);
 			devConf.save(inputManager);
@@ -562,7 +562,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 	{
 		"Stick 1 as D-Pad", attach,
 		inputDevData(dev).devConf.joystickAxesAsKeys(Input::AxisSetId::stick1),
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem& item)
 		{
 			devConf.setJoystickAxesAsKeys(Input::AxisSetId::stick1, item.flipBoolValue(*this));
 			devConf.save(inputManager);
@@ -572,7 +572,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 	{
 		"Stick 2 as D-Pad", attach,
 		inputDevData(dev).devConf.joystickAxesAsKeys(Input::AxisSetId::stick2),
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem& item)
 		{
 			devConf.setJoystickAxesAsKeys(Input::AxisSetId::stick2, item.flipBoolValue(*this));
 			devConf.save(inputManager);
@@ -582,7 +582,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 	{
 		"POV Hat as D-Pad", attach,
 		inputDevData(dev).devConf.joystickAxesAsKeys(Input::AxisSetId::hat),
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem& item)
 		{
 			devConf.setJoystickAxesAsKeys(Input::AxisSetId::hat, item.flipBoolValue(*this));
 			devConf.save(inputManager);
@@ -592,7 +592,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 	{
 		"L/R Triggers as L2/R2", attach,
 		inputDevData(dev).devConf.joystickAxesAsKeys(Input::AxisSetId::triggers),
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem& item)
 		{
 			devConf.setJoystickAxesAsKeys(Input::AxisSetId::triggers, item.flipBoolValue(*this));
 			devConf.save(inputManager);
@@ -602,7 +602,7 @@ InputManagerDeviceView::InputManagerDeviceView(UTF16String name, ViewAttachParam
 	{
 		"Brake/Gas as L2/R2", attach,
 		inputDevData(dev).devConf.joystickAxesAsKeys(Input::AxisSetId::pedals),
-		[this](BoolMenuItem &item, const Input::Event &e)
+		[this](BoolMenuItem& item)
 		{
 			devConf.setJoystickAxesAsKeys(Input::AxisSetId::pedals, item.flipBoolValue(*this));
 			devConf.save(inputManager);

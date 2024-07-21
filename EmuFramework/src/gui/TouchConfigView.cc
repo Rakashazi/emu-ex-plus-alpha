@@ -33,8 +33,6 @@
 namespace EmuEx
 {
 
-constexpr bool CAN_TURN_OFF_MENU_BTN = !Config::envIsIOS;
-
 constexpr const char *ctrlStateStr[]
 {
 	"Off", "On", "Hidden"
@@ -50,7 +48,7 @@ constexpr int touchCtrlExtraBtnSizeMenuVal[4]
 	0, 10, 20, 30
 };
 
-static void addCategories(EmuApp &app, VControllerElement &elem, auto &&addCategory)
+static void addCategories(EmuApp&, VControllerElement &elem, auto &&addCategory)
 {
 	if(elem.uiButtonGroup())
 	{
@@ -100,7 +98,7 @@ public:
 			MenuId{elem.dPad()->deadzone()},
 			deadzoneItems,
 			{
-				.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+				.onSetDisplayString = [this](auto, Gfx::Text& t)
 				{
 					t.resetString(std::format("{:g}mm", elem.dPad()->deadzone() / 100.));
 					return true;
@@ -139,7 +137,7 @@ public:
 			MenuId{elem.dPad()->diagonalSensitivity() * 1000.f},
 			diagonalSensitivityItems,
 			{
-				.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+				.onSetDisplayString = [this](auto, Gfx::Text& t)
 				{
 					t.resetString(std::format("{:g}%", 100.f - elem.dPad()->diagonalSensitivity() * 100.f));
 					return true;
@@ -451,7 +449,7 @@ public:
 			MenuId{elem.buttonGroup() ? elem.buttonGroup()->spacing() : 0},
 			spaceItems,
 			{
-				.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+				.onSetDisplayString = [this](auto, Gfx::Text& t)
 				{
 					t.resetString(std::format("{}mm", elem.buttonGroup()->spacing()));
 					return true;
@@ -590,7 +588,7 @@ public:
 					for(auto &k : cat.keys)
 					{
 						multiChoiceView->appendItem(app.inputManager.toString(k),
-							[this, k](View &parentView, const Input::Event &e)
+							[this, k](View &parentView, const Input::Event&)
 							{
 								elem.add(k);
 								vCtrl.update(elem);
@@ -709,17 +707,17 @@ public:
 		{
 			buttons.emplace_back(
 				c.name, attach,
-				[this, &c](const Input::Event &e){ add(c); });
+				[this, &c]{ add(c); });
 		}
 		buttons.emplace_back(
 			rightUIComponents.name, attach,
-			[this](const Input::Event &e){ add(rightUIComponents); });
+			[this]{ add(rightUIComponents); });
 		buttons.emplace_back(
 			leftUIComponents.name, attach,
-			[this](const Input::Event &e){ add(leftUIComponents); });
+			[this]{ add(leftUIComponents); });
 		buttons.emplace_back(
 			rewindUIComponents.name, attach,
-			[this](const Input::Event &e){ add(rewindUIComponents); });
+			[this]{ add(rewindUIComponents); });
 	}
 
 private:
@@ -837,7 +835,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl):
 		MenuId{vController.buttonSize()},
 		sizeItem,
 		{
-			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			.onSetDisplayString = [this](auto, Gfx::Text& t)
 			{
 				t.resetString(std::format("{:g}mm", vController.buttonSize() / 100.));
 				return true;

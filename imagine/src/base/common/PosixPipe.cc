@@ -42,9 +42,8 @@ static auto makePipe()
 }
 
 Pipe::Pipe(const char *debugLabel, int preferredSize):
-	debugLabel{debugLabel ? debugLabel : "unnamed"},
 	io{makePipe()},
-	fdSrc{debugLabel, io[0].fd()}
+	fdSrc{io[0].fd(), {.debugLabel = debugLabel}, {}}
 {
 	log.info("opened fds:{},{} ({})", io[0].fd(), io[1].fd(), debugLabel);
 	if(preferredSize)
@@ -63,14 +62,14 @@ PosixIO &Pipe::sink()
 	return io[1];
 }
 
-void Pipe::attach(EventLoop loop, PollEventDelegate callback)
+void Pipe::attach(EventLoop loop)
 {
 	if(io[0].fd() == -1)
 	{
 		log.info("can't add null pipe to event loop");
 		return;
 	}
-	fdSrc.attach(loop, callback);
+	fdSrc.attach(loop);
 }
 
 void Pipe::detach()
@@ -85,14 +84,14 @@ bool Pipe::hasData()
 
 void Pipe::dispatchSourceEvents()
 {
-	fdSrc.dispatchEvents(POLLEV_IN);
+	fdSrc.dispatchEvents(pollEventInput);
 }
 
-void Pipe::setPreferredSize(int size)
+void Pipe::setPreferredSize([[maybe_unused]] int size)
 {
 	#ifdef __linux__
 	fcntl(io[1].fd(), F_SETPIPE_SZ, size);
-	log.debug("set size:{} ({})", size, debugLabel);
+	log.debug("set size:{} ({})", size, fdSrc.debugLabel());
 	#endif
 }
 

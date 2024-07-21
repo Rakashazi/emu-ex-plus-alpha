@@ -140,7 +140,6 @@ void C64System::resetCanvasSourcePixmap(struct video_canvas_s *c)
 {
 	if(activeCanvas != c)
 		return;
-	unsigned canvasW = c->w;
 	unsigned canvasH = c->h;
 	if(optionCropNormalBorders && (canvasH == 247 || canvasH == 272))
 	{
@@ -157,7 +156,6 @@ void C64System::resetCanvasSourcePixmap(struct video_canvas_s *c)
 			startX = xBorderSize; startY = xBorderSize;
 		}
 		int width = 320+(xBorderSize*2 - startX*2);
-		int widthPadding = startX*2;
 		canvasSrcPix = pixmapView(c).subView({startX, startY}, {width, height});
 	}
 	else

@@ -88,7 +88,6 @@ bool EmuInputView::inputEvent(const Input::Event& e, ViewInputEventParams)
 			if(vController->keyInput(keyEv))
 				return true;
 			auto &emuApp = app();
-			auto &sys = emuApp.system();
 			auto &devData = inputDevData(*keyEv.device());
 			const auto &actionTable = devData.actionTable;
 			if(!actionTable.size()) [[unlikely]]

@@ -170,7 +170,7 @@ inline void writeOptionValueIfNotDefault(Writable auto &io, uint16_t key, const 
 	writeOptionValue(io, key, val);
 }
 
-inline void writeOptionValueIfNotDefault(Writable auto &io, Unused auto const &p) {}
+inline void writeOptionValueIfNotDefault(Writable auto&, Unused auto const&) {}
 
 inline void writeOptionValueIfNotDefault(Writable auto &io, PropertyOption auto const &p)
 {

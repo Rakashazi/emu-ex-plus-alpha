@@ -44,7 +44,7 @@ void ViewI::setFocus(bool) {}
 
 std::u16string_view ViewI::name() const { return u""; }
 
-bool ViewI::onDocumentPicked(const DocumentPickerEvent& e) { return false; }
+bool ViewI::onDocumentPicked(const DocumentPickerEvent&) { return false; }
 
 Gfx::Renderer &ViewAttachParams::renderer() const
 {
@@ -77,7 +77,7 @@ void ViewController::popAndShow()
 	dismissView(-1);
 }
 
-void ViewController::popTo(View &v)
+void ViewController::popTo(View&)
 {
 	log.error("popTo() not implemented for this controller");
 }

@@ -82,7 +82,7 @@ static void printToLogLineBuffer(const char* msg, va_list args)
 	vsnprintf(logLineBuffer + strlen(logLineBuffer), sizeof(logLineBuffer) - strlen(logLineBuffer), msg, args);
 }
 
-static int severityToLogLevel(LoggerSeverity severity)
+constexpr int severityToLogLevel([[maybe_unused]] LoggerSeverity severity)
 {
 	#ifdef __ANDROID__
 	switch(severity)
@@ -165,7 +165,7 @@ void logger_printf(LoggerSeverity severity, const char* msg, ...)
 namespace IG::Log
 {
 
-void printMsg(LoggerSeverity lv, const char* str, size_t strSize)
+void printMsg([[maybe_unused]] LoggerSeverity lv, const char* str, size_t strSize)
 {
 	const char newLine = '\n';
 	if(logExternalFile)

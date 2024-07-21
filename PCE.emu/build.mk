@@ -12,7 +12,7 @@ CPPFLAGS += $(MDFN_COMMON_CPPFLAGS) \
  -I$(EMUFRAMEWORK_PATH)/src/shared/mednafen/hw_misc \
  -I$(EMUFRAMEWORK_PATH)/src/shared/mednafen/hw_sound
 
-CXXFLAGS_WARN += -Wno-missing-field-initializers
+CXXFLAGS_WARN += -Wno-missing-field-initializers -Wno-unused-parameter -Wno-unused-function
 
 SRC += main/Main.cc \
 main/options.cc \

@@ -61,7 +61,7 @@ void VirtualFS::get_file_path_components(const std::string &file_path, std::stri
 		*file_ext_out = fileExt;
 }
 
-void VirtualFS::check_firop_safe(const std::string& path) {}
+void VirtualFS::check_firop_safe(const std::string&) {}
 
 bool VirtualFS::is_path_separator(const char c)
 {
@@ -73,7 +73,7 @@ bool VirtualFS::is_absolute_path(const std::string& path)
 	return true;
 }
 
-std::string VirtualFS::eval_fip(const std::string& dir_path, const std::string& rel_path, bool skip_safety_check)
+std::string VirtualFS::eval_fip(const std::string& dir_path, const std::string& rel_path, [[maybe_unused]] bool skip_safety_check)
 {
 	if(is_absolute_path(rel_path))
 		return rel_path;
@@ -94,9 +94,9 @@ std::string VirtualFS::get_human_mode(uint32 mode)
 	}
 }
 
-void VirtualFS::create_missing_dirs(const std::string& file_path) {}
+void VirtualFS::create_missing_dirs(const std::string&) {}
 
-bool VirtualFS::is_driverel_path(const std::string& path) { return false; }
+bool VirtualFS::is_driverel_path(const std::string&) { return false; }
 
 }
 

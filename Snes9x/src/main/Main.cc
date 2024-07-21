@@ -56,7 +56,7 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 Snes9xApp::Snes9xApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	EmuApp{initParams, ctx}, snes9xSystem{ctx} {}
 
-const BundledGameInfo &EmuSystem::bundledGameInfo(int idx) const
+const BundledGameInfo &EmuSystem::bundledGameInfo(int) const
 {
 	static constexpr BundledGameInfo info[]
 	{
@@ -86,7 +86,7 @@ MutablePixmapView Snes9xSystem::fbPixmapView(WSize size, bool useInterlaceFields
 	return pix;
 }
 
-void Snes9xSystem::renderFramebuffer(EmuVideo &video)
+void Snes9xSystem::renderFramebuffer(EmuVideo&)
 {
 	emuSysTask = {};
 	S9xDeinitUpdate(IPPU.RenderedScreenWidth, IPPU.RenderedScreenHeight);

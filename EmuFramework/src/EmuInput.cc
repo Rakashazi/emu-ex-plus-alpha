@@ -58,8 +58,8 @@ bool InputManager::handleAppActionKeyInput(EmuApp& app, InputAction action, cons
 		case fastForward:
 		{
 			viewController.inputView.setAltSpeedMode(AltSpeedMode::fast, isPushed);
-			break;
 		}
+		break;
 		case openContent:
 		{
 			if(!isPushed)
@@ -88,16 +88,9 @@ bool InputManager::handleAppActionKeyInput(EmuApp& app, InputAction action, cons
 		{
 			if(!isPushed)
 				break;
-			static auto doSaveState = [](EmuApp &app, bool notify)
-			{
-				if(app.saveStateWithSlot(app.system().stateSlot()) && notify)
-				{
-					app.postMessage("State Saved");
-				}
-			};
+			static auto doSaveState = [](EmuApp &app, bool notify){	app.saveStateWithSlot(app.system().stateSlot(), notify); };
 			if(app.shouldOverwriteExistingState())
 			{
-				app.syncEmulationThread();
 				doSaveState(app, app.confirmOverwriteState);
 			}
 			else
@@ -119,7 +112,6 @@ bool InputManager::handleAppActionKeyInput(EmuApp& app, InputAction action, cons
 		{
 			if(!isPushed)
 				break;
-			app.syncEmulationThread();
 			app.loadStateWithSlot(system.stateSlot());
 			return true;
 		}
@@ -127,6 +119,7 @@ bool InputManager::handleAppActionKeyInput(EmuApp& app, InputAction action, cons
 		{
 			if(!isPushed)
 				break;
+			auto suspendCtx = app.suspendEmulationThread();
 			system.decStateSlot();
 			app.postMessage(1, false, std::format("State Slot: {}", system.stateSlotName()));
 			return true;
@@ -135,6 +128,7 @@ bool InputManager::handleAppActionKeyInput(EmuApp& app, InputAction action, cons
 		{
 			if(!isPushed)
 				break;
+			auto suspendCtx = app.suspendEmulationThread();
 			system.incStateSlot();
 			app.postMessage(1, false, std::format("State Slot: {}", system.stateSlotName()));
 			return true;
@@ -151,8 +145,8 @@ bool InputManager::handleAppActionKeyInput(EmuApp& app, InputAction action, cons
 			if(!isPushed)
 				break;
 			viewController.inputView.toggleAltSpeedMode(AltSpeedMode::fast);
-			break;
 		}
+		break;
 		case openMenu:
 		{
 			if(!isPushed)
@@ -166,61 +160,66 @@ bool InputManager::handleAppActionKeyInput(EmuApp& app, InputAction action, cons
 			turboModifierActive = isPushed;
 			if(!isPushed)
 				turboActions = {};
-			break;
 		}
+		break;
 		case exitApp:
 		{
 			if(!isPushed)
 				break;
 			viewController.pushAndShowModal(std::make_unique<YesNoAlertView>(app.attachParams(), "Really Exit?",
 				YesNoAlertView::Delegates{.onYes = [&app]{ app.appContext().exit(); }}), srcEvent, false);
-			break;
 		}
+		break;
 		case slowMotion:
 		{
 			viewController.inputView.setAltSpeedMode(AltSpeedMode::slow, isPushed);
-			break;
 		}
+		break;
 		case toggleSlowMotion:
 		{
 			if(!isPushed)
 				break;
 			viewController.inputView.toggleAltSpeedMode(AltSpeedMode::slow);
-			break;
 		}
+		break;
 		case rewind:
 		{
 			if(!isPushed)
 				break;
 			if(app.rewindManager.maxStates)
+			{
 				app.rewindManager.rewindState(app);
+			}
 			else
+			{
+				auto suspendCtx = app.suspendEmulationThread();
 				app.postMessage(3, false, "Please set rewind states in Options➔System");
-			break;
+			}
 		}
+		break;
 		case softReset:
 		{
 			if(!isPushed)
 				break;
-			app.syncEmulationThread();
+			auto suspendCtx = app.suspendEmulationThread();
 			system.reset(app, EmuSystem::ResetMode::SOFT);
-			break;
 		}
+		break;
 		case hardReset:
 		{
 			if(!isPushed)
 				break;
-			app.syncEmulationThread();
+			auto suspendCtx = app.suspendEmulationThread();
 			system.reset(app, EmuSystem::ResetMode::HARD);
-			break;
 		}
+		break;
 		case resetMenu:
 		{
 			if(!isPushed)
 				break;
 			viewController.pushAndShowModal(resetAlertView(app.attachParams(), app), srcEvent, false);
-			break;
 		}
+		break;
 	}
 	return false;
 }
@@ -252,7 +251,7 @@ void InputManager::updateInputDevices(ApplicationContext ctx)
 	for(auto &devPtr : ctx.inputDevices())
 	{
 		log.info("input device:{}, id:{}, map:{}", devPtr->name(), devPtr->enumId(), (int)devPtr->map());
-		auto &appData = devPtr->makeAppData<InputDeviceData>(*this, *devPtr);
+		devPtr->makeAppData<InputDeviceData>(*this, *devPtr);
 	}
 	vController.setPhysicalControlsPresent(ctx.keyInputIsPresent());
 	onUpdateDevices.callCopySafe();
@@ -404,7 +403,7 @@ bool InputManager::readCustomKeyConfig(MapIO &io)
 bool InputManager::readSavedInputDevices(MapIO &io)
 {
 	auto confs = io.get<uint8_t>();
-	for(auto confIdx : iotaCount(confs))
+	for([[maybe_unused]] auto confIdx : iotaCount(confs))
 	{
 		InputDeviceSavedConfig devConf;
 		auto enumIdWithFlags = io.get<uint8_t>();
@@ -428,7 +427,7 @@ bool InputManager::readSavedInputDevices(MapIO &io)
 			log.error("unexpected 0 length device name");
 			return false;
 		}
-		auto keyConfMap = Input::validateMap(io.get<uint8_t>());
+		[[maybe_unused]] auto keyConfMap = Input::validateMap(io.get<uint8_t>());
 		readSizedData<uint8_t>(io, devConf.keyConfName);
 		if(!find(savedDevConfigs, [&](const auto &confPtr){ return *confPtr == devConf;}))
 		{
@@ -506,7 +505,7 @@ bool InputManager::readInputDeviceSessionConfigs(ApplicationContext ctx, MapIO &
 {
 	savedSessionDevConfigs.clear();
 	auto confs = io.get<uint8_t>();
-	for(auto confIdx : iotaCount(confs))
+	for([[maybe_unused]] auto confIdx : iotaCount(confs))
 	{
 		InputDeviceSavedSessionConfig devConf;
 		devConf.enumId = io.get<uint8_t>();

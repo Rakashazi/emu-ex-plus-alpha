@@ -91,7 +91,7 @@ XScreen::XScreen(ApplicationContext ctx, InitParams params)
 		}
 		assert(frameTime_.count());
 	}
-	log.info("screen:{} {}x{} ({}x{}mm) %.2fHz", (void*)&screen,
+	log.info("screen:{} {}x{} ({}x{}mm) {}Hz", (void*)&screen,
 		screen.width_in_pixels, screen.height_in_pixels, (int)xMM, (int)yMM, frameRate_);
 	ctx.application().emplaceFrameTimer(frameTimer, *static_cast<Screen*>(this));
 }
@@ -202,6 +202,17 @@ void Screen::setVariableFrameTime(bool useVariableTime)
 	if(!shouldUpdateFrameTimer(frameTimer, useVariableTime))
 		return;
 	application().emplaceFrameTimer(frameTimer, *static_cast<Screen*>(this), useVariableTime);
+}
+
+void Screen::setFrameEventsOnThisThread()
+{
+	unpostFrame();
+	frameTimer.setEventsOnThisThread(appContext());
+}
+
+void Screen::removeFrameEvents()
+{
+	unpostFrame();
 }
 
 }

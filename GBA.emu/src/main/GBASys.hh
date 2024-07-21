@@ -678,7 +678,7 @@ static inline uint32_t CPUReadHalfWordQuick(ARM7TDMI &cpu, uint32_t addr)
 static inline uint32_t CPUReadMemoryQuick(ARM7TDMI &cpu, uint32_t addr)
 	{ return READ32LE(((uint32_t*)&cpu.map[addr>>24].address[addr & cpu.map[addr>>24].mask])); }
 
-static void blankLine(MixColorType *lineMix, GBALCD &lcd, const GBAMem::IoMem &ioMem)
+inline void blankLine(MixColorType *lineMix, GBALCD &lcd, const GBAMem::IoMem &ioMem)
 {
 	for (int x = 0; x < 240; x++)
 		lineMix[x] = 0x7fff;

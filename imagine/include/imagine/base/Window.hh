@@ -46,6 +46,8 @@ public:
 	void postFrameReady();
 	void postDrawToMainThread(int8_t priority = 0);
 	void postFrameReadyToMainThread();
+	void setFrameEventsOnThisThread();
+	void removeFrameEvents();
 	static constexpr int8_t drawEventPriorityLocked = 127; // max value passed to setDrawEventPriority() also blocks implicit drawing
 	int8_t setDrawEventPriority(int8_t = 0);
 	int8_t drawEventPriority() const;

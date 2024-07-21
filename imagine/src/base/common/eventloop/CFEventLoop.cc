@@ -56,10 +56,11 @@ void CFFDEventSourceInfo::detachSource()
 	loop = {};
 }
 
-CFFDEventSource::CFFDEventSource(const char *debugLabel, MaybeUniqueFileDescriptor fd):
-	debugLabel{debugLabel ? debugLabel : "unnamed"},
-	info{std::make_unique<CFFDEventSourceInfo>()}
+CFFDEventSource::CFFDEventSource(MaybeUniqueFileDescriptor fd, FDEventSourceDesc, PollEventDelegate del):
+	info{fd.get() != -1 ? std::make_unique<CFFDEventSourceInfo>(del) : std::unique_ptr<CFFDEventSourceInfo>{}}
 {
+	if(fd.get() == -1)
+		return;
 	CFFileDescriptorContext ctx{.version{}, .info = info.get(), .retain{}, .release{}, .copyDescription{}};
 	info->fdRef = CFFileDescriptorCreate(kCFAllocatorDefault, fd.release(), fd.ownsFd(),
 		eventCallback, &ctx);
@@ -74,7 +75,6 @@ CFFDEventSource &CFFDEventSource::operator=(CFFDEventSource &&o) noexcept
 {
 	deinit();
 	info = std::move(o.info);
-	debugLabel = o.debugLabel;
 	return *this;
 }
 
@@ -83,19 +83,24 @@ CFFDEventSource::~CFFDEventSource()
 	deinit();
 }
 
-bool FDEventSource::attach(EventLoop loop, PollEventDelegate callback, uint32_t events)
+bool FDEventSource::attach(EventLoop loop, PollEventFlags events)
 {
-	assumeExpr(info);
-	detach();
-	if(Config::DEBUG_BUILD)
+	if(fd() == -1) [[unlikely]]
 	{
-		log.info("adding fd:{} to run loop ({})", fd(), debugLabel);
+		log.error("trying to attach without valid fd");
+		return false;
 	}
-	info->callback = callback;
-	CFFileDescriptorEnableCallBacks(info->fdRef, events);
-	info->src = CFFileDescriptorCreateRunLoopSource(kCFAllocatorDefault, info->fdRef, 0);
+	detach();
 	if(!loop)
 		loop = EventLoop::forThread();
+	if(Config::DEBUG_BUILD)
+	{
+		log.info("adding fd:{} ({}) to run loop:{}", fd(), debugLabel(), (void*)loop.nativeObject());
+	}
+	assumeExpr(info);
+	events &= 0x3;
+	CFFileDescriptorEnableCallBacks(info->fdRef, events);
+	info->src = CFFileDescriptorCreateRunLoopSource(kCFAllocatorDefault, info->fdRef, 0);
 	CFRunLoopAddSource(loop.nativeObject(), info->src, kCFRunLoopDefaultMode);
 	info->loop = loop.nativeObject();
 	return true;
@@ -107,53 +112,47 @@ void FDEventSource::detach()
 		return;
 	if(Config::DEBUG_BUILD)
 	{
-		log.info("removing fd:{} from run loop ({})", fd(), debugLabel);
+		log.info("removing fd:{} ({}) from run loop:{}", fd(), debugLabel(), (void*)info->loop);
 	}
 	info->detachSource();
 }
 
-void FDEventSource::setEvents(uint32_t events)
+void FDEventSource::setEvents(PollEventFlags events)
 {
-	assumeExpr(info);
 	if(!hasEventLoop())
 	{
 		log.error("trying to set events while not attached to event loop");
 		return;
 	}
-	uint32_t disableEvents = ~events & 0x3;
+	assumeExpr(info);
+	events &= 0x3;
+	auto disableEvents = ~events;
 	if(disableEvents)
 		CFFileDescriptorDisableCallBacks(info->fdRef, disableEvents);
 	if(events)
 		CFFileDescriptorEnableCallBacks(info->fdRef, events);
 }
 
-void FDEventSource::dispatchEvents(uint32_t events)
+void FDEventSource::dispatchEvents(PollEventFlags events)
 {
 	assumeExpr(info);
-	eventCallback(info->fdRef, events, info.get());
+	eventCallback(info->fdRef, events & 0x3, info.get());
 }
 
 void FDEventSource::setCallback(PollEventDelegate callback)
 {
 	assumeExpr(info);
-	if(!hasEventLoop())
-	{
-		log.error("trying to set callback while not attached to event loop");
-		return;
-	}
 	info->callback = callback;
 }
 
 bool FDEventSource::hasEventLoop() const
 {
-	assumeExpr(info);
-	return info->loop;
+	return info && info->loop;
 }
 
 int FDEventSource::fd() const
 {
-	assumeExpr(info);
-	return info->fdRef ? CFFileDescriptorGetNativeDescriptor(info->fdRef) : -1;
+	return info ? CFFileDescriptorGetNativeDescriptor(info->fdRef) : -1;
 }
 
 void CFFDEventSource::deinit()
@@ -178,9 +177,12 @@ EventLoop EventLoop::makeForThread()
 	return forThread();
 }
 
-void EventLoop::run()
+void EventLoop::run(const bool& condition)
 {
-	CFRunLoopRun();
+	while(condition)
+	{
+		CFRunLoopRun();
+	}
 }
 
 void EventLoop::stop()

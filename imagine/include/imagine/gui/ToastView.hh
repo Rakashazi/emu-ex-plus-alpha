@@ -48,7 +48,7 @@ public:
 
 private:
 	Gfx::Text text;
-	Timer unpostTimer{Timer::NullInit{}};
+	Timer unpostTimer;
 	Gfx::IQuads msgFrameQuads;
 	WRect msgFrame{};
 	bool error = false;

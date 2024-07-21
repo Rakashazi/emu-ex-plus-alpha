@@ -79,7 +79,7 @@ void TestFramework::placeFrameStatsText()
 	}
 }
 
-void TestFramework::place(Gfx::Renderer &r, WRect viewBounds_, WRect testRect)
+void TestFramework::place(WRect viewBounds_, WRect testRect)
 {
 	viewBounds = viewBounds_;
 	placeCPUStatsText();
@@ -91,7 +91,6 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::F
 {
 	auto timestamp = frameParams.timestamp;
 	// CPU stats
-	auto &screen = *win.screen();
 	bool updatedCPUStats = false;
 	if(frames % 8 == 0)
 	{
@@ -197,7 +196,7 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, int 
 	}
 }
 
-void TestFramework::finish(Gfx::RendererTask &task, SteadyClockTimePoint frameTime)
+void TestFramework::finish(SteadyClockTimePoint frameTime)
 {
 	endTime = frameTime;
 	if(onTestFinished)

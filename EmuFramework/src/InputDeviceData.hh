@@ -46,7 +46,7 @@ struct InputDeviceData
 	bool keysArePushed(MappedKeys);
 };
 
-static InputDeviceData& inputDevData(const Input::Device &d)
+inline InputDeviceData& inputDevData(const Input::Device& d)
 {
 	return *d.appData<InputDeviceData>();
 }

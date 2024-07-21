@@ -101,7 +101,7 @@ std::pair<std::string_view, size_t> uriPathSegment(std::string_view uri, std::st
 size_t directoryItems(CStringView path)
 {
 	size_t items = 0;
-	forEachInDirectory(path, [&](auto &entry){ items++; return true; });
+	forEachInDirectory(path, [&](auto&){ items++; return true; });
 	return items;
 }
 

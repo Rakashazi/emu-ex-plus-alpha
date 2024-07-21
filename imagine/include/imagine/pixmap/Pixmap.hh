@@ -168,7 +168,7 @@ public:
 			auto destData = data();
 			auto destPitch = pitchBytes();
 			auto lineBytes = format().pixelBytes(pixmap.w());
-			for(auto i : iotaCount(pixmap.h()))
+			for([[maybe_unused]] auto i : iotaCount(pixmap.h()))
 			{
 				memcpy(destData, srcData, lineBytes);
 				srcData += pixmap.pitchBytes();
@@ -245,7 +245,7 @@ public:
 		{
 			auto lineBytes = format().pixelBytes(size.x);
 			auto pitch = pitchBytes();
-			for(auto i : iotaCount(size.y))
+			for([[maybe_unused]] auto i : iotaCount(size.y))
 			{
 				std::fill_n(destData, lineBytes, 0);
 				destData += pitch;
@@ -284,7 +284,7 @@ public:
 		{
 			auto dataPitchPixels = pitchPx();
 			auto width = w();
-			for(auto y : iotaCount(h()))
+			for([[maybe_unused]] auto y : iotaCount(h()))
 			{
 				auto lineData = data;
 				transformNOverlapped(lineData, width, lineData,
@@ -352,7 +352,7 @@ protected:
 		{
 			auto srcPitchPixels = pixmap.pitchPx();
 			auto destPitchPixels = pitchPx();
-			for(auto h : iotaCount(pixmap.h()))
+			for([[maybe_unused]] auto h : iotaCount(pixmap.h()))
 			{
 				auto destLineData = destData;
 				auto srcLineData = srcData;
@@ -367,7 +367,7 @@ protected:
 		}
 	}
 
-	static void invalidFormatConversion(auto dest, auto src)
+	static void invalidFormatConversion([[maybe_unused]] auto dest, [[maybe_unused]] auto src)
 	{
 		bug_unreachable("unimplemented conversion:%s -> %s", src.format().name(), dest.format().name());
 	}

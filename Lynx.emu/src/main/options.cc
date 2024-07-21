@@ -119,7 +119,6 @@ uint64 MDFN_GetSettingUI(const char *name_)
 int64 MDFN_GetSettingI(const char *name_)
 {
 	std::string_view name{name_};
-	auto &sys = static_cast<LynxSystem&>(gSystem());
 	if("filesys.state_comp_level" == name)
 		return 6;
 	bug_unreachable("unhandled settingI %s", name_);

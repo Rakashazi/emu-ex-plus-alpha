@@ -5,7 +5,7 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 # TODO: fix pointer type casts
 CFLAGS_LANG += -Werror=implicit-function-declaration -Wno-incompatible-pointer-types
-CFLAGS_WARN += -Wno-sign-compare -Wno-switch -Wno-implicit-fallthrough
+CFLAGS_WARN += -Wno-sign-compare -Wno-switch -Wno-implicit-fallthrough -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable
 
 BMSX := blueMSX
 

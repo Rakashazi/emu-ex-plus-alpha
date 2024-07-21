@@ -33,7 +33,7 @@ FilePicker::FilePicker(ViewAttachParams attach,
 	} {}
 
 FilePicker::FilePicker(ViewAttachParams attach, EmuApp &app,
-	FSPicker::Mode mode, EmuSystem::NameFilterFunc filter, const Input::Event &e, bool includeArchives):
+	FSPicker::Mode mode, EmuSystem::NameFilterFunc filter, const Input::Event&, bool includeArchives):
 	FSPicker
 	{
 		attach,

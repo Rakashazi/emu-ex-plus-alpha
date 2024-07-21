@@ -34,6 +34,7 @@ namespace IG
 class ApplicationContext;
 
 using FrameTimerVariant = std::variant<
+	NullFrameTimer,
 	SimpleFrameTimer,
 	#if CONFIG_PACKAGE_LIBDRM
 	DRMFrameTimer,

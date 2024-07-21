@@ -117,7 +117,7 @@ static void printEGLConf(EGLDisplay display, EGLConfig config)
 			minSwap, maxSwap);
 }
 
-static void printEGLConfs(EGLDisplay display)
+inline void printEGLConfs(EGLDisplay display)
 {
 	EGLConfig conf[96];
 	EGLint num = 0;
@@ -129,7 +129,7 @@ static void printEGLConfs(EGLDisplay display)
 	}
 }
 
-static void printEGLConfsWithAttr(EGLDisplay display, const EGLint *attr)
+inline void printEGLConfsWithAttr(EGLDisplay display, const EGLint *attr)
 {
 	EGLConfig conf[96];
 	EGLint num = 0;
@@ -141,13 +141,13 @@ static void printEGLConfsWithAttr(EGLDisplay display, const EGLint *attr)
 	}
 }
 
-static EGLBoolean eglSurfaceIsValid(EGLDisplay display, EGLSurface surface)
+inline EGLBoolean eglSurfaceIsValid(EGLDisplay display, EGLSurface surface)
 {
 	EGLint dummy;
 	return eglQuerySurface(display, surface, EGL_CONFIG_ID, &dummy);
 }
 
-static EGLSurface makeDummyPbuffer(EGLDisplay display, EGLConfig config)
+inline EGLSurface makeDummyPbuffer(EGLDisplay display, EGLConfig config)
 {
 	const EGLint attribs[]{EGL_WIDTH, 1, EGL_HEIGHT, 1, EGL_NONE};
 	return eglCreatePbufferSurface(display, config, attribs);

@@ -33,7 +33,7 @@
 namespace EmuEx
 {
 
-constexpr SystemLogger log{"Saturn.emu"};
+[[maybe_unused]] constexpr SystemLogger log{"Saturn.emu"};
 const int EmuSystem::maxPlayers = 12;
 
 enum class SaturnKey : KeyCode

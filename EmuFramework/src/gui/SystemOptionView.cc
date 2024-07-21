@@ -50,7 +50,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	autosaveTimer
 	{
-		"Autosave Timer", attach,
+		"Timer", attach,
 		MenuId{app().autosaveManager.saveTimer.frequency.count()},
 		autosaveTimerItem,
 		{
@@ -73,7 +73,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	autosaveLaunch
 	{
-		"Autosave Launch Mode", attach,
+		"Launch Mode", attach,
 		MenuId{app().autosaveManager.autosaveLaunchMode},
 		autosaveLaunchItem,
 		{
@@ -82,7 +82,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	autosaveContent
 	{
-		"Autosave Content", attach,
+		"Content", attach,
 		app().autosaveManager.saveOnlyBackupMemory,
 		"State & Backup RAM", "Only Backup RAM",
 		[this](BoolMenuItem &item)
@@ -128,7 +128,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		MenuId{app().altSpeed(AltSpeedMode::fast)},
 		fastModeSpeedItem,
 		{
-			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			.onSetDisplayString = [this](auto, Gfx::Text& t)
 			{
 				t.resetString(std::format("{:g}x", app().altSpeedAsDouble(AltSpeedMode::fast)));
 				return true;
@@ -169,7 +169,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		MenuId{app().altSpeed(AltSpeedMode::slow)},
 		slowModeSpeedItem,
 		{
-			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			.onSetDisplayString = [this](auto, Gfx::Text& t)
 			{
 				t.resetString(std::format("{:g}x", app().altSpeedAsDouble(AltSpeedMode::slow)));
 				return true;
@@ -199,11 +199,11 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	rewindStates
 	{
-		"Rewind States", attach,
+		"States", attach,
 		MenuId{app().rewindManager.maxStates},
 		rewindStatesItem,
 		{
-			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			.onSetDisplayString = [this](auto, Gfx::Text& t)
 			{
 				t.resetString(std::format("{}", app().rewindManager.maxStates));
 				return true;
@@ -213,7 +213,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	rewindTimeInterval
 	{
-		"Rewind State Interval (Seconds)", std::to_string(app().rewindManager.saveTimer.frequency.count()), attach,
+		"State Interval (Seconds)", std::to_string(app().rewindManager.saveTimer.frequency.count()), attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShowNewCollectValueRangeInputView<int, 1, 60>(attachParams(), e,
@@ -252,7 +252,10 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			pushAndShow(makeView<CPUAffinityView>(appContext().cpuCount()), e);
 		}
-	}
+	},
+	autosaveHeading{"Autosave Options", attach},
+	rewindHeading{"Rewind Options", attach},
+	otherHeading{"Other Options", attach}
 {
 	if(!customMenu)
 	{
@@ -262,14 +265,17 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 
 void SystemOptionView::loadStockItems()
 {
+	item.emplace_back(&autosaveHeading);
 	item.emplace_back(&autosaveLaunch);
 	item.emplace_back(&autosaveTimer);
 	item.emplace_back(&autosaveContent);
+	item.emplace_back(&rewindHeading);
+	item.emplace_back(&rewindStates);
+	item.emplace_back(&rewindTimeInterval);
+	item.emplace_back(&otherHeading);
 	item.emplace_back(&confirmOverwriteState);
 	item.emplace_back(&fastModeSpeed);
 	item.emplace_back(&slowModeSpeed);
-	item.emplace_back(&rewindStates);
-	item.emplace_back(&rewindTimeInterval);
 	if(used(performanceMode) && appContext().hasSustainedPerformanceMode())
 		item.emplace_back(&performanceMode);
 	if(used(noopThread))

@@ -237,6 +237,7 @@ XWindow::~XWindow()
 	{
 		xcb_free_colormap(xConn, colormap);
 	}
+	xcb_flush(xConn);
 }
 
 void Window::show()
@@ -257,7 +258,7 @@ void Window::setIntendedFrameRate(FrameRate rate)
 	screen()->setFrameRate(rate);
 }
 
-void Window::setFormat(NativeWindowFormat fmt) {}
+void Window::setFormat(NativeWindowFormat) {}
 
 void Window::setFormat(PixelFormat) {}
 

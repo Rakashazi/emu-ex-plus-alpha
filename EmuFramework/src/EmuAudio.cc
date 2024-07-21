@@ -47,7 +47,7 @@ static AudioStats audioStats{};
 static IG::Timer audioStatsTimer{"audioStatsTimer"};
 #endif
 
-static void startAudioStats(IG::Audio::Format format)
+static void startAudioStats([[maybe_unused]] Audio::Format format)
 {
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 	audioStats.reset();

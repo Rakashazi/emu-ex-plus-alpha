@@ -75,12 +75,12 @@ protected:
 	std::shared_ptr<AAssetDirectory> impl;
 };
 
-static const AAssetIterator &begin(const AAssetIterator &iter)
+inline const AAssetIterator &begin(const AAssetIterator &iter)
 {
 	return iter;
 }
 
-static AAssetIterator end(const AAssetIterator &)
+inline AAssetIterator end(const AAssetIterator &)
 {
 	return {};
 }

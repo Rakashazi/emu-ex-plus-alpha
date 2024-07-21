@@ -66,7 +66,7 @@ class ConsoleOptionView : public TableView, public MainAppHelper
 		std::min((int)system().optionTimerInt, 2),
 		timerItem,
 		{
-			.onSetDisplayString = [this](auto idx, Gfx::Text &t)
+			.onSetDisplayString = [](auto idx, Gfx::Text& t)
 			{
 				if(idx == 2)
 				{

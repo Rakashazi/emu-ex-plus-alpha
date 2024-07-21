@@ -425,7 +425,7 @@ double SaturnSystem::videoAspectRatioScale() const
 }
 
 size_t SaturnSystem::stateSize() { return currStateSize; }
-void SaturnSystem::readState(EmuApp &app, std::span<uint8_t> buff) { readStateMDFN(app, buff); }
+void SaturnSystem::readState(EmuApp&, std::span<uint8_t> buff) { readStateMDFN(buff); }
 size_t SaturnSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags) { return writeStateMDFN(buff, flags); }
 
 void EmuApp::onCustomizeNavView(EmuApp::NavView &view)

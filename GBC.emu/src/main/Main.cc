@@ -81,7 +81,7 @@ void GbcSystem::applyGBPalette()
 		gbEmu.setDmgPaletteColor(2, i, makeOutputColor(pal.sp2[i]));
 }
 
-void GbcSystem::reset(EmuApp &app, ResetMode mode)
+void GbcSystem::reset(EmuApp& app, ResetMode)
 {
 	flushBackupMemory(app);
 	gbEmu.reset();
@@ -93,14 +93,14 @@ FS::FileString GbcSystem::stateFilename(int slot, std::string_view name) const
 	return IG::format<FS::FileString>("{}.0{}.gqs", name, saveSlotCharUpper(slot));
 }
 
-void GbcSystem::readState(EmuApp &app, std::span<uint8_t> buff)
+void GbcSystem::readState(EmuApp&, std::span<uint8_t> buff)
 {
 	IStream<MapIO> stream{buff};
 	if(!gbEmu.loadState(stream))
 		throw std::runtime_error("Invalid state data");
 }
 
-size_t GbcSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags)
+size_t GbcSystem::writeState(std::span<uint8_t> buff, SaveStateFlags)
 {
 	assert(saveStateSize == buff.size());
 	OStream<MapIO> stream{buff};

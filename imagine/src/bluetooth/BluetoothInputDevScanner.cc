@@ -35,7 +35,7 @@ static bool hidServiceActive = false;
 static std::unique_ptr<Input::Device> pendingPS3Controller;
 static BluetoothPendingSocket pendingSocket;
 static BluetoothAdapter::OnStatusDelegate onServerStatus;
-static Timer unregisterHIDServiceCallback{"unregisterHIDServiceCallback"};
+static std::optional<Timer> unregisterHIDServiceCallback;
 #endif
 
 static bool testSupportedBTDevClasses(std::array<uint8_t, 3> devClass)
@@ -116,7 +116,7 @@ bool listenForDevices(ApplicationContext ctx, BluetoothAdapter &bta, const Bluet
 	logMsg("registering HID PSMs");
 	hidServiceActive = true;
 	bta.setL2capService(0x13, true,
-		[](BluetoothAdapter &bta, BluetoothScanState state, int arg)
+		[](BluetoothAdapter& bta, BluetoothScanState state, int)
 		{
 			if(state <= BluetoothScanState::Failed)
 			{
@@ -127,7 +127,7 @@ bool listenForDevices(ApplicationContext ctx, BluetoothAdapter &bta, const Bluet
 			logMsg("INT PSM registered");
 			// now register the 2nd PSM
 			bta.setL2capService(0x11, true,
-				[](BluetoothAdapter &bta, BluetoothScanState state, int arg)
+				[](BluetoothAdapter& bta, BluetoothScanState state, int)
 				{
 					if(state <= BluetoothScanState::Failed)
 					{
@@ -139,14 +139,18 @@ bool listenForDevices(ApplicationContext ctx, BluetoothAdapter &bta, const Bluet
 					logMsg("CTL PSM registered");
 					onServerStatus(bta, BluetoothScanState::Complete, 0);
 					// both PSMs are registered
-					unregisterHIDServiceCallback.runIn(IG::Seconds{8}, {},
-						[&bta]()
-						{
-							logMsg("unregistering HID PSMs from timeout");
-							bta.setL2capService(0x11, false, {});
-							bta.setL2capService(0x13, false, {});
-							hidServiceActive = false;
-						});
+					if(!unregisterHIDServiceCallback)
+					{
+						unregisterHIDServiceCallback.emplace(TimerDesc{.debugLabel = "unregisterHIDServiceCallback"},
+							[&bta]
+							{
+								logMsg("unregistering HID PSMs from timeout");
+								bta.setL2capService(0x11, false, {});
+								bta.setL2capService(0x13, false, {});
+								hidServiceActive = false;
+							});
+					}
+					unregisterHIDServiceCallback->runIn(IG::Seconds{8});
 				}
 			);
 		}

@@ -53,7 +53,7 @@ protected:
 	png_struct_def *png{};
 	png_info_def *info{};
 	bool premultiplyAlpha{};
-	void setTransforms(PixelFormat outFormat, png_info_def *transInfo);
+	void setTransforms(PixelFormat outFormat);
 	static bool supportUncommonConv;
 };
 

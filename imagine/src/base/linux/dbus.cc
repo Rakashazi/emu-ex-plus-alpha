@@ -58,8 +58,8 @@ static guint setOpenPathListener(LinuxApplication &app, GDBusConnection *bus, co
 	return g_dbus_connection_signal_subscribe(bus,
 		name, name, "openPath", appObjectPath,
 		nullptr, G_DBUS_SIGNAL_FLAGS_NONE,
-		[](GDBusConnection *connection, const gchar *name, const gchar *path, const gchar *interface,
-			const gchar *signal, GVariant *param, gpointer userData)
+		[](GDBusConnection*, [[maybe_unused]] const gchar *name, [[maybe_unused]] const gchar *path, [[maybe_unused]] const gchar *interface,
+			[[maybe_unused]] const gchar *signal, GVariant *param, gpointer userData)
 		{
 			if(!g_variant_is_of_type(param, G_VARIANT_TYPE("(s)")))
 			{

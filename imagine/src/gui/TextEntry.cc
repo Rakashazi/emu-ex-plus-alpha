@@ -112,7 +112,7 @@ bool TextEntry::inputEvent(View &parentView, const Input::Event &e)
 	});
 }
 
-void TextEntry::prepareDraw(Gfx::Renderer &r)
+void TextEntry::prepareDraw()
 {
 	t.makeGlyphs();
 }
@@ -124,16 +124,16 @@ void TextEntry::draw(Gfx::RendererCommands &__restrict__ cmds) const
 	t.draw(cmds, b.pos(LC2DO), LC2DO, ColorName::WHITE);
 }
 
-void TextEntry::place(Gfx::Renderer &r)
+void TextEntry::place()
 {
 	t.compile();
 }
 
-void TextEntry::place(Gfx::Renderer &r, WindowRect rect)
+void TextEntry::place(WindowRect rect)
 {
 	b = rect;
 	bgQuads.write(0, {.bounds = rect.as<int16_t>()});
-	place(r);
+	place();
 }
 
 const char *TextEntry::textStr() const
@@ -218,7 +218,7 @@ void CollectTextInputView::place()
 		[&](auto &textEntry)
 		{
 			textRect.setPosRel(viewRect().pos(C2DO), {xSize, int(ySize * 1.5f)}, C2DO);
-			textEntry.place(renderer(), textRect);
+			textEntry.place(textRect);
 		},
 		[&]()
 		{
@@ -269,9 +269,9 @@ void CollectTextInputView::prepareDraw()
 {
 	message.makeGlyphs();
 	doIfUsed(textEntry,
-		[this](auto &textEntry)
+		[](auto &textEntry)
 		{
-			textEntry.prepareDraw(renderer());
+			textEntry.prepareDraw();
 		});
 }
 

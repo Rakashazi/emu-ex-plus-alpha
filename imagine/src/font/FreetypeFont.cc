@@ -370,7 +370,6 @@ FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, Freetyp
 			logErr("error activating size object");
 			return {};
 		}
-		std::errc ec;
 		auto data = makeGlyphRenderDataWithFace(library, font.face, idx, keepPixData);
 		if(!data)
 		{

@@ -26,11 +26,11 @@ class Screen;
 class DRMFrameTimer
 {
 public:
-	constexpr DRMFrameTimer() = default;
 	DRMFrameTimer(Screen &screen, EventLoop loop = {});
 	void scheduleVSync();
 	void cancel();
 	void setFrameRate(FrameRate) {}
+	void setEventsOnThisThread(ApplicationContext);
 	static bool testSupport();
 
 	explicit operator bool() const
@@ -39,7 +39,7 @@ public:
 	}
 
 protected:
-	FDEventSource fdSrc{};
+	FDEventSource fdSrc;
 	Nanoseconds timestamp{};
 	bool requested{};
 	bool cancelled{};

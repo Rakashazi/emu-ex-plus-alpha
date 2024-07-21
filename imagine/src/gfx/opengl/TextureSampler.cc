@@ -26,7 +26,7 @@ namespace IG::Gfx
 
 constexpr SystemLogger log{"GLTextureSampler"};
 
-static void setSamplerParameteriImpl(const Renderer &r, GLuint sampler, GLenum pname, GLint param, const char *pnameStr)
+static void setSamplerParameteri(const Renderer &r, GLuint sampler, GLenum pname, GLint param)
 {
 	runGLCheckedVerbose(
 		[&]()
@@ -34,8 +34,6 @@ static void setSamplerParameteriImpl(const Renderer &r, GLuint sampler, GLenum p
 			r.support.glSamplerParameteri(sampler, pname, param);
 		}, "glSamplerParameteri()");
 }
-
-#define setSamplerParameteri(r, sampler, pname, param) setSamplerParameteriImpl(r, sampler, pname, param, #pname);
 
 // make sure sampler-related enums can fit into a 16-bit int
 static_assert(GL_LINEAR < std::numeric_limits<uint16_t>::max());
@@ -102,7 +100,7 @@ GLTextureSampler::GLTextureSampler(RendererTask &rTask, TextureSamplerConfig con
 	auto xWrapMode = makeWrapMode(config.xWrapMode);
 	auto yWrapMode = makeWrapMode(config.yWrapMode);
 	rTask.runSync(
-		[=, this, &rTask, &r = std::as_const(r)](GLTask::TaskContext ctx)
+		[=, this, &r = std::as_const(r)](GLTask::TaskContext ctx)
 		{
 			GLuint name;
 			r.support.glGenSamplers(1, &name);

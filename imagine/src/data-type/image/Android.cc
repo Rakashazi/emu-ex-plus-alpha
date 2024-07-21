@@ -48,7 +48,7 @@ static PixmapImage makePixmapImage(JNIEnv *env, jobject bitmap, JNI::InstMethod<
 	return PixmapImage{{env, bitmap, recycle}, pix};
 }
 
-PixmapImage PixmapReader::load(const char *name, PixmapReaderParams params) const
+PixmapImage PixmapReader::load(const char *name, PixmapReaderParams) const
 {
 	auto env = app().thisThreadJniEnv();
 	auto nameJStr = env->NewStringUTF(name);

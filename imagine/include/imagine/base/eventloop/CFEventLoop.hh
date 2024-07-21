@@ -25,8 +25,8 @@
 namespace IG
 {
 
-static constexpr int UNUSED_EVENT = 0;
-static constexpr int POLLEV_IN = kCFFileDescriptorReadCallBack, POLLEV_OUT = kCFFileDescriptorWriteCallBack, POLLEV_ERR = UNUSED_EVENT, POLLEV_HUP = UNUSED_EVENT;
+constexpr int pollEventInput = kCFFileDescriptorReadCallBack, pollEventOutput = kCFFileDescriptorWriteCallBack,
+	pollEventError = 0, pollEventHangUp = 0;
 
 struct CFFDEventSourceInfo
 {
@@ -41,15 +41,12 @@ struct CFFDEventSourceInfo
 class CFFDEventSource
 {
 public:
-	constexpr CFFDEventSource() = default;
-	CFFDEventSource(MaybeUniqueFileDescriptor fd) : CFFDEventSource{nullptr, std::move(fd)} {}
-	CFFDEventSource(const char *debugLabel, MaybeUniqueFileDescriptor fd);
-	CFFDEventSource(CFFDEventSource &&o) noexcept;
-	CFFDEventSource &operator=(CFFDEventSource &&o) noexcept;
+	CFFDEventSource(MaybeUniqueFileDescriptor, FDEventSourceDesc, PollEventDelegate);
+	CFFDEventSource(CFFDEventSource&&) noexcept;
+	CFFDEventSource &operator=(CFFDEventSource&&) noexcept;
 	~CFFDEventSource();
 
 protected:
-	ConditionalMember<Config::DEBUG_BUILD, const char *> debugLabel{};
 	std::unique_ptr<CFFDEventSourceInfo> info;
 
 	void deinit();

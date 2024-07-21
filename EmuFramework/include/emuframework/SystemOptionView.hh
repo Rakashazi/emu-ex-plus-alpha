@@ -48,7 +48,10 @@ protected:
 	ConditionalMember<Config::envIsAndroid, BoolMenuItem> performanceMode;
 	ConditionalMember<Config::envIsAndroid && Config::DEBUG_BUILD, BoolMenuItem> noopThread;
 	ConditionalMember<Config::cpuAffinity, TextMenuItem> cpuAffinity;
-	StaticArrayList<MenuItem*, 30> item;
+	TextHeadingMenuItem autosaveHeading;
+	TextHeadingMenuItem rewindHeading;
+	TextHeadingMenuItem otherHeading;
+	StaticArrayList<MenuItem*, 33> item;
 };
 
 }

@@ -58,7 +58,7 @@ public:
 	void setAppPath(FS::PathString);
 
 protected:
-	FDEventSource evdevSrc{};
+	FDEventSource evdevSrc;
 	#if CONFIG_PACKAGE_DBUS
 	GDBusConnection *gbus{};
 	unsigned openPathSub{};

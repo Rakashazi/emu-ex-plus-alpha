@@ -42,7 +42,7 @@ bool EmuApp::needsGlobalInstance = true;
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](std::string_view name)
 	{
-		return endsWithAnyCaseless(name, ".lnx", ".o");
+		return endsWithAnyCaseless(name, ".lnx", ".lyx", ".o");
 	};
 
 using namespace Mednafen;
@@ -53,7 +53,7 @@ LynxApp::LynxApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 const char *EmuSystem::shortSystemName() const { return "Lynx"; }
 const char *EmuSystem::systemName() const { return "Lynx"; }
 
-void LynxSystem::reset(EmuApp &, ResetMode mode)
+void LynxSystem::reset(EmuApp&, ResetMode)
 {
 	assert(hasContent());
 	MDFN_DoSimpleCommand(MDFN_MSC_RESET);
@@ -65,7 +65,7 @@ FS::FileString LynxSystem::stateFilename(int slot, std::string_view name) const
 }
 
 size_t LynxSystem::stateSize() { return stateSizeMDFN(); }
-void LynxSystem::readState(EmuApp &app, std::span<uint8_t> buff) { readStateMDFN(app, buff); }
+void LynxSystem::readState(EmuApp&, std::span<uint8_t> buff) { readStateMDFN(buff); }
 size_t LynxSystem::writeState(std::span<uint8_t> buff, SaveStateFlags flags) { return writeStateMDFN(buff, flags); }
 
 void LynxSystem::closeSystem()

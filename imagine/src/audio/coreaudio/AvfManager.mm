@@ -28,7 +28,7 @@ static void handleEndInterruption()
 namespace IG::Audio
 {
 	
-AvfManager::AvfManager(ApplicationContext ctx_) {}
+AvfManager::AvfManager(ApplicationContext) {}
 
 SampleFormat Manager::nativeSampleFormat() const
 {
@@ -105,7 +105,7 @@ std::vector<ApiDesc> Manager::audioAPIs() const
 	return {{"Core Audio", Api::COREAUDIO}};
 }
 
-Api Manager::makeValidAPI(Api api) const
+Api Manager::makeValidAPI(Api) const
 {
 	return Api::COREAUDIO;
 }

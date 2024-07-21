@@ -27,7 +27,7 @@ static_assert(to_underlying(SensorType::Accelerometer) == 1);
 static_assert(to_underlying(SensorType::Gyroscope) == 4);
 static_assert(to_underlying(SensorType::Light) == 5);
 
-SensorListener::SensorListener(ApplicationContext ctx, SensorType type, SensorChangedDelegate del):
+SensorListener::SensorListener(ApplicationContext, SensorType type, SensorChangedDelegate del):
 	AndroidSensorListener{ASensorManager_getInstance(), type, del} {}
 
 AndroidSensorListener::AndroidSensorListener(ASensorManager *manager, SensorType type, SensorChangedDelegate changedDel):
@@ -38,7 +38,7 @@ AndroidSensorListener::AndroidSensorListener(ASensorManager *manager, SensorType
 		return;
 	ctrl->queue.reset(ASensorManager_createEventQueue(manager,
 		ALooper_forThread(), ALOOPER_POLL_CALLBACK,
-		[](int fd, int ev, void *data) -> int
+		[]([[maybe_unused]] int fd, [[maybe_unused]] int ev, void *data) -> int
 		{
 			auto &[queue, del] = *((ControlBlock*)data);
 			ssize_t eventsRead{};

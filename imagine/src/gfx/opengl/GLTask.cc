@@ -74,7 +74,7 @@ bool GLTask::makeGLContext(GLTaskConfig config)
 				if(backgrounded)
 				{
 					runSync(
-						[&glContext = context](TaskContext ctx)
+						[&glContext = context](TaskContext)
 						{
 							// unset the drawable and finish all commands before entering background
 							if(GLManager::hasCurrentDrawable())

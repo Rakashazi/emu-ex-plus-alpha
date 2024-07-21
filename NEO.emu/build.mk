@@ -13,7 +13,7 @@ main/EmuMenuViews.cc
 CPPFLAGS += -I$(projectPath)/src \
 -DHAVE_CONFIG_H -DLSB_FIRST
 
-CFLAGS_WARN += -Wno-sign-compare
+CFLAGS_WARN += -Wno-sign-compare -Wno-unused-parameter -Wno-unused-function
 
 ifeq ($(config_compiler),clang)
  # needed for Z80CPU::makeFlagTables()

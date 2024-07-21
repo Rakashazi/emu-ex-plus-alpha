@@ -68,8 +68,8 @@ public:
 private:
 	xcb_connection_t* xConn{};
 	xcb_screen_t* xScr{};
-	FDEventSource xEventSrc{};
 	SupportedFrameTimer supportedFrameTimer{};
+	FDEventSource xEventSrc;
 	XdndAtoms xdndAtom{};
 
 	// Input state

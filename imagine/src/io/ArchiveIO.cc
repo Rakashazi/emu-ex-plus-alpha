@@ -273,7 +273,7 @@ ssize_t ArchiveIO::read(void *buff, size_t bytes, std::optional<off_t> offset)
 	}
 }
 
-ssize_t ArchiveIO::write(const void* buff, size_t bytes, std::optional<off_t> offset)
+ssize_t ArchiveIO::write(const void*, size_t, std::optional<off_t>)
 {
 	return -1;
 }

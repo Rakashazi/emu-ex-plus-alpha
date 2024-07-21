@@ -31,8 +31,8 @@ public:
 	~EmuFileIO() = default;
 	FILE *get_fp() final { return nullptr; }
 	EMUFILE* memwrap() final { return nullptr; }
-	void truncate(size_t length) final {}
-	int fprintf(const char *format, ...) final { return 0; };
+	void truncate(size_t) final {}
+	int fprintf(const char*, ...) final { return 0; };
 	int fgetc() final;
 	int fputc(int c) final;
 	size_t _fread(const void *ptr, size_t bytes) final;

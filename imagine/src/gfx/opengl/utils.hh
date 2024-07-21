@@ -61,7 +61,7 @@ extern bool checkGLErrors;
 extern bool checkGLErrorsVerbose;
 }
 
-static const char *glErrorToString(GLenum err)
+constexpr const char *glErrorToString(GLenum err)
 {
 	switch(err)
 	{
@@ -74,7 +74,7 @@ static const char *glErrorToString(GLenum err)
 	}
 }
 
-static const char *glDataTypeToString(int format)
+constexpr const char *glDataTypeToString(int format)
 {
 	switch(format)
 	{
@@ -92,7 +92,7 @@ static const char *glDataTypeToString(int format)
 	}
 }
 
-static const char *glImageFormatToString(int format)
+constexpr const char *glImageFormatToString(int format)
 {
 	switch(format)
 	{
@@ -186,7 +186,7 @@ static bool runGLCheckedVerbose(FUNC func, const char *label = nullptr)
 	return runGLChecked(func, label);
 }
 
-static GLuint makeGLTextureName(GLuint oldTex)
+inline GLuint makeGLTextureName(GLuint oldTex)
 {
 	if(oldTex)
 	{

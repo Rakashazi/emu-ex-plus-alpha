@@ -98,7 +98,7 @@ std::string_view BaseEvent::mapName(Map map)
 	}
 }
 
-size_t BaseEvent::mapNumKeys(Map map)
+size_t BaseEvent::mapNumKeys(Map)
 {
 	return Input::Keycode::COUNT;
 }
@@ -158,7 +158,7 @@ Map validateMap(uint8_t mapValue)
 	}
 }
 
-DirectionKeys directionKeys(Map map)
+DirectionKeys directionKeys()
 {
 	return {Keycode::UP, Keycode::RIGHT, Keycode::DOWN, Keycode::LEFT};
 }
@@ -184,8 +184,8 @@ void BaseApplication::startKeyRepeatTimer(Input::KeyEvent event)
 	keyRepeatEvent.setRepeatCount(1);
 	if(!keyRepeatTimer) [[unlikely]]
 	{
-		keyRepeatTimer.emplace("keyRepeatTimer",
-			[this]()
+		keyRepeatTimer.emplace(TimerDesc{.debugLabel = "keyRepeatTimer"},
+			[this]
 			{
 				//logMsg("repeating key event");
 				if(keyRepeatEvent.pushed()) [[likely]]

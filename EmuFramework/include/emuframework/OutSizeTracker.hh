@@ -34,7 +34,7 @@ public:
 	using IOUtilsBase::toFileStream;
 
 	OutSizeTracker(size_t *sizePtr): sizePtr{sizePtr} {}
-	ssize_t read(void *buff, size_t bytes, std::optional<off_t> offset = {}) { return 0; }
+	ssize_t read(void*, size_t, [[maybe_unused]] std::optional<off_t> offset = {}) { return 0; }
 
 	off_t seek(off_t offset, SeekMode mode)
 	{
@@ -49,7 +49,7 @@ public:
 	std::span<uint8_t> map() { return {}; }
 	explicit operator bool() const { return sizePtr; }
 
-	ssize_t write(const void *buff, size_t bytes, std::optional<off_t> offset = {})
+	ssize_t write(const void*, size_t bytes, [[maybe_unused]] std::optional<off_t> offset = {})
 	{
 		currPos += bytes;
 		if(currPos > *sizePtr)

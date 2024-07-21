@@ -44,13 +44,25 @@ namespace IG
 constexpr SystemLogger log{"App"};
 static JavaVM* jVM{};
 static void *mainLibHandle{};
-static constexpr bool unloadNativeLibOnDestroy{};
+[[maybe_unused]] constexpr bool unloadNativeLibOnDestroy{};
 pid_t mainThreadId{};
+pthread_key_t jEnvPThreadKey{};
 
 static void setNativeActivityCallbacks(ANativeActivity *nActivity);
 
 AndroidApplication::AndroidApplication(ApplicationInitParams initParams):
-	BaseApplication{({initParams.nActivity->instance = this; initParams.nActivity;})}
+	BaseApplication{({initParams.nActivity->instance = this; initParams.nActivity;})},
+	userActivityCallback
+	{
+		{.debugLabel = "userActivityCallback"},
+		[this, ctx = ApplicationContext{initParams.nActivity}]
+		{
+			if(!keepScreenOn)
+			{
+				jSetWinFlags(ctx.mainThreadJniEnv(), ctx.baseActivityObject(), 0, AWINDOW_FLAG_KEEP_SCREEN_ON);
+			}
+		}
+	}
 {
 	ApplicationContext ctx{initParams.nActivity};
 	auto env = ctx.mainThreadJniEnv();
@@ -113,7 +125,7 @@ MutablePixmapView makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, Pixe
 	return {{{(int)info.width, (int)info.height}, format}, pixels, {(int)info.stride, MutablePixmapView::Units::BYTE}};
 }
 
-void ApplicationContext::exit(int returnVal)
+void ApplicationContext::exit(int)
 {
 	// TODO: return exit value as activity result
 	application().setExitingActivityState();
@@ -213,7 +225,7 @@ bool AndroidApplication::forEachInDirectoryUri(JNIEnv *env, jobject baseActivity
 	return true;
 }
 
-static FS::PathString mainSOPath(ApplicationContext ctx)
+inline FS::PathString mainSOPath(ApplicationContext ctx)
 {
 	if(ctx.androidSDK() < 24)
 	{
@@ -307,7 +319,7 @@ const char *aHardwareBufferFormatStr(uint32_t format)
 
 void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK)
 {
-	pthread_key_create(&jEnvKey,
+	pthread_key_create(&jEnvPThreadKey,
 		[](void *)
 		{
 			if(!jVM)
@@ -318,7 +330,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 			}
 			jVM->DetachCurrentThread();
 		});
-	pthread_setspecific(jEnvKey, env);
+	pthread_setspecific(jEnvPThreadKey, env);
 
 	// BaseActivity JNI functions
 	jSetRequestedOrientation = {env, baseActivityClass, "setRequestedOrientation", "(I)V"};
@@ -356,7 +368,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 			{
 				"onContentRectChanged", "(JIIIIII)V",
 				(void*)
-				+[](JNIEnv* env, jobject thiz, jlong windowAddr, jint x, jint y, jint x2, jint y2, jint winWidth, jint winHeight)
+				+[](JNIEnv*, jobject, jlong windowAddr, jint x, jint y, jint x2, jint y2, jint winWidth, jint winHeight)
 				{
 					assumeExpr(windowAddr);
 					auto win = (Window*)windowAddr;
@@ -387,13 +399,13 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 			{
 				"inputDeviceEnumerated", "(JILandroid/view/InputDevice;Ljava/lang/String;IIIIZ)V",
 				(void*)
-				+[](JNIEnv* env, jobject, jlong nUserData, jint devID, jobject jDev, jstring jName, jint src,
+				+[](JNIEnv* env, jobject, jlong nUserData, jint devID, [[maybe_unused]] jobject jDev, jstring jName, jint src,
 					jint kbType, jint jsAxisFlags, jint vendorProductId, jboolean isPowerButton)
 				{
 					ApplicationContext ctx{reinterpret_cast<ANativeActivity*>(nUserData)};
 					auto &app = ctx.application();
 					const char *name = env->GetStringUTFChars(jName, nullptr);
-					auto sysDev = std::make_unique<Input::Device>(std::in_place_type<Input::AndroidInputDevice>, env, jDev, devID, src,
+					auto sysDev = std::make_unique<Input::Device>(std::in_place_type<Input::AndroidInputDevice>, devID, src,
 						name, kbType, std::bit_cast<Input::AxisFlags>(jsAxisFlags), (uint32_t)vendorProductId, (bool)isPowerButton);
 					env->ReleaseStringUTFChars(jName, name);
 					auto devPtr = app.updateAndroidInputDevice(ctx, std::move(sysDev), false);
@@ -425,7 +437,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 			{
 				"uriFileListed", "(JLjava/lang/String;Ljava/lang/String;Z)Z",
 				(void*)
-				+[](JNIEnv* env, jobject thiz, jlong userData, jstring jUri, jstring name, jboolean isDir)
+				+[](JNIEnv* env, jobject, jlong userData, jstring jUri, jstring name, jboolean isDir)
 				{
 					auto &del = *((DirectoryEntryDelegate*)userData);
 					auto type = isDir ? FS::file_type::directory : FS::file_type::regular;
@@ -470,7 +482,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 
 JNIEnv* AndroidApplication::thisThreadJniEnv() const
 {
-	auto env = (JNIEnv*)pthread_getspecific(jEnvKey);
+	auto env = (JNIEnv*)pthread_getspecific(jEnvPThreadKey);
 	if(!env) [[unlikely]]
 	{
 		if(Config::DEBUG_BUILD)
@@ -483,7 +495,7 @@ JNIEnv* AndroidApplication::thisThreadJniEnv() const
 			log.error("error attaching JNI thread");
 			return nullptr;
 		}
-		pthread_setspecific(jEnvKey, env);
+		pthread_setspecific(jEnvPThreadKey, env);
 	}
 	return env;
 }
@@ -509,14 +521,7 @@ void AndroidApplication::endIdleByUserActivity(ApplicationContext ctx)
 		// quickly toggle KEEP_SCREEN_ON flag to brighten screen,
 		// waiting about 20ms before toggling it back off triggers the screen to brighten if it was already dim
 		jSetWinFlags(ctx.mainThreadJniEnv(), ctx.baseActivityObject(), AWINDOW_FLAG_KEEP_SCREEN_ON, AWINDOW_FLAG_KEEP_SCREEN_ON);
-		userActivityCallback.runIn(Milliseconds(20), {},
-			[this, ctx]()
-			{
-				if(!keepScreenOn)
-				{
-					jSetWinFlags(ctx.mainThreadJniEnv(), ctx.baseActivityObject(), 0, AWINDOW_FLAG_KEEP_SCREEN_ON);
-				}
-			});
+		userActivityCallback.runIn(Milliseconds(20));
 	}
 }
 
@@ -583,7 +588,7 @@ void AndroidApplication::onWindowFocusChanged(ApplicationContext ctx, int focuse
 		deinitKeyRepeatTimer();
 }
 
-void AndroidApplication::onInputQueueCreated(ApplicationContext ctx, AInputQueue *queue)
+void AndroidApplication::onInputQueueCreated(ApplicationContext, AInputQueue* queue)
 {
 	assert(!inputQueue);
 	inputQueue = queue;
@@ -676,7 +681,7 @@ void AndroidApplication::handleDocumentIntentResult(ApplicationContext ctx, cons
 	{
 		// wait until after app resumes before handling result
 		addOnResume(
-			[uriCopy = strdup(uri), nameCopy = strdup(name)](ApplicationContext ctx, bool focused)
+			[uriCopy = strdup(uri), nameCopy = strdup(name)](ApplicationContext ctx, [[maybe_unused]] bool focused)
 			{
 				ctx.application().onEvent(ctx, DocumentPickerEvent{uriCopy, nameCopy});
 				::free(nameCopy);
@@ -840,7 +845,7 @@ static void setNativeActivityCallbacks(ANativeActivity *nActivity)
 
 }
 
-CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity *nActivity, void* savedState, size_t savedStateSize)
+CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* nActivity, [[maybe_unused]] void* savedState, [[maybe_unused]] size_t savedStateSize)
 {
 	using namespace IG;
 	if(Config::DEBUG_BUILD)

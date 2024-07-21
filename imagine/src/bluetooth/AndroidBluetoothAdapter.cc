@@ -63,13 +63,13 @@ void AndroidBluetoothAdapter::sendSocketStatusMessage(const SocketStatusMessage 
 	}
 }
 
-static void JNICALL btScanStatus(JNIEnv* env, jobject thiz, jlong btaAddr, jint res)
+static void JNICALL btScanStatus(JNIEnv*, jobject, jlong btaAddr, jint res)
 {
 	auto &bta = *reinterpret_cast<BluetoothAdapter*>(btaAddr);
 	bta.handleScanStatus(BluetoothScanState(res));
 }
 
-void AndroidBluetoothAdapter::handleScanStatus(BluetoothScanState result)
+void AndroidBluetoothAdapter::handleScanStatus(BluetoothScanState)
 {
 	auto &bta = static_cast<BluetoothAdapter&>(*this);
 	assert(inDetect);
@@ -81,7 +81,7 @@ void AndroidBluetoothAdapter::handleScanStatus(BluetoothScanState result)
 	inDetect = 0;
 }
 
-static jboolean JNICALL scanDeviceClass(JNIEnv* env, jobject thiz, jlong btaAddr, jint classInt)
+static jboolean JNICALL scanDeviceClass(JNIEnv*, jobject, jlong btaAddr, jint classInt)
 {
 	auto &bta = *reinterpret_cast<BluetoothAdapter*>(btaAddr);
 	return bta.handleScanClass(classInt);
@@ -108,7 +108,7 @@ bool AndroidBluetoothAdapter::handleScanClass(uint32_t classInt)
 	return 1;
 }
 
-static void JNICALL scanDeviceName(JNIEnv* env, jobject thiz, jlong btaAddr, jstring name, jstring addr)
+static void JNICALL scanDeviceName(JNIEnv* env, jobject, jlong btaAddr, jstring name, jstring addr)
 {
 	auto &bta = *reinterpret_cast<BluetoothAdapter*>(btaAddr);
 	bta.handleScanName(env, name, addr);
@@ -134,7 +134,7 @@ void AndroidBluetoothAdapter::handleScanName(JNIEnv* env, jstring name, jstring 
 	env->ReleaseStringUTFChars(name, nameStr);
 }
 
-static void JNICALL turnOnResult(JNIEnv* env, jobject thiz, jlong btaAddr, jboolean success)
+static void JNICALL turnOnResult(JNIEnv*, jobject, jlong btaAddr, jboolean success)
 {
 	auto &bta = *reinterpret_cast<BluetoothAdapter*>(btaAddr);
 	bta.handleTurnOnResult(success);
@@ -231,12 +231,12 @@ bool BluetoothAdapter::openDefault()
 	adapter = env->NewGlobalRef(adapter);
 	assert(adapter);
 	{
-		int ret = pipe(statusPipe);
+		[[maybe_unused]] int ret = pipe(statusPipe);
 		assert(ret == 0);
 		ret = ALooper_addFd(EventLoop::forThread().nativeObject(), statusPipe[0], ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
 			[](int fd, int events, void* data)
 			{
-				if(events & POLLEV_ERR)
+				if(events & pollEventError)
 					return 0;
 				while(fd_bytesReadable(fd))
 				{
@@ -370,13 +370,13 @@ bool BluetoothAdapter::isInScan() const { return inDetect; }
 bool AndroidBluetoothSocket::readPendingData(int events)
 {
 	auto &sock = static_cast<BluetoothSocket&>(*this);
-	if(events & POLLEV_ERR)
+	if(events & pollEventError)
 	{
 		logMsg("socket %d disconnected", nativeFd);
 		sock.onStatus(sock, BluetoothSocketState::ReadError);
 		return false;
 	}
-	else if(events & POLLEV_IN)
+	else if(events & pollEventInput)
 	{
 		char buff[50];
 		//logMsg("at least %d bytes ready on socket %d", fd_bytesReadable(nativeFd), nativeFd);
@@ -410,11 +410,7 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(BluetoothAdapter& bta, Blue
 	{
 		if(nativeFd != -1)
 		{
-			fdSrc = {nativeFd, {},
-				[this](int fd, int events)
-				{
-					return readPendingData(events);
-				}};
+			fdSrc = {nativeFd, {.eventLoop = EventLoop::forThread()}, [this](int, int events) { return readPendingData(events); }};
 		}
 		else
 		{
@@ -436,12 +432,12 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(BluetoothAdapter& bta, Blue
 					auto looper = EventLoop::forThread().nativeObject();
 					int dataPipe[2];
 					{
-						int ret = pipe(dataPipe);
+						[[maybe_unused]] int ret = pipe(dataPipe);
 						assert(ret == 0);
 						ret = ALooper_addFd(looper, dataPipe[0], ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
 							[](int fd, int events, void* data)
 							{
-								if(events & POLLEV_ERR)
+								if(events & pollEventError)
 									return 0;
 								auto &socket = *((BluetoothSocket*)data);
 								while(fd_bytesReadable(fd))

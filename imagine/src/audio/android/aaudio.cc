@@ -127,12 +127,11 @@ static const char *streamStateStr(aaudio_stream_state_t state)
 	}
 }
 
-AAudioOutputStream::AAudioOutputStream(const Manager &manager)
-{
-	loadAAudioLib(manager);
-	AAudio_createStreamBuilder(&builder);
-	disconnectEvent.attach(
-		[this]()
+AAudioOutputStream::AAudioOutputStream(const Manager &manager):
+	disconnectEvent
+	{
+		{.debugLabel = "AAudioOutputStream::disconnectEvent", .eventLoop = EventLoop::forThread()},
+		[this]
 		{
 			if(!stream)
 				return;
@@ -145,7 +144,11 @@ AAudioOutputStream::AAudioOutputStream(const Manager &manager)
 				return;
 			}
 			play();
-		});
+		}
+	}
+{
+	loadAAudioLib(manager);
+	AAudio_createStreamBuilder(&builder);
 }
 
 AAudioOutputStream::~AAudioOutputStream()
@@ -270,14 +273,14 @@ void AAudioOutputStream::setBuilderData(AAudioStreamBuilder *builder, Format for
 	if(AAudioStreamBuilder_setUsage) // present in API level 28+
 		AAudioStreamBuilder_setUsage(builder, AAUDIO_USAGE_GAME);
 	AAudioStreamBuilder_setDataCallback(builder,
-		[](AAudioStream *stream, void *userData, void *audioData, int32_t numFrames) -> aaudio_data_callback_result_t
+		[](AAudioStream*, void* userData, void* audioData, int32_t numFrames) -> aaudio_data_callback_result_t
 		{
 			auto thisPtr = (AAudioOutputStream*)userData;
 			thisPtr->onSamplesNeeded(audioData, numFrames);
 			return AAUDIO_CALLBACK_RESULT_CONTINUE;
 		}, this);
 	AAudioStreamBuilder_setErrorCallback(builder,
-		[](AAudioStream *stream, void *userData, aaudio_result_t error)
+		[](AAudioStream*, void* userData, aaudio_result_t error)
 		{
 			//log.error("got error:{} callback", streamResultStr(error));
 			if(error == AAUDIO_ERROR_DISCONNECTED)

@@ -84,7 +84,6 @@ public:
 	void setColor(float i) { setColor({i, i, i}); }
 	void setColor(ColorName name) { setColor(Color4F{name}); }
 	Color4F color() const;
-	void setImgMode(EnvMode);
 	void setDither(bool on);
 	void setSrgbFramebufferWrite(bool on);
 	void setVisibleGeomFace(Faces);

@@ -22,7 +22,7 @@
 namespace EmuEx
 {
 
-constexpr SystemLogger log{"PlaceVControlsView"};
+[[maybe_unused]] constexpr SystemLogger log{"PlaceVControlsView"};
 constexpr std::array snapPxSizes{0, 2, 4, 8, 16, 32, 64};
 
 PlaceVControlsView::PlaceVControlsView(ViewAttachParams attach, VController &vController_):

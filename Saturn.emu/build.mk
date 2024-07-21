@@ -10,7 +10,7 @@ CPPFLAGS += $(MDFN_COMMON_CPPFLAGS) \
  $(MDFN_CDROM_CPPFLAGS) \
  -I$(projectPath)/src
 
-CXXFLAGS_WARN += -Wno-missing-field-initializers -Wno-implicit-fallthrough -Wno-deprecated-enum-enum-conversion
+CXXFLAGS_WARN += -Wno-missing-field-initializers -Wno-implicit-fallthrough -Wno-deprecated-enum-enum-conversion -Wno-unused-parameter -Wno-unused-function
 
 SRC += main/Main.cc \
 main/options.cc \

@@ -190,7 +190,7 @@ int AndroidManager::audioManagerIntProperty(JNIEnv* env, const char *propStr) co
 
 void AndroidManager::requestAudioFocus(JNIEnv* env, jobject baseActivity) const
 {
-	auto res = jRequestAudioFocus(env, audioManager, baseActivity, STREAM_MUSIC, AUDIOFOCUS_GAIN);
+	[[maybe_unused]] auto res = jRequestAudioFocus(env, audioManager, baseActivity, STREAM_MUSIC, AUDIOFOCUS_GAIN);
 	//logMsg("%d from requestAudioFocus()", (int)res);
 }
 

@@ -96,7 +96,7 @@ protected:
 	std::vector<TableUIState> fileUIStates;
 	FS::RootedPath root;
 	Gfx::Text msgText;
-	CustomEvent dirListEvent{"FSPicker::dirListEvent", {}};
+	CustomEvent dirListEvent;
 	TableUIState newFileUIState{};
 	Mode mode_{};
 	bool showHiddenFiles_{};

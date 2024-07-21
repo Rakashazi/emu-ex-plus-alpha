@@ -54,7 +54,17 @@ Renderer::~Renderer()
 GLRenderer::GLRenderer(ApplicationContext ctx):
 	glManager{ctx.nativeDisplayConnection(), glAPI},
 	mainTask{ctx, "Main GL Context Messages", *static_cast<Renderer*>(this)},
-	releaseShaderCompilerEvent{"GLRenderer::releaseShaderCompilerEvent"}
+	releaseShaderCompilerEvent
+	{
+		{.debugLabel = "GLRenderer::releaseShaderCompilerEvent"},
+		[&task = mainTask, ctx]
+		{
+			if(!ctx.isRunning())
+				return;
+			logMsg("automatically releasing shader compiler");
+			task.releaseShaderCompiler();
+		}
+	}
 {
 	if(!glManager)
 	{
@@ -316,7 +326,7 @@ int GLRenderer::toSwapInterval(const Window &win, PresentMode mode) const
 	std::unreachable();
 }
 
-PresentMode Renderer::evalPresentMode(const Window &win, PresentMode mode) const
+PresentMode Renderer::evalPresentMode(const Window&, PresentMode mode) const
 {
 	if(mode == PresentMode::Auto)
 		return PresentMode::FIFO;
@@ -491,7 +501,7 @@ BasicEffect &Renderer::basicEffect()
 void Renderer::animateWindowRotation(Window &win, float srcAngle, float destAngle)
 {
 	winData(win).projAngleM = {srcAngle, destAngle, {}, SteadyClock::now(), Milliseconds{165}};
-	win.addOnFrame([this, &win](FrameParams params)
+	win.addOnFrame([&win](FrameParams params)
 	{
 		win.signalSurfaceChanged({.contentRectResized = true});
 		bool didUpdate = winData(win).projAngleM.update(params.timestamp);
@@ -650,7 +660,7 @@ void GLRenderer::setupNonPow2MipmapRepeatTextures()
 	support.textureSizeSupport.nonPow2CanRepeat = true;
 }
 
-void GLRenderer::setupImmutableTexStorage(bool extSuffix)
+void GLRenderer::setupImmutableTexStorage([[maybe_unused]] bool extSuffix)
 {
 	if(support.hasImmutableTexStorage)
 		return;
@@ -738,7 +748,7 @@ void GLRenderer::setupMemoryBarrier()
 	#endif*/
 }
 
-void GLRenderer::setupVAOFuncs(bool oes)
+void GLRenderer::setupVAOFuncs([[maybe_unused]] bool oes)
 {
 	#ifdef CONFIG_GFX_OPENGL_ES
 	if(support.glBindVertexArray)
@@ -782,7 +792,7 @@ void GLRenderer::setupAppleFenceSync()
 	#endif
 }
 
-void GLRenderer::setupEglFenceSync(std::string_view eglExtenstionStr)
+void GLRenderer::setupEglFenceSync([[maybe_unused]] std::string_view eglExtenstionStr)
 {
 	if(Config::MACHINE_IS_PANDORA)	// TODO: driver waits for full timeout even if commands complete,
 		return;												// possibly broken glFlush() behavior?
@@ -1039,15 +1049,9 @@ void Renderer::setWindowValidOrientations(Window &win, Orientations validO)
 	}
 }
 
-void GLRenderer::addEventHandlers(ApplicationContext ctx, RendererTask &task)
+void GLRenderer::addEventHandlers(ApplicationContext, RendererTask &task)
 {
-	releaseShaderCompilerEvent.attach([&task, ctx]()
-	{
-		if(!ctx.isRunning())
-			return;
-		logMsg("automatically releasing shader compiler");
-		task.releaseShaderCompiler();
-	});
+	releaseShaderCompilerEvent.attach();
 	if constexpr(Config::envIsIOS)
 		task.setIOSDrawableDelegates();
 }

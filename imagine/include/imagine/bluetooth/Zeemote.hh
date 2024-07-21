@@ -45,8 +45,8 @@ private:
 	uint32_t packetSize = 0;
 	Input::Axis axis[2]
 	{
-		{Input::Map::ZEEMOTE, Input::AxisId::X, axisScaler},
-		{Input::Map::ZEEMOTE, Input::AxisId::Y, axisScaler}
+		{Input::AxisId::X, axisScaler},
+		{Input::AxisId::Y, axisScaler}
 	};
 	BluetoothAddr addr;
 

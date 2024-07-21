@@ -9,7 +9,7 @@ VPATH += $(EMUFRAMEWORK_PATH)/src/shared
 CPPFLAGS += $(MDFN_COMMON_CPPFLAGS) \
  -I$(projectPath)/src
 
-CXXFLAGS_WARN += -Wno-missing-field-initializers
+CXXFLAGS_WARN += -Wno-missing-field-initializers -Wno-unused-parameter
 
 SRC += main/Main.cc \
 main/options.cc \

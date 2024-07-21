@@ -75,7 +75,7 @@ constexpr std::pair<Key, Key> joystickKeys(AxisId axisId)
 	return {};
 }
 
-Axis::Axis(Map map, AxisId id, float scaler):
+Axis::Axis(AxisId id, float scaler):
 	scaler{scaler},
 	keyEmu
 	{
@@ -83,9 +83,9 @@ Axis::Axis(Map map, AxisId id, float scaler):
 	},
 	id_{id} {}
 
-static std::pair<Key, Key> emulatedKeys(Map map, AxisId id, bool invertY)
+static std::pair<Key, Key> emulatedKeys(AxisId id, bool invertY)
 {
-	auto keys = directionKeys(map);
+	auto keys = directionKeys();
 	std::pair<Key, Key> yKeys = {keys.up, keys.down};
 	if(invertY)
 		std::swap(yKeys.first, yKeys.second);
@@ -118,7 +118,7 @@ void Axis::setEmulatesKeys(Map map, bool on)
 	if(on)
 	{
 		const bool invertY = Config::Input::BLUETOOTH && map != Map::SYSTEM;
-		auto dpadKeys = emulatedKeys(map, id(), invertY);
+		auto dpadKeys = emulatedKeys(id(), invertY);
 		keyEmu.keys = dpadKeys;
 	}
 	else

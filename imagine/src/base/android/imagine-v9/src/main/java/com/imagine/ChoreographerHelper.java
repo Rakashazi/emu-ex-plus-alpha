@@ -16,6 +16,8 @@
 package com.imagine;
 
 import android.view.Choreographer;
+import android.os.Looper;
+import android.util.Log;
 
 final class ChoreographerHelper
 {
@@ -36,7 +38,7 @@ final class ChoreographerHelper
 
 	private static final String logTag = "ChoreographerHelper";
 	private static native void onFrame(long nativeUserData, long frameTimeNanos);
-	private final Choreographer choreographer = Choreographer.getInstance();
+	private Choreographer choreographer = Choreographer.getInstance();
 	private final Callback callback;
 
 	ChoreographerHelper(long nativeUserData)
@@ -47,5 +49,12 @@ final class ChoreographerHelper
 	void postFrame()
 	{
 		choreographer.postFrameCallback(callback);
+	}
+
+	void setInstance()
+	{
+		if(Looper.myLooper() == null)
+			Looper.prepare();
+		choreographer = Choreographer.getInstance();
 	}
 }

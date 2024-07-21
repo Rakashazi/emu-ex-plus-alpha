@@ -104,12 +104,8 @@ public:
 	static constexpr size_t MSG_SIZE = sizeof(MsgType);
 	static_assert(MSG_SIZE < PIPE_BUF, "size of message too big for atomic writes");
 
-	struct NullInit{};
-
 	PipeMessagePort(const char *debugLabel = nullptr, int capacity = 0):
 		pipe{debugLabel, (int)MSG_SIZE * capacity} {}
-
-	explicit constexpr PipeMessagePort(NullInit) {}
 
 	void attach(auto &&f)
 	{
@@ -191,8 +187,7 @@ public:
 	{
 		if(span.empty())
 			return send(msg);
-		const auto bufferSize = MSG_SIZE + span.size_bytes();
-		assert(bufferSize < PIPE_BUF);
+		assert(span.size_bytes() < PIPE_BUF);
 		OutVector buffs[2]{std::span<const MsgType>{&msg, 1}, span};
 		return pipe.sink().writeVector(buffs) != -1;
 	}
@@ -214,7 +209,7 @@ public:
 	explicit operator bool() const { return (bool)pipe; }
 
 protected:
-	Pipe pipe{Pipe::NullInit{}};
+	Pipe pipe;
 };
 
 template<class MsgType>

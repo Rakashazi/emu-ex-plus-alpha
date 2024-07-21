@@ -265,7 +265,7 @@ private:
 	size_t bufferCapacity() const requires(!isFixedSize)  { return buff.get_deleter().size; }
 	size_t bufferCapacity() const requires isFixedSize { return buff.size(); }
 
-	void assertAddrRange(std::span<T> span) const
+	void assertAddrRange([[maybe_unused]] std::span<T> span) const
 	{
 		if(!conf.mirrored)
 		{

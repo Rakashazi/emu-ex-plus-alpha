@@ -83,7 +83,7 @@ std::span<const KeyCategory> Snes9xApp::keyCategories()
 		KeyCategory{"Gamepad 2", gp2KeyInfo, 1},
 		KeyCategory{"Gamepad 3", gp3KeyInfo, 2},
 		KeyCategory{"Gamepad 4", gp4KeyInfo, 3},
-		KeyCategory{"Gamepad 5", gp4KeyInfo, 4},
+		KeyCategory{"Gamepad 5", gp5KeyInfo, 4},
 	};
 	return categories;
 }
@@ -239,7 +239,7 @@ void Snes9xSystem::handleInputAction(EmuApp *, InputAction a)
 	padData = setOrClearBits(padData, bit(a.code), a.isPushed());
 }
 
-void Snes9xSystem::clearInputBuffers(EmuInputView &view)
+void Snes9xSystem::clearInputBuffers(EmuInputView&)
 {
 	for(auto p : iotaCount(maxPlayers))
 	{
@@ -587,7 +587,7 @@ bool Snes9xSystem::onPointerInputEnd(const Input::MotionEvent &e, Input::DragTra
 	return false;
 }
 
-SystemInputDeviceDesc Snes9xSystem::inputDeviceDesc(int idx) const
+SystemInputDeviceDesc Snes9xSystem::inputDeviceDesc(int) const
 {
 	static constexpr std::array gamepadComponents
 	{

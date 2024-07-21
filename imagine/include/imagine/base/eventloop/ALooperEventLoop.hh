@@ -25,27 +25,24 @@
 namespace IG
 {
 
-static const int POLLEV_IN = ALOOPER_EVENT_INPUT, POLLEV_OUT = ALOOPER_EVENT_OUTPUT,
-	POLLEV_ERR = ALOOPER_EVENT_ERROR, POLLEV_HUP = ALOOPER_EVENT_HANGUP;
+constexpr int pollEventInput = ALOOPER_EVENT_INPUT, pollEventOutput = ALOOPER_EVENT_OUTPUT,
+	pollEventError = ALOOPER_EVENT_ERROR, pollEventHangUp = ALOOPER_EVENT_HANGUP;
 
 struct ALooperFDEventSourceInfo
 {
 	PollEventDelegate callback{};
-	ALooper *looper{};
+	ALooper* looper{};
 };
 
 class ALooperFDEventSource
 {
 public:
-	constexpr ALooperFDEventSource() = default;
-	ALooperFDEventSource(MaybeUniqueFileDescriptor fd) : ALooperFDEventSource{nullptr, std::move(fd)} {}
-	ALooperFDEventSource(const char *debugLabel, MaybeUniqueFileDescriptor fd);
-	ALooperFDEventSource(ALooperFDEventSource &&o) noexcept;
-	ALooperFDEventSource &operator=(ALooperFDEventSource &&o) noexcept;
+	ALooperFDEventSource(MaybeUniqueFileDescriptor, FDEventSourceDesc, PollEventDelegate);
+	ALooperFDEventSource(ALooperFDEventSource&&) noexcept;
+	ALooperFDEventSource &operator=(ALooperFDEventSource&&) noexcept;
 	~ALooperFDEventSource();
 
 protected:
-	ConditionalMember<Config::DEBUG_BUILD, const char *> debugLabel{};
 	std::unique_ptr<ALooperFDEventSourceInfo> info;
 	MaybeUniqueFileDescriptor fd_;
 
@@ -58,11 +55,11 @@ class ALooperEventLoop
 {
 public:
 	constexpr ALooperEventLoop() = default;
-	constexpr ALooperEventLoop(ALooper *looper): looper{looper} {}
-	ALooper *nativeObject() const { return looper; }
+	constexpr ALooperEventLoop(ALooper* looper): looper{looper} {}
+	ALooper* nativeObject() const { return looper; }
 
 protected:
-	ALooper *looper{};
+	ALooper* looper{};
 };
 
 using EventLoopImpl = ALooperEventLoop;

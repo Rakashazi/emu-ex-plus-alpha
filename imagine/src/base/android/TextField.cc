@@ -38,7 +38,6 @@ AndroidTextField::AndroidTextField(ApplicationContext ctx, TextFieldDelegate del
 	textDelegate{del}
 {
 	auto env = ctx.mainThreadJniEnv();
-	auto &app = ctx.application();
 	auto baseActivity = ctx.baseActivityObject();
 	setupBaseActivityJni(env, baseActivity);
 	logMsg("starting system text input");
@@ -64,7 +63,7 @@ void AndroidTextField::setupTextEntryJni(JNIEnv* env, jobject textEntry)
 	{
 		{
 			"textInputEnded", "(JLjava/lang/String;ZZ)V",
-			(void*)+[](JNIEnv* env, jobject thiz, jlong nUserData, jstring jStr, jboolean processText, jboolean isDoingDismiss)
+			(void*)+[](JNIEnv* env, jobject, jlong nUserData, jstring jStr, jboolean processText, [[maybe_unused]] jboolean isDoingDismiss)
 			{
 				if(!processText)
 				{

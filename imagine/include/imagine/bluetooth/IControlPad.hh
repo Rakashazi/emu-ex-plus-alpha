@@ -51,10 +51,10 @@ private:
 	char prevBtnData[2]{};
 	Input::Axis axis[4]
 	{
-		{Input::Map::ICONTROLPAD, Input::AxisId::X, axisScaler}, // Left X Axis
-		{Input::Map::ICONTROLPAD, Input::AxisId::Y, axisScaler}, // Left Y Axis
-		{Input::Map::ICONTROLPAD, Input::AxisId::Z, axisScaler}, // Right X Axis
-		{Input::Map::ICONTROLPAD, Input::AxisId::RZ, axisScaler} // Right Y Axis
+		{Input::AxisId::X, axisScaler}, // Left X Axis
+		{Input::AxisId::Y, axisScaler}, // Left Y Axis
+		{Input::AxisId::Z, axisScaler}, // Right X Axis
+		{Input::AxisId::RZ, axisScaler} // Right Y Axis
 	};
 	BluetoothAddr addr;
 

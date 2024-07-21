@@ -11,6 +11,8 @@ CPPFLAGS += -DHAVE_ZLIB_H \
 -DNO_DEBUGGER \
 -I$(projectPath)/src
 
+CFLAGS_WARN += -Wno-unused-parameter -Wno-unused-function -Wno-unused-but-set-variable
+
 vbamSrc := gba/gbaCpuThumb.cpp \
 gba/internal/gbaBios.cpp \
 gba/gbaCheats.cpp \

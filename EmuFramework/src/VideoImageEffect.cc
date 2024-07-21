@@ -193,7 +193,7 @@ void VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool use
 	updateProgramUniforms(r);
 }
 
-void VideoImageEffect::updateProgramUniforms(Gfx::Renderer &r)
+void VideoImageEffect::updateProgramUniforms(Gfx::Renderer&)
 {
 	if(srcTexelDeltaU != -1)
 		prog.uniform(srcTexelDeltaU, 1.0f / (float)inputImgSize.x, 1.0f / (float)inputImgSize.y);

@@ -177,7 +177,6 @@ void VController::place()
 {
 	if(!hasWindow())
 		return;
-	auto &winData = windowData();
 	auto &win = window();
 	applyButtonSize();
 	auto bounds = layoutBounds();
@@ -220,7 +219,7 @@ std::array<KeyInfo, 2> VController::findGamepadElements(WPt pos)
 					return {};
 				return grp.findButtonIndices(pos);
 			},
-			[](auto &e) -> std::array<KeyInfo, 2> { return {}; }
+			[](auto&) -> std::array<KeyInfo, 2> { return {}; }
 		});
 		if(indices != std::array<KeyInfo, 2>{})
 			return indices;
@@ -251,7 +250,7 @@ KeyInfo VController::keyboardKeyFromPointer(const Input::MotionEvent &e)
 		if(!e.pushed())
 			return {};
 		log.info("switch kb mode");
-		kb.cycleMode(system(), renderer());
+		kb.cycleMode(system());
 		resetInput();
 	}
 	else
@@ -358,7 +357,7 @@ bool VController::keyInput(const Input::KeyEvent &e)
 {
 	if(!isInKeyboardMode())
 		return false;
-	return kb.keyInput(*this, renderer(), e);
+	return kb.keyInput(*this, e);
 }
 
 void VController::draw(Gfx::RendererCommands &__restrict__ cmds, bool showHidden)
@@ -438,7 +437,7 @@ void VController::setDisabledInputKeys(std::span<const KeyCode> disabledKeys_)
 		e.visit(overloaded
 		{
 			[&](VControllerButtonGroup &grp) { updateEnabledButtons(grp); },
-			[](auto &e){}
+			[](auto&){}
 		});
 	}
 	place();
@@ -669,11 +668,11 @@ bool VController::readConfig(EmuApp &app, MapIO &io, unsigned key)
 		case CFGKEY_VCONTROLLER_DEVICE_BUTTONS_V2:
 		{
 			gpElements.clear();
-			auto emuDeviceId = io.get<uint8_t>(); // reserved for future use
-			auto configId = io.get<uint8_t>(); // reserved for future use
+			[[maybe_unused]] auto emuDeviceId = io.get<uint8_t>(); // reserved for future use
+			[[maybe_unused]] auto configId = io.get<uint8_t>(); // reserved for future use
 			auto elements = io.get<uint8_t>();
 			log.info("read emu device button data ({} bytes) with {} element(s)", io.size(), elements);
-			for(auto i : iotaCount(elements))
+			for([[maybe_unused]] auto i : iotaCount(elements))
 			{
 				if(!readVControllerElement(app.inputManager, io, gpElements, false))
 					return false;
@@ -683,10 +682,10 @@ bool VController::readConfig(EmuApp &app, MapIO &io, unsigned key)
 		case CFGKEY_VCONTROLLER_UI_BUTTONS_V2:
 		{
 			uiElements.clear();
-			auto configId = io.get<uint8_t>(); // reserved for future use
+			[[maybe_unused]] auto configId = io.get<uint8_t>(); // reserved for future use
 			auto elements = io.get<uint8_t>();
 			log.info("read UI button data ({} bytes) with {} element(s)", io.size(), elements);
-			for(auto i : iotaCount(elements))
+			for([[maybe_unused]] auto i : iotaCount(elements))
 			{
 				if(!readVControllerElement(app.inputManager, io, uiElements, true))
 					return false;
@@ -1091,7 +1090,7 @@ void VController::updateSystemKeys(KeyInfo key, bool isPushed)
 				if(didUpdate)
 					dpad.setAlpha(alphaF);
 			},
-			[](auto &e){}
+			[](auto&){}
 		});
 	}
 }
@@ -1113,7 +1112,7 @@ void VController::resetHighlightedKeys()
 					}
 				}
 			},
-			[](auto &e){}
+			[](auto&){}
 		});
 	}
 }

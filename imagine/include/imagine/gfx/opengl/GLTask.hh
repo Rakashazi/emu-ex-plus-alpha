@@ -127,7 +127,7 @@ protected:
 	GLContext context{};
 	GLBufferConfig bufferConfig{};
 	OnExit onExit;
-	CommandMessagePort commandPort{CommandMessagePort::NullInit{}};
+	CommandMessagePort commandPort;
 	ThreadId threadId_{};
 
 	GLContext makeGLContext(GLManager &, GLBufferConfig bufferConf);

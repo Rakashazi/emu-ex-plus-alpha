@@ -248,4 +248,9 @@ enum class BufferType : uint8_t
 	index,
 };
 
+enum class BufferMapMode
+{
+	unset, direct, indirect
+};
+
 }

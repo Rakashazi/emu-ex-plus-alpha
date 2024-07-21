@@ -39,6 +39,7 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::Textu
 	filter{filter},
 	controller{attach},
 	msgText{attach.rendererTask, face_ ? face_ : &defaultFace()},
+	dirListEvent{{.debugLabel = "FSPicker::dirListEvent", .eventLoop = EventLoop::forThread()}, {}},
 	mode_{mode}
 {
 	auto nav = makeView<BasicNavView>
@@ -351,7 +352,7 @@ void FSPicker::pushFileLocationsView(const Input::Event &e)
 	if(appContext().hasSystemPathPicker())
 	{
 		view->appendItem("Browse For Folder",
-			[this](View &view, const Input::Event &e)
+			[this](View& view, const Input::Event&)
 			{
 				if(!appContext().showSystemPathPicker())
 				{
@@ -363,7 +364,7 @@ void FSPicker::pushFileLocationsView(const Input::Event &e)
 	if(mode_ != Mode::DIR && appContext().hasSystemDocumentPicker())
 	{
 		view->appendItem("Browse For File",
-			[this](View &view, const Input::Event &e)
+			[this](View& view, const Input::Event&)
 			{
 				if(!appContext().showSystemDocumentPicker())
 				{
@@ -375,7 +376,7 @@ void FSPicker::pushFileLocationsView(const Input::Event &e)
 	for(auto &loc : view->locations())
 	{
 		view->appendItem(loc.description,
-			[this, &loc](View &view, const Input::Event &e)
+			[this, &loc](View& view, const Input::Event& e)
 			{
 				auto ctx = appContext();
 				if(ctx.usesPermission(Permission::WRITE_EXT_STORAGE))
@@ -390,14 +391,14 @@ void FSPicker::pushFileLocationsView(const Input::Event &e)
 	if(Config::envIsLinux)
 	{
 		view->appendItem("Root Filesystem",
-			[this](View &view, const Input::Event &e)
+			[this](View& view, const Input::Event& e)
 			{
 				changeDirByInput("/", {}, e, DepthMode::reset);
 				view.dismiss();
 			});
 	}
 	view->appendItem("Custom Path",
-		[this](const Input::Event &e)
+		[this](const Input::Event& e)
 		{
 			auto textInputView = makeView<CollectTextInputView>(
 				"Input a directory path", root.path, Gfx::TextureSpan{},

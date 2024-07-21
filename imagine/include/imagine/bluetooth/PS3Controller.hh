@@ -42,10 +42,10 @@ private:
 	bool didSetLEDs = false;
 	Input::Axis axis[4]
 	{
-		{Input::Map::PS3PAD, Input::AxisId::X,	axisScaler}, // Left X Axis
-		{Input::Map::PS3PAD, Input::AxisId::Y,  axisScaler}, // Left Y Axis
-		{Input::Map::PS3PAD, Input::AxisId::Z,  axisScaler}, // Right X Axis
-		{Input::Map::PS3PAD, Input::AxisId::RZ, axisScaler} // Right Y Axis
+		{Input::AxisId::X,	axisScaler}, // Left X Axis
+		{Input::AxisId::Y,  axisScaler}, // Left Y Axis
+		{Input::AxisId::Z,  axisScaler}, // Right X Axis
+		{Input::AxisId::RZ, axisScaler} // Right Y Axis
 	};
 	BluetoothSocket ctlSock, intSock;
 	BluetoothAddr addr;

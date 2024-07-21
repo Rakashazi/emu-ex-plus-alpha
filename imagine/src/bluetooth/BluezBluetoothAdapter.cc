@@ -303,8 +303,8 @@ void BluetoothAdapter::setL2capService(uint32_t psm, bool active, OnStatusDelega
 	}
 
 	auto &server = serverList.emplace_back(psm, serverFd);
-	server.connectSrc = {serverFd, {},
-		[this](int fd, int events)
+	server.connectSrc = {serverFd, {.eventLoop = EventLoop::forThread()},
+		[this](int fd, int)
 		{
 			logMsg("incoming l2cap connection from server fd %d", fd);
 			BluetoothPendingSocket pending;
@@ -320,8 +320,9 @@ void BluetoothAdapter::setL2capService(uint32_t psm, bool active, OnStatusDelega
 			logMsg("for PSM 0x%X, fd %d", pending.addr.l2_psm, pending.fd);
 			onIncomingL2capConnection(*this, pending);
 			return true;
-		}};
-	//addPollEvent(serverFd, serverList.back().onConnect, POLLEV_IN);
+		}
+	};
+	//addPollEvent(serverFd, serverList.back().onConnect, pollEventInput);
 	onResult(*this, BluetoothScanState::Complete, 0);
 }
 
@@ -354,18 +355,18 @@ std::system_error BluetoothSocket::open(BluetoothAdapter&, BluetoothPendingSocke
 	fd = pending.fd;
 	pending = {};
 	if(onStatus(*this, BluetoothSocketState::Opened) == 1)
-		setupFDEvents(POLLEV_IN);
-		//addPollEvent(fd, pollEvDel, POLLEV_IN);
+		setupFDEvents(pollEventInput);
+		//addPollEvent(fd, pollEvDel, pollEventInput);
 	return std::error_code{};
 }
 
-bool BluezBluetoothSocket::readPendingData(int events)
+bool BluezBluetoothSocket::readPendingData(PollEventFlags events)
 {
 	auto &sock = static_cast<BluetoothSocket&>(*this);
-	if(events & POLLEV_ERR)
+	if(events & pollEventError)
 	{
 		logMsg("poll error with events %X", events);
-		if(events & POLLEV_OUT) // happened while connecting
+		if(events & pollEventOutput) // happened while connecting
 		{
 			logErr("error connecting socket %d", fd);
 			if(Config::DEBUG_BUILD)
@@ -384,7 +385,7 @@ bool BluezBluetoothSocket::readPendingData(int events)
 		}
 		return false;
 	}
-	else if(events & POLLEV_IN)
+	else if(events & pollEventInput)
 	{
 		char buff[50];
 		//logMsg("at least %d bytes ready on socket %d", fd_bytesReadable(fd), fd);
@@ -403,11 +404,11 @@ bool BluezBluetoothSocket::readPendingData(int events)
 				break; // socket was closed
 		}
 	}
-	else if(events & POLLEV_OUT)
+	else if(events & pollEventOutput)
 	{
 		logMsg("finished opening socket %d", fd);
 		if(sock.onStatus(sock, BluetoothSocketState::Opened) == 1)
-			fdSrc.setEvents(POLLEV_IN);
+			fdSrc.setEvents(pollEventInput);
 		else
 			fdSrc.detach();
 	}
@@ -415,14 +416,9 @@ bool BluezBluetoothSocket::readPendingData(int events)
 	return true;
 }
 
-void BluezBluetoothSocket::setupFDEvents(int events)
+void BluezBluetoothSocket::setupFDEvents(PollEventFlags events)
 {
-	fdSrc = {fd, {},
-		[this](int fd, int events)
-		{
-			return readPendingData(events);
-		},
-		POLLEV_OUT};
+	fdSrc = {fd, {.eventLoop = EventLoop::forThread(), .events = events}, [this](int, int events) {return readPendingData(events); }};
 }
 
 std::system_error BluetoothSocket::openRfcomm(BluetoothAdapter &, BluetoothAddr bdaddr, uint32_t channel)
@@ -449,7 +445,7 @@ std::system_error BluetoothSocket::openRfcomm(BluetoothAdapter &, BluetoothAddr 
 		return IO_ERROR;*/
 	}
 	fd_setNonblock(fd, 0);
-	setupFDEvents(POLLEV_OUT);
+	setupFDEvents(pollEventOutput);
 	return std::error_code{};
 }
 
@@ -481,7 +477,7 @@ std::system_error BluetoothSocket::openL2cap(BluetoothAdapter &, BluetoothAddr b
 		//logMsg("success");
 	}
 	fd_setNonblock(fd, 0);
-	setupFDEvents(POLLEV_OUT);
+	setupFDEvents(pollEventOutput);
 	return std::error_code{};
 }
 

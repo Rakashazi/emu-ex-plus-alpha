@@ -170,7 +170,7 @@ public:
 	RendererTask mainTask;
 	BasicEffect basicEffect_{};
 	Gfx::QuadIndexArray<uint8_t> quadIndices;
-	CustomEvent releaseShaderCompilerEvent{CustomEvent::NullInit{}};
+	CustomEvent releaseShaderCompilerEvent;
 
 	GLRenderer(ApplicationContext);
 	GLDisplay glDisplay() const;

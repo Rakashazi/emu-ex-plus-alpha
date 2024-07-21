@@ -25,8 +25,8 @@
 #include <sys/inotify.h>
 #include <optional>
 
-static float (*AMotionEvent_getAxisValueFunc)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index){};
-static float (*AMotionEvent_getButtonStateFunc)(const AInputEvent *motion_event){};
+[[maybe_unused]] static float (*AMotionEvent_getAxisValueFunc)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index){};
+[[maybe_unused]] static float (*AMotionEvent_getButtonStateFunc)(const AInputEvent *motion_event){};
 
 #if ANDROID_MIN_API == 9
 CLINK float AMotionEvent_getAxisValue(const AInputEvent* motion_event, int32_t axis, size_t pointer_index)
@@ -48,12 +48,10 @@ namespace IG::Input
 
 constexpr SystemLogger log{"InputConfig"};
 
-static constexpr uint32_t maxJoystickAxisPairs = 4; // 2 sticks + POV hat + L/R Triggers
-
 // Note: values must remain in sync with Java code
-static constexpr int DEVICE_ADDED = 0;
-static constexpr int DEVICE_CHANGED = 1;
-static constexpr int DEVICE_REMOVED = 2;
+constexpr inline int DEVICE_ADDED = 0;
+constexpr inline int DEVICE_CHANGED = 1;
+constexpr inline int DEVICE_REMOVED = 2;
 
 static std::unique_ptr<Input::Device> makeGenericKeyDevice()
 {
@@ -88,9 +86,8 @@ static const char *inputDeviceKeyboardTypeToStr(int type)
 AndroidInputDevice::AndroidInputDevice(int osId, DeviceTypeFlags typeFlags, std::string name):
 	BaseDevice{osId, Map::SYSTEM, typeFlags, std::move(name)} {}
 
-AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
-	int osId, int src, std::string devName, int kbType, AxisFlags jsAxisFlags,
-	uint32_t vendorProductId, bool isPowerButton):
+AndroidInputDevice::AndroidInputDevice(int osId, int src, std::string devName,
+	int kbType, AxisFlags jsAxisFlags, uint32_t vendorProductId, bool isPowerButton):
 	BaseDevice{osId, Map::SYSTEM, {.miscKeys = true}, std::move(devName)}
 {
 	typeFlags_.virtualInput = osId == -1;
@@ -161,7 +158,7 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
 				continue;
 			}
 			log.info("joystick axis:{}", (int)axisId);
-			axis.emplace_back(Map::SYSTEM, axisId);
+			axis.emplace_back(axisId);
 			assert(!axis.isFull());
 		}
 		// check trigger axes
@@ -177,7 +174,7 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
 				continue;
 			}
 			log.info("trigger axis:{}", (int)axisId);
-			axis.emplace_back(Map::SYSTEM, axisId);
+			axis.emplace_back(axisId);
 			assert(!axis.isFull());
 			addedTriggers |= triggerAxisBits;
 			if(addedTriggers == AxisFlags{.lTrigger = true, .rTrigger = true})
@@ -311,7 +308,7 @@ void AndroidApplication::initInput(ApplicationContext ctx, JNIEnv *env, jobject 
 				{
 					"deviceChanged", "(JIILandroid/view/InputDevice;Ljava/lang/String;IIII)V",
 					(void*)
-					+[](JNIEnv* env, jobject thiz, jlong nUserData, jint change, jint devID, jobject jDev,
+					+[](JNIEnv* env, jobject, jlong nUserData, jint change, jint devID, [[maybe_unused]] jobject jDev,
 						jstring jName, jint src, jint kbType, jint jsAxisFlags, jint vendorProductId)
 					{
 						ApplicationContext ctx{reinterpret_cast<ANativeActivity*>(nUserData)};
@@ -323,7 +320,7 @@ void AndroidApplication::initInput(ApplicationContext ctx, JNIEnv *env, jobject 
 						else // add or update existing
 						{
 							const char *name = env->GetStringUTFChars(jName, nullptr);
-							auto sysDev = std::make_unique<Input::Device>(std::in_place_type<Input::AndroidInputDevice>, env, jDev, devID,
+							auto sysDev = std::make_unique<Input::Device>(std::in_place_type<Input::AndroidInputDevice>, devID,
 								src, name, kbType, std::bit_cast<Input::AxisFlags>(jsAxisFlags), (uint32_t)vendorProductId, false);
 							env->ReleaseStringUTFChars(jName, name);
 							app.updateAndroidInputDevice(ctx, std::move(sysDev), true);
@@ -340,7 +337,7 @@ void AndroidApplication::initInput(ApplicationContext ctx, JNIEnv *env, jobject 
 				impl.jRegister(env, impl.listenerHelper);
 				return true;
 			}, INPUT_DEVICE_ON_RESUME_PRIORITY);
-			addOnExit([this, env](ApplicationContext, bool backgrounded)
+			addOnExit([this, env](ApplicationContext, [[maybe_unused]] bool backgrounded)
 			{
 				log.info("unregistering input device listener");
 				auto &impl = *std::get_if<InputDeviceListenerImpl>(&inputDeviceChangeImpl);
@@ -351,7 +348,8 @@ void AndroidApplication::initInput(ApplicationContext ctx, JNIEnv *env, jobject 
 		else
 		{
 			log.info("setting up input notifications with inotify");
-			auto &impl = inputDeviceChangeImpl.emplace<INotifyImpl>();
+			auto &impl = inputDeviceChangeImpl.emplace<INotifyImpl>(Timer{
+				{.debugLabel = "inputRescanCallback"}, [ctx]{ ctx.enumInputDevices(); }});
 			impl.fd = inotify_init();
 			if(impl.fd == -1)
 			{
@@ -365,10 +363,10 @@ void AndroidApplication::initInput(ApplicationContext ctx, JNIEnv *env, jobject 
 						log.info("got inotify event");
 						auto &app = *((AndroidApplication*)data);
 						auto &impl = *std::get_if<INotifyImpl>(&app.inputDeviceChangeImpl);
-						if(events == POLLEV_IN)
+						if(events == ALOOPER_EVENT_INPUT)
 						{
 							char buffer[2048];
-							auto size = read(fd, buffer, sizeof(buffer));
+							[[maybe_unused]] auto size = read(fd, buffer, sizeof(buffer));
 							if(app.isRunning())
 							{
 								impl.rescanTimer.runIn(IG::Milliseconds(250));
@@ -383,7 +381,6 @@ void AndroidApplication::initInput(ApplicationContext ctx, JNIEnv *env, jobject 
 				addOnResume([this, env](ApplicationContext ctx, bool)
 				{
 					auto &impl = *std::get_if<INotifyImpl>(&inputDeviceChangeImpl);
-					impl.rescanTimer = {"inputRescanCallback", [ctx]() { ctx.enumInputDevices(); }};
 					enumInputDevices(ctx, env, ctx.baseActivityObject(), true);
 					if(impl.fd != -1 && impl.watch == -1)
 					{
@@ -396,7 +393,7 @@ void AndroidApplication::initInput(ApplicationContext ctx, JNIEnv *env, jobject 
 					}
 					return true;
 				}, INPUT_DEVICE_ON_RESUME_PRIORITY);
-				addOnExit([this, env](ApplicationContext, bool backgrounded)
+				addOnExit([this](ApplicationContext, [[maybe_unused]] bool backgrounded)
 				{
 					auto &impl = *std::get_if<INotifyImpl>(&inputDeviceChangeImpl);
 					if(impl.watch != -1)
@@ -404,7 +401,7 @@ void AndroidApplication::initInput(ApplicationContext ctx, JNIEnv *env, jobject 
 						log.info("unregistering inotify input device listener");
 						inotify_rm_watch(impl.fd, impl.watch);
 						impl.watch = -1;
-						impl.rescanTimer = {};
+						impl.rescanTimer.cancel();
 					}
 					return true;
 				}, INPUT_DEVICE_ON_EXIT_PRIORITY);

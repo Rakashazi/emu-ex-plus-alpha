@@ -87,11 +87,6 @@ static bool hasXInputDeviceId(Input::Device &d, int id)
 	return isXInputDevice(d) && d.id() == id;
 }
 
-static void setXcbMask(uint8_t* mask, int bit)
-{
-	mask[bit >> 3] |= 1 << (bit & 7);
-}
-
 static inline float fixed1616ToFloat(xcb_input_fp1616_t val)
 {
 	return float(val) / 0x10000;
@@ -137,7 +132,7 @@ constexpr XIEventMaskData windowXIEventMaskData()
 
 void XApplication::initPerWindowInputData(xcb_window_t win)
 {
-	if(Config::MACHINE_IS_PANDORA)
+	if constexpr(Config::MACHINE_IS_PANDORA)
 	{
 		xcb_xfixes_hide_cursor(xConn, win);
 	}
@@ -146,7 +141,6 @@ void XApplication::initPerWindowInputData(xcb_window_t win)
 		if(!blankCursor)
 		{
 			// make a blank cursor
-			char data[1]{};
 			auto blank = xcb_generate_id(xConn);
 			xcb_create_pixmap(xConn, 1, blank, win, 1, 1);
 			blankCursor = xcb_generate_id(xConn);
@@ -315,15 +309,6 @@ void XApplication::deinitInputSystem()
 		xkb_state_unref(kbState);
 }
 
-static uint32_t makePointerButtonState(const xcb_input_button_press_event_t& ev)
-{
-	auto len = xcb_input_button_press_button_mask_length(&ev);
-	auto mask = xcb_input_button_press_button_mask(&ev);
-	uint8_t byte1 = len > 0 ? mask[0] : 0;
-	uint8_t byte2 = len > 1 ? mask[1] : 0;
-	return byte1 | (byte2 << 8);
-}
-
 static xcb_window_t eventXWindow(const xcb_ge_generic_event_t& e)
 {
 	switch(e.event_type)
@@ -440,7 +425,6 @@ bool XApplication::handleXI2GenericEvent(xcb_ge_generic_event_t& event)
 			auto dev = deviceForInputId(event.sourceid);
 			auto k = xkb_state_key_get_one_sym(kbState, event.detail);
 			bool repeated = event.flags & XCB_INPUT_KEY_EVENT_FLAGS_KEY_REPEAT;
-			//log.info("KeySym:{}, KeyCode:{}, repeat:{}", k, ievent.detail, repeated);
 			if(pushed && k == XKB_KEY_Return && (event.mods.effective & (XCB_MOD_MASK_1 | XCB_MOD_MASK_5)) && !repeated)
 			{
 				win.toggleFullScreen();
@@ -448,6 +432,7 @@ bool XApplication::handleXI2GenericEvent(xcb_ge_generic_event_t& event)
 			else
 			{
 				auto key = keysymToKey(k);
+				//log.info("KeySym:{}, KeyCode:{}, repeat:{}", k, key, repeated);
 				auto ev = Input::KeyEvent{Input::Map::SYSTEM, key, action, (uint32_t)event.mods.effective,
 					repeated, Input::Source::KEYBOARD, time, dev};
 				ev.setX11RawKey(event.detail);

@@ -206,7 +206,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 		"Address",
 		u"",
 		attach,
-		[this](DualTextMenuItem &item, View &, Input::Event e)
+		[this](const Input::Event& e)
 		{
 			pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 6-digit hex", addrStr.data(),
 				[this](CollectTextInputView&, auto str)
@@ -242,7 +242,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 		"Value",
 		u"",
 		attach,
-		[this](DualTextMenuItem &item, View &, Input::Event e)
+		[this](const Input::Event& e)
 		{
 			pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 2-digit hex", valueStr.data(),
 				[this](CollectTextInputView&, const char *str)
@@ -281,7 +281,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, Refres
 		#endif
 		u"",
 		attach,
-		[this](DualTextMenuItem &item, View &, Input::Event e)
+		[this](const Input::Event& e)
 		{
 			pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex or blank", savedStr.data(),
 				[this](CollectTextInputView &view, const char *str)
@@ -383,8 +383,8 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		{
 			return msg.visit(overloaded
 			{
-				[&](const ItemsMessage &m) -> ItemReply { return 1 + cheat.size(); },
-				[&](const GetItemMessage &m) -> ItemReply
+				[&](const ItemsMessage&) -> ItemReply { return 1 + cheat.size(); },
+				[&](const GetItemMessage& m) -> ItemReply
 				{
 					switch(m.idx)
 					{
@@ -398,7 +398,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	addCode
 	{
 		"Add Game Genie/Action Replay/Gold Finger Code", attach,
-		[this](TextMenuItem &item, View &, Input::Event e)
+		[this](const Input::Event& e)
 		{
 			if(numCheats() == EmuCheats::MAX)
 			{
@@ -464,7 +464,7 @@ void EmuCheatsView::loadCheatItems()
 	for(auto c : iotaCount(cheats))
 	{
 		cheat.emplace_back(cheatName(c), attachParams(), cheatIsEnabled(c),
-			[this, c](BoolMenuItem &item, View &, Input::Event e)
+			[this, c](BoolMenuItem &item)
 			{
 				bool on = item.flipBoolValue(*this);
 				if(on)

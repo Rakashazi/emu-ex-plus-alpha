@@ -33,7 +33,7 @@ EmuView::EmuView(ViewAttachParams attach, EmuVideoLayer *layer, EmuSystem &sys):
 
 void EmuView::prepareDraw()
 {
-	doIfUsed(frameTimeStats, [&](auto &stats){ stats.text.makeGlyphs(); });
+	doIfUsed(frameTimeStats, [&](auto &stats){ stats.text.makeGlyphs(); stats.text.face()->precacheAlphaNum(renderer()); });
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 	audioStatsText.makeGlyphs(renderer());
 	#endif
@@ -114,33 +114,27 @@ void EmuView::updateFrameTimeStats(FrameTimeStats stats, SteadyClockTimePoint cu
 	auto deadline = duration_cast<Milliseconds>(screen()->presentationDeadline());
 	auto timestampDiff = duration_cast<Milliseconds>(currentFrameTimestamp - stats.startOfFrame);
 	auto callbackOverhead = duration_cast<Milliseconds>(stats.startOfEmulation - stats.startOfFrame);
-	auto emulationTime = duration_cast<Milliseconds>(stats.aboutToSubmitFrame - stats.startOfEmulation);
-	auto submitFrameTime = duration_cast<Milliseconds>(stats.aboutToPostDraw - stats.aboutToSubmitFrame);
-	auto postDrawTime = duration_cast<Milliseconds>(stats.startOfDraw - stats.aboutToPostDraw);
-	auto drawTime = duration_cast<Milliseconds>(stats.aboutToPresent - stats.startOfDraw);
-	auto presentTime = duration_cast<Milliseconds>(stats.endOfDraw - stats.aboutToPresent);
-	auto frameTime = duration_cast<Milliseconds>(stats.endOfDraw - stats.startOfFrame);
+	auto emulationTime = duration_cast<Milliseconds>(stats.waitForPresent - stats.startOfEmulation);
+	auto presentTime = duration_cast<Milliseconds>(stats.endOfFrame - stats.waitForPresent);
+	auto frameTime = duration_cast<Milliseconds>(stats.endOfFrame - stats.startOfFrame);
 	doIfUsed(frameTimeStats, [&](auto &statsUI)
 	{
 		statsUI.text.resetString(std::format("Frame Time Stats\n\n"
-			"Screen Frame Time: {}ms\n"
-			"Deadline: {}ms\n"
-			"Timestamp Diff: {}ms\n"
-			"Frame Callback: {}ms\n"
-			"Emulate: {}ms\n"
-			"Submit Frame: {}ms\n"
-			"Draw Callback: {}ms\n"
-			"Draw: {}ms\n"
-			"Present: {}ms\n"
-			"Total: {}ms\n"
+			"Screen Frame Time: {}\n"
+			"Deadline: {}\n"
+			"Timestamp Diff: {}\n"
+			"Frame Callback: {}\n"
+			"Emulate: {}\n"
+			"Present: {}\n"
+			"Total: {}\n"
 			"Missed Callbacks: {}",
-			screenFrameTime.count(), deadline.count(), timestampDiff.count(), callbackOverhead.count(), emulationTime.count(), submitFrameTime.count(),
-			postDrawTime.count(), drawTime.count(), presentTime.count(), frameTime.count(), stats.missedFrameCallbacks));
+			screenFrameTime, deadline, timestampDiff, callbackOverhead, emulationTime,
+			presentTime, frameTime, stats.missedFrameCallbacks));
 		placeFrameTimeStats();
 	});
 }
 
-void EmuView::updateAudioStats(int underruns, int overruns, int callbacks, double avgCallbackFrames, int frames)
+void EmuView::updateAudioStats([[maybe_unused]] int underruns, [[maybe_unused]] int overruns, [[maybe_unused]] int callbacks, [[maybe_unused]] double avgCallbackFrames, [[maybe_unused]] int frames)
 {
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 	audioStatsText.setString(std::format("Underruns:{}\nOverruns:{}\nCallbacks per second:{}\nFrames per callback:{:g}\nTotal frames:{}",

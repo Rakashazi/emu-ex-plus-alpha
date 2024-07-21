@@ -33,11 +33,7 @@ ToastView::ToastView(ViewAttachParams attach): View{attach},
 	text{attach.rendererTask, &attach.viewManager.defaultFace},
 	unpostTimer
 	{
-		"ToastView::unpostTimer",
-		[this]()
-		{
-			unpost();
-		}
+		{.debugLabel = "ToastView::unpostTimer"}, [this]{ unpost(); }
 	},
 	msgFrameQuads{attach.rendererTask, {.size = 1}} {}
 

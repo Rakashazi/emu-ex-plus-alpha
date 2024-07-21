@@ -29,7 +29,7 @@ namespace IG::Audio
 
 constexpr SystemLogger log{"ALSA"};
 
-static const SampleFormat &alsaFormatToPcm(snd_pcm_format_t format)
+constexpr const SampleFormat& alsaFormatToPcm(snd_pcm_format_t format)
 {
 	switch(format)
 	{
@@ -42,7 +42,7 @@ static const SampleFormat &alsaFormatToPcm(snd_pcm_format_t format)
 	}
 }
 
-static snd_pcm_format_t pcmFormatToAlsa(const SampleFormat &format)
+constexpr snd_pcm_format_t pcmFormatToAlsa(const SampleFormat& format)
 {
 	switch(format.bytes())
 	{

@@ -26,7 +26,7 @@ openGLAPI := gles
 staticLibcxx := 1
 include $(buildSysPath)/linux-gcc.mk
 
-CFLAGS_WARN += -Wno-psabi
+CFLAGS_WARN += -Wno-psabi -Wno-unused-value
 CXXFLAGS_WARN += -Wno-register
 
 CFLAGS_CODEGEN += -mcpu=cortex-a8 -mfpu=neon -fno-stack-protector

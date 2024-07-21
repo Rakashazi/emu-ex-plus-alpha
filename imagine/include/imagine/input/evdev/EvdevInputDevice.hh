@@ -18,6 +18,7 @@
 #include <imagine/input/Axis.hh>
 #include <imagine/base/EventLoop.hh>
 #include <imagine/util/container/ArrayList.hh>
+#include <imagine/util/memory/UniqueFileDescriptor.hh>
 #include <array>
 #include <span>
 
@@ -32,22 +33,19 @@ namespace IG::Input
 class EvdevInputDevice : public BaseDevice
 {
 public:
-	EvdevInputDevice();
-	EvdevInputDevice(int id, int fd, DeviceTypeFlags, std::string name, uint32_t vendorProductId);
-	~EvdevInputDevice();
-	bool setupJoystickBits();
+	EvdevInputDevice(int id, UniqueFileDescriptor fd, DeviceTypeFlags, std::string name, uint32_t vendorProductId);
 	std::span<Axis> motionAxes() { return axis; };
-	int fileDesc() const { return fd; }
-	static void addPollEvent(Device &, LinuxApplication &);
+	int fd() const { return fdSrc.fd(); }
+	static void addPollEvent(Device&, LinuxApplication&);
 
 protected:
 	static constexpr unsigned AXIS_SIZE = 24;
-	int fd{-1};
 	StaticArrayList<Axis, AXIS_SIZE> axis;
 	std::array<int, AXIS_SIZE> axisRangeOffset{};
-	FDEventSource fdSrc{-1};
+	FDEventSource fdSrc;
 
-	static void processInputEvents(Device &, LinuxApplication &, std::span<const input_event> events);
+	static void processInputEvents(Device&, LinuxApplication&, std::span<const input_event>);
+	bool setupJoystickBits();
 };
 
 }
