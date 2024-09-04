@@ -61,6 +61,20 @@ bool EmuApp::allowsTurboModifier(KeyCode c)
 	return true;
 }
 
+std::unique_ptr<View> EmuApp::makeEditCheatsView(ViewAttachParams attach, CheatsView& view)
+{
+	if(&MainApp::makeEditCheatsView != &EmuApp::makeEditCheatsView)
+		return static_cast<MainApp*>(this)->makeEditCheatsView(attach, view);
+	return {};
+}
+
+std::unique_ptr<View> EmuApp::makeEditCheatView(ViewAttachParams attach, Cheat& c, BaseEditCheatsView& baseView)
+{
+	if(&MainApp::makeEditCheatView != &EmuApp::makeEditCheatView)
+		return static_cast<MainApp*>(this)->makeEditCheatView(attach, c, baseView);
+	return {};
+}
+
 AssetDesc EmuApp::vControllerAssetDesc(KeyInfo key) const
 {
 	return static_cast<const MainApp*>(this)->vControllerAssetDesc(key);

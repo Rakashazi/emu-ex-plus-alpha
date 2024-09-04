@@ -2,52 +2,41 @@
 #include <emuframework/Cheats.hh>
 #include <cheats.h>
 
-namespace EmuCheats
-{
-#ifdef MAX_CHEATS
-static const unsigned MAX = MAX_CHEATS;
-#else
-static const unsigned MAX = 150;
-#endif
-}
-
 namespace EmuEx
 {
 
-class EmuCheatsView : public BaseCheatsView
+class EditCheatsView : public BaseEditCheatsView
 {
 public:
-	EmuCheatsView(ViewAttachParams attach);
+	EditCheatsView(ViewAttachParams, CheatsView&);
 
 private:
-	void loadCheatItems() final;
+	TextMenuItem addCode;
 };
 
-class EmuEditCheatListView : public BaseEditCheatListView
+class EditCheatView : public BaseEditCheatView
 {
 public:
-	EmuEditCheatListView(ViewAttachParams attach);
+	EditCheatView(ViewAttachParams, Cheat&, BaseEditCheatsView&);
+	void loadItems();
 
 private:
-	TextMenuItem addCode{};
-
-	void loadCheatItems() final;
+	#ifndef SNES9X_VERSION_1_4
+	TextMenuItem addCode;
+	#endif
 };
 
-class EmuEditCheatView : public BaseEditCheatView<EmuEditCheatView>
+class EditRamCheatView: public TableView, public EmuAppHelper
 {
 public:
-	EmuEditCheatView(ViewAttachParams attach, int cheatIdx, RefreshCheatsDelegate onCheatListChanged_);
-	std::string_view cheatNameString() const;
-	void renamed(std::string_view);
+	EditRamCheatView(ViewAttachParams, Cheat&, CheatCode&, EditCheatView&);
 
 private:
-	std::array<MenuItem*, 5> items;
-	DualTextMenuItem addr{}, value{}, saved{};
-	int idx = 0;
-	IG::StaticString<6> addrStr{};
-	IG::StaticString<2> valueStr{};
-	IG::StaticString<2> savedStr{};
+	Cheat& cheat;
+	CheatCode& code;
+	EditCheatView& editCheatView;
+	DualTextMenuItem addr, value, conditional;
+	TextMenuItem remove;
 };
 
 }

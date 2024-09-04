@@ -20,11 +20,25 @@
 #include <fceu/driver.h>
 #include <fceu/palette.h>
 #include <fceu/state.h>
+#include <fceu/cheat.h>
 
 namespace EmuEx
 {
 
 class EmuAudio;
+
+class Cheat: public CHEATF
+{
+public:
+	Cheat(std::string_view name): CHEATF{.name = std::string{name}} {}
+};
+
+class CheatCode: public CHEATCODE
+{
+public:
+	CheatCode(uint16 addr, uint8 val, int compare, int type):
+		CHEATCODE{.addr = addr, .val = val, .compare = compare, .type = type} {}
+};
 
 enum
 {
@@ -162,6 +176,17 @@ public:
 	double videoAspectRatioScale() const;
 	bool onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat);
 	bool shouldFastForward() const;
+	Cheat* newCheat(EmuApp&, const char* name, CheatCodeDesc);
+	bool setCheatName(Cheat&, const char* name);
+	std::string_view cheatName(const Cheat&) const;
+	void setCheatEnabled(Cheat&, bool on);
+	bool isCheatEnabled(const Cheat&) const;
+	bool addCheatCode(EmuApp&, Cheat*&, CheatCodeDesc);
+	bool modifyCheatCode(EmuApp&, Cheat&, CheatCode&, CheatCodeDesc);
+	Cheat* removeCheatCode(Cheat&, CheatCode&);
+	bool removeCheat(Cheat&);
+	void forEachCheat(DelegateFunc<bool(Cheat&, std::string_view)>);
+	void forEachCheatCode(Cheat&, DelegateFunc<bool(CheatCode&, std::string_view)>);
 
 private:
 	void cacheUsingZapper();

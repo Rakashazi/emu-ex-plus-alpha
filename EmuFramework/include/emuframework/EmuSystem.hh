@@ -57,6 +57,14 @@ class EmuVideo;
 class EmuApp;
 struct EmuFrameTimeInfo;
 class VControllerKeyboard;
+class Cheat;
+class CheatCode;
+
+struct CheatCodeDesc
+{
+	const char* str{};
+	unsigned flags{};
+};
 
 struct AspectRatioInfo
 {
@@ -247,6 +255,17 @@ public:
 	FS::FileString contentDisplayNameForPath(CStringView path) const;
 	IG::Rotation contentRotation() const;
 	void addThreadGroupIds(std::vector<ThreadId> &) const;
+	Cheat* newCheat(EmuApp&, const char* name, CheatCodeDesc);
+	bool setCheatName(Cheat&, const char* name);
+	std::string_view cheatName(const Cheat&) const;
+	void setCheatEnabled(Cheat&, bool on);
+	bool isCheatEnabled(const Cheat&) const;
+	bool addCheatCode(EmuApp&, Cheat*&, CheatCodeDesc);
+	bool modifyCheatCode(EmuApp&, Cheat&, CheatCode&, CheatCodeDesc);
+	Cheat* removeCheatCode(Cheat&, CheatCode&);
+	bool removeCheat(Cheat&);
+	void forEachCheat(DelegateFunc<bool(Cheat&, std::string_view)>);
+	void forEachCheatCode(Cheat&, DelegateFunc<bool(CheatCode&, std::string_view)>);
 
 	ApplicationContext appContext() const { return appCtx; }
 	bool isActive() const { return state == State::ACTIVE; }

@@ -35,14 +35,16 @@ class ZArray : public std::array<T, maxSize>
 {
 public:
 	using Base = std::array<T, maxSize>;
-	using iterator = Base::iterator;
-	using const_iterator = Base::const_iterator;
+	using iterator = T*;
+	using const_iterator = const T*;
 
 	// Define constructor so underlying array is zero-init
 	constexpr ZArray(auto &&...args): Base{IG_forward(args)...} {}
 	constexpr size_t size() const { return findIndex(std::span{this->data(), maxSize}, T{}, maxSize); }
 	constexpr size_t capacity() const { return maxSize; }
+	constexpr auto begin(this auto&& self) { return self.data(); }
 	constexpr auto end(this auto&& self) { return self.data() + self.size(); }
+	constexpr const_iterator cbegin() const { return begin(); }
 	constexpr const_iterator cend() const { return end(); }
 	constexpr size_t freeSpace() const { return capacity() - size(); }
 	constexpr bool isFull() const { return !freeSpace(); }
@@ -56,7 +58,7 @@ public:
 	constexpr iterator insert(const_iterator position, const T &val)
 	{
 		assert(size() < maxSize);
-		iterator p = this->data() + (position - this->begin());
+		iterator p{this->data() + (position - this->cbegin())};
 		if(p == end())
 		{
 			push_back(val);

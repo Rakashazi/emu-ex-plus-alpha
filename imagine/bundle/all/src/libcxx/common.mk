@@ -1,4 +1,4 @@
-libcxxVersion := 18.1.0
+libcxxVersion := 19.1.0-rc2
 libcxxSrcDir := $(tempDir)/llvm-project-$(libcxxVersion).src/libcxx
 libcxxabiSrcDir := $(tempDir)/llvm-project-$(libcxxVersion).src/libcxxabi
 # Archive containing the libcxx & libcxxabi directories along with a minimal set of cmake support files

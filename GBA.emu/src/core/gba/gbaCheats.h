@@ -2,10 +2,10 @@
 #define VBAM_CORE_GBA_GBACHEATS_H_
 
 #include <cstdint>
+#include <vector>
 
 #include "core/base/system.h"
 
-#include <imagine/util/container/ArrayList.hh>
 #if !defined(__LIBRETRO__)
 #include <zlib.h>
 #endif  // defined(__LIBRETRO__)
@@ -55,7 +55,6 @@ void cheatsWriteByte(uint32_t address, uint8_t value);
 #endif
 int cheatsCheckKeys(ARM7TDMI &cpu, uint32_t keys, uint32_t extended);
 
-extern IG::StaticArrayList<CheatsData, 100> cheatsList;
-constexpr size_t CHEATS_LIST_DATA_SIZE = sizeof(CheatsData) * 100;
+extern std::vector<CheatsData> cheatsList;
 
 #endif // VBAM_CORE_GBA_GBACHEATS_H_

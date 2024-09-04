@@ -215,7 +215,7 @@ void GbaSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	CPUInit(gGba, biosRom);
 	CPUReset(gGba);
 	saveStateSize = CPUWriteState(gGba, DynArray<uint8_t>{maxStateSize}.data());
-	readCheatFile(*this);
+	readCheatFile();
 }
 
 static void updateColorMap(auto &map, const PixelDesc &pxDesc)

@@ -20,43 +20,36 @@
 namespace EmuEx
 {
 
-class EmuCheatsView : public BaseCheatsView
+class EditCheatsView : public BaseEditCheatsView
 {
-private:
-	void loadCheatItems() final;
-
 public:
-	EmuCheatsView(ViewAttachParams attach);
+	EditCheatsView(ViewAttachParams, CheatsView&);
+
+private:
+	TextMenuItem addGG, addRAM;
 };
 
-class EmuEditCheatListView : public BaseEditCheatListView
+class EditCheatView : public BaseEditCheatView
 {
-private:
-	TextMenuItem addGG{}, addRAM{};
-
-	void loadCheatItems() final;
-
 public:
-	EmuEditCheatListView(ViewAttachParams attach);
+	EditCheatView(ViewAttachParams, Cheat&, BaseEditCheatsView&);
+	void loadItems();
+
+private:
+	TextMenuItem addGG, addRAM;
 };
 
-class EmuEditCheatView : public BaseEditCheatView<EmuEditCheatView>
+class EditRamCheatView: public TableView, public EmuAppHelper
 {
 public:
-	EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, RefreshCheatsDelegate onCheatListChanged);
-	std::string cheatNameString() const;
-	void renamed(std::string_view);
+	EditRamCheatView(ViewAttachParams, Cheat&, CheatCode&, EditCheatView&);
 
 private:
-	DualTextMenuItem addr{}, value{}, comp{}, ggCode{};
-	unsigned idx = 0;
-	int type = 0;
-	IG::StaticString<4> addrStr{};
-	IG::StaticString<2> valueStr{};
-	IG::StaticString<2> compStr{};
-	IG::StaticString<8> ggCodeStr{};
-
-	void syncCheat(std::string_view newName = {});
+	Cheat& cheat;
+	CheatCode& code;
+	EditCheatView& editCheatView;
+	DualTextMenuItem addr, value, comp;
+	TextMenuItem remove;
 };
 
 }

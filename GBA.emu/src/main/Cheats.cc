@@ -21,150 +21,300 @@
 #include "GBASys.hh"
 #include <imagine/fs/FS.hh>
 #include <imagine/gui/TextEntry.hh>
+#include <imagine/gui/AlertView.hh>
 #include <imagine/util/string.h>
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include <core/gba/gbaCheats.h>
 #include <core/gba/gba.h>
 
+void cheatsEnable(CheatsData&);
+void cheatsDisable(ARM7TDMI&, CheatsData&);
+
 namespace EmuEx
 {
 
-static void writeCheatFile(EmuSystem &);
+constexpr SystemLogger log{"GBA.emu"};
 
-EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, int cheatIdx, RefreshCheatsDelegate onCheatListChanged_):
-	BaseEditCheatView
+static auto matchingCheats(std::string_view name)
+{
+	return cheatsList | std::views::filter([=](auto& c) { return c.desc == name; });
+}
+
+static bool deleteOneCheat(std::string_view name)
+{
+	for(auto i: iotaCount(cheatsList.size()))
 	{
-		"Edit Code",
-		attach,
-		cheatsList[cheatIdx].desc,
-		items,
-		[this](TextMenuItem &item, View &parent, Input::Event e)
+		if(name == cheatsList[i].desc)
 		{
-			cheatsDelete(gGba.cpu, idx, true);
-			onCheatListChanged();
-			writeCheatFile(system());
-			dismiss();
+			cheatsDelete(gGba.cpu, i, true);
 			return true;
-		},
-		onCheatListChanged_
-	},
-	items{&name, &code, &remove},
-	code
-	{
-		"Code",
-		cheatsList[cheatIdx].codestring,
-		attach,
-		[this](DualTextMenuItem &, View &, Input::Event)
-		{
-			app().postMessage("To change this cheat, please delete and re-add it");
 		}
-	},
-	idx{cheatIdx}
-{}
-
-std::string_view EmuEditCheatView::cheatNameString() const
-{
-	return cheatsList[idx].desc;
+	}
+	return false;
 }
 
-void EmuEditCheatView::renamed(std::string_view str)
+static auto cheatInputString(bool isGSv3)
 {
-	auto &cheat = cheatsList[idx];
-	strncpy(cheat.desc, str.data(), sizeof(cheat.desc));
-	writeCheatFile(system());
+	return isGSv3 ? "Input xxxxxxxx yyyyyyyy" : "Input xxxxxxxx yyyyyyyy (GS) or xxxxxxxx yyyy (AR)";
 }
 
-void EmuEditCheatListView::loadCheatItems()
+static CheatsData& sortCheat(auto& cheatsList, const CheatsData& cheat)
 {
-	cheat.clear();
-	cheat.reserve(cheatsList.size());
-	for(auto &c : cheatsList)
+	auto insertIt = find(std::views::reverse(cheatsList), [&](auto& c){ return std::string_view{c.desc} == cheat.desc; });
+	if(insertIt) // store cheats with same name consecutively
 	{
-		cheat.emplace_back(c.desc, attachParams(),
-			[this, idx = std::distance(cheatsList.data(), &c)](Input::Event e)
-			{
-				pushAndShow(makeView<EmuEditCheatView>(idx, [this](){ onCheatListChanged(); }), e);
-			});
+		return *cheatsList.insert(insertIt->base(), cheat);
+	}
+	else
+	{
+		return cheatsList.emplace_back(cheat);
 	}
 }
 
-void EmuEditCheatListView::addNewCheat(int isGSv3)
+static CheatsData& sortLastCheat()
 {
-	if(cheatsList.size() == cheatsList.capacity())
+	auto lastCheat = cheatsList.back();
+	cheatsList.pop_back();
+	return sortCheat(cheatsList, lastCheat);
+}
+
+static CheatsData* addCode(EmuApp& app, const char* code, const char* name, bool isGSv3)
+{
+	auto tempStr{IG::toUpperCase(code)};
+	if(tempStr.size() == 17 && tempStr[8] == ' ')
 	{
-		app().postMessage(true, "Too many cheats, delete some first");
+		log.info("removing middle space in text");
+		tempStr.erase(tempStr.begin() + 8);
+	}
+	if(isGSv3 ?
+		cheatsAddGSACode(gGba.cpu, tempStr.data(), name, true) :
+		((tempStr.size() == 16 && cheatsAddGSACode(gGba.cpu, tempStr.data(), name, false))
+		|| cheatsAddCBACode(gGba.cpu, tempStr.data(), name)))
+	{
+		log.info("added new cheat, {} total", cheatsList.size());
+	}
+	else
+	{
+		app.postMessage(true, "Invalid format");
+		return {};
+	}
+	cheatsDisable(gGba.cpu, cheatsList.size() - 1);
+	return &cheatsList.back();
+}
+
+static CheatsData* addCodeSorted(EmuApp& app, const char* code, const char* name, bool isGSv3)
+{
+	if(!addCode(app, code, name, isGSv3))
+		return {};
+	return &sortLastCheat();
+}
+
+static void enableCheat(std::string_view name)
+{
+	for(auto& c: matchingCheats(name)) { cheatsEnable(c); };
+}
+
+static void disableCheat(ARM7TDMI& cpu, std::string_view name)
+{
+	for(auto& c: matchingCheats(name)) { cheatsDisable(cpu, c);  };
+}
+
+static bool cheatExists(std::string_view name)
+{
+	for(auto& _: matchingCheats(name)) { return true; }
+	return false;
+}
+
+static std::span<Cheat> cheats()
+{
+	return std::span<Cheat>{static_cast<Cheat*>(cheatsList.data()), cheatsList.size()};
+}
+
+Cheat* GbaSystem::newCheat(EmuApp& app, const char* name, CheatCodeDesc code)
+{
+	auto newCheat = addCode(app, code.str, name, code.flags);
+	if(!newCheat)
+		return {};
+	if(strlen(name))
+		newCheat = &sortLastCheat();
+	writeCheatFile();
+	return static_cast<Cheat*>(newCheat);
+}
+
+bool GbaSystem::setCheatName(Cheat& cheat, const char* newName)
+{
+	if(cheatExists(newName))
+		return false;
+	auto name = std::to_array(cheat.desc);
+	for(auto& c: matchingCheats(std::string_view{name.data()}))
+	{
+		strncpy(c.desc, newName, sizeof(c.desc));
+	}
+	writeCheatFile();
+	return true;
+}
+
+std::string_view GbaSystem::cheatName(const Cheat& c) const { return c.desc; }
+
+void GbaSystem::setCheatEnabled(Cheat& c, bool on)
+{
+	if(on)
+		enableCheat(c.desc);
+	else
+		disableCheat(gGba.cpu, c.desc);
+	writeCheatFile();
+}
+
+bool GbaSystem::isCheatEnabled(const Cheat& c) const { return c.enabled; }
+
+bool GbaSystem::addCheatCode(EmuApp& app, Cheat*& cheatPtr, CheatCodeDesc code)
+{
+	auto cheatIdx = std::distance(cheats().data(), cheatPtr);
+	auto name = std::to_array(cheatPtr->desc);
+	bool isEnabled = cheatPtr->enabled;
+	auto codePtr = addCodeSorted(app, code.str, name.data(), code.flags);
+	if(!codePtr)
+		return false;
+	cheatPtr = &cheats()[cheatIdx];
+	if(isEnabled)
+		cheatsEnable(*codePtr);
+	writeCheatFile();
+	return true;
+}
+
+Cheat* GbaSystem::removeCheatCode(Cheat& cheat, CheatCode& code)
+{
+	cheatsDisable(gGba.cpu, code);
+	auto name = std::to_array(cheat.desc);
+	cheatsDelete(gGba.cpu, std::distance(static_cast<CheatCode*>(cheatsList.data()), &code), true);
+	writeCheatFile();
+	for(auto& c: matchingCheats(std::string_view{name.data()})) { return static_cast<Cheat*>(&c); }
+	return {};
+}
+
+bool GbaSystem::removeCheat(Cheat& cheat)
+{
+	forEachCheatCode(cheat, [&](CheatCode& code, std::string_view){ cheatsDisable(gGba.cpu, code); return true; });
+	bool didDelete{};
+	auto name = std::to_array(cheat.desc);
+	while(deleteOneCheat(std::string_view{name.data()})) { didDelete = true; }
+	writeCheatFile();
+	return didDelete;
+}
+
+void GbaSystem::forEachCheat(DelegateFunc<bool(Cheat&, std::string_view)> del)
+{
+	std::string_view lastName{};
+	for(auto& c: cheatsList)
+	{
+		if(lastName == c.desc)
+			continue;
+		lastName = c.desc;
+		if(!del(static_cast<Cheat&>(c), std::string_view{c.desc}))
+			break;
+	}
+}
+
+void GbaSystem::forEachCheatCode(Cheat& c, DelegateFunc<bool(CheatCode&, std::string_view)> del)
+{
+	for(auto& c: matchingCheats(c.desc))
+	{
+		if(!del(static_cast<CheatCode&>(c), std::string_view{c.desc}))
+			break;
+	}
+}
+
+void GbaSystem::readCheatFile()
+{
+	auto filename = userFilePath(cheatsDir, ".clt");
+	if(cheatsLoadCheatList(appContext(), filename.data()))
+	{
+		log.info("loaded cheat file:{}", filename);
+		std::vector<CheatsData> groupedCheatsList;
+		groupedCheatsList.reserve(cheatsList.size());
+		for(auto& c: cheatsList) { sortCheat(groupedCheatsList, c); }
+		cheatsList = std::move(groupedCheatsList);
+		//for(auto& c: cheatsList) { log.debug("cheat:{} {}", c.desc, c.codestring); }
+	}
+}
+
+void GbaSystem::writeCheatFile()
+{
+	auto ctx = appContext();
+	auto filename = userFilePath(cheatsDir, ".clt");
+	if(cheatsList.empty())
+	{
+		log.info("deleting cheats file:{}", filename);
+		ctx.removeFileUri(filename);
 		return;
 	}
-	pushAndShowNewCollectTextInputView(attachParams(), {},
-		isGSv3 ? "Input xxxxxxxx yyyyyyyy" : "Input xxxxxxxx yyyyyyyy (GS) or xxxxxxxx yyyy (AR)", "",
-		[this, isGSv3](CollectTextInputView &view, const char *str)
-		{
-			if(str)
-			{
-				auto tempStr{IG::toUpperCase(str)};
-				if(tempStr.size() == 17 && tempStr[8] == ' ')
-				{
-					logMsg("removing middle space in text");
-					tempStr.erase(tempStr.begin() + 8);
-				}
-				if(isGSv3 ?
-					cheatsAddGSACode(gGba.cpu, tempStr.data(), "Unnamed Cheat", true) :
-					((tempStr.size() == 16 && cheatsAddGSACode(gGba.cpu, tempStr.data(), "Unnamed Cheat", false))
-					|| cheatsAddCBACode(gGba.cpu, tempStr.data(), "Unnamed Cheat")))
-				{
-					logMsg("added new cheat, %d total", (int)cheatsList.size());
-				}
-				else
-				{
-					app().postMessage(true, "Invalid format");
-					return true;
-				}
-				cheatsDisable(gGba.cpu, cheatsList.size()-1);
-				onCheatListChanged();
-				writeCheatFile(system());
-				view.dismiss();
-				pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
-					[this](CollectTextInputView &view, const char *str)
-					{
-						if(str)
-						{
-							auto &cheat = cheatsList[cheatsList.size()-1];
-							strncpy(cheat.desc, str, sizeof(cheat.desc));
-							onCheatListChanged();
-							view.dismiss();
-						}
-						else
-						{
-							view.dismiss();
-						}
-						return false;
-					});
-			}
-			else
-			{
-				view.dismiss();
-			}
-			return false;
-		});
+	cheatsSaveCheatList(ctx, filename.data());
 }
 
-EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
-	BaseEditCheatListView
+EditCheatView::EditCheatView(ViewAttachParams attach, Cheat& cheat, BaseEditCheatsView& editCheatsView):
+	BaseEditCheatView
+	{
+		"Edit Cheat",
+		attach,
+		cheat,
+		editCheatsView,
+		items
+	},
+	addGS12CBCode
+	{
+		"Add Another Game Shark v1-2/Code Breaker Code", attach,
+		[this](const Input::Event& e) { addNewCheatCode(cheatInputString(false), e, 0); }
+	},
+	addGS3Code
+	{
+		"Add Another Game Shark v3 Code", attach,
+		[this](const Input::Event& e) { addNewCheatCode(cheatInputString(true), e, 1); }
+	}
+{
+	loadItems();
+}
+
+void EditCheatView::loadItems()
+{
+	codes.clear();
+	system().forEachCheatCode(*cheatPtr, [this](CheatCode& c, std::string_view code)
+	{
+		codes.emplace_back("Code", c.codestring, attachParams(), [this, &c](const Input::Event& e)
+		{
+			pushAndShowModal(makeView<YesNoAlertView>("Really delete this code?",
+				YesNoAlertView::Delegates{.onYes = [this, &c]{ removeCheatCode(c); }}), e);
+		});
+		return true;
+	});
+	items.clear();
+	items.emplace_back(&name);
+	for(auto& c: codes)
+	{
+		items.emplace_back(&c);
+	}
+	items.emplace_back(&addGS12CBCode);
+	items.emplace_back(&addGS3Code);
+	items.emplace_back(&remove);
+}
+
+EditCheatsView::EditCheatsView(ViewAttachParams attach, CheatsView& cheatsView):
+	BaseEditCheatsView
 	{
 		attach,
+		cheatsView,
 		[this](ItemMessage msg) -> ItemReply
 		{
 			return msg.visit(overloaded
 			{
-				[&](const ItemsMessage &m) -> ItemReply { return 2 + cheat.size(); },
+				[&](const ItemsMessage &m) -> ItemReply { return 2 + cheats.size(); },
 				[&](const GetItemMessage &m) -> ItemReply
 				{
 					switch(m.idx)
 					{
 						case 0: return &addGS12CBCode;
 						case 1: return &addGS3Code;
-						default: return &cheat[m.idx - 2];
+						default: return &cheats[m.idx - 2];
 					}
 				},
 			});
@@ -173,69 +323,12 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	addGS12CBCode
 	{
 		"Add Game Shark v1-2/Code Breaker Code", attach,
-		[this](TextMenuItem &item, View &, Input::Event e)
-		{
-			addNewCheat(false);
-		}
+		[this](const Input::Event& e) { addNewCheat(cheatInputString(false), e, 0); }
 	},
 	addGS3Code
 	{
 		"Add Game Shark v3 Code", attach,
-		[this](TextMenuItem &item, View &, Input::Event e)
-		{
-			addNewCheat(true);
-		}
-	}
-{
-	loadCheatItems();
-}
-
-void EmuCheatsView::loadCheatItems()
-{
-	cheat.clear();
-	cheat.reserve(cheatsList.size());
-	for(auto &c : cheatsList)
-	{
-		cheat.emplace_back(c.desc, attachParams(), c.enabled,
-			[this, idx = std::distance(cheatsList.data(), &c)](BoolMenuItem &item, Input::Event e)
-			{
-				bool on = item.flipBoolValue(*this);
-				if(on)
-					cheatsEnable(idx);
-				else
-					cheatsDisable(gGba.cpu, idx);
-				writeCheatFile(system());
-			});
-	}
-}
-
-EmuCheatsView::EmuCheatsView(ViewAttachParams attach): BaseCheatsView{attach}
-{
-	loadCheatItems();
-}
-
-static void writeCheatFile(EmuSystem &sys_)
-{
-	auto &sys = static_cast<GbaSystem&>(sys_);
-	auto ctx = sys.appContext();
-	auto filename = sys.userFilePath(sys.cheatsDir, ".clt");
-	if(cheatsList.empty())
-	{
-		logMsg("deleting cheats file %s", filename.data());
-		ctx.removeFileUri(filename);
-		return;
-	}
-	cheatsSaveCheatList(ctx, filename.data());
-}
-
-void readCheatFile(EmuSystem &sys_)
-{
-	auto &sys = static_cast<GbaSystem&>(sys_);
-	auto filename = sys.userFilePath(sys.cheatsDir, ".clt");
-	if(cheatsLoadCheatList(sys.appContext(), filename.data()))
-	{
-		logMsg("loaded cheat file: %s", filename.data());
-	}
-}
+		[this](const Input::Event& e) { addNewCheat(cheatInputString(true), e, 1); }
+	} {}
 
 }

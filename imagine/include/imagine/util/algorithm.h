@@ -62,12 +62,6 @@ constexpr std::ranges::range_value_t<Range>::pointer findPtr(Range&& r, auto&& c
 	return opt ? opt.value()->get() : nullptr;
 }
 
-// TODO: replace with std::ranges::contains when libc++ 19 is released
-constexpr bool contains(std::ranges::range auto&& r, const auto& val)
-{
-	return find(r, val).has_value();
-}
-
 constexpr bool eraseFirst(std::ranges::range auto&& r, auto&& compare)
 {
 	auto optIt = find(r, compare);

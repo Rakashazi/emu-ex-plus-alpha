@@ -19,6 +19,7 @@
 #include <imagine/util/bit.hh>
 #include <imagine/util/string.h>
 #include <emuframework/EmuSystem.hh>
+#include <vector>
 
 namespace EmuEx
 {
@@ -26,58 +27,33 @@ namespace EmuEx
 // Needs to be a #define because it get strigified in Cheats.cc
 #define MAX_CHEAT_NAME_CHARS 127
 
-struct MdCheat
+using CheatCodeString = StaticString<11>;
+
+struct CheatCode
 {
-	constexpr MdCheat() { }
-	uint8_t flags = 0;
-	IG::StaticString<MAX_CHEAT_NAME_CHARS> name{};
-	IG::StaticString<11> code{};
-	uint32_t address = 0;
-	uint16_t data = 0;
-	uint16_t origData = 0;
+	CheatCodeString text;
+	uint32_t address{};
+	uint16_t data{};
+	uint16_t origData{};
 	uint8_t *prev{};
 
-	static const uint8_t ON = IG::bit(0), APPLIED = IG::bit(1);
+	constexpr bool operator==(const CheatCode& rhs) const { return text == rhs.text;  }
+};
 
-	bool isOn()
+struct Cheat
+{
+	StaticString<MAX_CHEAT_NAME_CHARS> name;
+	std::vector<CheatCode> codes;
+	union
 	{
-		return flags & ON;
-	}
+		struct{uint8_t on:1, applied:1;};
+		uint8_t flags{};
+	};
 
-	bool isApplied()
+	bool operator==(Cheat const& rhs) const
 	{
-		return flags & APPLIED;
-	}
-
-	void toggleOn()
-	{
-		flags ^= ON;
-	}
-
-	void setApplied(bool applied)
-	{
-		flags = setOrClearBits(flags, APPLIED, applied);
-	}
-
-	bool operator ==(MdCheat const& rhs) const
-	{
-		return code == rhs.code;
+		return codes == rhs.codes;
 	}
 };
 
-void applyCheats();
-void clearCheats();
-void updateCheats(); // clears and applies cheats
-void clearCheatList();
-void writeCheatFile(EmuSystem &);
-void readCheatFile(EmuSystem &);
-void RAMCheatUpdate();
-
-static constexpr size_t maxCheats = 100;
-extern StaticArrayList<MdCheat, maxCheats> cheatList;
-extern StaticArrayList<MdCheat*, maxCheats> romCheatList;
-extern StaticArrayList<MdCheat*, maxCheats> ramCheatList;
-
 }
-
-void ROMCheatUpdate();

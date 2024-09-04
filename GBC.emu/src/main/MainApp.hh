@@ -17,6 +17,7 @@
 
 #include <emuframework/EmuApp.hh>
 #include "MainSystem.hh"
+#include "EmuCheatViews.hh"
 
 namespace EmuEx
 {
@@ -34,6 +35,16 @@ public:
 	static std::span<const KeyConfigDesc> defaultKeyConfigs();
 	static std::string_view systemKeyCodeToString(KeyCode);
 	static bool allowsTurboModifier(KeyCode);
+
+	std::unique_ptr<View> makeEditCheatsView(ViewAttachParams attach, CheatsView& view)
+	{
+		return std::make_unique<EditCheatsView>(attach, view);
+	}
+
+	std::unique_ptr<View> makeEditCheatView(ViewAttachParams attach, Cheat& c, BaseEditCheatsView& baseView)
+	{
+		return std::make_unique<EditCheatView>(attach, c, baseView);
+	}
 };
 
 using MainApp = GbcApp;

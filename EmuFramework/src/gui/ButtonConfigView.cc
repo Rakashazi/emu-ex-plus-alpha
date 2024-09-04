@@ -281,11 +281,11 @@ bool ButtonConfigSetView::inputEvent(const Input::Event& e, ViewInputEventParams
 					}
 					return true;
 				}
-				if(contains(pushedKeys, keyEv.key()))
+				if(std::ranges::contains(pushedKeys, keyEv.key()))
 				{
 					return true;
 				}
-				if((contains(pushedKeys, Input::Keycode::GAME_L2) || contains(pushedKeys, Input::Keycode::GAME_R2)) &&
+				if((std::ranges::contains(pushedKeys, Input::Keycode::GAME_L2) || std::ranges::contains(pushedKeys, Input::Keycode::GAME_R2)) &&
 					(keyEv.key() == Input::Keycode::JS_LTRIGGER_AXIS || keyEv.key() == Input::Keycode::JS_RTRIGGER_AXIS))
 				{
 					log.info("ignoring trigger axis to avoid duplicate events since L2/R2 keys are pushed");

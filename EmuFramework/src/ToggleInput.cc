@@ -27,7 +27,7 @@ void ToggleInput::updateEvent(EmuApp &app, KeyInfo key, Input::Action act)
 	if(act != Input::Action::PUSHED)
 		return;
 	key.flags.toggle = 0;
-	if(!contains(keys, key))
+	if(!std::ranges::contains(keys, key))
 	{
 		if(keys.tryPushBack(key))
 		{

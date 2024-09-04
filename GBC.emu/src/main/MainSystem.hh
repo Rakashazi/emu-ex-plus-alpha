@@ -22,7 +22,9 @@
 #include <libgambatte/src/video/lcddef.h>
 #include <resample/resampler.h>
 #include <imagine/fs/FS.hh>
+#include <imagine/util/bit.hh>
 #include <memory>
+#include <vector>
 
 namespace EmuEx
 {
@@ -37,6 +39,18 @@ enum
 
 constexpr unsigned COLOR_CONVERSION_SATURATED_BIT = bit(0);
 constexpr unsigned COLOR_CONVERSION_BGR_BIT = bit(1);
+
+class CheatCode: public StaticString<12> {};
+
+class Cheat
+{
+public:
+	StaticString<64> name;
+	std::vector<CheatCode> codes{};
+	uint8_t on:1{};
+
+	bool operator==(Cheat const& rhs) const { return codes == rhs.codes; }
+};
 
 class GbcInput final : public gambatte::InputGetter
 {
@@ -57,6 +71,7 @@ public:
 	FileIO saveFileIO;
 	FileIO rtcFileIO;
 	std::string cheatsDir;
+	std::vector<Cheat> cheatList;
 	size_t saveStateSize{};
 	uint64_t totalSamples{};
 	uint32_t totalFrames{};
@@ -82,6 +97,8 @@ public:
 	}
 	void applyGBPalette();
 	void applyCheats();
+	void readCheatFile();
+	void writeCheatFile();
 	void refreshPalettes();
 
 	// required API functions
@@ -111,6 +128,17 @@ public:
 	bool resetSessionOptions(EmuApp &);
 	bool onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat);
 	void renderFramebuffer(EmuVideo &);
+	Cheat* newCheat(EmuApp&, const char* name, CheatCodeDesc);
+	bool setCheatName(Cheat&, const char* name);
+	std::string_view cheatName(const Cheat&) const;
+	void setCheatEnabled(Cheat&, bool on);
+	bool isCheatEnabled(const Cheat&) const;
+	bool addCheatCode(EmuApp&, Cheat*&, CheatCodeDesc);
+	bool modifyCheatCode(EmuApp&, Cheat&, CheatCode&, CheatCodeDesc);
+	Cheat* removeCheatCode(Cheat&, CheatCode&);
+	bool removeCheat(Cheat&);
+	void forEachCheat(DelegateFunc<bool(Cheat&, std::string_view)>);
+	void forEachCheatCode(Cheat&, DelegateFunc<bool(CheatCode&, std::string_view)>);
 
 protected:
 	uint_least32_t makeOutputColor(uint_least32_t rgb888) const;

@@ -54,7 +54,6 @@ bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 bool EmuSystem::hasRectangularPixels = true;
 bool EmuApp::needsGlobalInstance = true;
-unsigned fceuCheats = 0;
 
 NesApp::NesApp(ApplicationInitParams initParams, ApplicationContext &ctx):
 	EmuApp{initParams, ctx}, nesSystem{ctx}
@@ -178,7 +177,6 @@ WallClockTimePoint NesSystem::backupMemoryLastWriteTime(const EmuApp &app) const
 void NesSystem::closeSystem()
 {
 	FCEUI_CloseGame();
-	fceuCheats = 0;
 	fdsIsAccessing = false;
 }
 
@@ -308,13 +306,6 @@ void NesSystem::setupNESInputPorts()
 	setupNESFourScore();
 }
 
-static int cheatCallback(const char *name, uint32 a, uint8 v, int compare, int s, int type, void *data)
-{
-	log.info("cheat:{}, {}", name, s);
-	fceuCheats++;
-	return 1;
-}
-
 const char *regionToStr(int region)
 {
 	switch(region)
@@ -381,9 +372,6 @@ void NesSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 	}
 	autoDetectedRegion = regionFromName(contentFileName());
 	setRegion(optionVideoSystem, optionDefaultVideoSystem, autoDetectedRegion);
-	FCEUI_ListCheats(cheatCallback, 0);
-	if(fceuCheats)
-		log.info("{} total cheats", fceuCheats);
 	setupNESInputPorts();
 	EMUFILE_MEMORY stateMemFile;
 	FCEUSS_SaveMS(&stateMemFile, 0);

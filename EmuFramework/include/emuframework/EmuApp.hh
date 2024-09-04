@@ -61,6 +61,9 @@ namespace EmuEx
 struct MainWindowData;
 class EmuMainMenuView;
 class EmuViewController;
+class Cheat;
+class CheatsView;
+class BaseEditCheatsView;
 
 WISE_ENUM_CLASS((AssetFileID, size_t),
 	ui,
@@ -148,8 +151,6 @@ public:
 		SYSTEM_OPTIONS,
 		FILE_PATH_OPTIONS,
 		GUI_OPTIONS,
-		EDIT_CHEATS,
-		LIST_CHEATS,
 	};
 
 	// Static app configuration
@@ -167,6 +168,8 @@ public:
 	// optional sub-class API functions
 	bool willCreateSystem(ViewAttachParams, const Input::Event &);
 	static bool allowsTurboModifier(KeyCode);
+	std::unique_ptr<View> makeEditCheatsView(ViewAttachParams, CheatsView&);
+	std::unique_ptr<View> makeEditCheatView(ViewAttachParams, Cheat&, BaseEditCheatsView&);
 
 	void mainInitCommon(IG::ApplicationInitParams, IG::ApplicationContext);
 	static void onCustomizeNavView(NavView &v);

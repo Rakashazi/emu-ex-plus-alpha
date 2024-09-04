@@ -25,9 +25,11 @@ template<std::integral T>
 constexpr auto iotaCount(T count) { return std::views::iota((T)0, count); }
 
 template<std::ranges::range T>
-constexpr auto enumerate(T &&rng) { return std::views::zip(std::views::iota(0), std::forward<T>(rng)); }
+constexpr auto enumerate(T&& rng) { return std::views::zip(std::views::iota(0), std::forward<T>(rng)); }
 
 template<std::ranges::range T>
-constexpr auto lastIndex(T &&rng) { return std::ranges::size(std::forward<T>(rng)) - 1; }
+constexpr auto lastIndex(T&& rng) { return std::ranges::size(std::forward<T>(rng)) - 1; }
+
+constexpr auto toIterator(std::ranges::range auto&& rng, auto& elem) { return rng.begin() + std::distance(rng.data(), &elem); }
 
 }

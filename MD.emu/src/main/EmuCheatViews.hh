@@ -25,37 +25,23 @@ namespace EmuEx
 
 unsigned decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &originalData);
 
-class EmuCheatsView : public BaseCheatsView
+class EditCheatsView : public BaseEditCheatsView
 {
 public:
-	EmuCheatsView(ViewAttachParams attach);
+	EditCheatsView(ViewAttachParams, CheatsView& cheatsView);
 
 private:
-	void loadCheatItems() final;
+	TextMenuItem addCode;
 };
 
-class EmuEditCheatListView : public BaseEditCheatListView
+class EditCheatView : public BaseEditCheatView
 {
 public:
-	EmuEditCheatListView(ViewAttachParams attach);
+	EditCheatView(ViewAttachParams, Cheat& cheat, BaseEditCheatsView& editCheatsView);
+	void loadItems();
 
 private:
-	TextMenuItem addCode{};
-
-	void loadCheatItems() final;
-};
-
-class EmuEditCheatView : public BaseEditCheatView<EmuEditCheatView>
-{
-public:
-	EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat, RefreshCheatsDelegate onCheatListChanged_);
-	std::string_view cheatNameString() const;
-	void renamed(std::string_view);
-
-private:
-	std::array<MenuItem*, 3> items;
-	DualTextMenuItem code{};
-	MdCheat *cheat{};
+	TextMenuItem addCode;
 };
 
 }

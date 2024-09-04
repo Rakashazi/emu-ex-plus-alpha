@@ -207,20 +207,20 @@ void setSaveType(int type, int size)
 static GbaSensorType detectSensorType(std::string_view gameId)
 {
 	static constexpr std::string_view tiltIds[]{"KHPJ", "KYGJ", "KYGE", "KYGP"};
-	if(IG::contains(tiltIds, gameId))
+	if(std::ranges::contains(tiltIds, gameId))
 	{
 		logMsg("detected accelerometer sensor");
 		return GbaSensorType::Accelerometer;
 	}
 	static constexpr std::string_view gyroIds[]{"RZWJ", "RZWE", "RZWP"};
-	if(IG::contains(gyroIds, gameId))
+	if(std::ranges::contains(gyroIds, gameId))
 	{
 		logMsg("detected gyroscope sensor");
 		return GbaSensorType::Gyroscope;
 	}
 	static constexpr std::string_view lightIds[]{"U3IJ", "U3IE", "U3IP",
 		"U32J", "U32E", "U32P", "U33J"};
-	if(IG::contains(lightIds, gameId))
+	if(std::ranges::contains(lightIds, gameId))
 	{
 		logMsg("detected light sensor");
 		return GbaSensorType::Light;
@@ -430,15 +430,22 @@ void utilReadDataMem(const uint8_t*& data, const variable_desc* desc)
 
 void cheatsSaveGame(uint8_t*& data)
 {
-	utilWriteIntMem(data, cheatsList.size());
-	utilWriteMem(data, cheatsList.data(), CHEATS_LIST_DATA_SIZE);
+	utilWriteIntMem(data, 0);
+	CheatsData cheat{};
+	for([[maybe_unused]] auto i: iotaCount(100))
+	{
+		utilWriteMem(data, &cheat, sizeof(cheat));
+	}
 }
 
 void cheatsReadGame(const uint8_t*& data)
 {
-  int cheats = utilReadIntMem(data);
-  cheatsList.resize(cheats);
-  utilReadMem(cheatsList.data(), data, CHEATS_LIST_DATA_SIZE);
+  utilReadIntMem(data);
+  CheatsData cheat{};
+	for([[maybe_unused]] auto i: iotaCount(100))
+	{
+		utilReadMem(&cheat, data, sizeof(cheat));
+	}
 }
 
 const char *dispModeName(GBALCD::RenderLineFunc renderLine)

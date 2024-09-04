@@ -67,7 +67,7 @@ constexpr auto severityToColorCode(LoggerSeverity severity)
 	}
 }
 
-constexpr void beginMsg(auto& str, LoggerSeverity lv, std::string_view tag, std::string_view format, std::format_args args)
+inline void beginMsg(auto& str, LoggerSeverity lv, std::string_view tag, std::string_view format, std::format_args args)
 {
 	if(Config::envIsLinux)
 	{

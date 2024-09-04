@@ -299,7 +299,7 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect 
 			// release old buttons
 			for(auto vBtn : prevElements)
 			{
-				if(vBtn && !contains(currElements, vBtn))
+				if(vBtn && !std::ranges::contains(currElements, vBtn))
 				{
 					//log.info("releasing {}", vBtn[0]);
 					app.handleSystemKeyInput(vBtn, Input::Action::RELEASED);
@@ -308,7 +308,7 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, IG::WindowRect 
 			// push new buttons
 			for(auto vBtn : currElements)
 			{
-				if(vBtn && !contains(prevElements, vBtn))
+				if(vBtn && !std::ranges::contains(prevElements, vBtn))
 				{
 					//log.info("pushing {}", vBtn[0]);
 					app.handleSystemKeyInput(vBtn, Input::Action::PUSHED);
@@ -424,9 +424,9 @@ bool VController::keyIsEnabled(KeyInfo k) const
 {
 	if(!disabledKeys.size())
 		return true;
-	return !contains(disabledKeys, k.codes[0])
-		&& !contains(disabledKeys, k.codes[1])
-		&& !contains(disabledKeys, k.codes[2]);
+	return !std::ranges::contains(disabledKeys, k.codes[0])
+		&& !std::ranges::contains(disabledKeys, k.codes[1])
+		&& !std::ranges::contains(disabledKeys, k.codes[2]);
 }
 
 void VController::setDisabledInputKeys(std::span<const KeyCode> disabledKeys_)

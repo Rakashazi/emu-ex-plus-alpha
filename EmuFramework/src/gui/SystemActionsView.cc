@@ -21,6 +21,7 @@
 #include <emuframework/CreditsView.hh>
 #include <emuframework/StateSlotView.hh>
 #include <emuframework/BundledGamesView.hh>
+#include <emuframework/Cheats.hh>
 #include <emuframework/viewUtils.hh>
 #include "InputOverridesView.hh"
 #include "AutosaveSlotView.hh"
@@ -58,7 +59,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 		{
 			if(system().hasContent())
 			{
-				pushAndShow(app().makeView(attachParams(), EmuApp::ViewID::LIST_CHEATS), e);
+				pushAndShow(makeView<CheatsView>(), e);
 			}
 		}
 	},

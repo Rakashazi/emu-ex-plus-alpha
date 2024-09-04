@@ -16,43 +16,27 @@
 	along with GBA.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/Cheats.hh>
-#include <vector>
 
 namespace EmuEx
 {
 
-class EmuCheatsView : public BaseCheatsView
+class EditCheatsView : public BaseEditCheatsView
 {
 public:
-	EmuCheatsView(ViewAttachParams attach);
+	EditCheatsView(ViewAttachParams, CheatsView&);
 
 private:
-	void loadCheatItems() final;
+	TextMenuItem addGS12CBCode, addGS3Code;
 };
 
-class EmuEditCheatListView : public BaseEditCheatListView
+class EditCheatView : public BaseEditCheatView
 {
 public:
-	EmuEditCheatListView(ViewAttachParams attach);
+	EditCheatView(ViewAttachParams, Cheat&, BaseEditCheatsView&);
+	void loadItems();
 
 private:
-	TextMenuItem addGS12CBCode{}, addGS3Code{};
-
-	void loadCheatItems() final;
-	void addNewCheat(int isGSv3);
-};
-
-class EmuEditCheatView : public BaseEditCheatView<EmuEditCheatView>
-{
-public:
-	EmuEditCheatView(ViewAttachParams attach, int cheatIdx, RefreshCheatsDelegate onCheatListChanged_);
-	std::string_view cheatNameString() const;
-	void renamed(std::string_view);
-
-private:
-	std::array<MenuItem*, 3> items;
-	DualTextMenuItem code{};
-	int idx = 0;
+	TextMenuItem addGS12CBCode, addGS3Code;
 };
 
 }

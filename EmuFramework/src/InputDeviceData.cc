@@ -120,7 +120,7 @@ void InputDeviceData::updateInputKey(const Input::KeyEvent &keyEv)
 
 void InputDeviceData::addInputKey(Input::Key key)
 {
-	if(contains(pushedInputKeys, key))
+	if(std::ranges::contains(pushedInputKeys, key))
 		return;
 	pushedInputKeys.tryPushBack(key);
 }
@@ -134,7 +134,7 @@ bool InputDeviceData::keysArePushed(MappedKeys mapKeys)
 {
 	for(auto k : mapKeys)
 	{
-		if(!contains(pushedInputKeys, k))
+		if(!std::ranges::contains(pushedInputKeys, k))
 			return false;
 	}
 	return true;

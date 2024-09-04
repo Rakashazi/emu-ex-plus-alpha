@@ -21,7 +21,6 @@
 #include <emuframework/SystemActionsView.hh>
 #include <emuframework/DataPathSelectView.hh>
 #include <emuframework/viewUtils.hh>
-#include "EmuCheatViews.hh"
 #include "MainApp.hh"
 #include "GBASys.hh"
 #include <imagine/gui/AlertView.hh>
@@ -539,8 +538,6 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
 		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach, audio);
 		case ViewID::FILE_PATH_OPTIONS: return std::make_unique<CustomFilePathOptionView>(attach);
-		case ViewID::EDIT_CHEATS: return std::make_unique<EmuEditCheatListView>(attach);
-		case ViewID::LIST_CHEATS: return std::make_unique<EmuCheatsView>(attach);
 		default: return nullptr;
 	}
 }

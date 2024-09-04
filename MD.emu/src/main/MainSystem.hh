@@ -18,6 +18,7 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuOptions.hh>
 #include <emuframework/Option.hh>
+#include "Cheats.hh"
 #include "genplus-config.h"
 #include "system.h"
 #include "state.h"
@@ -65,10 +66,21 @@ public:
 	static constexpr size_t maxSaveStateSize = STATE_SIZE + 4;
 	static constexpr auto ntscFrameTime{fromSeconds<FrameTime>(262. * MCYCLES_PER_LINE / 53693175.)}; // ~59.92Hz
 	static constexpr auto palFrameTime{fromSeconds<FrameTime>(313. * MCYCLES_PER_LINE / 53203424.)}; // ~49.70Hz
+	std::vector<Cheat> cheatList;
+	std::vector<CheatCode*> romCheatList;
+	std::vector<CheatCode*> ramCheatList;
 
 	MdSystem(ApplicationContext ctx):
 		EmuSystem{ctx} {}
 	void setupInput(EmuApp &);
+	void writeCheatFile();
+	void readCheatFile();
+	void applyCheats();
+	void clearCheats();
+	void clearCheatList();
+	void updateCheats();
+	void RAMCheatUpdate();
+	void ROMCheatUpdate();
 
 	// required API functions
 	void loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
@@ -103,6 +115,17 @@ public:
 		Input::DragTrackerState prevDragState, IG::WindowRect gameRect);
 	bool onPointerInputEnd(const Input::MotionEvent &, Input::DragTrackerState, IG::WindowRect gameRect);
 	VideoSystem videoSystem() const;
+	Cheat* newCheat(EmuApp&, const char* name, CheatCodeDesc);
+	bool setCheatName(Cheat&, const char* name);
+	std::string_view cheatName(const Cheat&) const;
+	void setCheatEnabled(Cheat&, bool on);
+	bool isCheatEnabled(const Cheat&) const;
+	bool addCheatCode(EmuApp&, Cheat*&, CheatCodeDesc);
+	bool modifyCheatCode(EmuApp&, Cheat&, CheatCode&, CheatCodeDesc);
+	Cheat* removeCheatCode(Cheat&, CheatCode&);
+	bool removeCheat(Cheat&);
+	void forEachCheat(DelegateFunc<bool(Cheat&, std::string_view)>);
+	void forEachCheatCode(Cheat&, DelegateFunc<bool(CheatCode&, std::string_view)>);
 
 private:
 	void setupSmsInput(EmuApp &);

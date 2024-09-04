@@ -27,7 +27,6 @@ gui/AudioOptionView.cc \
 gui/AutosaveSlotView.cc \
 gui/BundledGamesView.cc \
 gui/ButtonConfigView.cc \
-gui/Cheats.cc \
 gui/CPUAffinityView.cc \
 gui/CreditsView.cc \
 gui/EmuInputView.cc \

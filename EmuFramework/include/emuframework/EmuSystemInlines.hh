@@ -280,4 +280,78 @@ void EmuSystem::addThreadGroupIds(std::vector<ThreadId> &ids) const
 		static_cast<const MainSystem*>(this)->addThreadGroupIds(ids);
 }
 
+Cheat* EmuSystem::newCheat(EmuApp& app, const char* name, CheatCodeDesc desc)
+{
+	if(&MainSystem::newCheat != &EmuSystem::newCheat)
+		return static_cast<MainSystem*>(this)->newCheat(app, name, desc);
+	return {};
+}
+
+bool EmuSystem::setCheatName(Cheat& c, const char* name)
+{
+	if(&MainSystem::setCheatName != &EmuSystem::setCheatName)
+		return static_cast<MainSystem*>(this)->setCheatName(c, name);
+	return false;
+}
+
+std::string_view EmuSystem::cheatName(const Cheat& c) const
+{
+	if(&MainSystem::cheatName != &EmuSystem::cheatName)
+		return static_cast<const MainSystem*>(this)->cheatName(c);
+	return {};
+}
+
+void EmuSystem::setCheatEnabled(Cheat& c, bool on)
+{
+	if(&MainSystem::setCheatEnabled != &EmuSystem::setCheatEnabled)
+		static_cast<MainSystem*>(this)->setCheatEnabled(c, on);
+}
+
+bool EmuSystem::isCheatEnabled(const Cheat& c) const
+{
+	if(&MainSystem::isCheatEnabled != &EmuSystem::isCheatEnabled)
+		return static_cast<const MainSystem*>(this)->isCheatEnabled(c);
+	return false;
+}
+
+bool EmuSystem::addCheatCode(EmuApp& app, Cheat*& cPtr, CheatCodeDesc desc)
+{
+	if(&MainSystem::addCheatCode != &EmuSystem::addCheatCode)
+		return static_cast<MainSystem*>(this)->addCheatCode(app, cPtr, desc);
+	return false;
+}
+
+bool EmuSystem::modifyCheatCode(EmuApp& app, Cheat& c, CheatCode& code, CheatCodeDesc desc)
+{
+	if(&MainSystem::modifyCheatCode != &EmuSystem::modifyCheatCode)
+		return static_cast<MainSystem*>(this)->modifyCheatCode(app, c, code, desc);
+	return false;
+}
+
+Cheat* EmuSystem::removeCheatCode(Cheat& c, CheatCode& code)
+{
+	if(&MainSystem::removeCheatCode != &EmuSystem::removeCheatCode)
+		return static_cast<MainSystem*>(this)->removeCheatCode(c, code);
+	return {};
+}
+
+bool EmuSystem::removeCheat(Cheat& c)
+{
+	if(&MainSystem::removeCheat != &EmuSystem::removeCheat)
+		return static_cast<MainSystem*>(this)->removeCheat(c);
+	return false;
+}
+
+void EmuSystem::forEachCheat(DelegateFunc<bool(Cheat&, std::string_view)> del)
+{
+	if(&MainSystem::forEachCheat != &EmuSystem::forEachCheat)
+		static_cast<MainSystem*>(this)->forEachCheat(del);
+}
+
+void EmuSystem::forEachCheatCode(Cheat& c, DelegateFunc<bool(CheatCode&, std::string_view)> del)
+{
+	if(&MainSystem::forEachCheatCode != &EmuSystem::forEachCheatCode)
+		static_cast<MainSystem*>(this)->forEachCheatCode(c, del);
+}
+
 }

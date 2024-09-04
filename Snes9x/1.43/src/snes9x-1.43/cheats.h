@@ -90,6 +90,7 @@
 #define _CHEATS_H_
 
 #include "port.h"
+#include <string>
 
 struct SCheat
 {
@@ -98,7 +99,7 @@ struct SCheat
     uint8   saved_byte;
     bool8   enabled;
     bool8   saved;
-    char    name [22];
+    std::string name;
 };
 
 #define MAX_CHEATS 75

@@ -27,6 +27,7 @@
 #include "cart.h"
 #include "driver.h"
 #include "utils/memory.h"
+#include <imagine/util/algorithm.h>
 
 #include <string>
 #include <cstdlib>
@@ -74,7 +75,7 @@ int globalCheatDisabled = 0;
 int disableAutoLSCheats = 0;
 bool disableShowGG = 0;
 static _8BYTECHEATMAP* cheatMap = NULL;
-struct CHEATF *cheats = 0, *cheatsl = 0;
+std::vector<CHEATF> cheats;
 
 
 #define CHEATC_NONE     0x8000
@@ -111,7 +112,6 @@ static DECLFR(SubCheatsRead)
 void RebuildSubCheats(void)
 {
 	uint32 x;
-	struct CHEATF *c = cheats;
 	for (x = 0; x < numsubcheats; x++)
 	{
 		SetReadHandler(SubCheats[x].addr, SubCheats[x].addr, SubCheats[x].PrevRead);
@@ -123,20 +123,23 @@ void RebuildSubCheats(void)
 
 	if (!globalCheatDisabled)
 	{
-		while(c)
+		for(auto& cheat: cheats)
 		{
-			if(c->type == 1 && c->status && GetReadHandler(c->addr) != SubCheatsRead)
+			for(auto& code: cheat.codes)
 			{
-				SubCheats[numsubcheats].PrevRead = GetReadHandler(c->addr);
-				SubCheats[numsubcheats].addr = c->addr;
-				SubCheats[numsubcheats].val = c->val;
-				SubCheats[numsubcheats].compare = c->compare;
-				SetReadHandler(c->addr, c->addr, SubCheatsRead);
-				if (cheatMap)
-					FCEUI_SetCheatMapByte(SubCheats[numsubcheats].addr, true);
-				numsubcheats++;
+				auto c = &code;
+				if(c->type == 1 && cheat.status && GetReadHandler(c->addr) != SubCheatsRead)
+				{
+					SubCheats[numsubcheats].PrevRead = GetReadHandler(c->addr);
+					SubCheats[numsubcheats].addr = c->addr;
+					SubCheats[numsubcheats].val = c->val;
+					SubCheats[numsubcheats].compare = c->compare;
+					SetReadHandler(c->addr, c->addr, SubCheatsRead);
+					if (cheatMap)
+						FCEUI_SetCheatMapByte(SubCheats[numsubcheats].addr, true);
+					numsubcheats++;
+				}
 			}
-			c = c->next;
 		}
 	}
 	FrozenAddressCount = numsubcheats;		//Update the frozen address list
@@ -174,23 +177,17 @@ static void CheatMemErr(void)
 
 static void AddCheatEntry(const char *name, uint32 addr, uint8 val, int compare, int status, int type)
 {
-	CHEATF *temp = new CHEATF();
-
-	temp->name = name;
-	temp->addr = addr;
-	temp->val = val;
-	temp->status = status;
-	temp->compare = compare;
-	temp->type = type;
-	temp->next = nullptr;
-
-	if(cheats)
+	CHEATCODE code{uint16(addr), val, compare, type};
+	auto insertIt = IG::find(cheats, [&](auto& c){ return std::string_view{c.name} == name; });
+	if(insertIt)
 	{
-		cheatsl->next = temp;
-		cheatsl = temp;
+		insertIt.value()->codes.emplace_back(code);
 	}
 	else
-		cheats = cheatsl = temp;
+	{
+		auto& c = cheats.emplace_back(CHEATF{.name = name, .status = status});
+		c.codes.emplace_back(code);
+	}
 }
 
 /* The "override_existing" parameter is used only in cheat dialog import.
@@ -301,26 +298,26 @@ void FCEU_LoadGameCheats(FILE *override, int override_existing)
 
 void FCEU_SaveGameCheats(FILE* fp, int release)
 {
-	struct CHEATF *next = cheats;
-	while (next)
+	for(auto& cheat: cheats)
 	{
-		if (next->type)
-			fputc('S', fp);
-		if (next->compare >= 0)
-			fputc('C', fp);
+		for(auto& code: cheat.codes)
+		{
+			if (code.type)
+				fputc('S', fp);
+			if (code.compare >= 0)
+				fputc('C', fp);
 
-		if (!next->status)
-			fputc(':', fp);
+			if (!cheat.status)
+				fputc(':', fp);
 
-		if (next->compare >= 0)
-			fprintf(fp, "%04x:%02x:%02x:%s\n", next->addr, next->val, next->compare, next->name.c_str());
-		else
-			fprintf(fp, "%04x:%02x:%s\n", next->addr, next->val, next->name.c_str());
+			if (code.compare >= 0)
+				fprintf(fp, "%04x:%02x:%02x:%s\n", code.addr, code.val, code.compare, cheat.name.c_str());
+			else
+				fprintf(fp, "%04x:%02x:%s\n", code.addr, code.val, cheat.name.c_str());
 
-		struct CHEATF *t = next;
-		next = next->next;
-		if (release) delete t;
+		}
 	}
+	if (release) cheats.clear();
 }
 
 void FCEU_FlushGameCheats(FILE *override, int nosave, bool freeCheats)
@@ -332,17 +329,9 @@ void FCEU_FlushGameCheats(FILE *override, int nosave, bool freeCheats)
 	}
 	if((!savecheats || nosave) && !override)	/* Always save cheats if we're being overridden. */
 	{
-		if(freeCheats && cheats)
+		if(freeCheats)
 		{
-			struct CHEATF *next=cheats;
-			for(;;)
-			{
-				struct CHEATF *last=next;
-				next=next->next;
-				delete last;
-				if(!next) break;
-			}
-			cheats=cheatsl=0;
+			cheats.clear();
 		}
 	}
 	else
@@ -352,7 +341,7 @@ void FCEU_FlushGameCheats(FILE *override, int nosave, bool freeCheats)
 		if(!override)
 			fn = strdup(FCEU_MakeFName(FCEUMKF_CHEAT,0,0).c_str());
 
-		if(cheats)
+		if(cheats.size())
 		{
 			FILE *fp;
 
@@ -370,7 +359,7 @@ void FCEU_FlushGameCheats(FILE *override, int nosave, bool freeCheats)
 			else
 				FCEUD_PrintError("Error saving cheats.");
 			if(freeCheats)
-				cheats=cheatsl=0;
+				cheats.clear();
 		}
 		else if(!override)
 			remove(fn);
@@ -384,7 +373,7 @@ void FCEU_FlushGameCheats(FILE *override, int nosave, bool freeCheats)
 
 }
 
-
+#if 0
 int FCEUI_AddCheat(const char *name, uint32 addr, uint8 val, int compare, int type, int status, bool rebuild)
 {
 	AddCheatEntry(name, addr, val, compare, status, type);
@@ -440,25 +429,22 @@ int FCEUI_DelCheat(uint32 which)
 	RebuildSubCheats();
 	return(1);
 }
+#endif
 
 void FCEU_ApplyPeriodicCheats(void)
 {
-	struct CHEATF *cur=cheats;
-	if(!cur) return;
-
-	for(;;)
+	for(auto& cheat: cheats)
 	{
-		if(cur->status && !(cur->type))
-			if(CheatRPtrs[cur->addr>>10])
-				CheatRPtrs[cur->addr>>10][cur->addr]=cur->val;
-		if(cur->next)
-			cur=cur->next;
-		else
-			break;
+		for(auto& code: cheat.codes)
+		{
+			if(cheat.status && !(code.type))
+				if(CheatRPtrs[code.addr>>10])
+					CheatRPtrs[code.addr>>10][code.addr]=code.val;
+		}
 	}
 }
 
-
+#if 0
 void FCEUI_ListCheats(int (*callb)(const char *name, uint32 a, uint8 v, int compare, int s, int type, void *data), void *data)
 {
 	struct CHEATF *next=cheats;
@@ -498,6 +484,7 @@ int FCEUI_GetCheat(uint32 which, std::string *name, uint32 *a, uint8 *v, int *co
 	}
 	return(0);
 }
+#endif
 
 static int GGtobin(char c)
 {
@@ -510,7 +497,7 @@ static int GGtobin(char c)
 }
 
 /* Returns 1 on success, 0 on failure. Sets *a,*v,*c. */
-int FCEUI_DecodeGG(const char *str, int *a, int *v, int *c)
+int FCEUI_DecodeGG(const char *str, uint16 *a, uint8 *v, int *c)
 {
 	uint16 A;
 	uint8 V,C;
@@ -607,7 +594,7 @@ int FCEUI_DecodePAR(const char *str, int *a, int *v, int *c, int *type)
 
 /* name can be NULL if the name isn't going to be changed. */
 /* same goes for a, v, and s(except the values of each one must be <0) */
-
+#if 0
 int FCEUI_SetCheat(uint32 which, std::string_view name, int32 a, int32 v, int c, int s, int type)
 {
 	struct CHEATF *next = cheats;
@@ -661,6 +648,7 @@ int FCEUI_ToggleCheat(uint32 which)
 
 	return(-1);
 }
+#endif
 
 int FCEUI_GlobalToggleCheat(int global_enabled)
 {
@@ -887,6 +875,7 @@ void FCEU_CheatSetByte(uint32 A, uint8 V)
     BWrite[A](A, V);
 }
 
+#if 0
 // disable all cheats
 int FCEU_DisableAllCheats(void)
 {
@@ -922,6 +911,7 @@ int FCEU_DeleteAllCheats(void)
 
 	return 0;
 }
+#endif
 
 int FCEUI_FindCheatMapByte(uint16 address)
 {

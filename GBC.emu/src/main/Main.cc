@@ -19,12 +19,12 @@
 #include <emuframework/OutSizeTracker.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/string.h>
 #include <imagine/fs/FS.hh>
 #include <imagine/io/IOStream.hh>
 #include <resample/resampler.h>
 #include <resample/resamplerinfo.h>
 #include <libgambatte/src/mem/cartridge.h>
-#include <main/Cheats.hh>
 #include <imagine/logger/logger.h>
 
 namespace EmuEx
@@ -184,7 +184,7 @@ void GbcSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegat
 			log.info("game {} has built-in palette", gbEmu.romTitle());
 		applyGBPalette();
 	}
-	readCheatFile(*this);
+	readCheatFile();
 	applyCheats();
 	saveStateSize = 0;
 	OStream<OutSizeTracker> stream{&saveStateSize};

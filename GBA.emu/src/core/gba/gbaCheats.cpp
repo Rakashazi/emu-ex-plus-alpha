@@ -190,7 +190,7 @@
 #define CHEATS_16_BIT_WRITE           114
 #define CHEATS_32_BIT_WRITE           115
 
-IG::StaticArrayList<CheatsData, 100> cheatsList;
+std::vector<CheatsData> cheatsList;
 uint32_t rompatch2addr[4];
 uint16_t rompatch2val[4];
 uint16_t rompatch2oldval[4];
@@ -1395,38 +1395,46 @@ void cheatsDeleteAll(ARM7TDMI &cpu, bool restore)
   }
 }
 
+void cheatsEnable(CheatsData& c) {
+	c.enabled = true;
+	mastercode = 0;
+}
+
 void cheatsEnable(int i)
 {
   if (i >= 0 && i < cheatsNumber) {
-    cheatsList[i].enabled = true;
-    mastercode = 0;
+  	cheatsEnable(cheatsList[i]);
   }
+}
+
+void cheatsDisable(ARM7TDMI& cpu, CheatsData& c) {
+	switch (c.size) {
+	case GSA_16_BIT_ROM_PATCH:
+		if (c.status & 1) {
+			c.status &= ~1;
+			CHEAT_PATCH_ROM_16BIT(c.address,
+														c.oldValue);
+		}
+		break;
+	case GSA_16_BIT_ROM_PATCH2C:
+	case GSA_16_BIT_ROM_PATCH2D:
+	case GSA_16_BIT_ROM_PATCH2E:
+	case GSA_16_BIT_ROM_PATCH2F:
+		if (c.status & 1) {
+			c.status &= ~1;
+		}
+		break;
+	case MASTER_CODE:
+			mastercode = 0;
+		break;
+	}
+	c.enabled = false;
 }
 
 void cheatsDisable(ARM7TDMI &cpu, int i)
 {
   if (i >= 0 && i < cheatsNumber) {
-    switch (cheatsList[i].size) {
-    case GSA_16_BIT_ROM_PATCH:
-      if (cheatsList[i].status & 1) {
-        cheatsList[i].status &= ~1;
-        CHEAT_PATCH_ROM_16BIT(cheatsList[i].address,
-                              cheatsList[i].oldValue);
-      }
-      break;
-    case GSA_16_BIT_ROM_PATCH2C:
-    case GSA_16_BIT_ROM_PATCH2D:
-    case GSA_16_BIT_ROM_PATCH2E:
-    case GSA_16_BIT_ROM_PATCH2F:
-      if (cheatsList[i].status & 1) {
-        cheatsList[i].status &= ~1;
-      }
-      break;
-    case MASTER_CODE:
-        mastercode = 0;
-      break;
-    }
-    cheatsList[i].enabled = false;
+  	cheatsDisable(cpu, cheatsList[i]);
   }
 }
 
@@ -2594,7 +2602,7 @@ void cheatsSaveGame(gzFile file)
 {
   utilWriteInt(file, cheatsNumber);
 
-  utilGzWrite(file, cheatsList.data(), CHEATS_LIST_DATA_SIZE);
+  utilGzWrite(file, cheatsList.data(), cheatsNumber * sizeof(CheatsData));
 }
 
 void cheatsReadGame(gzFile file, int version)
@@ -2605,7 +2613,7 @@ void cheatsReadGame(gzFile file, int version)
   cheatsList.resize(cheats);
 
   if (version > 8)
-    utilGzRead(file, cheatsList.data(), CHEATS_LIST_DATA_SIZE);
+    utilGzRead(file, cheatsList.data(), cheatsNumber * sizeof(CheatsData));
 
 
   bool firstCodeBreaker = true;
@@ -2698,7 +2706,7 @@ void cheatsSaveCheatList(IG::ApplicationContext ctx, const char *file)
   fwrite(&type, 1, sizeof(type), f);
   int cheats = cheatsNumber;
   fwrite(&cheats, 1, sizeof(cheats), f);
-  fwrite(cheatsList.data(), 1, CHEATS_LIST_DATA_SIZE, f);
+  fwrite(cheatsList.data(), 1, sizeof(CheatsData) * cheats, f);
   fclose(f);
 }
 
@@ -2745,7 +2753,8 @@ bool cheatsLoadCheatList(IG::ApplicationContext ctx, const char *file)
   }
   cheatsList.resize(count);
   if (type == 1) {
-    if (fread(cheatsList.data(), 1, CHEATS_LIST_DATA_SIZE, f) != CHEATS_LIST_DATA_SIZE) {
+  	size_t cheatsBytes = count * sizeof(CheatsData);
+    if (fread(cheatsList.data(), 1, cheatsBytes, f) != cheatsBytes) {
       fclose(f);
       return false;
     }
@@ -2767,6 +2776,8 @@ bool cheatsLoadCheatList(IG::ApplicationContext ctx, const char *file)
       }
     }
   }
+  std::erase_if(cheatsList, [](auto& c){ return !strlen(c.desc);}); // remove cheats without names
+  count = cheatsList.size();
 
   bool firstCodeBreaker = true;
 
