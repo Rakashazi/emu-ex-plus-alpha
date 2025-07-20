@@ -20,7 +20,8 @@ jobs:
           echo 'No debug keystore value'
         else
           echo "$DEBUG_KEYSTORE" | base64 --decode > .debug.keystore
-          sudo mv -f .debug.keystore /root/.android/debug.keystore
+          mkdir -p ~/.android
+          mv .debug.keystore ~/.android/debug.keystore
         fi
     - name: Install build dependencies
       run: |
