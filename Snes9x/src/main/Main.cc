@@ -319,7 +319,7 @@ void Snes9xSystem::configAudioRate(FrameRate outputFrameRate, int outputRate)
 	logMsg("set sound input rate:%.2f output rate:%d", inputRate, outputRate);
 	S9xUpdateDynamicRate(0, 10);
 	#else
-	int mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
+	int mixRate = std::round(audioMixRate(outputRate, outputFrameRate));
 	if(mixRate == Settings.SoundPlaybackRate)
 		return;
 	Settings.SoundPlaybackRate = mixRate;
