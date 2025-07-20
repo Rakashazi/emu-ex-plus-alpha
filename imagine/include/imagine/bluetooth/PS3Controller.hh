@@ -48,7 +48,6 @@ private:
 		{Input::AxisId::RZ, axisScaler} // Right Y Axis
 	};
 	BluetoothSocket ctlSock, intSock;
-	BluetoothAddr addr;
 
 	static uint8_t playerLEDs(uint32_t player);
 	void sendFeatureReport();

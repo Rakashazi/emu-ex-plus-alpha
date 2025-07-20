@@ -31,7 +31,7 @@ namespace EmuEx
 {
 
 constexpr SystemLogger log{"GBC.emu"};
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2024\nRobert Broglia\nwww.explusalpha.com\n\n\nPortions (c) the\nGambatte Team\ngambatte.sourceforge.net";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2025\nRobert Broglia\nwww.explusalpha.com\n\n\nPortions (c) the\nGambatte Team\ngambatte.sourceforge.net";
 bool EmuSystem::hasCheats = true;
 constexpr WSize lcdSize{gambatte::lcd_hres, gambatte::lcd_vres};
 
@@ -209,9 +209,9 @@ bool GbcSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 	return true;
 }
 
-void GbcSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
+void GbcSystem::configAudioRate(FrameRate outputFrameRate, int outputRate)
 {
-	long inputRate = gbFrameTimeSecs / duration_cast<FloatSeconds>(outputFrameTime) * 2097152.;
+	long inputRate = gbFrameTimeSecs / duration_cast<FloatSeconds>(outputFrameRate.duration()) * 2097152.;
 	if(optionAudioResampler >= ResamplerInfo::num())
 		optionAudioResampler = std::min(ResamplerInfo::num(), 1zu);
 	if(!resampler || optionAudioResampler != activeResampler

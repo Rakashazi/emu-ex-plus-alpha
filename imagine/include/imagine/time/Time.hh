@@ -37,8 +37,8 @@ using SteadyClock = std::chrono::steady_clock;
 using WallClock = std::chrono::system_clock;
 using SteadyClockTimePoint = SteadyClock::time_point;
 using WallClockTimePoint = WallClock::time_point;
-using SteadyClockTime = SteadyClock::duration;
-using WallClockTime = WallClock::duration;
+using SteadyClockDuration = SteadyClock::duration;
+using WallClockDuration = WallClock::duration;
 
 template <class T>
 concept ChronoDuration =
@@ -59,30 +59,34 @@ concept ChronoTimePoint =
 constexpr bool hasTime(ChronoTimePoint auto t) { return t.time_since_epoch().count(); }
 
 template<ChronoDuration T>
-constexpr T fromSeconds(std::floating_point auto secs)
+constexpr T fromSeconds(std::convertible_to<double> auto secs)
 {
 	return std::chrono::round<T>(FloatSeconds{secs});
 }
 
 constexpr double toHz(ChronoDuration auto t)
 {
+	if(t.count() == 0)
+		return 0.;
 	return 1. / std::chrono::duration_cast<FloatSeconds>(t).count();
 }
 
 template<ChronoDuration T>
-constexpr T fromHz(std::floating_point auto hz)
+constexpr T fromHz(std::convertible_to<double> auto hz)
 {
+	if(hz == 0)
+		return {};
 	return fromSeconds<T>(1. / hz);
 }
 
-inline SteadyClockTime timeFunc(auto &&func, auto &&...args)
+inline SteadyClockDuration timeFunc(auto&& func, auto&& ...args)
 {
 	auto before = SteadyClock::now();
 	func(IG_forward(args)...);
 	return SteadyClock::now() - before;
 }
 
-inline SteadyClockTime timeFuncDebug(auto &&func, auto &&...args)
+inline SteadyClockDuration timeFuncDebug(auto&& func, auto&& ...args)
 {
 	#ifdef NDEBUG
 	// execute directly without timing
@@ -94,7 +98,7 @@ inline SteadyClockTime timeFuncDebug(auto &&func, auto &&...args)
 }
 
 
-WISE_ENUM_CLASS((FrameTimeSource, uint8_t),
+WISE_ENUM_CLASS((FrameClockSource, uint8_t),
 	Unset,
 	Renderer,
 	Screen,
@@ -103,16 +107,34 @@ WISE_ENUM_CLASS((FrameTimeSource, uint8_t),
 class FrameParams
 {
 public:
-	SteadyClockTimePoint timestamp;
-	SteadyClockTime frameTime;
-	FrameTimeSource timeSource;
+	SteadyClockTimePoint time;
+	SteadyClockTimePoint lastTime;
+	SteadyClockDuration duration;
+	FrameClockSource timeSource;
 
 	SteadyClockTimePoint presentTime(int frames) const;
-	int elapsedFrames(SteadyClockTimePoint lastTimestamp) const;
-	static int elapsedFrames(SteadyClockTimePoint timestamp, SteadyClockTimePoint lastTimestamp, SteadyClockTime frameTime);
-	bool isFromRenderer() const { return timeSource == FrameTimeSource::Renderer; }
+	int elapsedFrames() const;
+	static int elapsedFrames(SteadyClockTimePoint time, SteadyClockTimePoint lastTime, SteadyClockDuration frameDuration);
+	bool isFromRenderer() const { return timeSource == FrameClockSource::Renderer; }
+	bool isFromScreen() const { return timeSource == FrameClockSource::Screen; }
 };
 
-using FrameRate = float;
+class FrameRate
+{
+public:
+	constexpr FrameRate() {}
+	constexpr FrameRate(SteadyClockDuration duration): duration_{duration}, hz_{float(toHz(duration))} {}
+	constexpr FrameRate(std::convertible_to<float> auto hz): duration_{fromHz<SteadyClockDuration>(hz)}, hz_{float(hz)} {}
+	constexpr FrameRate(std::convertible_to<float> auto hz, SteadyClockDuration duration): duration_{duration}, hz_{float(hz)} {}
+	constexpr SteadyClockDuration duration() const { return duration_; }
+	constexpr float hz() const { return hz_; }
+	constexpr explicit operator bool() const { return hz_; }
+	constexpr bool operator==(const FrameRate& rhs) const { return hz_ == rhs.hz_; }
+	constexpr auto operator<=>(const FrameRate& rhs) const { return hz_ <=> rhs.hz_; }
+
+private:
+	SteadyClockDuration duration_{};
+	float hz_{};
+};
 
 }

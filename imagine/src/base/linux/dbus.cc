@@ -196,7 +196,10 @@ bool LinuxApplication::registerInstance(ApplicationInitParams initParams, const 
 
 void LinuxApplication::setAcceptIPC(bool on, const char *name)
 {
-	assert(on);
+	if(!on)
+	{
+		return;
+	}
 	// listen to openPath events
 	if(!openPathSub)
 	{

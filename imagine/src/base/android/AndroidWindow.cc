@@ -30,6 +30,7 @@ namespace IG
 constexpr SystemLogger log{"Window"};
 static JNI::InstMethod<jobject(jobject, jlong)> jPresentation{};
 static JNI::InstMethod<void()> jPresentationDeinit{};
+static JNI::InstMethod<void(jfloat)> jSetFrameRate{};
 static int32_t (*ANativeWindow_setFrameRate)(ANativeWindow* window, float frameRate, int8_t compatibility){};
 
 static void initPresentationJNI(JNIEnv* env, jobject presentation)
@@ -241,16 +242,26 @@ NativeWindow Window::nativeObject() const
 void Window::setIntendedFrameRate(FrameRate rate)
 {
 	screen()->setFrameRate(rate);
-	if(appContext().androidSDK() < 30 || !nWin)
+	auto ctx = appContext();
+	if(ctx.androidSDK() < 30 || !nWin)
 		return;
+	if(ctx.androidSDK() >= 34)
+	{
+		auto env = ctx.thisThreadJniEnv();
+		auto baseActivity = ctx.baseActivityObject();
+		if(!jSetFrameRate) [[unlikely]]
+			jSetFrameRate = {env, baseActivity, "setFrameRate", "(F)V"};
+		jSetFrameRate(env, baseActivity, rate.hz());
+		return;
+	}
 	if(!ANativeWindow_setFrameRate) [[unlikely]]
 	{
 		auto lib = openSharedLibrary("libnativewindow.so");
 		loadSymbol(ANativeWindow_setFrameRate, lib, "ANativeWindow_setFrameRate");
 	}
-	if(ANativeWindow_setFrameRate(nWin, rate, 0))
+	if(ANativeWindow_setFrameRate(nWin, rate.hz(), 0))
 	{
-		log.error("error in ANativeWindow_setFrameRate() with window:{} rate:{:g}", (void*)nWin, rate);
+		log.error("error in ANativeWindow_setFrameRate() with window:{} rate:{:g}", (void*)nWin, rate.hz());
 	}
 }
 

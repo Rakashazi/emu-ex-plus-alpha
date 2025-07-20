@@ -26,22 +26,6 @@ namespace EmuEx
 
 constexpr SystemLogger log{"EmuAudio"};
 
-struct AudioStats
-{
-	constexpr AudioStats() = default;
-	int underruns{};
-	int overruns{};
-	std::atomic_uint callbacks{};
-	std::atomic_uint callbackBytes{};
-
-	void reset()
-	{
-		underruns = overruns = 0;
-		callbacks = 0;
-		callbackBytes = 0;
-	}
-};
-
 #ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 static AudioStats audioStats{};
 static IG::Timer audioStatsTimer{"audioStatsTimer"};

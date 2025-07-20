@@ -243,6 +243,16 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return getWindow().getAttributes().flags;
 	}
 
+	void setFrameRate(float rate)
+	{
+		if(android.os.Build.VERSION.SDK_INT < 34)
+			return;
+		Window win = getWindow();
+		WindowManager.LayoutParams layoutParams = win.getAttributes();
+		layoutParams.preferredRefreshRate = rate;
+		win.setAttributes(layoutParams);
+	}
+
 	Window setMainContentView(long nativeUserData)
 	{
 		// get rid of NativeActivity's view and layout listener, then add our custom view

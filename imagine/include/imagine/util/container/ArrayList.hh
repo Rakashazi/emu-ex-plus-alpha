@@ -51,8 +51,8 @@ public:
 	// Capacity (STL API)
 	constexpr size_t size() const { return size_; }
 	constexpr bool empty() const { return !size(); };
-	constexpr size_t capacity() const { return SIZE; }
-	constexpr size_t max_size() const { return SIZE; }
+	static constexpr size_t capacity() { return SIZE; }
+	static constexpr size_t max_size() { return SIZE; }
 
 	constexpr void resize(size_t size)
 	{

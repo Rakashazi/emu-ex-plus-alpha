@@ -50,7 +50,6 @@ protected:
 	Input::SingleDragTracker<> dragTracker;
 	VelocityTrackerType velTracker; // tracks y velocity as pixels/sec
 	Gfx::IQuads scrollBarQuads;
-	SteadyClockTimePoint lastFrameTimestamp;
 	float scrollVel{};
 	float scrollAccel{};
 	float offsetAsDec{};

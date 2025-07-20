@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "fdUtils"
 #include <imagine/config/defs.hh>
 #include <imagine/logger/logger.h>
 #include <unistd.h>
@@ -24,6 +23,11 @@
 #include <algorithm>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+
+namespace IG
+{
+constexpr SystemLogger log{"fdUtils"};
+}
 
 CLINK ssize_t fd_writeAll(int filedes, const void *buffer, size_t size)
 {
@@ -44,7 +48,7 @@ CLINK off_t fd_size(int fd)
 	if(fstat(fd, &stats) == -1)
 	{
 		if(Config::DEBUG_BUILD)
-			logErr("fstat(%d) failed:%s", fd, strerror(errno));
+			IG::log.error("fstat({}) failed:{}", fd, strerror(errno));
 		return 0;
 	}
 	return stats.st_size;
@@ -61,29 +65,29 @@ CLINK const char* fd_seekModeToStr(int mode)
 	return {};
 }
 
-CLINK void fd_setNonblock(int fd, bool on)
+static int getFDFlags(int fd)
 {
 	int flags = fcntl(fd, F_GETFL, 0);
-	assert(flags != -1);
-	if(on)
+	if(flags == -1)
 	{
-		if(!(flags & O_NONBLOCK))
-			logMsg("set O_NONBLOCK on fd %d", fd);
-		fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+		IG::log.error("fcntl({}) failed getting flags", fd);
 	}
-	else
+	return flags;
+}
+
+CLINK void fd_setNonblock(int fd, bool on)
+{
+	int flags = getFDFlags(fd);
+	flags = on ? flags | O_NONBLOCK : flags & ~O_NONBLOCK;
+	if(int err = fcntl(fd, F_SETFL, flags); err)
 	{
-		if(flags & O_NONBLOCK)
-			logMsg("unset O_NONBLOCK on fd %d", fd);
-		fcntl(fd, F_SETFL, flags & ~O_NONBLOCK);
+		IG::log.error("fcntl({}) failed {} O_NONBLOCK", fd, on ? "setting" : "clearing");
 	}
 }
 
 CLINK bool fd_getNonblock(int fd)
 {
-	int flags = fcntl(fd, F_GETFL, 0);
-	assert(flags != -1);
-	return flags & O_NONBLOCK;
+	return getFDFlags(fd) & O_NONBLOCK;
 }
 
 CLINK int fd_bytesReadable(int fd)
@@ -91,7 +95,7 @@ CLINK int fd_bytesReadable(int fd)
 	int bytes = 0;
 	if(ioctl(fd, FIONREAD, (char*)&bytes) < 0)
 	{
-		logErr("failed ioctl FIONREAD");
+		IG::log.error("failed ioctl FIONREAD");
 		return 0;
 	}
 	assert(bytes >= 0);

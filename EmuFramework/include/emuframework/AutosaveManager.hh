@@ -73,7 +73,7 @@ public:
 	void pauseTimer();
 	void cancelTimer();
 	void resetTimer();
-	SteadyClockTime timerFrequency() const;
+	SteadyClockDuration timerFrequency() const;
 	bool readConfig(MapIO &, unsigned key);
 	void writeConfig(FileIO &) const;
 	ApplicationContext appContext() const;

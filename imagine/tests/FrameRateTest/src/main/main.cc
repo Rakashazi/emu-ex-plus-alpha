@@ -194,11 +194,11 @@ void FrameRateTestApplication::setActiveTestHandlers(IG::Window &win)
 			activeTest->started = true;
 		}
 		activeTest->presentTime = params.presentTime(1);
-		activeTest->lastFramePresentTime.timestamp = params.timestamp;
+		activeTest->lastFramePresentTime.time = params.time;
 		activeTest->lastFramePresentTime.atOnFrame = atOnFrame;
 		if(activeTest->frames == framesToRun || activeTest->shouldEndTest)
 		{
-			finishTest(win, params.timestamp);
+			finishTest(win, params.time);
 			return false;
 		}
 		else

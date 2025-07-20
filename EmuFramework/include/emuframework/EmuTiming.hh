@@ -15,35 +15,50 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <emuframework/config.hh>
 #include <imagine/time/Time.hh>
+#include <imagine/util/used.hh>
 
 namespace EmuEx
 {
 
 using namespace IG;
 
-struct EmuFrameTimeInfo
+struct EmuFrameTimingInfo
 {
 	int advanced{};
-	SteadyClockTime frameTimeDiff{};
+	SteadyClockDuration duration{};
+};
+
+enum class FrameTimingStatEvent
+{
+	startOfFrame,
+	startOfEmulation,
+	waitForPresent,
+	endOfFrame,
+};
+
+struct FrameTimingStats
+{
+	SteadyClockTimePoint startOfFrame{};
+	ConditionalMember<enableFullFrameTimingStats, SteadyClockTimePoint> startOfEmulation{};
+	ConditionalMember<enableFullFrameTimingStats, SteadyClockTimePoint> waitForPresent{};
+	SteadyClockTimePoint endOfFrame{};
+	ConditionalMember<enableFullFrameTimingStats, int> missedFrameCallbacks{};
 };
 
 class EmuTiming
 {
 public:
-	EmuFrameTimeInfo advanceFrames(FrameParams);
-	void setFrameTime(SteadyClockTime time);
-	void reset();
-	SteadyClockTimePoint lastFrameTimestamp() const { return lastFrameTimestamp_; }
-
-protected:
-	SteadyClockTime timePerVideoFrame{};
+	SteadyClockDuration videoFrameDuration{};
 	SteadyClockTimePoint startFrameTime{};
-	SteadyClockTimePoint lastFrameTimestamp_{};
 	int64_t lastFrame{};
 	int8_t savedAdvancedFrames{};
-public:
 	int8_t exactFrameDivisor{};
+
+	EmuFrameTimingInfo advanceFrames(FrameParams);
+	void setFrameDuration(SteadyClockDuration);
+	void reset();
 };
 
 }

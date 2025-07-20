@@ -18,7 +18,7 @@ android_arch : Optional, default set by app
 2. Dependencies
 ===============
 
-Install the SDK platform for Android 14.0 (API 34), Android NDK Revision 27 (tested on 27.0.11718014), and the Android Support Library from Android Studio's SDK tools menu
+Install the SDK platform for Android 16.0 (API 36), Android NDK Revision 29, and the Android Support Library from Android Studio's SDK tools menu
 
 The script bundle/android/toolchains/get-clang-prebuilt.sh can download an alternate version of Clang from android.googlesource.com, but this isn't needed with the current NDK.
 

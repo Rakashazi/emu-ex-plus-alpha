@@ -93,8 +93,8 @@ public:
 	#endif
 	static constexpr FloatSeconds ntscFrameTimeSecs{357366. / 21477272.}; // ~60.098Hz
 	static constexpr FloatSeconds palFrameTimeSecs{425568. / 21281370.}; // ~50.00Hz
-	static constexpr auto ntscFrameTime{round<FrameTime>(ntscFrameTimeSecs)};
-	static constexpr auto palFrameTime{round<FrameTime>(palFrameTimeSecs)};
+	static constexpr auto ntscFrameRate{round<SteadyClockDuration>(ntscFrameTimeSecs)};
+	static constexpr auto palFrameRate{round<SteadyClockDuration>(palFrameTimeSecs)};
 
 	Snes9xSystem(ApplicationContext ctx):
 		EmuSystem{ctx}
@@ -137,8 +137,8 @@ public:
 	void clearInputBuffers(EmuInputView &view);
 	void handleInputAction(EmuApp *, InputAction);
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
-	FrameTime frameTime() const { return videoSystem() == VideoSystem::PAL ? palFrameTime : ntscFrameTime; }
-	void configAudioRate(FrameTime outputFrameTime, int outputRate);
+	FrameRate frameRate() const { return videoSystem() == VideoSystem::PAL ? palFrameRate : ntscFrameRate; }
+	void configAudioRate(FrameRate outputFrameRate, int outputRate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions

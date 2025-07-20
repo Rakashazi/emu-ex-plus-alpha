@@ -43,7 +43,7 @@ namespace EmuEx
 
 constexpr SystemLogger log{"2600.emu"};
 constexpr size_t MAX_ROM_SIZE = 512 * 1024;
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella-emu.github.io";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2025\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella-emu.github.io";
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 IG::Audio::SampleFormat EmuSystem::audioSampleFormat = IG::Audio::SampleFormats::f32;
@@ -151,17 +151,17 @@ static auto consoleFrameRate(const OSystem &osystem)
 	return osystem.console().currentFrameRate();
 }
 
-FrameTime A2600System::frameTime() const
+FrameRate A2600System::frameRate() const
 {
-	return fromHz<FrameTime>(consoleFrameRate(osystem));
+	return consoleFrameRate(osystem);
 }
 
-void A2600System::configAudioRate(FrameTime outputFrameTime, int outputRate)
+void A2600System::configAudioRate(FrameRate outputFrameRate, int outputRate)
 {
 	if(!osystem.hasConsole())
 		return;
 	configuredInputVideoFrameRate = consoleFrameRate(osystem);
-	osystem.setSoundMixRate(std::round(audioMixRate(outputRate, configuredInputVideoFrameRate, outputFrameTime)),
+	osystem.setSoundMixRate(std::round(audioMixRate(outputRate, configuredInputVideoFrameRate, outputFrameRate)),
 		AudioSettings::ResamplingQuality(optionAudioResampleQuality));
 }
 
@@ -195,7 +195,7 @@ void A2600System::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAud
 		configuredInputVideoFrameRate != newInputVideoFrameRate
 		&& newInputVideoFrameRate >= 40.0 && newInputVideoFrameRate <= 70.0) [[unlikely]]
 	{
-		onFrameTimeChanged();
+		onFrameRateChanged();
 	}
 }
 

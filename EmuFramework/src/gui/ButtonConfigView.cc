@@ -149,7 +149,7 @@ bool ButtonConfigView::inputEvent(const Input::Event& e, ViewInputEventParams)
 	if(e.keyEvent() && e.keyEvent()->pushed(Input::DefaultKey::LEFT) && selected >= resetItemsSize)
 	{
 		auto &keyEv = *e.keyEvent();
-		auto durationSinceLastKeySet = hasTime(leftKeyPushTime) ? keyEv.time() - leftKeyPushTime : SteadyClockTime{};
+		auto durationSinceLastKeySet = hasTime(leftKeyPushTime) ? keyEv.time() - leftKeyPushTime : SteadyClockDuration{};
 		leftKeyPushTime = keyEv.time();
 		if(durationSinceLastKeySet.count() && durationSinceLastKeySet <= Milliseconds(500))
 		{

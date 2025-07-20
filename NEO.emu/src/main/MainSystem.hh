@@ -71,7 +71,7 @@ public:
 		PropertyDesc<uint8_t>{.defaultValue = 2}> optionTimerInt;
 	Property<bool, CFGKEY_CREATE_USE_CACHE> optionCreateAndUseCache;
 	Property<bool, CFGKEY_STRICT_ROM_CHECKING> optionStrictROMChecking;
-	static constexpr auto neogeoFrameTime{fromSeconds<FrameTime>(264. / 15625.)}; // ~59.18Hz
+	static constexpr FrameRate neogeoFrameRate{fromSeconds<SteadyClockDuration>(264. / 15625.)}; // ~59.18Hz
 
 	NeoSystem(ApplicationContext ctx);
 	void setTimerIntOption();
@@ -95,8 +95,8 @@ public:
 	void clearInputBuffers(EmuInputView &view);
 	void handleInputAction(EmuApp *, InputAction);
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
-	FrameTime frameTime() const { return neogeoFrameTime; }
-	void configAudioRate(FrameTime outputFrameTime, int outputRate);
+	FrameRate frameRate() const { return neogeoFrameRate; }
+	void configAudioRate(FrameRate outputFrameRate, int outputRate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions

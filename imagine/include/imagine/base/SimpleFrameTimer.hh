@@ -29,7 +29,6 @@ class NullFrameTimer
 public:
 	void scheduleVSync() {}
 	void cancel() {}
-	void setFrameRate(FrameRate) {}
 	void setEventsOnThisThread(ApplicationContext);
 };
 
@@ -40,6 +39,7 @@ public:
 	void scheduleVSync();
 	void cancel();
 	void setFrameRate(FrameRate);
+	FrameRate frameRate() const { return rate; }
 	void setEventsOnThisThread(ApplicationContext);
 
 	explicit operator bool() const
@@ -49,7 +49,7 @@ public:
 
 protected:
 	Timer timer;
-	Nanoseconds interval{};
+	FrameRate rate{};
 	bool requested{};
 	bool keepTimer{};
 };

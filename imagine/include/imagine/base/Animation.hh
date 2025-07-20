@@ -39,7 +39,7 @@ public:
 		return *this;
 	}
 
-	void start(Clock &c, T begin, T end, SteadyClockTime duration, std::invocable<Clock &, T> auto &&onUpdate)
+	void start(Clock& c, T begin, T end, SteadyClockDuration duration, std::invocable<Clock &, T> auto &&onUpdate)
 	{
 		cancel();
 		clock = &c;
@@ -52,7 +52,7 @@ public:
 		animate =
 			[this, onUpdate = IG_forward(onUpdate)](FrameParams params)
 			{
-				bool updating = animator.update(params.timestamp);
+				bool updating = animator.update(params.time);
 				onUpdate(*clock, (T)animator);
 				if(!updating)
 				{

@@ -45,30 +45,32 @@ public:
 	int height() const;
 	WSize sizePx() const { return {width(), height()}; }
 	bool isPosted() const;
-	bool addOnFrame(OnFrameDelegate, int priority = 0);
+	void addOnFrame(OnFrameDelegate, int priority = 0);
 	bool removeOnFrame(OnFrameDelegate);
 	bool containsOnFrame(OnFrameDelegate) const;
 	size_t onFrameDelegates() const;
-	void setVariableFrameTime(bool);
+	void setVariableFrameRate(bool);
 	void setFrameEventsOnThisThread();
 	void removeFrameEvents();
-	FrameParams makeFrameParams(SteadyClockTimePoint timestamp) const;
+	FrameParams makeFrameParams(SteadyClockTimePoint time, SteadyClockTimePoint lastTime) const;
 	bool frameRateIsReliable() const;
-	FrameRate frameRate() const;
-	SteadyClockTime frameTime() const;
-	SteadyClockTime presentationDeadline() const;
 	void setFrameRate(FrameRate);
+	FrameRate frameRate() const;
+	FrameRate frameTimerRate() const;
+	SteadyClockDuration presentationDeadline() const;
 	std::span<const FrameRate> supportedFrameRates() const;
 	void setFrameInterval(int interval);
 	static bool supportsFrameInterval();
 	bool supportsTimestamps() const;
-	bool frameUpdate(SteadyClockTimePoint timestamp);
+	bool frameUpdate(SteadyClockTimePoint);
+	SteadyClockTimePoint lastFrameTime() const { return lastFrameTime_; }
 	void setActive(bool active);
 	ApplicationContext appContext() const { return appCtx; }
 	Application &application() const { return appContext().application(); }
 
 private:
 	DelegateFuncSet<OnFrameDelegate> onFrameDelegate{};
+	SteadyClockTimePoint lastFrameTime_{};
 	const WindowContainer *windowsPtr{};
 	ApplicationContext appCtx;
 	bool framePosted{};

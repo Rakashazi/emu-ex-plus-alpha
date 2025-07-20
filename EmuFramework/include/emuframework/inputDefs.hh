@@ -53,11 +53,11 @@ struct KeyInfo
 	constexpr KeyInfo(NotPointer auto code, KeyFlags flags = {}):
 		codes{KeyCode(code)}, flags{flags} {}
 
-	template <class T>
+	template <NotPointer T>
 	constexpr KeyInfo(std::array<T, 2> codes, KeyFlags flags = {}):
 		codes{KeyCode(codes[0]), KeyCode(codes[1])}, flags{flags} {}
 
-	template <class T>
+	template <NotPointer T>
 	constexpr KeyInfo(std::array<T, 3> codes, KeyFlags flags = {}):
 		codes{KeyCode(codes[0]), KeyCode(codes[1]), KeyCode(codes[2])}, flags{flags} {}
 

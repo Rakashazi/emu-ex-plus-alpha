@@ -97,7 +97,7 @@ GLDisplay GLContext::display() const
 
 void GLContext::setCurrentContext(NativeGLDrawable drawable) const
 {
-	auto success = [EAGLContext setCurrentContext:context()];
+	[[maybe_unused]] auto success = [EAGLContext setCurrentContext:context()];
 	assert(success);
 	setCurrentDrawable(drawable);
 }

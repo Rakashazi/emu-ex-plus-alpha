@@ -59,7 +59,7 @@ void vsyncarch_refresh_frequency_changed(double rate)
 	auto &system = static_cast<C64System&>(EmuEx::gSystem());
 	system.systemFrameRate = rate;
 	if(system.hasContent())
-		system.onFrameTimeChanged();
+		system.onFrameRateChanged();
 }
 
 static bool isValidPixelFormat(IG::PixelFormat fmt)

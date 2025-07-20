@@ -403,7 +403,7 @@ bool InputManager::readCustomKeyConfig(MapIO &io)
 bool InputManager::readSavedInputDevices(MapIO &io)
 {
 	auto confs = io.get<uint8_t>();
-	for([[maybe_unused]] auto confIdx : iotaCount(confs))
+	for(auto _ : iotaCount(confs))
 	{
 		InputDeviceSavedConfig devConf;
 		auto enumIdWithFlags = io.get<uint8_t>();
@@ -427,7 +427,7 @@ bool InputManager::readSavedInputDevices(MapIO &io)
 			log.error("unexpected 0 length device name");
 			return false;
 		}
-		[[maybe_unused]] auto keyConfMap = Input::validateMap(io.get<uint8_t>());
+		auto _ = Input::validateMap(io.get<uint8_t>());
 		readSizedData<uint8_t>(io, devConf.keyConfName);
 		if(!find(savedDevConfigs, [&](const auto &confPtr){ return *confPtr == devConf;}))
 		{
@@ -505,7 +505,7 @@ bool InputManager::readInputDeviceSessionConfigs(ApplicationContext ctx, MapIO &
 {
 	savedSessionDevConfigs.clear();
 	auto confs = io.get<uint8_t>();
-	for([[maybe_unused]] auto confIdx : iotaCount(confs))
+	for(auto _ : iotaCount(confs))
 	{
 		InputDeviceSavedSessionConfig devConf;
 		devConf.enumId = io.get<uint8_t>();

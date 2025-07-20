@@ -48,7 +48,7 @@ namespace EmuEx
 {
 
 constexpr SystemLogger log{"MD.emu"};
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\nsegaretro.org/Genesis_Plus";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2025\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\nsegaretro.org/Genesis_Plus";
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::canRenderRGBA8888 = RENDER_BPP == 32;
@@ -448,13 +448,12 @@ void MdSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate
 	applyCheats();
 }
 
-void MdSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
+void MdSystem::configAudioRate(FrameRate outputFrameRate, int outputRate)
 {
-	float outputFrameRate = toHz(outputFrameTime);
-	if(snd.sample_rate == outputRate && snd.frame_rate == outputFrameRate)
+	if(snd.sample_rate == outputRate && snd.frame_rate == outputFrameRate.hz())
 		return;
-	log.info("set sound output rate:{} for fps:{}", outputRate, outputFrameRate);
-	audio_init(outputRate, outputFrameRate);
+	log.info("set sound output rate:{} for fps:{}", outputRate, outputFrameRate.hz());
+	audio_init(outputRate, outputFrameRate.hz());
 	sound_restore();
 	//log.debug("set sound buffer size:{}", snd.buffer_size);
 }

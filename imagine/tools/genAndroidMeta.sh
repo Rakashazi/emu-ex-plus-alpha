@@ -264,6 +264,7 @@ echo "<application android:label=\"@string/app_name\" $applicationOutput>
 				android:theme=\"@style/AppTheme\"
 				android:configChanges=\"$uiChanges\"
 				android:launchMode=\"singleInstance\"
+				android:enableOnBackInvokedCallback=\"false\"
 				android:exported=\"true\">
 			<intent-filter>
 				$intentFilters

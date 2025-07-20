@@ -48,7 +48,7 @@ SimpleFrameTimer::SimpleFrameTimer(Screen &screen, EventLoop loop):
 			return true;
 		}
 	},
-	interval{fromHz<Nanoseconds>(screen.frameRate())} {}
+	rate{screen.frameRate()} {}
 
 void SimpleFrameTimer::scheduleVSync()
 {
@@ -62,8 +62,8 @@ void SimpleFrameTimer::scheduleVSync()
 	{
 		return;
 	}
-	assert(interval.count());
-	timer.runIn(Nanoseconds{1}, interval);
+	assert(rate.hz());
+	timer.runIn(Nanoseconds{1}, rate.duration());
 }
 
 void SimpleFrameTimer::cancel()
@@ -72,13 +72,13 @@ void SimpleFrameTimer::cancel()
 	keepTimer = false;
 }
 
-void SimpleFrameTimer::setFrameRate(FrameRate rate)
+void SimpleFrameTimer::setFrameRate(FrameRate rate_)
 {
-	interval = fromHz<Nanoseconds>(rate);
-	log.info("set frame rate:{:g} (timer interval:{}ns)", rate, interval.count());
+	rate = rate_;
+	log.info("set frame rate:{:g} (timer interval:{})", rate.hz(), rate.duration());
 	if(timer.isArmed())
 	{
-		timer.runIn(Nanoseconds{1}, interval);
+		timer.runIn(Nanoseconds{1}, rate.duration());
 	}
 }
 

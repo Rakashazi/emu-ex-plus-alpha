@@ -59,6 +59,7 @@ protected:
 
 	OnExit onExit;
 	DelegateFuncSet<OnFrameDelegate> onFrame;
+	SteadyClockTimePoint lastFrameTime{};
 	std::shared_ptr<void> appDataPtr;
 	std::shared_ptr<void> rendererDataPtr;
 	ConditionalMember<Config::BASE_MULTI_SCREEN, Screen*> screen_{};

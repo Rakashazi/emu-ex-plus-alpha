@@ -29,7 +29,7 @@ namespace IG
 {
 
 class PixelFormat;
-enum class FrameTimeSource : uint8_t;
+enum class FrameClockSource : uint8_t;
 
 class Window : public WindowImpl
 {
@@ -61,12 +61,12 @@ public:
 	void setFormat(PixelFormat);
 	PixelFormat pixelFormat() const;
 	bool operator ==(Window const &rhs) const;
-	bool addOnFrame(OnFrameDelegate, FrameTimeSource src = {}, int priority = 0);
-	bool removeOnFrame(OnFrameDelegate, FrameTimeSource src = {});
-	bool moveOnFrame(Window &srcWin, OnFrameDelegate, FrameTimeSource src = {});
-	FrameTimeSource defaultFrameTimeSource() const;
-	FrameTimeSource evalFrameTimeSource(FrameTimeSource) const;
-	void configureFrameTimeSource(FrameTimeSource);
+	void addOnFrame(OnFrameDelegate, FrameClockSource src = {}, int priority = 0);
+	bool removeOnFrame(OnFrameDelegate, FrameClockSource src = {});
+	void moveOnFrame(Window &srcWin, OnFrameDelegate, FrameClockSource src = {});
+	FrameClockSource defaultFrameClockSource() const;
+	FrameClockSource evalFrameClockSource(FrameClockSource) const;
+	void configureFrameClock(FrameClockSource);
 	void resetAppData();
 	void resetRendererData();
 	bool isMainWindow() const;

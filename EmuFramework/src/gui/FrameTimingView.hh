@@ -39,11 +39,11 @@ protected:
 	static constexpr int MAX_ASPECT_RATIO_ITEMS = 5;
 	TextMenuItem frameIntervalItem[5];
 	MultiChoiceMenuItem frameInterval;
-	TextMenuItem frameRateItems[4];
+	TextMenuItem frameRateItems[3];
 	VideoSystem activeVideoSystem{};
 	MultiChoiceMenuItem frameRate;
 	MultiChoiceMenuItem frameRatePAL;
-	ConditionalMember<enableFrameTimeStats, BoolMenuItem> frameTimeStats;
+	BoolMenuItem frameTimingStats;
 	TextMenuItem frameClockItems[4];
 	MultiChoiceMenuItem frameClock;
 	ConditionalMember<Gfx::supportsPresentModes, TextMenuItem> presentModeItems[3];
@@ -56,7 +56,7 @@ protected:
 	TextHeadingMenuItem advancedHeading;
 	StaticArrayList<MenuItem*, 10> item;
 
-	bool onFrameTimeChange(VideoSystem vidSys, SteadyClockTime time);
+	bool onFrameRateChange(VideoSystem, SteadyClockDuration);
 };
 
 }

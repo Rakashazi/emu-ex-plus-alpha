@@ -24,10 +24,11 @@
 #include <emuframework/EmuInput.hh>
 #include <emuframework/EmuOptions.hh>
 #include <emuframework/AutosaveManager.hh>
-#include <emuframework/OutputTimingManager.hh>
 #include <emuframework/RecentContent.hh>
 #include <emuframework/RewindManager.hh>
+#include <emuframework/AssetManager.hh>
 #include <imagine/input/inputDefs.hh>
+#include <imagine/input/android/MogaManager.hh>
 #include <imagine/gui/ViewManager.hh>
 #include <imagine/gui/ToastView.hh>
 #include <imagine/fs/FSDefs.hh>
@@ -37,7 +38,6 @@
 #include <imagine/base/PerformanceHintManager.hh>
 #include <imagine/audio/Manager.hh>
 #include <imagine/gfx/Renderer.hh>
-#include <imagine/data-type/image/PixmapReader.hh>
 #include <imagine/data-type/image/PixmapWriter.hh>
 #include <imagine/bluetooth/BluetoothAdapter.hh>
 #include <imagine/font/Font.hh>
@@ -64,48 +64,6 @@ class EmuViewController;
 class Cheat;
 class CheatsView;
 class BaseEditCheatsView;
-
-WISE_ENUM_CLASS((AssetFileID, size_t),
-	ui,
-	gamepadOverlay,
-	keyboardOverlay);
-
-WISE_ENUM_CLASS((AssetID, size_t),
-	arrow,
-	accept,
-	close,
-	more,
-	fast,
-	slow,
-	speed,
-	menu,
-	leftSwitch,
-	rightSwitch,
-	load,
-	save,
-	display,
-	screenshot,
-	openFile,
-	rewind,
-	gamepadOverlay,
-	keyboardOverlay);
-
-constexpr const char *assetFilename[wise_enum::size<AssetFileID>]
-{
-	"ui.png",
-	"gpOverlay.png",
-	"kbOverlay.png",
-};
-
-struct AssetDesc
-{
-	AssetFileID fileID;
-	FRect texBounds;
-	WSize aspectRatio{1, 1};
-
-	constexpr size_t fileIdx() const { return to_underlying(fileID); }
-	constexpr auto filename() const { return assetFilename[fileIdx()]; }
-};
 
 enum class AltSpeedMode
 {
@@ -230,26 +188,18 @@ public:
 	const Screen &emuScreen() const;
 	Window &emuWindow();
 	const Window &emuWindow() const;
-	FrameTimeConfig configFrameTime();
+	void updateFrameRate();
 	void setDisabledInputKeys(std::span<const KeyCode> keys);
 	void unsetDisabledInputKeys();
-	Gfx::TextureSpan asset(AssetID) const;
-	Gfx::TextureSpan asset(AssetDesc) const;
-	Gfx::TextureSpan collectTextCloseAsset() const;
+	Gfx::TextureSpan asset(AssetID id) const { return assetManager.get(renderer, id); }
+	Gfx::TextureSpan asset(AssetDesc desc) const { return assetManager.get(renderer, desc); }
+	Gfx::TextureSpan collectTextCloseAsset() const { return assetManager.collectTextCloseAsset(renderer); }
 	VController &defaultVController() { return inputManager.vController; }
 	std::unique_ptr<View> makeView(ViewAttachParams, ViewID);
 	std::unique_ptr<YesNoAlertView> makeCloseContentView();
 	void applyOSNavStyle(IG::ApplicationContext, bool inEmu);
 	void setCPUNeedsLowLatency(IG::ApplicationContext, bool needed);
-	bool advanceFrames(FrameParams, EmuSystemTask *);
-	void runFrames(EmuSystemTaskContext, EmuVideo *, EmuAudio *, int frames);
-	void skipFrames(EmuSystemTaskContext, int frames, EmuAudio *);
-	bool skipForwardFrames(EmuSystemTaskContext, int frames);
-	void notifyWindowPresented();
-	void reportFrameWorkTime();
-	void addOnFrameDelayed();
-	void addOnFrame();
-	void removeOnFrame();
+	void reportFrameWorkTime(Nanoseconds);
 	void renderSystemFramebuffer(EmuVideo &);
 	void renderSystemFramebuffer() { renderSystemFramebuffer(video); }
 	bool writeScreenshot(IG::PixmapView, CStringView path);
@@ -260,8 +210,7 @@ public:
 	ViewAttachParams attachParams();
 	IG::Viewport makeViewport(const Window &win) const;
 	void setEmuViewOnExtraWindow(bool on, IG::Screen &);
-	void record(FrameTimeStatEvent, SteadyClockTimePoint t = {});
-	void setIntendedFrameRate(Window &, FrameTimeConfig);
+	void record(FrameTimingStatEvent, SteadyClockTimePoint t = {});
 	static std::u16string_view mainViewName();
 	void runBenchmarkOneShot(EmuVideo &);
 	void onSelectFileFromPicker(IG::IO, CStringView path, std::string_view displayName,
@@ -290,13 +239,13 @@ public:
 	void updateContentRotation();
 	Gfx::PresentMode effectivePresentMode() const
 	{
-		if(frameTimeSource == FrameTimeSource::Renderer)
+		if(frameClockSource == FrameClockSource::Renderer)
 			return Gfx::PresentMode::Auto;
 		return presentMode;
 	};
-	FrameTimeSource effectiveFrameTimeSource() const
+	FrameClockSource effectiveFrameClockSource() const
 	{
-		return emuWindow().evalFrameTimeSource(frameTimeSource);
+		return emuWindow().evalFrameClockSource(frameClockSource);
 	};
 
 	// System Options
@@ -378,23 +327,12 @@ public:
 	EmuVideoLayer videoLayer;
 	AutosaveManager autosaveManager{*this};
 	InputManager inputManager;
-	OutputTimingManager outputTimingManager;
 	RewindManager rewindManager{*this};
-	ConditionalMember<enableFrameTimeStats, FrameTimeStats> frameTimeStats;
+	AssetManager assetManager;
+	FrameTimingStats frameTimingStats;
+	OutputTimingManager outputTimingManager;
+	EmuSystemTask systemTask{*this};
 	[[no_unique_address]] IG::VibrationManager vibrationManager;
-protected:
-	EmuSystemTask emuSystemTask{*this};
-	std::binary_semaphore framePresentedSem{0};
-	int savedAdvancedFrames{};
-	mutable Gfx::Texture assetBuffImg[wise_enum::size<AssetFileID>];
-	[[no_unique_address]] IG::Data::PixmapReader pixmapReader;
-	[[no_unique_address]] IG::Data::PixmapWriter pixmapWriter;
-	[[no_unique_address]] PerformanceHintManager perfHintManager;
-	[[no_unique_address]] PerformanceHintSession perfHintSession;
-	ConditionalMember<MOGA_INPUT, std::unique_ptr<Input::MogaManager>> mogaManagerPtr;
-	ConditionalMember<Config::TRANSLUCENT_SYSTEM_UI, bool> layoutBehindSystemUI{};
-	bool enableBlankFrameInsertion{};
-public:
 	DrawableConfig windowDrawableConfig;
 	BluetoothAdapter bluetoothAdapter;
 	RecentContent recentContent;
@@ -403,64 +341,63 @@ public:
 	Property<IG::PixelFormat, CFGKEY_RENDER_PIXEL_FORMAT,
 		PropertyDesc<IG::PixelFormat>{.isValid = renderPixelFormatIsValid}> renderPixelFormat;
 	ConditionalProperty<Config::cpuAffinity, CPUMask, CFGKEY_CPU_AFFINITY_MASK> cpuAffinityMask;
-	Property<int16_t, CFGKEY_FAST_MODE_SPEED,
-		PropertyDesc<int16_t>{.defaultValue = 800, .isValid = isValidFastSpeed}> fastModeSpeed;
-	Property<int16_t, CFGKEY_SLOW_MODE_SPEED,
-		PropertyDesc<int16_t>{.defaultValue = 50, .isValid = isValidSlowSpeed}> slowModeSpeed;
-	Property<int16_t, CFGKEY_FONT_Y_SIZE, PropertyDesc<int16_t>{
+	Property<int16_t, CFGKEY_FAST_MODE_SPEED, {.defaultValue = 800, .isValid = isValidFastSpeed}> fastModeSpeed;
+	Property<int16_t, CFGKEY_SLOW_MODE_SPEED, {.defaultValue = 50, .isValid = isValidSlowSpeed}> slowModeSpeed;
+	Property<int16_t, CFGKEY_FONT_Y_SIZE,
+	{
 		.defaultValue = Config::MACHINE_IS_PANDORA ? 6500 : (Config::envIsIOS || Config::envIsAndroid) ? 3000 : 8000,
 		.mutableDefault = true,
-		.isValid = isValidFontSize}> fontSize;
-	Property<int8_t, CFGKEY_FRAME_INTERVAL, PropertyDesc<int8_t>{.defaultValue = 1, .isValid = isValidFrameInterval}> frameInterval;
-	ConditionalProperty<Config::envIsAndroid, bool, CFGKEY_NOTIFICATION_ICON,
-		PropertyDesc<bool>{.defaultValue = true, .mutableDefault = true}> showsNotificationIcon;
-	ConditionalProperty<CAN_HIDE_TITLE_BAR, bool, CFGKEY_TITLE_BAR,
-		PropertyDesc<bool>{.defaultValue = true}> showsTitleBar;
-	ConditionalProperty<Config::NAVIGATION_BAR, InEmuTristate, CFGKEY_LOW_PROFILE_OS_NAV,
-		PropertyDesc<InEmuTristate>{.defaultValue = InEmuTristate::InEmu}> lowProfileOSNav;
+		.isValid = isValidFontSize
+	}> fontSize;
+	Property<int8_t, CFGKEY_FRAME_INTERVAL, {.defaultValue = 1, .isValid = isValidFrameInterval}> frameInterval;
+	ConditionalProperty<Config::envIsAndroid, bool, CFGKEY_NOTIFICATION_ICON, {.defaultValue = true, .mutableDefault = true}> showsNotificationIcon;
+	ConditionalProperty<CAN_HIDE_TITLE_BAR, bool, CFGKEY_TITLE_BAR, {.defaultValue = true}> showsTitleBar;
+	ConditionalProperty<Config::NAVIGATION_BAR, InEmuTristate, CFGKEY_LOW_PROFILE_OS_NAV, {.defaultValue = InEmuTristate::InEmu}> lowProfileOSNav;
 	ConditionalProperty<Config::NAVIGATION_BAR, InEmuTristate, CFGKEY_HIDE_OS_NAV,
-		PropertyDesc<InEmuTristate>{.defaultValue = InEmuTristate::Off, .mutableDefault = true}> hidesOSNav;
-	ConditionalProperty<Config::STATUS_BAR, InEmuTristate, CFGKEY_HIDE_STATUS_BAR,
-		PropertyDesc<InEmuTristate>{.defaultValue = InEmuTristate::InEmu}> hidesStatusBar;
+		{.defaultValue = InEmuTristate::Off, .mutableDefault = true}> hidesOSNav;
+	ConditionalProperty<Config::STATUS_BAR, InEmuTristate, CFGKEY_HIDE_STATUS_BAR, {.defaultValue = InEmuTristate::InEmu}> hidesStatusBar;
 	Property<Orientations, CFGKEY_GAME_ORIENTATION> emuOrientation;
 	Property<Orientations, CFGKEY_MENU_ORIENTATION> menuOrientation;
-	Property<bool, CFGKEY_SHOW_BUNDLED_GAMES, PropertyDesc<bool>{.defaultValue = true}> showsBundledGames;
+	Property<bool, CFGKEY_SHOW_BUNDLED_GAMES, {.defaultValue = true}> showsBundledGames;
 	ConditionalProperty<Config::Input::BLUETOOTH, bool, CFGKEY_SHOW_BLUETOOTH_SCAN,
-		PropertyDesc<bool>{.defaultValue = true, .mutableDefault = true}> showsBluetoothScan;
+		{.defaultValue = true, .mutableDefault = true}> showsBluetoothScan;
 	Property<PixelFormatId, CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT,
 		{.defaultValue = PixelFormatId::Unset, .isValid = imageEffectPixelFormatIsValid}> imageEffectPixelFormat;
-	Property<int8_t, CFGKEY_MENU_SCALE, PropertyDesc<int8_t>{.defaultValue = 100, .isValid = optionMenuScaleIsValid}> menuScale;
+	Property<int8_t, CFGKEY_MENU_SCALE, {.defaultValue = 100, .isValid = optionMenuScaleIsValid}> menuScale;
 	ConditionalProperty<Config::BASE_MULTI_WINDOW && Config::BASE_MULTI_SCREEN, bool, CFGKEY_SHOW_ON_2ND_SCREEN> showOnSecondScreen;
 	Property<Gfx::TextureBufferMode, CFGKEY_TEXTURE_BUFFER_MODE> textureBufferMode;
-	Property<Rotation, CFGKEY_CONTENT_ROTATION,
-		PropertyDesc<Rotation>{.defaultValue = Rotation::ANY, .isValid = enumIsValidUpToLast}> contentRotation;
+	Property<Rotation, CFGKEY_CONTENT_ROTATION, {.defaultValue = Rotation::ANY, .isValid = enumIsValidUpToLast}> contentRotation;
 	Property<bool, CFGKEY_IDLE_DISPLAY_POWER_SAVE> idleDisplayPowerSave;
 	Property<bool, CFGKEY_SHOW_HIDDEN_FILES> showHiddenFilesInPicker;
-	Property<bool, CFGKEY_CONFIRM_OVERWRITE_STATE, PropertyDesc<bool>{.defaultValue = true}> confirmOverwriteState;
-	Property<bool, CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU, PropertyDesc<bool>{.defaultValue = true}> systemActionsIsDefaultMenu;
-	ConditionalProperty<Config::windowFocus, bool, CFGKEY_PAUSE_UNFOCUSED, PropertyDesc<bool>{
-		.defaultValue = true}> pauseUnfocused;
+	Property<bool, CFGKEY_CONFIRM_OVERWRITE_STATE, {.defaultValue = true}> confirmOverwriteState;
+	Property<bool, CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU, {.defaultValue = true}> systemActionsIsDefaultMenu;
+	ConditionalProperty<Config::windowFocus, bool, CFGKEY_PAUSE_UNFOCUSED, {.defaultValue = true}> pauseUnfocused;
 	ConditionalProperty<Config::envIsAndroid, bool, CFGKEY_SUSTAINED_PERFORMANCE_MODE> useSustainedPerformanceMode;
 	ConditionalProperty<Config::Input::BLUETOOTH && Config::BASE_CAN_BACKGROUND_APP, bool, CFGKEY_KEEP_BLUETOOTH_ACTIVE> keepBluetoothActive;
-	ConditionalProperty<Config::Input::DEVICE_HOTSWAP, bool, CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE,
-		PropertyDesc<bool>{.defaultValue = true}> notifyOnInputDeviceChange;
-	ConditionalMember<Config::multipleScreenFrameRates, FrameRate> overrideScreenFrameRate{};
-	Property<FrameTimeSource, CFGKEY_FRAME_CLOCK, PropertyDesc<FrameTimeSource>{
-		.defaultValue = FrameTimeSource::Unset, .isValid = enumIsValidUpToLast}> frameTimeSource;
+	ConditionalProperty<Config::Input::DEVICE_HOTSWAP, bool, CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE, {.defaultValue = true}> notifyOnInputDeviceChange;
+	ConditionalMember<Config::multipleScreenFrameRates, float> overrideScreenFrameRate{};
+	Property<FrameClockSource, CFGKEY_FRAME_CLOCK,
+		{.defaultValue = FrameClockSource::Unset, .isValid = enumIsValidUpToLast}> frameClockSource;
 	ConditionalProperty<Config::cpuAffinity, CPUAffinityMode, CFGKEY_CPU_AFFINITY_MODE,
-		PropertyDesc<CPUAffinityMode>{.defaultValue = CPUAffinityMode::Auto, .isValid = enumIsValidUpToLast}> cpuAffinityMode;
+		{.defaultValue = CPUAffinityMode::Auto, .isValid = enumIsValidUpToLast}> cpuAffinityMode;
 	ConditionalMember<Config::envIsAndroid && Config::DEBUG_BUILD, bool> useNoopThread{};
-	ConditionalMember<enableFrameTimeStats, bool> showFrameTimeStats{};
 	ConditionalProperty<Gfx::supportsPresentModes, Gfx::PresentMode, CFGKEY_RENDERER_PRESENT_MODE,
-		PropertyDesc<Gfx::PresentMode>{.defaultValue = Gfx::PresentMode::Auto, .isValid = enumIsValidUpToLast}> presentMode;
+		{.defaultValue = Gfx::PresentMode::Auto, .isValid = enumIsValidUpToLast}> presentMode;
 	ConditionalMember<Gfx::supportsPresentationTime, PresentationTimeMode> presentationTimeMode{PresentationTimeMode::basic};
 	Property<bool, CFGKEY_BLANK_FRAME_INSERTION> allowBlankFrameInsertion;
+	Property<bool, CFGKEY_SHOW_FRAME_TIMING_STATS> showFrameTimingStats;
 
 protected:
 	struct ConfigParams
 	{
 		Gfx::DrawableConfig windowDrawableConf;
 	};
+
+	[[no_unique_address]] IG::Data::PixmapWriter pixmapWriter;
+	[[no_unique_address]] PerformanceHintManager perfHintManager;
+	[[no_unique_address]] PerformanceHintSession perfHintSession;
+	ConditionalMember<MOGA_INPUT, std::unique_ptr<Input::MogaManager>> mogaManagerPtr;
+	ConditionalMember<Config::TRANSLUCENT_SYSTEM_UI, bool> layoutBehindSystemUI{};
 
 	void onMainWindowCreated(ViewAttachParams, const Input::Event &);
 	ConfigParams loadConfigFile(IG::ApplicationContext);
@@ -474,8 +411,6 @@ protected:
 	void saveSystemOptions(FileIO &);
 	bool allWindowsAreFocused() const;
 	void configureSecondaryScreens();
-	IG::OnFrameDelegate onFrameDelayed(int8_t delay);
-	void addOnFrameDelegate(IG::OnFrameDelegate);
 	void onFocusChange(bool in);
 	void configureAppForEmulation(bool running);
 };

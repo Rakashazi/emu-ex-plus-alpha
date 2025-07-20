@@ -33,10 +33,15 @@ struct ConstantType
 	constexpr const T &value() const { return value_; }
 	constexpr operator const T&() const { return value_; };
 
-	constexpr auto& operator +=(const auto &) { return *this; }
-	constexpr auto& operator -=(const auto &) { return *this; }
-	constexpr auto& operator *=(const auto &) { return *this; }
-	constexpr auto& operator /=(const auto &) { return *this; }
+	constexpr auto& operator +=(const auto&) { return *this; }
+	constexpr auto& operator -=(const auto&) { return *this; }
+	constexpr auto& operator *=(const auto&) { return *this; }
+	constexpr auto& operator /=(const auto&) { return *this; }
+	constexpr auto operator +(const auto& rhs) const { return value() + rhs; }
+	constexpr auto operator -(const auto& rhs) const { return value() - rhs; }
+	constexpr auto operator *(const auto& rhs) const { return value() * rhs; }
+	constexpr auto operator /(const auto& rhs) const { return value() / rhs; }
+	constexpr auto operator %(const auto& rhs) const { return value() % rhs; }
 	constexpr auto operator<=>(const T &o) const { return value() <=> o; };
 
 private:
@@ -64,6 +69,11 @@ struct UnusedType
 	constexpr auto& operator -=(const auto &) { return *this; }
 	constexpr auto& operator *=(const auto &) { return *this; }
 	constexpr auto& operator /=(const auto &) { return *this; }
+	constexpr auto operator +(const auto& rhs) const { return T{} + T{rhs}; }
+	constexpr auto operator -(const auto& rhs) const { return T{} - T{rhs}; }
+	constexpr auto operator *(const auto& rhs) const { return T{} * T{rhs}; }
+	constexpr auto operator /(const auto& rhs) const { return T{} / T{rhs}; }
+	constexpr auto operator %(const auto& rhs) const { return T{} % T{rhs}; }
 	constexpr auto operator<=>(const T &o) const { return T{} <=> o; };
 };
 
@@ -80,10 +90,10 @@ template<int tag>
 struct UseIfOrConstantTagInjector // used to inject the line count as "tag" when used from a macro
 {
     template<bool condition, class T, T value>
-    using T = UseIfOrConstant<condition, T, value, tag>;
+    using Type = UseIfOrConstant<condition, T, value, tag>;
 };
 
-#define ConditionalMemberOr [[no_unique_address]] IG::UseIfOrConstantTagInjector<__LINE__>::T
+#define ConditionalMemberOr [[no_unique_address]] IG::UseIfOrConstantTagInjector<__LINE__>::Type
 
 // same as above but always returns a default constructed value so class types can be used
 template<bool condition, class T, int tag = 0>
@@ -93,10 +103,10 @@ template<int tag>
 struct UseIfTagInjector
 {
     template<bool condition, class T>
-    using T = UseIf<condition, T, tag>;
+    using Type = UseIf<condition, T, tag>;
 };
 
-#define ConditionalMember [[no_unique_address]] IG::UseIfTagInjector<__LINE__>::T
+#define ConditionalMember [[no_unique_address]] IG::UseIfTagInjector<__LINE__>::Type
 
 // test that a variable's type is used in UseIf and not the UnusedType case
 constexpr bool used(auto &&) { return true; }

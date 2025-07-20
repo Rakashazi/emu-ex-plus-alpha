@@ -63,35 +63,34 @@ BaseWindow::BaseWindow(ApplicationContext ctx, WindowConfig config):
 		}
 	} {}
 
-FrameTimeSource Window::evalFrameTimeSource(FrameTimeSource src) const
+FrameClockSource Window::evalFrameClockSource(FrameClockSource src) const
 {
-	return src == FrameTimeSource::Unset ? defaultFrameTimeSource() : src;
+	return src == FrameClockSource::Unset ? defaultFrameClockSource() : src;
 }
 
-bool Window::addOnFrame(OnFrameDelegate del, FrameTimeSource src, int priority)
+void Window::addOnFrame(OnFrameDelegate del, FrameClockSource src, int priority)
 {
-	src = evalFrameTimeSource(src);
-	if(src != FrameTimeSource::Renderer)
+	src = evalFrameClockSource(src);
+	if(src != FrameClockSource::Renderer)
 	{
-		return screen()->addOnFrame(del);
+		screen()->addOnFrame(del);
 	}
 	else
 	{
-		bool added = onFrame.add(del, priority);
+		onFrame.insert(del, priority);
 		if(drawPhase == DrawPhase::UPDATE)
 		{
 			// trigger a draw so delegate runs at start of next frame
 			setNeedsDraw(true);
 		}
 		drawEvent.notify();
-		return added;
 	}
 }
 
-bool Window::removeOnFrame(OnFrameDelegate del, FrameTimeSource src)
+bool Window::removeOnFrame(OnFrameDelegate del, FrameClockSource src)
 {
-	src = evalFrameTimeSource(src);
-	if(src != FrameTimeSource::Renderer)
+	src = evalFrameClockSource(src);
+	if(src != FrameClockSource::Renderer)
 	{
 		return screen()->removeOnFrame(del);
 	}
@@ -101,25 +100,25 @@ bool Window::removeOnFrame(OnFrameDelegate del, FrameTimeSource src)
 	}
 }
 
-bool Window::moveOnFrame(Window &srcWin, OnFrameDelegate del, FrameTimeSource src)
+void Window::moveOnFrame(Window &srcWin, OnFrameDelegate del, FrameClockSource src)
 {
 	srcWin.removeOnFrame(del, src);
-	return addOnFrame(del, src);
+	addOnFrame(del, src);
 }
 
-FrameTimeSource Window::defaultFrameTimeSource() const
+FrameClockSource Window::defaultFrameClockSource() const
 {
-	return screen()->supportsTimestamps() ? FrameTimeSource::Screen :
-		(Config::envIsAndroid ? FrameTimeSource::Renderer : FrameTimeSource::Timer);
+	return screen()->supportsTimestamps() ? FrameClockSource::Screen :
+		(Config::envIsAndroid ? FrameClockSource::Renderer : FrameClockSource::Timer);
 }
 
-void Window::configureFrameTimeSource(FrameTimeSource src)
+void Window::configureFrameClock(FrameClockSource src)
 {
-	src = evalFrameTimeSource(src);
+	src = evalFrameClockSource(src);
 	log.info("configuring for frame time source:{}", wise_enum::to_string(src));
-	if(src != FrameTimeSource::Renderer)
+	if(src != FrameClockSource::Renderer)
 	{
-		screen()->setVariableFrameTime(src == FrameTimeSource::Timer);
+		screen()->setVariableFrameRate(src == FrameClockSource::Timer);
 	}
 }
 
@@ -179,6 +178,7 @@ void Window::unpostDraw()
 {
 	setNeedsDraw(false);
 	drawEvent.cancel();
+	lastFrameTime = {};
 	//log.debug("window:{} cancelled draw", this);
 }
 
@@ -311,8 +311,13 @@ void Window::dispatchOnFrame()
 	}
 	drawPhase = DrawPhase::UPDATE;
 	//log.debug("running {} onFrame delegates", onFrame.size());
-	FrameParams frameParams{.timestamp = SteadyClock::now(), .frameTime = screen()->frameTime(), .timeSource = FrameTimeSource::Renderer};
+	auto now = SteadyClock::now();
+	FrameParams frameParams{.time = now, .lastTime = std::exchange(lastFrameTime, now), .duration = screen()->frameRate().duration(), .timeSource = FrameClockSource::Renderer};
 	onFrame.runAll([&](OnFrameDelegate del){ return del(frameParams); });
+	if(!onFrame.size())
+	{
+		lastFrameTime = {};
+	}
 }
 
 void Window::draw(bool needsSync)

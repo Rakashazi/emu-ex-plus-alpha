@@ -32,7 +32,7 @@ class MachSemaphore
 public:
 	MachSemaphore(unsigned startValue)
 	{
-		auto ret = semaphore_create(mach_task_self(), &sem, SYNC_POLICY_FIFO, startValue);
+		[[maybe_unused]] auto ret = semaphore_create(mach_task_self(), &sem, SYNC_POLICY_FIFO, startValue);
 		assert(ret == KERN_SUCCESS);
 	}
 
@@ -70,7 +70,7 @@ protected:
 	{
 		if(!sem)
 			return;
-		auto ret = semaphore_destroy(mach_task_self(), sem);
+		[[maybe_unused]] auto ret = semaphore_destroy(mach_task_self(), sem);
 		assert(ret == KERN_SUCCESS);
 		sem = {};
 	}

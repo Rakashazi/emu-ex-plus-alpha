@@ -47,13 +47,11 @@ private:
 class InputOverridesDeviceView : public TableView, public EmuAppHelper
 {
 public:
-	InputOverridesDeviceView(UTF16String name, ViewAttachParams,
-		InputOverridesView& rootIMView, const Input::Device&, InputManager&);
+	InputOverridesDeviceView(UTF16String name, ViewAttachParams, const Input::Device&, InputManager&);
 	void onShow() final;
 
 private:
 	InputManager& inputManager;
-	InputOverridesView& rootIMView;
 	DynArray<TextMenuItem> playerItems;
 	MultiChoiceMenuItem player;
 	TextMenuItem loadProfile;

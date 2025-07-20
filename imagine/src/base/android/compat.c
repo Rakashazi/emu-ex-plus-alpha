@@ -6,9 +6,21 @@
 #include <limits.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <pthread.h>
+#include <sched.h>
 
 // Implementation of missing libc functions when compiling with newer NDK headers
 // and an old minimum SDK level, mostly from Bionic
+
+struct cpu_set_t;
+
+int pthread_condattr_setclock(pthread_condattr_t*, clockid_t) { return 0; }
+
+int sched_getaffinity(pid_t, size_t, struct cpu_set_t*) { return 0; }
+
+int __sched_cpucount(size_t, const struct cpu_set_t*) { return 0; }
+
+int sigfillset(sigset_t*) { return 0; }
 
 int fstat64(int fd, struct stat64* buf) { return fstat(fd, (struct stat*)buf); }
 
@@ -19,7 +31,8 @@ size_t __ctype_get_mb_cur_max(void) { return 1; }
 float strtof(const char* nptr, char** endptr) {
   // N.B. Double-rounding makes this function incorrect for some inputs.
   double d = strtod(nptr, endptr);
-  if (__builtin_isfinite(d) && __builtin_fabs(d) > FLT_MAX) {
+  // Skip finite check for compatibility with -ffast-math
+  if (/*__builtin_isfinite(d) &&*/ __builtin_fabs(d) > FLT_MAX) {
     errno = ERANGE;
     return __builtin_copysign(__builtin_huge_valf(), d);
   }

@@ -90,7 +90,7 @@ void GLRendererCommands::present(Drawable win)
 			glContext().present(win);
 		});
 	// check if buffer swap blocks even though triple-buffering is used
-	if(Config::DEBUG_BUILD && winPtr && r->maxSwapChainImages() > 2 && swapTime > winPtr->screen()->frameTime())
+	if(Config::DEBUG_BUILD && winPtr && r->maxSwapChainImages() > 2 && swapTime > winPtr->screen()->frameRate().duration())
 	{
 		logWarn("buffer swap took %lldns", (long long)swapTime.count());
 	}

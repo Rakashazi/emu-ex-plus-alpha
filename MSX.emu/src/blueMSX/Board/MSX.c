@@ -254,7 +254,7 @@ int msxCreate(Machine* machine,
                           machine->board.type == BOARD_MSX_FORTE_II ? 1 : 2);
 
     if (machine->board.type == BOARD_MSX_FORTE_II) {
-        CoinDevice* coinDevice = coinDeviceCreate(msxPsg);
+        CoinDevice* coinDevice = coinDeviceCreate();
         msxPsgRegisterCassetteRead(msxPsg, coinDeviceRead, coinDevice);
     }
 

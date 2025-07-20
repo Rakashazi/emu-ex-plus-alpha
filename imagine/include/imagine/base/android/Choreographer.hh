@@ -77,7 +77,6 @@ public:
 		choreographerPtr{&choreographer} {}
 	void scheduleVSync() { choreographerPtr->scheduleVSync(); }
 	void cancel() { choreographerPtr->cancel(); }
-	void setFrameRate(FrameRate) {}
 	void setEventsOnThisThread(ApplicationContext ctx) { choreographerPtr->setEventsOnThisThread(ctx); }
 
 protected:

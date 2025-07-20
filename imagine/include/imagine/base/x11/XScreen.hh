@@ -72,9 +72,8 @@ public:
 protected:
 	xcb_screen_t* xScreen{};
 	FrameTimer frameTimer;
-	SteadyClockTime frameTime_{};
+	FrameRate frameRate_{};
 	float xMM{}, yMM{};
-	float frameRate_{};
 	bool reliableFrameTime = true;
 };
 

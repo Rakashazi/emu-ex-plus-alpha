@@ -4,7 +4,6 @@
 
 CFLAGS_OPTIMIZE_DEBUG_DEFAULT ?= -Og
 CFLAGS_OPTIMIZE_MISC_RELEASE_DEFAULT ?= -fomit-frame-pointer -fno-stack-protector -fno-asynchronous-unwind-tables
-CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT ?= -Ofast
 CFLAGS_OPTIMIZE_RELEASE_DEFAULT ?= $(CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT) $(CFLAGS_OPTIMIZE_MISC_RELEASE_DEFAULT)
 CFLAGS_CODEGEN += -pipe -fvisibility=hidden -ffunction-sections -fdata-sections
 CFLAGS_LANG = -fno-common
@@ -66,8 +65,6 @@ ifndef RELEASE
  ifneq ($(compiler_sanitizeMode),)
   CFLAGS_CODEGEN += -fsanitize=$(compiler_sanitizeMode) -fno-omit-frame-pointer
   LDFLAGS_SYSTEM += -fsanitize=$(compiler_sanitizeMode)
-  # Disable debug section compression since it may prevent symbols from appearing in backtrace
-  COMPRESS_DEBUG_SECTIONS = none
   ifneq ($(compiler_sanitizeMode),)
    CFLAGS_CODEGEN += -fno-sanitize=$(compiler_noSanitizeMode)
    LDFLAGS_SYSTEM += -fno-sanitize=$(compiler_noSanitizeMode)

@@ -48,7 +48,7 @@ using namespace IG;
 - (void)onFrame:(CADisplayLink *)displayLink
 {
 	auto &screen = *screen_;
-	auto timestamp = fromSeconds<SteadyClockTime>(displayLink.timestamp);
+	auto timestamp = fromSeconds<SteadyClockDuration>(displayLink.timestamp);
 	//logMsg("screen:%p, frame time stamp:%f, duration:%f",
 	//	screen.uiScreen(), timestamp.count(), (double)screen.displayLink().duration);
 	if(!screen.frameUpdate(SteadyClockTimePoint{timestamp}))
@@ -101,14 +101,13 @@ IOSScreen::IOSScreen(ApplicationContext, InitParams initParams)
 	updateDisplayLinkRunLoop();
 
 	// note: the _refreshRate value is actually time per frame in seconds
-	auto frameTime = [uiScreen() _refreshRate];
-	if(!frameTime || 1. / frameTime < 20. || 1. / frameTime > 200.)
+	auto frameDuration = [uiScreen() _refreshRate];
+	if(!frameDuration || 1. / frameDuration < 20. || 1. / frameDuration > 200.)
 	{
-		logWarn("ignoring unusual refresh rate: %f", 1. / frameTime);
-		frameTime = 1. / 60.;
+		logWarn("ignoring unusual refresh rate: %f", 1. / frameDuration);
+		frameDuration = 1. / 60.;
 	}
-	frameTime_ = fromSeconds<SteadyClockTime>(frameTime);
-	frameRate_ = 1. / frameTime;
+	frameRate_ = fromSeconds<SteadyClockDuration>(frameDuration);
 }
 
 IOSScreen::~IOSScreen()
@@ -148,7 +147,7 @@ int Screen::height() const
 }
 
 FrameRate Screen::frameRate() const { return frameRate_; }
-SteadyClockTime Screen::frameTime() const { return frameTime_; }
+FrameRate Screen::frameTimerRate() const { return frameRate_; }
 
 bool Screen::frameRateIsReliable() const
 {
@@ -176,7 +175,7 @@ std::span<const FrameRate> Screen::supportedFrameRates() const
 	return {&frameRate_, 1};
 }
 
-void Screen::setVariableFrameTime(bool)
+void Screen::setVariableFrameRate(bool)
 {
 	// TODO
 }

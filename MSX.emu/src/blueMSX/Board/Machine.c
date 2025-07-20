@@ -1026,7 +1026,7 @@ int machineInitialize(Machine* machine, UInt8** mainRam, UInt32* mainRamSize, UI
         }
 
         if (machine->slotInfo[i].romType == ROM_TURBORTIMER) {
-            success &= romMapperTurboRTimerCreate(0);
+            success &= romMapperTurboRTimerCreate();
             continue;
         }
 

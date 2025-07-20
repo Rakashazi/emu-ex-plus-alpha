@@ -74,7 +74,7 @@ private:
 class InputManagerOptionsView : public TableView, public EmuAppHelper
 {
 public:
-	InputManagerOptionsView(ViewAttachParams, EmuInputView&);
+	InputManagerOptionsView(ViewAttachParams);
 
 private:
 	ConditionalMember<MOGA_INPUT, BoolMenuItem> mogaInputSystem;
@@ -86,7 +86,6 @@ private:
 	ConditionalMember<Config::Bluetooth::scanCache, BoolMenuItem> btScanCache;
 	BoolMenuItem altGamepadConfirm;
 	StaticArrayList<MenuItem*, 10> item;
-	EmuInputView& emuInputView;
 };
 
 class InputManagerDeviceView : public TableView, public EmuAppHelper

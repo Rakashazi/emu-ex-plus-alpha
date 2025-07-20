@@ -223,14 +223,14 @@ void EmuSystem::clearInputBuffers(EmuInputView &view)
 	static_cast<MainSystem*>(this)->clearInputBuffers(view);
 }
 
-FrameTime EmuSystem::frameTime() const
+FrameRate EmuSystem::frameRate() const
 {
-	return static_cast<const MainSystem*>(this)->frameTime();
+	return static_cast<const MainSystem*>(this)->frameRate();
 }
 
-void EmuSystem::configAudioRate(FrameTime frameTime, int rate)
+void EmuSystem::configAudioRate(FrameDuration frameDuration, int rate)
 {
-	static_cast<MainSystem*>(this)->configAudioRate(frameTime, rate);
+	static_cast<MainSystem*>(this)->configAudioRate(frameDuration, rate);
 }
 
 std::span<const AspectRatioInfo> EmuSystem::aspectRatioInfos()

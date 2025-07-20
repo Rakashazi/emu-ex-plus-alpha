@@ -31,7 +31,6 @@ public:
 	~FBDevFrameTimer();
 	void scheduleVSync();
 	void cancel();
-	void setFrameRate(FrameRate) {}
 	void setEventsOnThisThread(ApplicationContext);
 	static bool testSupport();
 

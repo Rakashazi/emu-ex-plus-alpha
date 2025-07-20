@@ -110,11 +110,9 @@ static const char *ps3ButtonName(Input::Key k)
 	return "";
 }
 
-PS3Controller::PS3Controller(ApplicationContext ctx, BluetoothAddr addr):
+PS3Controller::PS3Controller(ApplicationContext ctx, BluetoothAddr):
 	BluetoothInputDevice{ctx, Input::Map::PS3PAD, {.gamepad = true}, "PS3 Controller"},
-	ctlSock{ctx}, intSock{ctx},
-	addr{addr}
-{}
+	ctlSock{ctx}, intSock{ctx} {}
 
 const char *PS3Controller::keyName(Input::Key k) const
 {

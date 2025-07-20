@@ -30,7 +30,7 @@ public:
 	{
 		if(!frequency.count() || timer.isArmed())
 			return;
-		timer.run(nextFireTime(), frequency);
+		timer.run(nextFireDuration(), frequency);
 		startTime = SteadyClock::now();
 	}
 
@@ -38,14 +38,14 @@ public:
 	{
 		if(!startTime.time_since_epoch().count())
 			return;
-		elapsedTime += SteadyClock::now() - startTime;
+		elapsedDuration += SteadyClock::now() - startTime;
 		startTime = {};
 		timer.cancel();
 	}
 
 	void cancel()
 	{
-		elapsedTime = {};
+		elapsedDuration = {};
 		startTime = {};
 		timer.cancel();
 	}
@@ -61,20 +61,20 @@ public:
 		if(!startTime.time_since_epoch().count())
 			return;
 		startTime = SteadyClock::now();
-		elapsedTime = {};
+		elapsedDuration = {};
 	}
 
-	SteadyClockTime nextFireTime() const
+	SteadyClockDuration nextFireDuration() const
 	{
-		if(elapsedTime < frequency)
-			return frequency - elapsedTime;
+		if(elapsedDuration < frequency)
+			return frequency - elapsedDuration;
 		return Nanoseconds{1};
 	}
 
 private:
 	Timer timer;
 	SteadyClockTimePoint startTime{};
-	SteadyClockTime elapsedTime{};
+	SteadyClockDuration elapsedDuration{};
 public:
 	Frequency frequency{};
 };

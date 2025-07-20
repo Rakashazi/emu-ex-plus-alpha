@@ -7,8 +7,8 @@ CHOST := $(shell $(CC) -dumpmachine)
 ARCH := x86
 ifneq ($(config_compiler),clang)
  ifeq ($(origin CC), default)
-  CC := gcc-14
-  CXX := g++-14
+  CC := gcc-15
+  CXX := g++-15
  endif
 endif
 

@@ -37,7 +37,7 @@ uint32 GetSoundRate();
 namespace EmuEx
 {
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.github.io";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2025\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.github.io";
 bool EmuApp::needsGlobalInstance = true;
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
@@ -117,9 +117,9 @@ bool NgpSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 	return false;
 }
 
-void NgpSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
+void NgpSystem::configAudioRate(FrameRate outputFrameRate, int outputRate)
 {
-	uint32 mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
+	uint32 mixRate = std::round(audioMixRate(outputRate, outputFrameRate));
 	if(mixRate == GetSoundRate())
 		return;
 	logMsg("set sound mix rate:%d", (int)mixRate);

@@ -114,22 +114,22 @@ SteadyClockTimePoint FrameParams::presentTime(int frames) const
 {
 	if(frames <= 0)
 		return {};
-	return frameTime * frames + timestamp;
+	return duration * frames + time;
 }
 
-int FrameParams::elapsedFrames(SteadyClockTimePoint lastTimestamp) const
+int FrameParams::elapsedFrames() const
 {
-	return elapsedFrames(timestamp, lastTimestamp, frameTime);
+	return elapsedFrames(time, lastTime, duration);
 }
 
-int FrameParams::elapsedFrames(SteadyClockTimePoint timestamp, SteadyClockTimePoint lastTimestamp, SteadyClockTime frameTime)
+int FrameParams::elapsedFrames(SteadyClockTimePoint time, SteadyClockTimePoint lastTime, SteadyClockDuration frameDuration)
 {
-	if(!hasTime(lastTimestamp))
+	if(!hasTime(lastTime)) [[unlikely]]
 		return 1;
-	assumeExpr(timestamp >= lastTimestamp);
-	assumeExpr(frameTime.count() > 0);
-	auto diff = timestamp - lastTimestamp;
-	auto elapsed = divRoundClosestPositive(diff.count(), frameTime.count());
+	assumeExpr(time > lastTime);
+	assumeExpr(frameDuration.count() > 0);
+	auto diff = time - lastTime;
+	auto elapsed = divRoundClosestPositive(diff.count(), frameDuration.count());
 	return std::max(elapsed, decltype(elapsed){1});
 }
 

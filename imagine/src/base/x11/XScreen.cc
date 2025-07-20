@@ -39,13 +39,11 @@ XScreen::XScreen(ApplicationContext ctx, InitParams params)
 	if(Config::MACHINE_IS_PANDORA)
 	{
 		// TODO: read actual frame rate value
-		frameRate_ = 60;
-		frameTime_ = fromHz<SteadyClockTime>(60.);
+		frameRate_ = 60.;
 	}
 	else
 	{
-		frameRate_ = 60;
-		frameTime_ = fromHz<SteadyClockTime>(60.);
+		frameRate_ = 60.;
 		reliableFrameTime = false;
 		xcb_randr_output_t primaryOutput{};
 		auto resReply = XCB_REPLY(xcb_randr_get_screen_resources, &conn, screen.root);
@@ -80,8 +78,8 @@ XScreen::XScreen(ApplicationContext ctx, InitParams params)
 					{
 						if(modeInfo.id == crtcInfoReply->mode && modeInfo.htotal && modeInfo.vtotal)
 						{
-							frameRate_ = float(modeInfo.dot_clock) / (modeInfo.htotal * modeInfo.vtotal);
-							frameTime_ = fromSeconds<SteadyClockTime>(modeInfo.htotal * modeInfo.vtotal / double(modeInfo.dot_clock));
+							frameRate_ = {float(modeInfo.dot_clock) / (modeInfo.htotal * modeInfo.vtotal),
+								fromSeconds<SteadyClockDuration>(modeInfo.htotal * modeInfo.vtotal / double(modeInfo.dot_clock))};
 							reliableFrameTime = true;
 							break;
 						}
@@ -89,10 +87,10 @@ XScreen::XScreen(ApplicationContext ctx, InitParams params)
 				}
 			}
 		}
-		assert(frameTime_.count());
+		assert(frameRate_.hz());
 	}
 	log.info("screen:{} {}x{} ({}x{}mm) {}Hz", (void*)&screen,
-		screen.width_in_pixels, screen.height_in_pixels, (int)xMM, (int)yMM, frameRate_);
+		screen.width_in_pixels, screen.height_in_pixels, (int)xMM, (int)yMM, frameRate_.hz());
 	ctx.application().emplaceFrameTimer(frameTimer, *static_cast<Screen*>(this));
 }
 
@@ -127,7 +125,7 @@ int Screen::height() const
 }
 
 FrameRate Screen::frameRate() const { return frameRate_; }
-SteadyClockTime Screen::frameTime() const { return frameTime_; }
+FrameRate Screen::frameTimerRate() const { return frameTimer.frameRate(); }
 
 bool Screen::frameRateIsReliable() const
 {
@@ -141,13 +139,13 @@ void Screen::setFrameRate(FrameRate rate)
 		if(!rate)
 			rate = 60;
 		else
-			rate = std::round(rate);
-		if(rate != 50 && rate != 60)
+			rate = std::round(rate.hz());
+		if(rate.hz() != 50 && rate.hz() != 60)
 		{
-			log.warn("tried to set unsupported frame rate:{}", rate);
+			log.warn("tried to set unsupported frame rate:{}", rate.hz());
 			return;
 		}
-		auto cmd = std::format("sudo /usr/pandora/scripts/op_lcdrate.sh {}", (unsigned int)rate);
+		auto cmd = std::format("sudo /usr/pandora/scripts/op_lcdrate.sh {}", (unsigned int)rate.hz());
 		int err = system(cmd.data());
 		if(err)
 		{
@@ -155,7 +153,6 @@ void Screen::setFrameRate(FrameRate rate)
 			return;
 		}
 		frameRate_ = rate;
-		frameTime_ = fromHz<SteadyClockTime>(rate);
 		frameTimer.setFrameRate(rate);
 	}
 	else
@@ -174,11 +171,10 @@ void Screen::unpostFrameTimer()
 	frameTimer.cancel();
 }
 
-void Screen::setFrameInterval(int interval)
+void Screen::setFrameInterval(int)
 {
 	// TODO
 	//log.info("setting frame interval:{}", interval);
-	assert(interval >= 1);
 }
 
 bool Screen::supportsFrameInterval()
@@ -197,7 +193,7 @@ std::span<const FrameRate> Screen::supportedFrameRates() const
 	return {&frameRate_, 1};
 }
 
-void Screen::setVariableFrameTime(bool useVariableTime)
+void Screen::setVariableFrameRate(bool useVariableTime)
 {
 	if(!shouldUpdateFrameTimer(frameTimer, useVariableTime))
 		return;

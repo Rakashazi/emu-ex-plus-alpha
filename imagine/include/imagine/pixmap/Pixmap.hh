@@ -424,7 +424,7 @@ protected:
 
 	static void convertBGRX8888ToRGB565(auto dest, auto src)
 	{
-		dest.template writeTransformed(transformBGRX8888ToRGB565, src);
+		dest.writeTransformed(transformBGRX8888ToRGB565, src);
 	}
 };
 

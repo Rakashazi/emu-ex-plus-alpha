@@ -75,15 +75,20 @@ void AndroidApplication::initChoreographer(JNIEnv *env, jobject baseActivity, jc
 	}
 }
 
-static void updatePostedScreens(auto &choreographer, SteadyClockTimePoint timestamp, AndroidApplication &app)
+static void updatePostedScreens(auto& choreographer, SteadyClockTimePoint time, AndroidApplication& app)
 {
+	if(time == app.mainScreen().lastFrameTime())
+	{
+		choreographer.scheduleVSync();
+		return;
+	}
 	bool didUpdate{};
 	app.flushSystemInputEvents();
 	for(auto &s : app.screens())
 	{
 		if(s->isPosted())
 		{
-			didUpdate |= s->frameUpdate(timestamp);
+			didUpdate |= s->frameUpdate(time);
 		}
 	}
 	if(didUpdate)

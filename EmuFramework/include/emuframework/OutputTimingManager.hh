@@ -25,59 +25,43 @@ namespace EmuEx
 
 using namespace IG;
 
-enum class FrameTimeStatEvent
+struct FrameRateConfig
 {
-	startOfFrame,
-	startOfEmulation,
-	waitForPresent,
-	endOfFrame,
-};
+	constexpr bool operator==(const FrameRateConfig&) const = default;
 
-struct FrameTimeStats
-{
-	SteadyClockTimePoint startOfFrame{};
-	SteadyClockTimePoint startOfEmulation{};
-	SteadyClockTimePoint waitForPresent{};
-	SteadyClockTimePoint endOfFrame{};
-	int missedFrameCallbacks{};
-};
-
-struct FrameTimeConfig
-{
-	FrameTime time;
-	FrameRate rate;
-	int refreshMultiplier;
+	FrameRate rate{};
+	int refreshMultiplier{};
 };
 
 class OutputTimingManager
 {
 public:
-	static constexpr FrameTime autoOption{};
-	static constexpr FrameTime originalOption{-1};
+	static constexpr FrameDuration autoOption{};
+	static constexpr FrameDuration originalOption{-1};
 
 	constexpr OutputTimingManager() = default;
-	FrameTimeConfig frameTimeConfig(const EmuSystem &, std::span<const FrameRate> supportedFrameRates) const;
-	static bool frameTimeOptionIsValid(FrameTime time);
-	bool setFrameTimeOption(VideoSystem, FrameTime frameTime);
+	FrameRateConfig frameRateConfig(const EmuSystem&, std::span<const FrameRate> supportedFrameRates, FrameClockSource) const;
+	static bool frameRateOptionIsValid(FrameDuration time);
+	bool setFrameRateOption(VideoSystem, FrameDuration frameTime);
 
 private:
-	auto& frameTimeVar(this auto&& self, VideoSystem system)
+	auto& frameRateVar(this auto&& self, VideoSystem system)
 	{
 	  switch(system)
 	  {
-	    case VideoSystem::NATIVE_NTSC: return self.frameTimeNative;
-	    case VideoSystem::PAL: return self.frameTimePAL;
+	    case VideoSystem::NATIVE_NTSC: return self.frameRateNative;
+	    case VideoSystem::PAL: return self.frameRatePAL;
 	  }
 	  __builtin_unreachable();
 	}
 
 public:
-	FrameTime frameTimeOption(VideoSystem vidSys) const { return frameTimeVar(vidSys); }
-	auto frameTimeOptionAsMenuId(VideoSystem vidSys) const { return MenuId(frameTimeVar(vidSys).count() > 0 ? 1 : frameTimeVar(vidSys).count()); }
+	FrameDuration frameRateOption(VideoSystem vidSys) const { return frameRateVar(vidSys); }
+	auto frameRateOptionAsMenuId(VideoSystem vidSys) const { return MenuId(frameRateVar(vidSys).count() > 0 ? 1 : frameRateVar(vidSys).count()); }
 
 private:
-	FrameTime frameTimeNative{};
-	FrameTime frameTimePAL{};
+	FrameDuration frameRateNative{};
+	FrameDuration frameRatePAL{};
 };
 
 }

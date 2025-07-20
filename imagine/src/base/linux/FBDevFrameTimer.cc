@@ -43,10 +43,13 @@ FBDevFrameTimer::FBDevFrameTimer(Screen &screen, EventLoop loop):
 		eventfd(0, 0), {.debugLabel = "FBDevFrameTimer", .eventLoop = loop},
 		[this, &screen](int fd, int)
 		{
-			eventfd_t timestamp;
-			auto ret = read(fd, &timestamp, sizeof(timestamp));
-			assert(ret == sizeof(timestamp));
-			//log.debug("read frame timestamp:{}", timestamp);
+			eventfd_t time;
+			if(auto ret = read(fd, &time, sizeof(time));
+				ret != sizeof(time))
+			{
+				log.error("only read {} bytes from eventfd, expected {}", ret, sizeof(time));
+			}
+			//log.debug("read frame time:{}", time);
 			requested = false;
 			if(cancelled)
 			{
@@ -55,7 +58,7 @@ FBDevFrameTimer::FBDevFrameTimer(Screen &screen, EventLoop loop):
 			}
 			if(screen.isPosted())
 			{
-				if(screen.frameUpdate(SteadyClockTimePoint{Nanoseconds{timestamp}}))
+				if(screen.frameUpdate(SteadyClockTimePoint{Nanoseconds{time}}))
 					scheduleVSync();
 			}
 			return true;
@@ -84,10 +87,13 @@ FBDevFrameTimer::FBDevFrameTimer(Screen &screen, EventLoop loop):
 				{
 					log.error("error in ioctl FBIO_WAITFORVSYNC");
 				}
-				eventfd_t timestamp = SteadyClock::now().time_since_epoch().count();
-				//log.info("got vsync at time:{}", timestamp);
-				auto ret = write(fd, &timestamp, sizeof(timestamp));
-				assert(ret == sizeof(timestamp));
+				eventfd_t time = SteadyClock::now().time_since_epoch().count();
+				//log.info("got vsync at time:{}", time);
+				if(auto ret = write(fd, &time, sizeof(time));
+					ret != sizeof(time))
+				{
+					log.error("only wrote {} bytes to eventfd, expected {}", ret, sizeof(time));
+				}
 			}
 			close(fbdev);
 		});

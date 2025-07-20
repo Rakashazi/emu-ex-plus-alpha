@@ -31,10 +31,10 @@ Screen::Screen(ApplicationContext ctx, InitParams params):
 	windowsPtr{&ctx.application().windows()},
 	appCtx{ctx} {}
 
-bool Screen::addOnFrame(OnFrameDelegate del, int priority)
+void Screen::addOnFrame(OnFrameDelegate del, int priority)
 {
 	postFrame();
-	return onFrameDelegate.add(del, priority);
+	onFrameDelegate.insert(del, priority);
 }
 
 bool Screen::removeOnFrame(OnFrameDelegate del)
@@ -52,10 +52,10 @@ bool Screen::containsOnFrame(OnFrameDelegate del) const
 	return onFrameDelegate.contains(del);
 }
 
-void Screen::runOnFrameDelegates(SteadyClockTimePoint timestamp)
+void Screen::runOnFrameDelegates(SteadyClockTimePoint time)
 {
 	postFrame();
-	auto params = makeFrameParams(timestamp);
+	auto params = makeFrameParams(time, std::exchange(lastFrameTime_, time));
 	onFrameDelegate.runAll([&](OnFrameDelegate del)
 	{
 		return del(params);
@@ -78,7 +78,10 @@ bool Screen::frameUpdate(SteadyClockTimePoint timestamp)
 	assert(isActive);
 	framePosted = false;
 	if(!onFrameDelegate.size())
+	{
+		lastFrameTime_ = {};
 		return false;
+	}
 	runOnFrameDelegates(timestamp);
 	for(auto &w : *windowsPtr)
 	{
@@ -86,6 +89,10 @@ bool Screen::frameUpdate(SteadyClockTimePoint timestamp)
 		{
 			w->dispatchOnDraw();
 		}
+	}
+	if(!framePosted)
+	{
+		lastFrameTime_ = {};
 	}
 	return true;
 }
@@ -107,9 +114,9 @@ void Screen::setActive(bool active)
 	}
 }
 
-FrameParams Screen::makeFrameParams(SteadyClockTimePoint timestamp) const
+FrameParams Screen::makeFrameParams(SteadyClockTimePoint time, SteadyClockTimePoint lastTime) const
 {
-	return {.timestamp = timestamp, .frameTime = frameTime(), .timeSource = FrameTimeSource::Screen};
+	return {.time = time, .lastTime = lastTime, .duration = frameRate().duration(), .timeSource = FrameClockSource::Screen};
 }
 
 void Screen::postFrame()
@@ -131,6 +138,7 @@ void Screen::unpostFrame()
 	if(!framePosted)
 		return;
 	framePosted = false;
+	lastFrameTime_ = {};
 	unpostFrameTimer();
 }
 
@@ -140,7 +148,7 @@ bool Screen::shouldUpdateFrameTimer(const FrameTimer& frameTimer, bool newVariab
 		(!newVariableFrameTimeValue && std::holds_alternative<SimpleFrameTimer>(frameTimer));
 }
 
-[[gnu::weak]] SteadyClockTime Screen::presentationDeadline() const { return {}; }
+[[gnu::weak]] SteadyClockDuration Screen::presentationDeadline() const { return {}; }
 
 
 }

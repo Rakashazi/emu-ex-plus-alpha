@@ -42,7 +42,7 @@ enum TestID
 
 struct FramePresentTime
 {
-	SteadyClockTimePoint timestamp{};
+	SteadyClockTimePoint time{};
 	SteadyClockTimePoint atOnFrame{};
 	SteadyClockTimePoint atWinPresent{};
 

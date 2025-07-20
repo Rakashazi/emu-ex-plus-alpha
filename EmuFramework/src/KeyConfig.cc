@@ -33,7 +33,7 @@ KeyConfig KeyConfig::readConfig(MapIO &io)
 	readSizedData<uint8_t>(io, keyConf.name);
 	auto mappings = io.get<uint8_t>();
 	keyConf.keyMap.reserve(mappings);
-	for([[maybe_unused]] auto mappingIdx : iotaCount(mappings))
+	for(auto _ : iotaCount(mappings))
 	{
 		KeyMapping m;
 		io.read(m.key.codes.data(), m.key.codes.capacity());

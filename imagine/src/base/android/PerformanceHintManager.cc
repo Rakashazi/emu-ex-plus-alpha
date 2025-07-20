@@ -60,12 +60,16 @@ PerformanceHintManager::operator bool() const { return mgrPtr; }
 
 void PerformanceHintSession::updateTargetWorkTime(Nanoseconds targetTime)
 {
+	if(!sessionPtr)
+		return;
 	if(APerformanceHint_updateTargetWorkDuration(sessionPtr.get(), targetTime.count()))
 		logErr("error in APerformanceHint_updateTargetWorkDuration(%p, %lld)", sessionPtr.get(), (long long)targetTime.count());
 }
 
 void PerformanceHintSession::reportActualWorkTime(Nanoseconds actualTime)
 {
+	if(!sessionPtr)
+		return;
 	if(APerformanceHint_reportActualWorkDuration(sessionPtr.get(), actualTime.count()))
 		logErr("error in APerformanceHint_reportActualWorkDuration(%p, %lld)", sessionPtr.get(), (long long)actualTime.count());
 }

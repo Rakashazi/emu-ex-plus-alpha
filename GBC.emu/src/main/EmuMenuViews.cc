@@ -56,11 +56,7 @@ public:
 			ResamplerInfo r = ResamplerInfo::get(i);
 			logMsg("%zu %s", i, r.desc);
 			resamplerItem.emplace_back(r.desc, attachParams(),
-				[this, i]()
-				{
-					system().optionAudioResampler = i;
-					app().configFrameTime();
-				});
+				[this, i](){ system().optionAudioResampler = i; });
 		}
 		item.emplace_back(&resampler);
 	}

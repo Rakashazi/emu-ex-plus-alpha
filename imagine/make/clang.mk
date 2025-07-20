@@ -10,11 +10,6 @@ ifndef RELEASE
  CFLAGS_CODEGEN += -g
 endif
 
-CFLAGS_CODEGEN += -fstrict-vtable-pointers
-
-# needed for <ranges>
-CPPFLAGS += -D_LIBCPP_ENABLE_EXPERIMENTAL
-
 # needed for DelegateFuncSet.hh
 CXXFLAGS_WARN += -Wno-vla-extension
 
@@ -37,3 +32,5 @@ else
  # -flto needed to enable linking any static archives with LTO
  LDFLAGS_SYSTEM += -flto $(CFLAGS_CODEGEN)
 endif
+
+CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT ?= -O3 -ffast-math

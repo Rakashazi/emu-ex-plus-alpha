@@ -30,10 +30,27 @@ public:
 	using VariantBase::VariantBase;
 	using AddVisit::visit;
 
-	void scheduleVSync() { visit([](auto &e){ e.scheduleVSync(); }); }
-	void cancel() { visit([](auto &e){ e.cancel(); }); }
-	void setFrameRate(FrameRate rate) { visit([&](auto &e){ e.setFrameRate(rate); }); }
-	void setEventsOnThisThread(ApplicationContext ctx) { visit([&](auto &e){ e.setEventsOnThisThread(ctx); }); }
+	void scheduleVSync() { visit([](auto& e){ e.scheduleVSync(); }); }
+	void cancel() { visit([](auto& e){ e.cancel(); }); }
+	void setFrameRate(FrameRate rate)
+	{
+		visit([&](auto& e)
+		{
+			if constexpr(requires {e.setFrameRate(rate);})
+				e.setFrameRate(rate);
+		});
+	}
+	FrameRate frameRate() const
+	{
+		return visit([&](auto& e)
+		{
+			if constexpr(requires {e.frameRate();})
+				return e.frameRate();
+			else
+				return FrameRate{};
+		});
+	}
+	void setEventsOnThisThread(ApplicationContext ctx) { visit([&](auto& e){ e.setEventsOnThisThread(ctx); }); }
 };
 
 }

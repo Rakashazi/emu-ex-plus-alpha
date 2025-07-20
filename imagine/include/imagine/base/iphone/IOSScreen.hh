@@ -80,8 +80,7 @@ protected:
 	void *uiScreen_{}; // UIScreen in ObjC
 	void *displayLink_{}; // CADisplayLink in ObjC
 	void *displayLinkRunLoop_{}; // NSRunLoop in ObjC
-	SteadyClockTime frameTime_{};
-	float frameRate_{};
+	FrameRate frameRate_{};
 	bool displayLinkActive{};
 
 	void updateDisplayLinkRunLoop();

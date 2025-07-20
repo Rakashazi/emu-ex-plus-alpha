@@ -92,7 +92,7 @@ namespace EmuEx
 {
 
 constexpr SystemLogger log{"NEO.emu"};
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGngeo Team\ncode.google.com/p/gngeo";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2025\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGngeo Team\ncode.google.com/p/gngeo";
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor GnGeo file loading code
 bool EmuSystem::canRenderRGBA8888 = false;
 bool EmuSystem::hasRectangularPixels = true;
@@ -333,9 +333,9 @@ void NeoSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate 
 	saveStateSize = writeState(std::span{std::make_unique<uint8_t[]>(maxStateSize).get(), maxStateSize}, {.uncompressed = true});
 }
 
-void NeoSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
+void NeoSystem::configAudioRate(FrameRate outputFrameRate, int outputRate)
 {
-	Uint16 mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
+	Uint16 mixRate = std::round(audioMixRate(outputRate, outputFrameRate));
 	if(conf.sample_rate == mixRate)
 		return;
 	conf.sample_rate = mixRate;

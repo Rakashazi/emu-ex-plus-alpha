@@ -504,7 +504,7 @@ void Renderer::animateWindowRotation(Window &win, float srcAngle, float destAngl
 	win.addOnFrame([&win](FrameParams params)
 	{
 		win.signalSurfaceChanged({.contentRectResized = true});
-		bool didUpdate = winData(win).projAngleM.update(params.timestamp);
+		bool didUpdate = winData(win).projAngleM.update(params.time);
 		return didUpdate;
 	});
 }
@@ -975,7 +975,11 @@ void Renderer::configureRenderer()
 			#endif
 
 			#ifndef CONFIG_GFX_OPENGL_ES
-			assert(glVer >= 33);
+			if(glVer < 33)
+			{
+				log.error("At least OpenGL 3.3 is required");
+				return;
+			}
 			#else
 			// core functionality
 			assumeExpr(glVer >= 20);

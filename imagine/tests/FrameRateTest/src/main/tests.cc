@@ -89,7 +89,7 @@ void TestFramework::place(WRect viewBounds_, WRect testRect)
 
 void TestFramework::frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::FrameParams frameParams)
 {
-	auto timestamp = frameParams.timestamp;
+	auto time = frameParams.time;
 	// CPU stats
 	bool updatedCPUStats = false;
 	if(frames % 8 == 0)
@@ -117,12 +117,12 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::F
 		bool updatedFrameStats = false;
 		if(!hasTime(startTime))
 		{
-			startTime = timestamp;
+			startTime = time;
 			//logMsg("start time: %llu", (unsigned long long)startTime);
 		}
 		else
 		{
-			auto elapsedScreenFrames = frameParams.elapsedFrames(lastFramePresentTime.timestamp);
+			auto elapsedScreenFrames = frameParams.elapsedFrames();
 			//logMsg("elapsed: %d", screen.elapsedFrames(frameTime));
 			if(elapsedScreenFrames > 1)
 			{
@@ -131,8 +131,8 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::F
 				droppedFrames++;
 				skippedFrameStr.clear();
 				IG::formatTo(skippedFrameStr, "Lost {} frame(s) taking {:.3f}s after {} continuous\nat time {:.3f}s",
-					elapsedScreenFrames - 1, IG::FloatSeconds(timestamp - lastFramePresentTime.timestamp).count(),
-					continuousFrames, IG::FloatSeconds(timestamp.time_since_epoch()).count());
+					elapsedScreenFrames - 1, IG::FloatSeconds(time - lastFramePresentTime.time).count(),
+					continuousFrames, IG::FloatSeconds(time.time_since_epoch()).count());
 				updatedFrameStats = true;
 				continuousFrames = 0;
 			}
@@ -143,7 +143,7 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::F
 			IG::formatTo(statsStr, "Total Draw Time: {:02}ms ({:02}ms)\nTimestamp Diff: {:02}ms",
 				(unsigned long)duration_cast<Milliseconds>(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).count(),
 				lostFrameProcessTime,
-				(unsigned long)duration_cast<Milliseconds>(timestamp - lastFramePresentTime.timestamp).count());
+				(unsigned long)duration_cast<Milliseconds>(time - lastFramePresentTime.time).count());
 			updatedFrameStats = true;
 		}
 		if(updatedFrameStats)
@@ -157,7 +157,7 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, IG::Window &win, IG::F
 		}
 	}
 	// run frame
-	frameUpdateTest(rTask, *win.screen(), timestamp);
+	frameUpdateTest(rTask, *win.screen(), time);
 	frames++;
 	continuousFrames++;
 }

@@ -23,161 +23,19 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <format>
-#include <imagine/logger/logger.h>
 
 namespace EmuEx
 {
 
-constexpr SystemLogger log{"FrameTimingView"};
-
-class DetectFrameRateView final: public View, public EmuAppHelper
+static std::string makeFrameRateStr(VideoSystem vidSys, const OutputTimingManager& mgr)
 {
-public:
-	using DetectFrameRateDelegate = DelegateFunc<void (SteadyClockTime frameTime)>;
-	DetectFrameRateDelegate onDetectFrameTime;
-	IG::OnFrameDelegate detectFrameRate;
-	SteadyClockTime totalFrameTime{};
-	SteadyClockTimePoint lastFrameTimestamp{};
-	Gfx::Text fpsText;
-	int allTotalFrames{};
-	int callbacks{};
-	std::vector<SteadyClockTime> frameTimeSample{};
-	bool useRenderTaskTime = false;
-
-	DetectFrameRateView(ViewAttachParams attach): View(attach),
-		fpsText{attach.rendererTask, &defaultFace()}
-	{
-		defaultFace().precacheAlphaNum(attach.renderer());
-		defaultFace().precache(attach.renderer(), ".");
-		fpsText.resetString("Preparing to detect frame rate...");
-		useRenderTaskTime = !screen()->supportsTimestamps();
-		frameTimeSample.reserve(std::round(screen()->frameRate() * 2.));
-	}
-
-	~DetectFrameRateView() final
-	{
-		window().setIntendedFrameRate(0);
-		app().setCPUNeedsLowLatency(appContext(), false);
-		window().removeOnFrame(detectFrameRate);
-	}
-
-	void place() final
-	{
-		fpsText.compile();
-	}
-
-	bool inputEvent(const Input::Event& e, ViewInputEventParams) final
-	{
-		if(e.keyEvent() && e.keyEvent()->pushed(Input::DefaultKey::CANCEL))
-		{
-			log.info("aborted detection");
-			dismiss();
-			return true;
-		}
-		return false;
-	}
-
-	void draw(Gfx::RendererCommands&__restrict__ cmds, ViewDrawParams) const final
-	{
-		using namespace IG::Gfx;
-		cmds.basicEffect().enableAlphaTexture(cmds);
-		fpsText.draw(cmds, viewRect().center(), C2DO, ColorName::WHITE);
-	}
-
-	bool runFrameTimeDetection(SteadyClockTime timestampDiff, double slack)
-	{
-		const int framesToTime = frameTimeSample.capacity() * 10;
-		allTotalFrames++;
-		frameTimeSample.emplace_back(timestampDiff);
-		if(frameTimeSample.size() == frameTimeSample.capacity())
-		{
-			bool stableFrameTime = true;
-			SteadyClockTime frameTimeTotal{};
-			{
-				SteadyClockTime lastFrameTime{};
-				for(auto frameTime : frameTimeSample)
-				{
-					frameTimeTotal += frameTime;
-					if(!stableFrameTime)
-						continue;
-					double frameTimeDiffSecs =
-						std::abs(IG::FloatSeconds(lastFrameTime - frameTime).count());
-					if(lastFrameTime.count() && frameTimeDiffSecs > slack)
-					{
-						log.info("frame times differed by:{}", frameTimeDiffSecs);
-						stableFrameTime = false;
-					}
-					lastFrameTime = frameTime;
-				}
-			}
-			auto frameTimeTotalSecs = FloatSeconds(frameTimeTotal);
-			auto detectedFrameTimeSecs = frameTimeTotalSecs / (double)frameTimeSample.size();
-			auto detectedFrameTime = round<SteadyClockTime>(detectedFrameTimeSecs);
-			{
-				if(detectedFrameTime.count())
-					fpsText.resetString(std::format("{:g}fps", toHz(detectedFrameTimeSecs)));
-				else
-					fpsText.resetString("0fps");
-				fpsText.compile();
-			}
-			if(stableFrameTime)
-			{
-				log.info("found frame time:{}", detectedFrameTimeSecs);
-				onDetectFrameTime(detectedFrameTime);
-				dismiss();
-				return false;
-			}
-			frameTimeSample.erase(frameTimeSample.cbegin());
-			postDraw();
-		}
-		else
-		{
-			//log.info("waiting for capacity:{}/{}", frameTimeSample.size(), frameTimeSample.capacity());
-		}
-		if(allTotalFrames >= framesToTime)
-		{
-			onDetectFrameTime(SteadyClockTime{});
-			dismiss();
-			return false;
-		}
-		else
-		{
-			if(useRenderTaskTime)
-				postDraw();
-			return true;
-		}
-	}
-
-	void onAddedToController(ViewController*, const Input::Event&) final
-	{
-		lastFrameTimestamp = SteadyClock::now();
-		detectFrameRate =
-			[this](IG::FrameParams params)
-			{
-				const int callbacksToSkip = 10;
-				callbacks++;
-				if(callbacks < callbacksToSkip)
-				{
-					if(useRenderTaskTime)
-						postDraw();
-					return true;
-				}
-				return runFrameTimeDetection(params.timestamp - std::exchange(lastFrameTimestamp, params.timestamp), 0.00175);
-			};
-		window().addOnFrame(detectFrameRate);
-		app().setCPUNeedsLowLatency(appContext(), true);
-	}
-};
-
-static std::string makeFrameRateStr(VideoSystem vidSys, const OutputTimingManager &mgr)
-{
-	auto frameTimeOpt = mgr.frameTimeOption(vidSys);
-	if(frameTimeOpt == OutputTimingManager::autoOption)
+	auto opt = mgr.frameRateOption(vidSys);
+	if(opt == OutputTimingManager::autoOption)
 		return "Auto";
-	else if(frameTimeOpt == OutputTimingManager::originalOption)
+	else if(opt == OutputTimingManager::originalOption)
 		return "Original";
 	else
-		return std::format("{:g}Hz", toHz(frameTimeOpt));
+		return std::format("{:g}Hz", toHz(opt));
 }
 
 FrameTimingView::FrameTimingView(ViewAttachParams attach):
@@ -210,36 +68,14 @@ FrameTimingView::FrameTimingView(ViewAttachParams attach):
 					app().postErrorMessage("Reported rate potentially unreliable, "
 						"using the detected rate may give better results");
 				}
-				onFrameTimeChange(activeVideoSystem, OutputTimingManager::autoOption);
+				onFrameRateChange(activeVideoSystem, OutputTimingManager::autoOption);
 			}, {.id = OutputTimingManager::autoOption.count()}
 		},
 		{"Original (Use emulated system's rate)", attach,
 			[this]
 			{
-				onFrameTimeChange(activeVideoSystem, OutputTimingManager::originalOption);
+				onFrameRateChange(activeVideoSystem, OutputTimingManager::originalOption);
 			}, {.id = OutputTimingManager::originalOption.count()}
-		},
-		{"Detect Custom Rate", attach,
-			[this](const Input::Event &e)
-			{
-				window().setIntendedFrameRate(system().frameRate());
-				auto frView = makeView<DetectFrameRateView>();
-				frView->onDetectFrameTime =
-					[this](SteadyClockTime frameTime)
-					{
-						if(frameTime.count())
-						{
-							if(onFrameTimeChange(activeVideoSystem, frameTime))
-								dismissPrevious();
-						}
-						else
-						{
-							app().postErrorMessage("Detected rate too unstable to use");
-						}
-					};
-				pushAndShowModal(std::move(frView), e);
-				return false;
-			}
 		},
 		{"Custom Rate", attach,
 			[this](const Input::Event &e)
@@ -248,7 +84,7 @@ FrameTimingView::FrameTimingView(ViewAttachParams attach):
 					"Input decimal or fraction", "",
 					[this](CollectTextInputView&, auto val)
 					{
-						if(onFrameTimeChange(activeVideoSystem, fromSeconds<SteadyClockTime>(val.second / val.first)))
+						if(onFrameRateChange(activeVideoSystem, fromSeconds<SteadyClockDuration>(val.second / val.first)))
 						{
 							if(activeVideoSystem == VideoSystem::NATIVE_NTSC)
 								frameRate.setSelected(defaultMenuId, *this);
@@ -267,7 +103,7 @@ FrameTimingView::FrameTimingView(ViewAttachParams attach):
 	frameRate
 	{
 		"Frame Rate", attach,
-		app().outputTimingManager.frameTimeOptionAsMenuId(VideoSystem::NATIVE_NTSC),
+		app().outputTimingManager.frameRateOptionAsMenuId(VideoSystem::NATIVE_NTSC),
 		frameRateItems,
 		{
 			.onSetDisplayString = [this](auto, Gfx::Text& t)
@@ -285,7 +121,7 @@ FrameTimingView::FrameTimingView(ViewAttachParams attach):
 	frameRatePAL
 	{
 		"Frame Rate (PAL)", attach,
-		app().outputTimingManager.frameTimeOptionAsMenuId(VideoSystem::PAL),
+		app().outputTimingManager.frameRateOptionAsMenuId(VideoSystem::PAL),
 		frameRateItems,
 		{
 			.onSetDisplayString = [this](auto, Gfx::Text& t)
@@ -300,34 +136,34 @@ FrameTimingView::FrameTimingView(ViewAttachParams attach):
 			},
 		},
 	},
-	frameTimeStats
+	frameTimingStats
 	{
-		"Show Frame Time Stats", attach,
-		app().showFrameTimeStats,
-		[this](BoolMenuItem &item) { app().showFrameTimeStats = item.flipBoolValue(*this); }
+		"Show Frame Timing Stats", attach,
+		app().showFrameTimingStats,
+		[this](BoolMenuItem &item) { app().showFrameTimingStats = item.flipBoolValue(*this); }
 	},
 	frameClockItems
 	{
-		{"Auto",                                  attach, MenuItem::Config{.id = FrameTimeSource::Unset}},
-		{"Screen (Less latency & power use)",     attach, MenuItem::Config{.id = FrameTimeSource::Screen}},
-		{"Timer (Best for VRR displays)",         attach, MenuItem::Config{.id = FrameTimeSource::Timer}},
-		{"Renderer (May buffer multiple frames)", attach, MenuItem::Config{.id = FrameTimeSource::Renderer}},
+		{"Auto",                                  attach, MenuItem::Config{.id = FrameClockSource::Unset}},
+		{"Screen (Less latency & power use)",     attach, MenuItem::Config{.id = FrameClockSource::Screen}},
+		{"Timer (Best for VRR displays)",         attach, MenuItem::Config{.id = FrameClockSource::Timer}},
+		{"Renderer (May buffer multiple frames)", attach, MenuItem::Config{.id = FrameClockSource::Renderer}},
 	},
 	frameClock
 	{
 		"Frame Clock", attach,
-		MenuId{FrameTimeSource(app().frameTimeSource)},
+		MenuId{FrameClockSource(app().frameClockSource)},
 		frameClockItems,
 		MultiChoiceMenuItem::Config
 		{
 			.onSetDisplayString = [this](auto, Gfx::Text& t)
 			{
-				t.resetString(wise_enum::to_string(app().effectiveFrameTimeSource()));
+				t.resetString(wise_enum::to_string(app().effectiveFrameClockSource()));
 				return true;
 			},
 			.defaultItemOnSelect = [this](TextMenuItem &item)
 			{
-				app().frameTimeSource = FrameTimeSource(item.id.val);
+				app().frameClockSource = FrameClockSource(item.id.val);
 				app().video.resetImage(); // texture can switch between single/double buffered
 			}
 		},
@@ -361,17 +197,17 @@ FrameTimingView::FrameTimingView(ViewAttachParams attach):
 		[&]
 		{
 			std::vector<TextMenuItem> items;
-			auto setRateDel = [this](TextMenuItem &item) { app().overrideScreenFrameRate = std::bit_cast<FrameRate>(item.id); };
+			auto setRateDel = [this](TextMenuItem& item) { app().overrideScreenFrameRate = std::bit_cast<float>(item.id); };
 			items.emplace_back("Off", attach, setRateDel, MenuItem::Config{.id = 0});
 			for(auto rate : app().emuScreen().supportedFrameRates())
-				items.emplace_back(std::format("{:g}Hz", rate), attach, setRateDel, MenuItem::Config{.id = std::bit_cast<MenuId>(rate)});
+				items.emplace_back(std::format("{:g}Hz", rate.hz()), attach, setRateDel, MenuItem::Config{.id = std::bit_cast<MenuId>(rate.hz())});
 			return items;
 		}()
 	},
 	screenFrameRate
 	{
 		"Override Screen Frame Rate", attach,
-		std::bit_cast<MenuId>(FrameRate(app().overrideScreenFrameRate)),
+		std::bit_cast<MenuId>(float(app().overrideScreenFrameRate)),
 		screenFrameRateItems
 	},
 	presentationTimeItems
@@ -419,8 +255,7 @@ void FrameTimingView::loadStockItems()
 	{
 		item.emplace_back(&frameRatePAL);
 	}
-	if(used(frameTimeStats))
-		item.emplace_back(&frameTimeStats);
+	item.emplace_back(&frameTimingStats);
 	item.emplace_back(&advancedHeading);
 	item.emplace_back(&frameClock);
 	if(used(presentMode))
@@ -432,11 +267,11 @@ void FrameTimingView::loadStockItems()
 		item.emplace_back(&screenFrameRate);
 }
 
-bool FrameTimingView::onFrameTimeChange(VideoSystem vidSys, SteadyClockTime time)
+bool FrameTimingView::onFrameRateChange(VideoSystem vidSys, SteadyClockDuration d)
 {
-	if(!app().outputTimingManager.setFrameTimeOption(vidSys, time))
+	if(!app().outputTimingManager.setFrameRateOption(vidSys, d))
 	{
-		app().postMessage(4, true, std::format("{:g}Hz not in valid range", toHz(time)));
+		app().postMessage(4, true, std::format("{:g}Hz not in valid range", toHz(d)));
 		return false;
 	}
 	return true;

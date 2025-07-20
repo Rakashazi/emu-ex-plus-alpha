@@ -41,7 +41,7 @@ namespace EmuEx
 
 using namespace MDFN_IEN_WSWAN;
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.github.io";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2025\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.github.io";
 bool EmuApp::needsGlobalInstance = true;
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
@@ -125,11 +125,11 @@ bool WsSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 
 static uint8_t lcdVTotal() { return WSwan_GfxRead(0x16) + 1; }
 
-FrameTime WsSystem::frameTime() const { return round<FrameTime>(FloatSeconds{lcdVTotal() * 256 / 3072000.}); }
+FrameRate WsSystem::frameRate() const { return round<SteadyClockDuration>(FloatSeconds{lcdVTotal() * 256 / 3072000.}); }
 
-void WsSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
+void WsSystem::configAudioRate(FrameRate outputFrameRate, int outputRate)
 {
-	uint32 mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
+	uint32 mixRate = std::round(audioMixRate(outputRate, outputFrameRate));
 	configuredLCDVTotal = lcdVTotal();
 	if(GetSoundRate() == mixRate)
 		return;
@@ -143,7 +143,7 @@ void WsSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio 
 	EmuEx::runFrame(*this, mdfnGameInfo, taskCtx, video, mSurfacePix, audio, maxAudioFrames);
 	if(configuredLCDVTotal != lcdVTotal()) [[unlikely]]
 	{
-		onFrameTimeChanged();
+		onFrameRateChanged();
 	}
 }
 

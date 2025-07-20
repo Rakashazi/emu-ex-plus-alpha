@@ -31,7 +31,7 @@ CreditsView::CreditsView(ViewAttachParams attach, UTF16String str):
 		[this](IG::FrameParams params)
 		{
 			window().setNeedsDraw(true);
-			return fade.update(params.timestamp);
+			return fade.update(params.time);
 		}
 	}
 {

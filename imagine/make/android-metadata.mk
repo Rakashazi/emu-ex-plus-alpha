@@ -75,7 +75,7 @@ ifdef android_metadata_bluetooth
 endif
 
 ifndef android_metadata_target_sdk
- android_metadata_target_sdk := 34
+ android_metadata_target_sdk := 36
 endif
 
 ifdef android_metadata_vibrate

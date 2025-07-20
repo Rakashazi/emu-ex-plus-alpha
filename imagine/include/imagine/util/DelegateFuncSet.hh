@@ -29,12 +29,17 @@ class DelegateFuncSet
 public:
 	constexpr DelegateFuncSet() = default;
 
-	bool add(Delegate del, int priority = 0)
+	bool insertUnique(Delegate del, int priority = 0)
 	{
 		if(contains(del))
 			return false;
 		delegate.emplace(del, priority);
 		return true;
+	}
+
+	void insert(Delegate del, int priority = 0)
+	{
+		delegate.emplace(del, priority);
 	}
 
 	bool remove(Delegate del)

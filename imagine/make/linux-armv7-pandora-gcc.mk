@@ -6,8 +6,8 @@ ARCH := arm
 SUBARCH := armv7
 ifeq ($(origin CC), default)
  CHOST := arm-none-linux-gnueabi
- CC := $(CHOST)-gcc-14
- CXX := $(CHOST)-g++-14
+ CC := $(CHOST)-gcc-15
+ CXX := $(CHOST)-g++-15
 endif
 configEnable += CONFIG_MACHINE_PANDORA
 IMAGINE_SDK_PLATFORM = $(ENV)-$(SUBARCH)-$(SUBENV)
@@ -39,7 +39,7 @@ PKG_CONFIG_SYSTEM_LIBRARY_PATH := $(pandoraSDKSysroot)/usr/lib
 
 # don't use FORTIFY_SOURCE to avoid linking in newer glibc symbols
 CPPFLAGS += --sysroot=$(pandoraSDKSysroot) \
- -isystem /usr/lib/gcc/$(CHOST)/14/include/g++-v14 \
+ -isystem /usr/lib/gcc/$(CHOST)/15/include/g++-v15 \
  -isystem /usr/$(CHOST)/usr/include \
  -isystem $(pandoraSDKSysroot)/usr/include \
  -I$(IMAGINE_SDK_PLATFORM_PATH)/include \

@@ -166,7 +166,7 @@ bool BaseApplication::isExiting() const
 
 bool BaseApplication::addOnResume(ResumeDelegate del, int priority)
 {
-	return onResume_.add(del, priority);
+	return onResume_.insertUnique(del, priority);
 }
 
 bool BaseApplication::removeOnResume(ResumeDelegate del)
@@ -181,7 +181,7 @@ bool BaseApplication::containsOnResume(ResumeDelegate del) const
 
 bool BaseApplication::addOnExit(ExitDelegate del, int priority)
 {
-	return onExit_.add(del, priority);
+	return onExit_.insertUnique(del, priority);
 }
 
 bool BaseApplication::removeOnExit(ExitDelegate del)

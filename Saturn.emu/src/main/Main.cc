@@ -48,7 +48,7 @@ namespace EmuEx
 {
 
 constexpr SystemLogger log{"Saturnemu"};
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.github.io";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2025\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.github.io";
 bool EmuSystem::handlesArchiveFiles = true;
 bool EmuSystem::hasResetModes = true;
 bool EmuSystem::hasRectangularPixels = true;
@@ -201,7 +201,7 @@ void SaturnSystem::closeSystem()
 
 WSize SaturnSystem::multiresVideoBaseSize() const { return {704, 0}; }
 
-static FrameTime makeFrameTime(uint8 InterlaceMode)
+static FrameRate makeFrameRate(uint8 InterlaceMode)
 {
 	using namespace MDFN_IEN_SS;
 	const double masterClock = VDP2::PAL ? 1734687500. : 1746818181.8181818181;
@@ -209,12 +209,12 @@ static FrameTime makeFrameTime(uint8 InterlaceMode)
 	if(VDP2::PAL)
 	{
 		const double lines = InterlaceMode ? 312.5 : 313.;
-		return std::chrono::duration_cast<FrameTime>(FloatSeconds{454.99 * lines / vdpClock});
+		return std::chrono::duration_cast<SteadyClockDuration>(FloatSeconds{454.99 * lines / vdpClock});
 	}
 	else
 	{
 		const double lines = InterlaceMode ? 262.5 : 263.;
-		return std::chrono::duration_cast<FrameTime>(FloatSeconds{454.99 * lines / vdpClock});
+		return std::chrono::duration_cast<SteadyClockDuration>(FloatSeconds{454.99 * lines / vdpClock});
 	}
 }
 
@@ -320,7 +320,7 @@ void SaturnSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDele
 	updatePixmap(mSurfacePix.format());
 	mSurfacePix.clear();
 	lastInterlaceMode = MDFN_IEN_SS::VDP2::InterlaceMode;
-	frameTime_ = makeFrameTime(MDFN_IEN_SS::VDP2::InterlaceMode);
+	frameRate_ = makeFrameRate(MDFN_IEN_SS::VDP2::InterlaceMode);
 }
 
 bool SaturnSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
@@ -334,11 +334,11 @@ void SaturnSystem::updatePixmap(IG::PixelFormat fmt)
 	mSurfacePix = {{{mdfnGameInfo.fb_width, mdfnGameInfo.fb_height}, fmt}, pixBuff};
 }
 
-FrameTime SaturnSystem::frameTime() const { return frameTime_; }
+FrameRate SaturnSystem::frameRate() const { return frameRate_; }
 
-void SaturnSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
+void SaturnSystem::configAudioRate(FrameRate outputFrameRate, int outputRate)
 {
-	espec.SoundRate = audioMixRate(outputRate, outputFrameTime);
+	espec.SoundRate = audioMixRate(outputRate, outputFrameRate);
 }
 
 void SaturnSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
@@ -363,8 +363,8 @@ void SaturnSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAu
 	if(lastInterlaceMode != MDFN_IEN_SS::VDP2::InterlaceMode) [[unlikely]]
 	{
 		lastInterlaceMode = MDFN_IEN_SS::VDP2::InterlaceMode;
-		frameTime_ = makeFrameTime(MDFN_IEN_SS::VDP2::InterlaceMode);
-		onFrameTimeChanged();
+		frameRate_ = makeFrameRate(MDFN_IEN_SS::VDP2::InterlaceMode);
+		onFrameRateChanged();
 	}
 }
 

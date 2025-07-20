@@ -220,7 +220,7 @@ void handleKeyEvent(ApplicationContext ctx, UIEvent *event)
 		return;
 	auto action = eventType == GSEVENT_TYPE_KEYDOWN ? Input::Action::PUSHED : Input::Action::RELEASED;
 	Key key = eventMem[GSEVENTKEY_KEYCODE] & 0xFF; // only using key codes up to 255
-	auto time = fromSeconds<SteadyClockTime>([event timestamp]);
+	auto time = fromSeconds<SteadyClockDuration>([event timestamp]);
 	auto &app = ctx.application();
 	auto &keyDev = *keyDevPtr;
 	auto src = Input::Source::KEYBOARD;

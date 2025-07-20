@@ -40,7 +40,7 @@ public:
 	alignas(8) uint32_t pixBuff[vidBufferPx.x * vidBufferPx.y]{};
 	bool noMD5InFilenames{};
 	// TODO: Mednafen/Neopop timing is based on 199 lines/frame, verify if this is correct
-	static constexpr auto ngpFrameTime{fromSeconds<FrameTime>(199. * 515. / 6144000.)}; //~59.95Hz
+	static constexpr auto ngpFrameRate{fromSeconds<SteadyClockDuration>(199. * 515. / 6144000.)}; //~59.95Hz
 
 	NgpSystem(ApplicationContext ctx):
 		EmuSystem{ctx}
@@ -63,8 +63,8 @@ public:
 	void clearInputBuffers(EmuInputView &view);
 	void handleInputAction(EmuApp *, InputAction);
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
-	FrameTime frameTime() const { return ngpFrameTime; }
-	void configAudioRate(FrameTime outputFrameTime, int outputRate);
+	FrameRate frameRate() const { return ngpFrameRate; }
+	void configAudioRate(FrameRate outputFrameRate, int outputRate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 
 	// optional API functions

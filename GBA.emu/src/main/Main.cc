@@ -42,7 +42,7 @@ namespace EmuEx
 {
 
 constexpr SystemLogger log{"GBA.emu"};
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2025\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
 bool EmuSystem::hasBundledGames = true;
 bool EmuSystem::hasCheats = true;
 bool EmuApp::needsGlobalInstance = true;
@@ -250,9 +250,9 @@ void GbaSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	CPULoop(gGba, taskCtx, video, audio);
 }
 
-void GbaSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
+void GbaSystem::configAudioRate(FrameRate outputFrameRate, int outputRate)
 {
-	long mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
+	long mixRate = std::round(audioMixRate(outputRate, outputFrameRate));
 	log.info("set sound mix rate:{}", mixRate);
 	soundSetSampleRate(gGba, mixRate);
 }

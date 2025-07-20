@@ -1,6 +1,7 @@
 include $(IMAGINE_PATH)/make/imagineStaticLibBase.mk
 
 SRC += \
+AssetManager.cc \
 AutosaveManager.cc \
 ConfigFile.cc \
 EmuApp.cc \

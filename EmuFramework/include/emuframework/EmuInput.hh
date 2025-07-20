@@ -44,7 +44,7 @@ struct KeyCategory
 	int multiplayerIndex{}; // if > 0, category appears when one input device is assigned multiple players
 
 	constexpr KeyCategory(std::string_view name, std::span<const KeyInfo> keys, int multiplayerIndex = 0):
-		name{name}, keys{keys}, multiplayerIndex{multiplayerIndex} {}
+		name{name}, keys(keys), multiplayerIndex{multiplayerIndex} {}
 	constexpr KeyCategory(std::string_view name, const auto &keys, int multiplayerIndex = 0):
 		name{name}, keys{keys.data(), keys.size()}, multiplayerIndex{multiplayerIndex} {}
 };

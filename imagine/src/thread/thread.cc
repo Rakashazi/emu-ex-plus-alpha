@@ -28,7 +28,7 @@
 namespace IG
 {
 
-void setThreadCPUAffinityMask(std::span<const ThreadId> ids, CPUMask mask)
+void setThreadCPUAffinityMask([[maybe_unused]] std::span<const ThreadId> ids, [[maybe_unused]] CPUMask mask)
 {
 	#ifdef __linux__
 	cpu_set_t cpuSet{};
@@ -49,7 +49,7 @@ void setThreadCPUAffinityMask(std::span<const ThreadId> ids, CPUMask mask)
 	#endif
 }
 
-void setThreadPriority(ThreadId id, int nice)
+void setThreadPriority([[maybe_unused]] ThreadId id, [[maybe_unused]] int nice)
 {
 	#ifdef __linux__
 	if(setpriority(PRIO_PROCESS, id, nice) && Config::DEBUG_BUILD)
@@ -57,7 +57,7 @@ void setThreadPriority(ThreadId id, int nice)
 	#endif
 }
 
-void setThisThreadPriority(int nice)
+void setThisThreadPriority([[maybe_unused]] int nice)
 {
 	#ifdef __linux__
 	setThreadPriority(0, nice);

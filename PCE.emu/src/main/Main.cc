@@ -34,12 +34,12 @@
 namespace EmuEx
 {
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.github.io";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2025\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.github.io";
 bool EmuSystem::hasRectangularPixels = true;
 bool EmuSystem::stateSizeChangesAtRuntime = true;
 constexpr double masterClockFrac = 21477272.727273 / 3.;
-constexpr auto pceFrameTimeWith262Lines{fromSeconds<FrameTime>(455. * 262. / masterClockFrac)}; // ~60.05Hz
-constexpr auto pceFrameTime{fromSeconds<FrameTime>(455. * 263. / masterClockFrac)}; //~59.82Hz
+constexpr auto pceFrameRateWith262Lines{fromSeconds<SteadyClockDuration>(455. * 262. / masterClockFrac)}; // ~60.05Hz
+constexpr auto pceFrameRate{fromSeconds<SteadyClockDuration>(455. * 263. / masterClockFrac)}; //~59.82Hz
 bool EmuApp::needsGlobalInstance = true;
 
 PceApp::PceApp(ApplicationInitParams initParams, ApplicationContext &ctx):
@@ -175,12 +175,12 @@ void PceSystem::updatePixmap(IG::PixelFormat fmt)
 	return;
 }
 
-FrameTime PceSystem::frameTime() const { return isUsing263Lines() ? pceFrameTime : pceFrameTimeWith262Lines; }
+FrameRate PceSystem::frameRate() const { return isUsing263Lines() ? pceFrameRate : pceFrameRateWith262Lines; }
 
-void PceSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
+void PceSystem::configAudioRate(FrameRate outputFrameRate, int outputRate)
 {
 	configuredFor263Lines = isUsing263Lines();
-	auto mixRate = audioMixRate(outputRate, outputFrameTime);
+	auto mixRate = audioMixRate(outputRate, outputFrameRate);
 	if(!isUsingAccurateCore())
 		mixRate = std::round(mixRate);
 	auto currMixRate = isUsingAccurateCore() ? MDFN_IEN_PCE::GetSoundRate() : MDFN_IEN_PCE_FAST::GetSoundRate();
@@ -200,7 +200,7 @@ void PceSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	EmuEx::runFrame(*this, mdfnGameInfo, taskCtx, video, mSurfacePix, audio, maxAudioFrames, maxLineWidths);
 	if(configuredFor263Lines != isUsing263Lines()) [[unlikely]]
 	{
-		onFrameTimeChanged();
+		onFrameRateChanged();
 	}
 }
 

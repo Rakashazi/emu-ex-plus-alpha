@@ -55,7 +55,7 @@ class EmuSystemTaskContext;
 class EmuAudio;
 class EmuVideo;
 class EmuApp;
-struct EmuFrameTimeInfo;
+struct EmuFrameDurationInfo;
 class VControllerKeyboard;
 class Cheat;
 class CheatCode;
@@ -100,7 +100,7 @@ struct InputAction
 	uint32_t metaState{};
 
 	constexpr bool isPushed() const { return state == Input::Action::PUSHED; }
-	constexpr operator KeyInfo() const { return {code, flags}; }
+	constexpr operator KeyInfo() const { return KeyInfo{code, flags}; }
 };
 
 enum class InputComponent : uint8_t
@@ -141,7 +141,7 @@ WISE_ENUM_CLASS((DeinterlaceMode, uint8_t),
 	Weave
 );
 
-using FrameTime = Nanoseconds;
+using FrameDuration = Nanoseconds;
 
 constexpr const char *optionUserPathContentToken = ":CONTENT:";
 
@@ -223,8 +223,8 @@ public:
 	void reset(EmuApp &, ResetMode mode);
 	void clearInputBuffers(EmuInputView &view);
 	void handleInputAction(EmuApp *, InputAction);
-	FrameTime frameTime() const;
-	void configAudioRate(FrameTime outputFrameTime, int outputRate);
+	FrameRate frameRate() const;
+	void configAudioRate(FrameDuration outputFrameDuration, int outputRate);
 	static std::span<const AspectRatioInfo> aspectRatioInfos();
 	SystemInputDeviceDesc inputDeviceDesc(int idx) const;
 
@@ -367,26 +367,24 @@ public:
 	void loadContentFromFile(IG::IO, CStringView path, std::string_view displayName,
 		EmuSystemCreateParams, OnLoadProgressDelegate);
 	int updateAudioFramesPerVideoFrame();
-	double frameRate() const { return toHz(frameTime()); }
-	FrameTime scaledFrameTime() const
+	FrameRate scaledFrameRate() const
 	{
-		auto t = std::chrono::duration_cast<FloatSeconds>(frameTime()) * frameTimeMultiplier;
-		return std::chrono::duration_cast<FrameTime>(t);
+		auto t = std::chrono::duration_cast<FloatSeconds>(frameRate().duration()) * frameDurationMultiplier;
+		return std::chrono::duration_cast<SteadyClockDuration>(t);
 	}
-	double scaledFrameRate() const
-	{
-		return toHz(std::chrono::duration_cast<FloatSeconds>(frameTime()) * frameTimeMultiplier);
-	}
-	void onFrameTimeChanged();
-	static double audioMixRate(int outputRate, double inputFrameRate, FrameTime outputFrameTime);
-	double audioMixRate(int outputRate, FrameTime outputFrameTime) const { return audioMixRate(outputRate, frameRate(), outputFrameTime); }
-	void configFrameTime(int outputRate, FrameTime outputFrameTime);
-	SteadyClockTime benchmark(EmuVideo &video);
+	void onFrameRateChanged();
+	static double audioMixRate(int outputRate, FrameRate inputFrameRate, FrameRate outputFrameRate);
+	double audioMixRate(int outputRate, FrameRate outputFrameRate) const { return audioMixRate(outputRate, frameRate(), outputFrameRate); }
+	void configFrameRate(int outputRate, FrameDuration outputFrameDuration);
+	SteadyClockDuration benchmark(EmuVideo&);
 	bool hasContent() const;
-	void resetFrameTime();
+	void resetFrameTiming();
 	void pause(EmuApp &);
 	void start(EmuApp &);
 	void closeRuntimeSystem(EmuApp &);
+	void runFrames(EmuSystemTaskContext, EmuVideo*, EmuAudio*, int frames);
+	void skipFrames(EmuSystemTaskContext, int frames, EmuAudio*);
+	bool skipForwardFrames(EmuSystemTaskContext, int frames);
 	static void throwFileReadError();
 	static void throwFileWriteError();
 	static void throwMissingContentDirError();
@@ -418,8 +416,7 @@ protected:
 	void closeAndSetupNew(CStringView path, std::string_view displayName);
 
 public:
-	IG::OnFrameDelegate onFrameUpdate;
-	double frameTimeMultiplier{1.};
+	double frameDurationMultiplier{1.};
 	static constexpr double minFrameRate = 48.;
 };
 

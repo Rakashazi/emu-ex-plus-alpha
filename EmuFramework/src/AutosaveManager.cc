@@ -228,7 +228,7 @@ void AutosaveManager::resetTimer()
 	saveTimer.reset();
 }
 
-SteadyClockTime AutosaveManager::timerFrequency() const
+SteadyClockDuration AutosaveManager::timerFrequency() const
 {
 	if(autoSaveSlot == noAutosaveName)
 		return {};

@@ -1,6 +1,7 @@
-libcxxVersion := 19.1.0-rc2
+libcxxVersion := 21.1.0-rc1
 libcxxSrcDir := $(tempDir)/llvm-project-$(libcxxVersion).src/libcxx
 libcxxabiSrcDir := $(tempDir)/llvm-project-$(libcxxVersion).src/libcxxabi
+libcSrcDir := $(tempDir)/llvm-project-$(libcxxVersion).src/libc
 # Archive containing the libcxx & libcxxabi directories along with a minimal set of cmake support files
 libcxxSrcArchive := llvm-project-libcxx-$(libcxxVersion).src.tar.xz
 
@@ -52,7 +53,7 @@ install : $(outputLibFile) $(outputLibcxxabiFile)
 $(CXXABI_OBJ) : | $(outputLibFile)
 $(CXXABI_OBJ) : CPPFLAGS += -DHAVE___CXA_THREAD_ATEXIT_IMPL -D_LIBCPP_DISABLE_EXTERN_TEMPLATE -D_LIBCPP_BUILDING_LIBRARY -D_LIBCXXABI_BUILDING_LIBRARY -I$(libcxxSrcDir)/src -I$(buildDir)/include/c++/v1
 
-CPPFLAGS += -nostdinc++ -I$(libcxxabiSrcDir)/include -Wno-user-defined-literals -U_LIBCPP_LINK_PTHREAD_LIB -U_LIBCPP_LINK_RT_LIB
+CPPFLAGS += -nostdinc++ -I$(libcxxabiSrcDir)/include -I$(libcSrcDir) -Wno-user-defined-literals -U_LIBCPP_LINK_PTHREAD_LIB -U_LIBCPP_LINK_RT_LIB
 
 $(outputLibcxxabiFile) : $(CXXABI_OBJ)
 	@echo "Archiving libc++abi..."

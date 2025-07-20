@@ -88,7 +88,7 @@ CPPFLAGS += -DANDROID
 ifndef android_implicitSysroot
  CPPFLAGS += --sysroot=$(ANDROID_CLANG_SYSROOT_PATH)
 endif
-LDFLAGS_SYSTEM += -s -no-canonical-prefixes \
+LDFLAGS_SYSTEM += -no-canonical-prefixes \
 -Wl,--no-undefined,-z,noexecstack,-z,relro,-z,now \
 -Wl,-O3,--gc-sections,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all,--as-needed,--warn-shared-textrel,--fatal-warnings \
 -Wl,--exclude-libs,libgcc.a,--exclude-libs,libgcc_real.a -Wl,--exclude-libs,libatomic.a,--lto-whole-program-visibility

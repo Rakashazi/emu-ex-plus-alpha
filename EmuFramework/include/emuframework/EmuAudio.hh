@@ -34,6 +34,15 @@ namespace EmuEx
 
 using namespace IG;
 
+struct AudioStats
+{
+	int underruns{};
+	int overruns{};
+	int callbacks{};
+	double avgCallbackFrames{};
+	int frames{};
+};
+
 struct AudioFlags
 {
 	uint8_t

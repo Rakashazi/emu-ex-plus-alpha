@@ -67,7 +67,7 @@ namespace EmuEx
 {
 
 constexpr SystemLogger log{"C64.emu"};
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2024\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nvice-emu.sourceforge.io";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2025\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nvice-emu.sourceforge.io";
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 bool EmuSystem::handlesGenericIO = false;
@@ -508,9 +508,9 @@ void C64System::renderFramebuffer(EmuVideo &video)
 	video.startFrameWithAltFormat({}, canvasSrcPix);
 }
 
-void C64System::configAudioRate(FrameTime outputFrameTime, int outputRate)
+void C64System::configAudioRate(FrameRate outputFrameRate, int outputRate)
 {
-	int mixRate = std::round(audioMixRate(outputRate, systemFrameRate, outputFrameTime));
+	int mixRate = std::round(audioMixRate(outputRate, systemFrameRate, outputFrameRate));
 	int currRate = intResource("SoundSampleRate");
 	if(currRate == mixRate)
 		return;

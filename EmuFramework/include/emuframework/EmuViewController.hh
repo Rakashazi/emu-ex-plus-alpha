@@ -44,7 +44,7 @@ class EmuApp;
 class EmuAudio;
 class EmuSystem;
 struct WindowData;
-struct FrameTimeConfig;
+struct FrameRateConfig;
 class MainMenuView;
 
 class EmuMenuViewStack : public ViewStack
@@ -72,7 +72,7 @@ public:
 	void dismissView(int idx, bool refreshLayout) final;
 	bool inputEvent(const Input::Event&) final;
 	bool extraWindowInputEvent(const Input::Event &e);
-	void showEmulationView(FrameTimeConfig);
+	void showEmulationView();
 	void showMenuView(bool updateTopView);
 	void placeEmuViews();
 	void placeElements();
@@ -118,7 +118,7 @@ public:
 	static constexpr bool HAS_USE_RENDER_TIME = Config::envIsLinux
 		|| (Config::envIsAndroid && Config::ENV_ANDROID_MIN_SDK < 16);
 
-	void configureWindowForEmulation(Window &, FrameTimeConfig, bool running);
+	void configureWindowForEmulation(Window&, bool running);
 	EmuVideoLayer &videoLayer() const;
 };
 

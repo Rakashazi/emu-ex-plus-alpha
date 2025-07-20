@@ -30,6 +30,6 @@
 
 #include "MsxTypes.h"
 
-int sramMapperMatsushitaCreate();
+int sramMapperMatsushitaCreate(int inverted);
 
 #endif

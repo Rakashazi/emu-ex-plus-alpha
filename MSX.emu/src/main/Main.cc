@@ -60,7 +60,7 @@ namespace EmuEx
 {
 
 constexpr SystemLogger log{"MSX.emu"};
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2022\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nBlueMSX Team\nbluemsx.com";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2025\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nBlueMSX Team\nbluemsx.com";
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor BlueMSX file loading code
 bool EmuSystem::hasResetModes = true;
 bool EmuSystem::canRenderRGBA8888 = false;
@@ -685,10 +685,10 @@ void MsxSystem::loadContent(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 	destroyMachineOnReturn.cancel();
 }
 
-void MsxSystem::configAudioRate(FrameTime outputFrameTime, int outputRate)
+void MsxSystem::configAudioRate(FrameRate outputFrameRate, int outputRate)
 {
 	assumeExpr(outputRate == 44100);// TODO: not all sound chips handle non-44100Hz sample rate
-	UInt32 mixRate = std::round(audioMixRate(outputRate, outputFrameTime));
+	UInt32 mixRate = std::round(audioMixRate(outputRate, outputFrameRate));
 	if(mixerGetSampleRate(mixer) == mixRate)
 		return;
 	log.info("set sound mix rate:{}", mixRate);

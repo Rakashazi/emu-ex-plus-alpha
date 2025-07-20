@@ -18,6 +18,7 @@
 #include <imagine/util/jni.hh>
 #include <imagine/logger/logger.h>
 #include <unistd.h>
+#include <pthread.h>
 
 namespace IG
 {
