@@ -75,7 +75,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 	},
 	textureBufferMode
 	{
-		"GPU Copy Mode", attach,
+		"GPU 复制模式", attach,
 		MenuId{renderer().evalTextureBufferMode(app().textureBufferMode)},
 		textureBufferModeItem
 	},
@@ -128,7 +128,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 	},
 	aspectRatio
 	{
-		"Aspect Ratio", attach,
+		"纵横比", attach,
 		std::bit_cast<MenuId>(app().videoAspectRatio()),
 		aspectRatioItem,
 		{
@@ -167,7 +167,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 	},
 	contentScale
 	{
-		"Content Scale", attach,
+		"内容缩放", attach,
 		MenuId{videoLayer_.scale},
 		contentScaleItems,
 		{
@@ -205,7 +205,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 	},
 	menuScale
 	{
-		"Menu Scale", attach,
+		"菜单缩放", attach,
 		MenuId{app().menuScale},
 		menuScaleItems,
 		{
@@ -227,7 +227,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 	},
 	contentRotation
 	{
-		"Content Rotation", attach,
+		"内容旋转", attach,
 		MenuId{app().contentRotation.value()},
 		contentRotationItem,
 		{
@@ -246,7 +246,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 	},
 	imgFilter
 	{
-		"Image Interpolation", attach,
+		"图像插值", attach,
 		videoLayer_.usingLinearFilter(),
 		"None", "Linear",
 		[this](BoolMenuItem &item)
@@ -266,7 +266,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 	},
 	imgEffect
 	{
-		"Image Effect", attach,
+		"图像效果", attach,
 		MenuId{videoLayer_.effectId()},
 		imgEffectItem,
 		{
@@ -290,7 +290,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 	},
 	overlayEffect
 	{
-		"Overlay Effect", attach,
+		"叠加效果", attach,
 		MenuId{videoLayer_.overlayEffectId()},
 		overlayEffectItem,
 		{
@@ -325,7 +325,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 	},
 	overlayEffectLevel
 	{
-		"Overlay Effect Level", attach,
+		"叠加效果级别", attach,
 		MenuId{videoLayer_.overlayIntensity() * 100.f},
 		overlayEffectLevelItem,
 		{
@@ -349,7 +349,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 	},
 	imgEffectPixelFormat
 	{
-		"Effect Color Format", attach,
+		"效果颜色格式", attach,
 		MenuId{app().imageEffectPixelFormat.value()},
 		imgEffectPixelFormatItem,
 		{
@@ -397,7 +397,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 	},
 	windowPixelFormat
 	{
-		"Display Color Format", attach,
+		"显示颜色格式", attach,
 		MenuId{pack(app().windowDrawableConfig)},
 		windowPixelFormatItem,
 		{
@@ -424,7 +424,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 	},
 	showOnSecondScreen
 	{
-		"External Screen", attach,
+		"外接屏幕", attach,
 		app().showOnSecondScreen,
 		"OS Managed", "Emu Content",
 		[this](BoolMenuItem &item)
@@ -442,7 +442,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 	},
 	renderPixelFormat
 	{
-		"Render Color Format", attach,
+		"渲染颜色格式", attach,
 		MenuId{app().renderPixelFormat.value().id},
 		renderPixelFormatItem,
 		{
