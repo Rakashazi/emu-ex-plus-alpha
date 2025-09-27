@@ -1,10 +1,10 @@
-name: EX Emulators - FINAL IPA Build (Direct Make Fix)
+name: EX Emulators - FINAL IPA Build (VPATH Fix)
 
 on: [push, pull_request]
 
 jobs:
   build_ipa_stable:
-    name: Build 2600.emu IPA (Final Success Path)
+    name: Build 2600.emu IPA (Final Path Search Fix)
     runs-on: macos-latest 
     steps:
       - name: Checkout repository
@@ -22,25 +22,35 @@ jobs:
         with:
           xcode-version: '16.4.0'
           
-      # --- 关键修复：移除失败的 setup script，直接运行 make ---
+      # --- 关键修复：设置 Make 搜索路径 ---
       - name: Run Full Make Build for iOS
         run: |
           JOBS=`sysctl -n hw.ncpu`
           echo "Building dependencies and application with $JOBS cores"
           
+          # 定义项目根目录，以便在 make 命令中使用
+          ROOT_DIR="${{ github.workspace }}"
+          
           # 1. 编译 imagine 核心库
-          # 我们在项目根目录运行，让它使用相对路径 (make/...)
-          make -f imagine/ios-release.mk install V=1 -j$JOBS
+          # -I : 添加搜索路径，让 make 能够找到 imagine/ios-release.mk 内部 include 的文件
+          # VPATH := $ROOT_DIR/make:$ROOT_DIR/shortcut: $ROOT_DIR/imagine/make
+          make -f imagine/ios-release.mk install V=1 -j$JOBS \
+               VPATH="${ROOT_DIR}/make:${ROOT_DIR}/shortcut:${ROOT_DIR}/imagine/make" \
+               -I "${ROOT_DIR}/make" -I "${ROOT_DIR}/shortcut" -I "${ROOT_DIR}/imagine/make"
           
           # 2. 编译 EmuFramework 核心库
-          make -f EmuFramework/ios-release.mk install V=1 -j$JOBS
+          make -f EmuFramework/ios-release.mk install V=1 -j$JOBS \
+               VPATH="${ROOT_DIR}/make:${ROOT_DIR}/shortcut:${ROOT_DIR}/imagine/make" \
+               -I "${ROOT_DIR}/make" -I "${ROOT_DIR}/shortcut" -I "${ROOT_DIR}/imagine/make"
           
           # 3. 编译 2600.emu 应用
-          make -f 2600.emu/ios-release.mk install V=1 -j$JOBS
+          make -f 2600.emu/ios-release.mk install V=1 -j$JOBS \
+               VPATH="${ROOT_DIR}/make:${ROOT_DIR}/shortcut:${ROOT_DIR}/imagine/make" \
+               -I "${ROOT_DIR}/make" -I "${ROOT_DIR}/shortcut" -I "${ROOT_DIR}/imagine/make"
 
       - name: Find and Package IPA
         run: |
-          # 在项目根目录查找生成的 .app bundle
+          # 查找生成的 .app bundle
           APP_PATH=$(find . -path "*/target/ios-release/*.app" | head -n 1)
           
           if [ -z "$APP_PATH" ]; then
@@ -48,7 +58,7 @@ jobs:
             exit 1
           fi
           
-          IPA_NAME="2600Emu-IPA-Final.ipa"
+          IPA_NAME="2600Emu-VPATH-Fix.ipa"
           mkdir Payload
           cp -R "$APP_PATH" Payload/
           zip -r "$IPA_NAME" Payload
@@ -56,5 +66,5 @@ jobs:
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: 2600Emu-IPA-Final
-          path: 2600Emu-IPA-Final.ipa
+          name: 2600Emu-IPA-VPATH-Fix
+          path: 2600Emu-IPA-VPATH-Fix.ipa
