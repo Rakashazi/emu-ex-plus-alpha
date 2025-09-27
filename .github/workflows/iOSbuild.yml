@@ -1,10 +1,10 @@
-name: EX Emulators - FINAL IPA Build (Recursive Make)
+name: EX Emulators - FINAL IPA Build (Android Logic)
 
 on: [push, pull_request]
 
 jobs:
   build_ipa_stable:
-    name: Build 2600.emu IPA (Final Recursive Fix)
+    name: Build 2600.emu IPA (Final Environment Setup)
     runs-on: macos-latest 
     steps:
       - name: Checkout repository
@@ -22,34 +22,45 @@ jobs:
         with:
           xcode-version: '16.4.0'
           
-      # --- 关键修复：使用 make -C 进入子目录执行 ---
+      # --- 关键修复：模仿 Android 的环境设置 ---
+      - name: Run Initial Setup Script (Guessing)
+        # 尝试运行一个位于 imagine/bundle/all 的 iOS 初始化脚本
+        # 即使找不到，也会给我们清晰的错误信息
+        run: |
+          # 检查并运行一个潜在的初始化脚本
+          if [ -f "imagine/bundle/all/makeAll-ios.sh" ]; then
+            chmod +x imagine/bundle/all/makeAll-ios.sh
+            imagine/bundle/all/makeAll-ios.sh install
+          else
+            echo "Warning: makeAll-ios.sh not found. Proceeding with manual make."
+          fi
+          
       - name: Run Full Make Build for iOS
+        # ⚠️ 关键修改：回到在项目根目录运行 make，让 Make 文件自己解析相对路径
         run: |
           JOBS=`sysctl -n hw.ncpu`
           echo "Building dependencies and application with $JOBS cores"
           
-          # 1. 编译 imagine 核心库：进入目录，运行 ios-release.mk install 目标
-          # -C imagine: 告诉 make 切换到 imagine 目录执行
-          # -f ios-release.mk: 指定要运行的文件
-          make -C imagine -f ios-release.mk install V=1 -j$JOBS
+          # 1. 编译 imagine 核心库 (直接运行 make 文件)
+          make -f imagine/ios-release.mk install V=1 -j$JOBS
           
           # 2. 编译 EmuFramework 核心库
-          make -C EmuFramework -f ios-release.mk install V=1 -j$JOBS
+          make -f EmuFramework/ios-release.mk install V=1 -j$JOBS
           
           # 3. 编译 2600.emu 应用
-          make -C 2600.emu -f ios-release.mk install V=1 -j$JOBS
+          make -f 2600.emu/ios-release.mk install V=1 -j$JOBS
 
       - name: Find and Package IPA
         run: |
-          # 查找生成的 .app bundle。它应该在 2600.emu/target/ios-release/ 下
-          APP_PATH=$(find 2600.emu -path "*/target/ios-release/*.app" | head -n 1)
+          # 在项目根目录查找生成的 .app bundle
+          APP_PATH=$(find . -path "*/target/ios-release/*.app" | head -n 1)
           
           if [ -z "$APP_PATH" ]; then
-            echo "::error file=build.yml::Error: 找不到 .app 文件。编译已失败。请检查日志中 Makefiles 的详细错误。"
+            echo "::error file=build.yml::Error: 找不到 .app 文件。编译已失败。"
             exit 1
           fi
           
-          IPA_NAME="2600Emu-RecursiveFix.ipa"
+          IPA_NAME="2600Emu-FinalEnvFix.ipa"
           mkdir Payload
           cp -R "$APP_PATH" Payload/
           zip -r "$IPA_NAME" Payload
@@ -57,5 +68,5 @@ jobs:
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: 2600Emu-IPA-RecursiveFix
-          path: 2600Emu-RecursiveFix.ipa
+          name: 2600Emu-IPA-FinalEnvFix
+          path: 2600Emu-FinalEnvFix.ipa
