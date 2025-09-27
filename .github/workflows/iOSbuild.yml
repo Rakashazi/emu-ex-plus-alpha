@@ -12,8 +12,16 @@ jobs:
       with:
         fetch-depth: 0
     
-    - name: Set up Xcode version
-      run: sudo xcode-select -s /Applications/Xcode_15.2.app
+    - name: Debug Xcode environment
+      run: |
+        xcode-select --print-path
+        xcodebuild -version
+        ls -la /Applications/
+        echo "Current SDKROOT: $SDKROOT"
+        echo "MacOS SDK path: $(xcrun --sdk macosx --show-sdk-path)"
+        echo "iOS SDK path: $(xcrun --sdk iphoneos --show-sdk-path)"
+        echo "Available SDKs: $(xcodebuild -showsdks)"
+        echo "C++ headers path: $(xcrun --sdk macosx --show-sdk-path)/usr/include/c++/v1"
     
     - name: Set up environment
       run: |
@@ -22,7 +30,8 @@ jobs:
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
         echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
         echo "COMMIT_PREFIX=$(echo ${{ github.sha }} | cut -c1-8)" >> $GITHUB_ENV
-        echo "SDKROOT=/Applications/Xcode_15.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk" >> $GITHUB_ENV
+        # Set SDKROOT to the latest available SDK
+        echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> $GITHUB_ENV
     
     - name: Install dependencies
       run: |
@@ -30,11 +39,13 @@ jobs:
     
     - name: Build imagine (without iOS)
       run: |
-        make -f $IMAGINE_PATH/macosx.mk install V=1 -j$(sysctl -n hw.ncpu)
+        # Build with standard C++ library includes
+        make -f $IMAGINE_PATH/macosx.mk install V=1 CPPFLAGS="-I$(xcrun --show-sdk-path)/usr/include/c++/v1" -j$(sysctl -n hw.ncpu)
     
     - name: Build EmuFramework (without iOS)
       run: |
-        make -f $EMUFRAMEWORK_PATH/macosx.mk install V=1 -j$(sysctl -n hw.ncpu)
+        # Build with standard C++ library includes
+        make -f $EMUFRAMEWORK_PATH/macosx.mk install V=1 CPPFLAGS="-I$(xcrun --show-sdk-path)/usr/include/c++/v1" -j$(sysctl -n hw.ncpu)
     
     - name: Keep cache small
       run: rm -rf .git
@@ -64,13 +75,24 @@ jobs:
         key: ${{ github.sha }}-ios-base
         fail-on-cache-miss: true
     
+    - name: Debug Xcode environment
+      run: |
+        xcode-select --print-path
+        xcodebuild -version
+        echo "Current SDKROOT: $SDKROOT"
+        echo "MacOS SDK path: $(xcrun --sdk macosx --show-sdk-path)"
+        echo "iOS SDK path: $(xcrun --sdk iphoneos --show-sdk-path)"
+        echo "Available SDKs: $(xcodebuild -showsdks)"
+        echo "C++ headers path: $(xcrun --sdk iphoneos --show-sdk-path)/usr/include/c++/v1"
+    
     - name: Set up environment
       run: |
         echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
         echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
         echo "COMMIT_PREFIX=$(echo ${{ github.sha }} | cut -c1-8)" >> $GITHUB_ENV
-        echo "SDKROOT=/Applications/Xcode_15.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk" >> $GITHUB_ENV
+        # Set SDKROOT to the latest available SDK
+        echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> $GITHUB_ENV
     
     - name: Create EX-Emulators-iOS directory
       run: mkdir EX-Emulators-iOS
@@ -78,8 +100,19 @@ jobs:
     - name: Build iOS app
       working-directory: ${{ matrix.image }}
       run: |
-        # Build without armv7 architecture to avoid compatibility issues
-        make -f ios.mk ios-build V=1 IOS_ARCHES="arm64" -j$(sysctl -n hw.ncpu)
+        # Set SDK paths
+        IOS_SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
+        CXX_INCLUDE_PATH="$IOS_SDK_PATH/usr/include/c++/v1"
+        echo "Using iOS SDK path: $IOS_SDK_PATH"
+        echo "Using C++ headers path: $CXX_INCLUDE_PATH"
+        
+        # Verify C++ headers exist
+        ls -la "$CXX_INCLUDE_PATH" | head -10
+        
+        # Build with proper SDK and C++ library includes
+        make -f ios.mk ios-build V=1 IOS_ARCHES="arm64" \
+          CPPFLAGS="-I$CXX_INCLUDE_PATH -I$IOS_SDK_PATH/usr/include" \
+          CXXFLAGS="-stdlib=libc++" -j$(sysctl -n hw.ncpu)
         # Create IPA without signing
         cd target/${{ matrix.image }}
         mkdir -p Payload
