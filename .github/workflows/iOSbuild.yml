@@ -1,34 +1,40 @@
-name: EX Emulators - Fast IPA Build (Two Jobs)
+name: EX Emulators - FINAL IPA Build (Stable)
 
 on: [push, pull_request]
 
 jobs:
-  # --- Job 1: 标准 IPA 构建 (推荐首选) ---
-  build_ipa_fast:
-    name: 1. Build 2600.emu IPA (Standard)
-    runs-on: macos-latest # 必须使用 macOS 运行器
+  build_ipa_stable:
+    name: Build 2600.emu IPA (Stable)
+    runs-on: macos-latest 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           
-      - name: Set up dependencies (Homebrew)
+      - name: Install build dependencies (Homebrew)
         run: |
           brew update
+          # 安装 iOS 构建所需的核心依赖
           brew install autoconf automake libtool make nasm pkg-config 
           
-      - name: Set up Xcode environment
-        # 确保使用一个可用的 Xcode 版本
-        run: sudo xcode-select -s /Applications/Xcode_15.3.app/Contents/Developer
-        
+      # --- 关键修改：使用官方 Action 稳定设置 Xcode ---
+      - name: Select Xcode 15.3
+        uses: developer-action/xcode-select@v5
+        with:
+          # 我们不再猜测路径，而是让 Action 自动找到 Xcode 15.3
+          version: '15.3'
+          
       - name: Run Full Make Build for iOS
         run: |
           # 编译所有核心库和应用
           JOBS=`sysctl -n hw.ncpu`
           echo "Building with $JOBS cores"
+          # 编译 imagine 核心库
           make -f imagine/ios-release.mk install V=1 -j$JOBS
+          # 编译 EmuFramework 核心库
           make -f EmuFramework/ios-release.mk install V=1 -j$JOBS
+          # 编译 2600.emu 应用的核心代码
           make -f 2600.emu/ios-release.mk install V=1 -j$JOBS
 
       - name: Find and Package IPA
@@ -37,11 +43,11 @@ jobs:
           APP_PATH=$(find . -path "*/target/ios-release/*.app" | head -n 1)
           
           if [ -z "$APP_PATH" ]; then
-            echo "::error file=build.yml::Error: Could not find the .app file. Build failed or path is incorrect."
+            echo "::error file=build.yml::Error: Could not find the .app file. Build failed or make target path is wrong."
             exit 1
           fi
           
-          IPA_NAME="2600Emu-Standard.ipa"
+          IPA_NAME="2600Emu-Stable.ipa"
           mkdir Payload
           cp -R "$APP_PATH" Payload/
           zip -r "$IPA_NAME" Payload
@@ -49,61 +55,5 @@ jobs:
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: 1-2600Emu-IPA-Standard
-          path: 2600Emu-Standard.ipa
-
-  # --- Job 2: 备用 IPA 构建 (如果 Job 1 失败，则自动运行) ---
-  build_ipa_alt:
-    name: 2. Build 2600.emu IPA (Alternate Build)
-    # 使用 'if: failure()' 确保 Job 1 失败时，Job 2 运行
-    if: failure()
-    runs-on: macos-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          
-      - name: Set up dependencies (Homebrew)
-        run: |
-          brew update
-          brew install autoconf automake libtool make nasm pkg-config 
-          
-      - name: Set up Xcode environment
-        run: sudo xcode-select -s /Applications/Xcode_15.3.app/Contents/Developer
-        
-      - name: Run Alternate Make Build for iOS
-        # 尝试在一个单独的 'build' 目录下执行编译，有时能解决依赖和临时文件问题
-        run: |
-          mkdir build_ios
-          cd build_ios
-          
-          JOBS=`sysctl -n hw.ncpu`
-          echo "Building with $JOBS cores from build_ios directory"
-          
-          # 注意：这里的 make 命令需要相对于新的工作目录进行调整
-          make -f ../imagine/ios-release.mk install V=1 -j$JOBS
-          make -f ../EmuFramework/ios-release.mk install V=1 -j$JOBS
-          make -f ../2600.emu/ios-release.mk install V=1 -j$JOBS
-
-      - name: Find and Package IPA
-        run: |
-          # 查找生成的 .app bundle (注意路径相对于新目录)
-          # 假设 target/ios-release 目录在项目根目录下
-          APP_PATH=$(find . -path "*/target/ios-release/*.app" | head -n 1)
-          
-          if [ -z "$APP_PATH" ]; then
-            echo "::error file=build.yml::Error: Could not find the .app file in the alternate build."
-            exit 1
-          fi
-          
-          IPA_NAME="2600Emu-Alternate.ipa"
-          mkdir Payload
-          cp -R "$APP_PATH" Payload/
-          zip -r "$IPA_NAME" Payload
-          
-      - name: Upload IPA artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: 2-2600Emu-IPA-Alternate
-          path: 2600Emu-Alternate.ipa
+          name: 2600Emu-IPA-Stable
+          path: 2600Emu-Stable.ipa
