@@ -1,4 +1,4 @@
-name: EX Emulators - FINAL IPA Build (Dual Path Fix)
+name: EX Emulators - FINAL IPA Build (Project Root Fix)
 
 on: [push, pull_request]
 
@@ -27,9 +27,9 @@ jobs:
           JOBS=`sysctl -n hw.ncpu`
           echo "Building dependencies and application with $JOBS cores"
           
-          # ⚠️ 关键修改：同时注入 IMAGINE_PATH 和 SHORTCUT_PATH
-          # 确保所有核心构建路径都被正确指向项目根目录
-          ROOT_PATH_ARG="IMAGINE_PATH=${{ github.workspace }} SHORTCUT_PATH=${{ github.workspace }}"
+          # ⚠️ 关键修改：同时注入 IMAGINE_PATH 和 PROJECT_ROOT
+          # PROJECT_ROOT 变量将用于修复 /shortcut/ 路径
+          ROOT_PATH_ARG="IMAGINE_PATH=${{ github.workspace }} PROJECT_ROOT=${{ github.workspace }}"
           
           # 1. 编译 imagine 核心库
           make -f imagine/ios-release.mk install $ROOT_PATH_ARG V=1 -j$JOBS
