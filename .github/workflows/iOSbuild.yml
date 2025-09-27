@@ -48,8 +48,9 @@ jobs:
         make -f make/shortcut/common-builds/ios-arm64.mk prefix=${IMAGINE_SDK_PATH} install V=1 -j$(sysctl -n hw.ncpu) projectPath=${{ github.workspace }}/imagine \
           inc_pkg_libarchive=0 \
           USE_LIBARCHIVE=0 \
-          ios_useExternalLibcxx=1 \
-          CPPFLAGS="-I${{ github.workspace }}/imagine/include -I$CXX_INCLUDE_PATH -I$IOS_SDK_PATH/usr/include -D_LIBCPP_DISABLE_AVAILABILITY"
+          ios_useExternalLibcxx=0 \
+          CXXFLAGS="-x objective-c++" \
+          CPPFLAGS="-D__OBJC__=1 -DCONFIG_OS_IOS=1 -D\"PointerId=uint32_t\" -I${{ github.workspace }}/imagine/include -I$CXX_INCLUDE_PATH -I$IOS_SDK_PATH/usr/include"
 
     
     - name: Build and install EmuFramework
@@ -65,8 +66,9 @@ jobs:
         make -f ${IMAGINE_PATH}/make/shortcut/common-builds/ios-arm64.mk prefix=${IMAGINE_SDK_PATH} install V=1 -j$(sysctl -n hw.ncpu) projectPath=${{ github.workspace }}/EmuFramework \
           inc_pkg_libarchive=0 \
           USE_LIBARCHIVE=0 \
-          ios_useExternalLibcxx=1 \
-          CPPFLAGS="-I${{ github.workspace }}/imagine/include -I$CXX_INCLUDE_PATH -I$IOS_SDK_PATH/usr/include -D_LIBCPP_DISABLE_AVAILABILITY"
+          ios_useExternalLibcxx=0 \
+          CXXFLAGS="-x objective-c++" \
+          CPPFLAGS="-D__OBJC__=1 -DCONFIG_OS_IOS=1 -D\"PointerId=uint32_t\" -I${{ github.workspace }}/imagine/include -I$CXX_INCLUDE_PATH -I$IOS_SDK_PATH/usr/include"
     
     - name: Keep cache small
       run: rm -rf .git
@@ -147,7 +149,7 @@ jobs:
           USE_LIBARCHIVE=0 \
           ios_useExternalLibcxx=0 \
           CXXFLAGS="-x objective-c++ -stdlib=libc++" \
-          CPPFLAGS="-D__OBJC__=1 -DCONFIG_OS_IOS=1 -I${{ github.workspace }}/imagine/include -I$CXX_INCLUDE_PATH -I$IOS_SDK_PATH/usr/include -I${IMAGINE_SDK_PATH}/include" -j$(sysctl -n hw.ncpu)
+          CPPFLAGS="-D__OBJC__=1 -DCONFIG_OS_IOS=1 -D\"PointerId=uint32_t\" -I${{ github.workspace }}/imagine/include -I$CXX_INCLUDE_PATH -I$IOS_SDK_PATH/usr/include -I${IMAGINE_SDK_PATH}/include" -j$(sysctl -n hw.ncpu)
         # Create IPA without signing
         cd target/${{ matrix.image }}
         mkdir -p Payload
