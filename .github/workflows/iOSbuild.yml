@@ -3,25 +3,31 @@ name: EX Emulators iOS Build
 on: [push, pull_request]
 
 jobs:
-  build:
-    name: Build iOS base
+  build_ios_images:
+    name: Build iOS images
     runs-on: macos-latest
+    strategy:
+      matrix:
+        image: ["2600.emu", "C64.emu", "GBA.emu", "GBC.emu", "Lynx.emu", "MD.emu", "MSX.emu", "NEO.emu", "NES.emu", "NGP.emu", "PCE.emu", "Snes9x", "Swan.emu"]
     steps:
     - name: Checkout emu-ex-plus-alpha repo
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
     
+    - name: Install build dependencies
+      run: |
+        brew install automake autoconf libtool
+    
     - name: Debug Xcode environment
       run: |
         xcode-select --print-path
         xcodebuild -version
-        ls -la /Applications/
         echo "Current SDKROOT: $SDKROOT"
         echo "MacOS SDK path: $(xcrun --sdk macosx --show-sdk-path)"
         echo "iOS SDK path: $(xcrun --sdk iphoneos --show-sdk-path)"
         echo "Available SDKs: $(xcodebuild -showsdks)"
-        echo "C++ headers path: $(xcrun --sdk macosx --show-sdk-path)/usr/include/c++/v1"
+        echo "C++ headers path: $(xcrun --sdk iphoneos --show-sdk-path)/usr/include/c++/v1"
     
     - name: Set up environment
       run: |
@@ -32,48 +38,6 @@ jobs:
         echo "COMMIT_PREFIX=$(echo ${{ github.sha }} | cut -c1-8)" >> $GITHUB_ENV
         # Set SDKROOT to the latest available SDK
         echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> $GITHUB_ENV
-    
-    - name: Install dependencies
-      run: |
-        brew install automake autoconf libtool
-    
-    - name: Build imagine (without iOS)
-      run: |
-        # Build with standard C++ library includes
-        make -f $IMAGINE_PATH/macosx.mk install V=1 CPPFLAGS="-I$(xcrun --show-sdk-path)/usr/include/c++/v1" -j$(sysctl -n hw.ncpu)
-    
-    - name: Build EmuFramework (without iOS)
-      run: |
-        # Build with standard C++ library includes
-        make -f $EMUFRAMEWORK_PATH/macosx.mk install V=1 CPPFLAGS="-I$(xcrun --show-sdk-path)/usr/include/c++/v1" -j$(sysctl -n hw.ncpu)
-    
-    - name: Keep cache small
-      run: rm -rf .git
-    
-    - name: Save cache
-      uses: actions/cache/save@v4
-      with:
-        path: ./
-        key: ${{ github.sha }}-ios-base
-
-  build_ios_images:
-    name: Build iOS images
-    needs: [build]
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        image: ["2600.emu", "C64.emu", "GBA.emu", "GBC.emu", "Lynx.emu", "MD.emu", "MSX.emu", "NEO.emu", "NES.emu", "NGP.emu", "PCE.emu", "Snes9x", "Swan.emu"]
-    steps:
-    - name: Install build dependencies
-      run: |
-        brew install gnu-tar
-    
-    - name: Restore cache
-      uses: actions/cache/restore@v4
-      with:
-        path: ./
-        key: ${{ github.sha }}-ios-base
-        fail-on-cache-miss: true
     
     - name: Debug Xcode environment
       run: |
@@ -110,7 +74,7 @@ jobs:
         ls -la "$CXX_INCLUDE_PATH" | head -10
         
         # Build with proper SDK and C++ library includes
-        make -f ios.mk ios-build V=1 IOS_ARCHES="arm64" \
+        make -f ios.mk ios-build V=1 ios_arch="arm64" \
           CPPFLAGS="-I$CXX_INCLUDE_PATH -I$IOS_SDK_PATH/usr/include" \
           CXXFLAGS="-stdlib=libc++" -j$(sysctl -n hw.ncpu)
         # Create IPA without signing
@@ -128,14 +92,9 @@ jobs:
   release:
     name: iOS Release
     runs-on: macos-latest
-    needs: [build, build_ios_images]
+    needs: [build_ios_images]
     if: github.ref == 'refs/heads/master'
     steps:
-    - name: Checkout emu-ex-plus-alpha repo
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    
     - name: Download iOS Artifacts
       uses: actions/download-artifact@v4
       with:
