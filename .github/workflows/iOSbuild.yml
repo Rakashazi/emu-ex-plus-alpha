@@ -1,10 +1,10 @@
-name: EX Emulators - FINAL IPA Build (Android Logic)
+name: EX Emulators - FINAL IPA Build (Direct Make Fix)
 
 on: [push, pull_request]
 
 jobs:
   build_ipa_stable:
-    name: Build 2600.emu IPA (Final Environment Setup)
+    name: Build 2600.emu IPA (Final Success Path)
     runs-on: macos-latest 
     steps:
       - name: Checkout repository
@@ -22,26 +22,14 @@ jobs:
         with:
           xcode-version: '16.4.0'
           
-      # --- 关键修复：模仿 Android 的环境设置 ---
-      - name: Run Initial Setup Script (Guessing)
-        # 尝试运行一个位于 imagine/bundle/all 的 iOS 初始化脚本
-        # 即使找不到，也会给我们清晰的错误信息
-        run: |
-          # 检查并运行一个潜在的初始化脚本
-          if [ -f "imagine/bundle/all/makeAll-ios.sh" ]; then
-            chmod +x imagine/bundle/all/makeAll-ios.sh
-            imagine/bundle/all/makeAll-ios.sh install
-          else
-            echo "Warning: makeAll-ios.sh not found. Proceeding with manual make."
-          fi
-          
+      # --- 关键修复：移除失败的 setup script，直接运行 make ---
       - name: Run Full Make Build for iOS
-        # ⚠️ 关键修改：回到在项目根目录运行 make，让 Make 文件自己解析相对路径
         run: |
           JOBS=`sysctl -n hw.ncpu`
           echo "Building dependencies and application with $JOBS cores"
           
-          # 1. 编译 imagine 核心库 (直接运行 make 文件)
+          # 1. 编译 imagine 核心库
+          # 我们在项目根目录运行，让它使用相对路径 (make/...)
           make -f imagine/ios-release.mk install V=1 -j$JOBS
           
           # 2. 编译 EmuFramework 核心库
@@ -56,11 +44,11 @@ jobs:
           APP_PATH=$(find . -path "*/target/ios-release/*.app" | head -n 1)
           
           if [ -z "$APP_PATH" ]; then
-            echo "::error file=build.yml::Error: 找不到 .app 文件。编译已失败。"
+            echo "::error file=build.yml::Error: 找不到 .app 文件。编译已失败。请检查日志中 make 命令的错误。"
             exit 1
           fi
           
-          IPA_NAME="2600Emu-FinalEnvFix.ipa"
+          IPA_NAME="2600Emu-IPA-Final.ipa"
           mkdir Payload
           cp -R "$APP_PATH" Payload/
           zip -r "$IPA_NAME" Payload
@@ -68,5 +56,5 @@ jobs:
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: 2600Emu-IPA-FinalEnvFix
-          path: 2600Emu-FinalEnvFix.ipa
+          name: 2600Emu-IPA-Final
+          path: 2600Emu-IPA-Final.ipa
