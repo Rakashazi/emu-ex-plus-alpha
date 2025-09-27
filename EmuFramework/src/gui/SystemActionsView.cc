@@ -54,7 +54,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 	TableView{"System Actions", attach, item},
 	cheats
 	{
-		"Cheats", attach,
+		"作弊", attach,
 		[this](const Input::Event &e)
 		{
 			if(system().hasContent())
@@ -65,7 +65,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 	},
 	reset
 	{
-		"Reset", attach,
+		"重置", attach,
 		[this](const Input::Event &e)
 		{
 			if(!system().hasContent())
@@ -98,7 +98,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 	},
 	revertAutosave
 	{
-		"Load Autosave State", attach,
+		"加载自动保存状态", attach,
 		[this](TextMenuItem &item, const Input::Event &e)
 		{
 			if(!item.active())
@@ -122,7 +122,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 	},
 	stateSlot
 	{
-		"Manual Save States", attach,
+		"手动保存状态", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<StateSlotView>(), e);
@@ -130,7 +130,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 	},
 	inputOverrides
 	{
-		"Input Overrides", attach,
+		"输入覆盖", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<InputOverridesView>(app().inputManager), e);
@@ -138,7 +138,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 	},
 	addLauncherIcon
 	{
-		"Add Content Shortcut To Launcher", attach,
+		"将内容快捷方式添加到启动器", attach,
 		[this](const Input::Event &e)
 		{
 			if(!system().hasContent())
@@ -159,7 +159,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 	},
 	screenshot
 	{
-		"Screenshot Next Frame", attach,
+		"截图下一帧", attach,
 		[this](const Input::Event &e)
 		{
 			if(!system().hasContent())
@@ -183,7 +183,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 	},
 	resetSessionOptions
 	{
-		"Reset Saved Options", attach,
+		"重置保存的选项", attach,
 		[this](const Input::Event &e)
 		{
 			if(!app().hasSavedSessionOptions())
@@ -202,7 +202,7 @@ SystemActionsView::SystemActionsView(ViewAttachParams attach, bool customMenu):
 	},
 	close
 	{
-		"Close Content", attach,
+		"关闭内容", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShowModal(app().makeCloseContentView(), e);

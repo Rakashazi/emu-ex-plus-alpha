@@ -34,7 +34,7 @@ StateSlotView::StateSlotView(ViewAttachParams attach):
 	TableView{"Save States", attach, menuItems},
 	load
 	{
-		"Load State", attach,
+		"加载状态", attach,
 		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			if(!item.active())
@@ -52,7 +52,7 @@ StateSlotView::StateSlotView(ViewAttachParams attach):
 	},
 	save
 	{
-		"Save State", attach,
+		"保存状态", attach,
 		[this](const Input::Event &e)
 		{
 			if(app().shouldOverwriteExistingState())

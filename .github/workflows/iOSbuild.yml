@@ -1,0 +1,82 @@
+name: EX Emulators - FINAL IPA Build (C++20 Fix)
+
+on: [push, pull_request]
+
+jobs:
+  build_ipa_stable:
+    name: Build 2600.emu IPA (Final C++ Standard Fix)
+    runs-on: macos-latest 
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Install build dependencies (Homebrew)
+        run: |
+          brew update
+          brew install autoconf automake libtool make nasm pkg-config 
+          
+      - name: Select Xcode 16.4.0
+        uses: maxim-lobanov/setup-xcode@v1 
+        with:
+          xcode-version: '16.4.0'
+          
+      # 设置环境变量
+      - name: Set up environment
+        run: |
+          echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
+          echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
+          echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
+          
+      # 关键修復 1：使用 sed 替换 Make 文件中的硬编码绝对路径
+      - name: Fix Hardcoded Absolute Paths in Makefiles
+        run: |
+          ROOT_DIR="${{ github.workspace }}"
+          
+          echo "Fixing imagine/ios-release.mk paths..."
+          # 替换 /shortcut/common-builds/ios.mk
+          sed -i '' "s|/shortcut/common-builds/ios.mk|${ROOT_DIR}/shortcut/common-builds/ios.mk|g" imagine/ios-release.mk
+          # 替换 /make/config.mk
+          sed -i '' "s|/make/config.mk|${ROOT_DIR}/make/config.mk|g" imagine/ios-release.mk
+
+      - name: Run Full Make Build for iOS (Enable C++20)
+        run: |
+          JOBS=`sysctl -n hw.ncpu`
+          echo "Building dependencies and application with $JOBS cores"
+          
+          ROOT_PATH_ARG="IMAGINE_PATH=${{ github.workspace }}"
+          
+          # ⚠️ 关键修正：注入 CPPFLAGS，强制使用 C++20 标准 (-std=c++20) 
+          # 同时保留对 imagine/src 的 include 路径
+          CPP_FLAGS_INJ="-std=c++20 -I${{ github.workspace }}/imagine/src"
+          
+          # 1. 编译 imagine 核心库
+          make -f imagine/ios-release.mk install $ROOT_PATH_ARG CPPFLAGS="$CPP_FLAGS_INJ" V=1 -j$JOBS
+          
+          # 2. 编译 EmuFramework 核心库
+          make -f EmuFramework/ios-release.mk install $ROOT_PATH_ARG CPPFLAGS="$CPP_FLAGS_INJ" V=1 -j$JOBS
+          
+          # 3. 编译 2600.emu 应用
+          make -f 2600.emu/ios-release.mk install $ROOT_PATH_ARG CPPFLAGS="$CPP_FLAGS_INJ" V=1 -j$JOBS
+
+      - name: Find and Package IPA
+        run: |
+          # 查找生成的 .app bundle
+          APP_PATH=$(find . -path "*/target/ios-release/*.app" | head -n 1)
+          
+          if [ -z "$APP_PATH" ]; then
+            echo "::error file=build.yml::Error: 找不到 .app 文件。請檢查日誌中的 make 步驟是否開始編譯核心文件。"
+            exit 1
+          fi
+          
+          IPA_NAME="2600Emu-Final-Success.ipa"
+          mkdir Payload
+          cp -R "$APP_PATH" Payload/
+          zip -r "$IPA_NAME" Payload
+          
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 2600Emu-IPA-Final-Success
+          path: 2600Emu-Final-Success.ipa

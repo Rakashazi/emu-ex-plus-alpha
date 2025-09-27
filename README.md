@@ -1,3 +1,5 @@
+这个项目是汉化版本，别的功能和原版一样
+
 # EX Emulators
 
 ## Nightly builds

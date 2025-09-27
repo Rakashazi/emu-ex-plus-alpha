@@ -50,7 +50,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	autosaveTimer
 	{
-		"Timer", attach,
+		"自动存档时间", attach,
 		MenuId{app().autosaveManager.saveTimer.frequency.count()},
 		autosaveTimerItem,
 		{
@@ -73,7 +73,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	autosaveLaunch
 	{
-		"Launch Mode", attach,
+		"自动存档启动模式", attach,
 		MenuId{app().autosaveManager.autosaveLaunchMode},
 		autosaveLaunchItem,
 		{
@@ -82,7 +82,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	autosaveContent
 	{
-		"Content", attach,
+		"自动存档内容", attach,
 		app().autosaveManager.saveOnlyBackupMemory,
 		"State & Backup RAM", "Only Backup RAM",
 		[this](BoolMenuItem &item)
@@ -92,7 +92,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	confirmOverwriteState
 	{
-		"Confirm Overwrite State", attach,
+		"确认覆盖状态", attach,
 		app().confirmOverwriteState,
 		[this](BoolMenuItem &item)
 		{
@@ -124,7 +124,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	fastModeSpeed
 	{
-		"Fast-forward Speed", attach,
+		"快进速度", attach,
 		MenuId{app().altSpeed(AltSpeedMode::fast)},
 		fastModeSpeedItem,
 		{
@@ -165,7 +165,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	slowModeSpeed
 	{
-		"Slow-motion Speed", attach,
+		"慢动作速度", attach,
 		MenuId{app().altSpeed(AltSpeedMode::slow)},
 		slowModeSpeedItem,
 		{
@@ -199,7 +199,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	rewindStates
 	{
-		"States", attach,
+		"回放存档", attach,
 		MenuId{app().rewindManager.maxStates},
 		rewindStatesItem,
 		{
@@ -217,7 +217,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	rewindTimeInterval
 	{
-		"State Interval (Seconds)", std::to_string(app().rewindManager.saveTimer.frequency.count()), attach,
+		"状态间隔（秒）", std::to_string(app().rewindManager.saveTimer.frequency.count()), attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShowNewCollectValueRangeInputView<int, 1, 60>(attachParams(), e,

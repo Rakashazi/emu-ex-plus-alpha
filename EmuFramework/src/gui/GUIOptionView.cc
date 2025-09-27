@@ -35,7 +35,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	TableView{"GUI Options", attach, item},
 	pauseUnfocused
 	{
-		"Pause if unfocused", attach,
+		"闲置时暂停", attach,
 		app().pauseUnfocused,
 		[this](BoolMenuItem &item)
 		{
@@ -71,7 +71,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	fontSize
 	{
-		"Font Size", attach,
+		"字体大小", attach,
 		MenuId{app().fontSize},
 		fontSizeItem,
 		{
@@ -151,7 +151,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	navView
 	{
-		"Title Bar", attach,
+		"标题栏", attach,
 		app().showsTitleBar,
 		[this](BoolMenuItem &item)
 		{
@@ -160,7 +160,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	backNav
 	{
-		"Title Back Navigation", attach,
+		"标题栏导航", attach,
 		attach.viewManager.needsBackControl,
 		[this](BoolMenuItem &item)
 		{
@@ -171,9 +171,9 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	systemActionsIsDefaultMenu
 	{
-		"Default Menu", attach,
+		"默认菜单", attach,
 		app().systemActionsIsDefaultMenu,
-		"Last Used", "System Actions",
+		"上次使用", "系统操作",
 		[this](BoolMenuItem &item)
 		{
 			app().systemActionsIsDefaultMenu = item.flipBoolValue(*this);
@@ -181,7 +181,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	showBundledGames
 	{
-		"Show Bundled Content", attach,
+		"显示捆绑内容", attach,
 		app().showsBundledGames,
 		[this](BoolMenuItem &item)
 		{
@@ -190,7 +190,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	showBluetoothScan
 	{
-		"Show Bluetooth Menu Items", attach,
+		"显示蓝牙菜单项", attach,
 		app().showsBluetoothScan,
 		[this](BoolMenuItem &item)
 		{
@@ -199,7 +199,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	showHiddenFiles
 	{
-		"Show Hidden Files", attach,
+		"显示隐藏文件", attach,
 		app().showHiddenFilesInPicker,
 		[this](BoolMenuItem &item)
 		{
@@ -208,7 +208,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	maxRecentContent
 	{
-		"Max Recent Content Items", std::to_string(app().recentContent.maxRecentContent), attach,
+		"显示最近的内容项", std::to_string(app().recentContent.maxRecentContent), attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShowNewCollectValueRangeInputView<int, 1, 100>(attachParams(), e,
@@ -223,11 +223,11 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	orientationHeading
 	{
-		"Orientation", attach
+		"屏幕方向", attach
 	},
 	menuOrientationItem
 	{
-		{"Auto",         attach, {.id = Orientations{}}},
+		{"自动",         attach, {.id = Orientations{}}},
 		{landscapeName,  attach, {.id = Orientations{.landscapeRight = 1}}},
 		{landscape2Name, attach, {.id = Orientations{.landscapeLeft = 1}}},
 		{portraitName,   attach, {.id = Orientations{.portrait = 1}}},
@@ -244,7 +244,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	emuOrientationItem
 	{
-		{"Auto",         attach, {.id = Orientations{}}},
+		{"自动",         attach, {.id = Orientations{}}},
 		{landscapeName,  attach, {.id = Orientations{.landscapeRight = 1}}},
 		{landscape2Name, attach, {.id = Orientations{.landscapeLeft = 1}}},
 		{portraitName,   attach, {.id = Orientations{.portrait = 1}}},
@@ -261,7 +261,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	layoutBehindSystemUI
 	{
-		"Display Behind OS UI", attach,
+		"操作系统UI后面的显示", attach,
 		app().doesLayoutBehindSystemUI(),
 		[this](BoolMenuItem &item)
 		{

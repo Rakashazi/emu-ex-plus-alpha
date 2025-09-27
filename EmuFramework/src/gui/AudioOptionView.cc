@@ -27,7 +27,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, EmuAudio& audio_, bool
 	audio{audio_},
 	snd
 	{
-		"Sound", attach,
+		"声音", attach,
 		audio_.isEnabled(),
 		[this](BoolMenuItem &item)
 		{
@@ -36,7 +36,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, EmuAudio& audio_, bool
 	},
 	soundDuringFastSlowMode
 	{
-		"Sound During Fast/Slow Mode", attach,
+		"快速/慢速模式下的声音", attach,
 		audio_.isEnabledDuringAltSpeed(),
 		[this](BoolMenuItem &item)
 		{
@@ -64,7 +64,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, EmuAudio& audio_, bool
 	},
 	soundVolume
 	{
-		"Volume", attach,
+		"音量", attach,
 		MenuId{audio_.maxVolume()},
 		soundVolumeItem,
 		{
@@ -88,7 +88,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, EmuAudio& audio_, bool
 	},
 	soundBuffers
 	{
-		"Buffer Size In Frames", attach,
+		"缓冲区大小（帧数）", attach,
 		MenuId{audio_.soundBuffers},
 		soundBuffersItem,
 		{
@@ -97,7 +97,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, EmuAudio& audio_, bool
 	},
 	addSoundBuffersOnUnderrun
 	{
-		"Auto-increase Buffer Size", attach,
+		"自动增加缓冲区大小", attach,
 		audio_.addSoundBuffersOnUnderrunSetting,
 		[this](BoolMenuItem &item)
 		{
@@ -127,13 +127,13 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, EmuAudio& audio_, bool
 	},
 	audioRate
 	{
-		"Sound Rate", attach,
+		"声速", attach,
 		MenuId{audio_.rate()},
 		audioRateItem
 	},
 	audioSoloMix
 	{
-		"Mix With Other Apps", attach,
+		"与其他应用程序混合", attach,
 		!audio_.manager.soloMix(),
 		[this](BoolMenuItem &item)
 		{
@@ -164,7 +164,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, EmuAudio& audio_, bool
 	},
 	api
 	{
-		"Audio Driver", attach,
+		"音频驱动", attach,
 		MenuId{audio_.manager.makeValidAPI(audio_.outputAPI())},
 		apiItem
 	}

@@ -68,7 +68,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	TableView{EmuApp::mainViewName(), attach, item},
 	loadGame
 	{
-		"Open Content", attach,
+		"打开内容", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(FilePicker::forLoading(attachParams(), e), e, false);
@@ -76,7 +76,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	systemActions
 	{
-		"System Actions", attach,
+		"系统操作", attach,
 		[this](const Input::Event &e)
 		{
 			if(!system().hasContent())
@@ -86,7 +86,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	recentGames
 	{
-		"Recent Content", attach,
+		"近期内容", attach,
 		[this](const Input::Event &e)
 		{
 			if(app().recentContent.size())
@@ -97,7 +97,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	bundledGames
 	{
-		"Bundled Content", attach,
+		"自带内容", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<BundledGamesView>(), e);
@@ -105,7 +105,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	options
 	{
-		"Options", attach,
+		"设置", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<OptionCategoryView>(), e);
@@ -113,7 +113,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	onScreenInputManager
 	{
-		"On-screen Input Setup", attach,
+		"屏幕输入设置", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<TouchConfigView>(app().defaultVController()), e);
@@ -121,7 +121,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	inputManager
 	{
-		"Key/Gamepad Input Setup", attach,
+		"按键/游戏手柄输入设置", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<InputManagerView>(app().inputManager), e);
@@ -129,7 +129,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	benchmark
 	{
-		"Benchmark Content", attach,
+		"基准测试内容", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(FilePicker::forBenchmarking(attachParams(), e), e, false);
@@ -137,7 +137,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	scanWiimotes
 	{
-		"Scan for Wiimotes/iCP/JS1", attach,
+		"扫描 Wiimotes/iCP/JS1", attach,
 		[this](const Input::Event &e)
 		{
 			app().bluetoothAdapter.openDefault();
@@ -165,7 +165,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	bluetoothDisconnect
 	{
-		"Disconnect Bluetooth", attach,
+		"断开蓝牙连接", attach,
 		[this](const Input::Event &e)
 		{
 			auto devConnected = Bluetooth::devsConnected(appContext());
@@ -178,7 +178,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	acceptPS3ControllerConnection
 	{
-		"Scan for PS3 Controller", attach,
+		"扫描 PS3 Controller", attach,
 		[this](const Input::Event &e)
 		{
 			app().bluetoothAdapter.openDefault();
@@ -220,7 +220,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	about
 	{
-		"About", attach,
+		"关于", attach,
 		[this](const Input::Event &e)
 		{
 			pushAndShow(makeView<CreditsView>(EmuSystem::creditsViewStr), e);
@@ -228,7 +228,7 @@ MainMenuView::MainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	exitApp
 	{
-		"Exit", attach,
+		"退出", attach,
 		[this]()
 		{
 			appContext().exit();
@@ -342,7 +342,7 @@ void MainMenuView::reloadItems()
 OptionCategoryView::OptionCategoryView(ViewAttachParams attach):
 	TableView
 	{
-		"Options",
+		"设置",
 		attach,
 		[this](ItemMessage msg) -> ItemReply
 		{
@@ -356,49 +356,49 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach):
 	subConfig
 	{
 		{
-			"Frame Timing", attach,
+			"帧时序", attach,
 			[this](const Input::Event &e)
 			{
 				pushAndShow(makeView<FrameTimingView>(), e);
 			}
 		},
 		{
-			"Video", attach,
+			"视频", attach,
 			[this](const Input::Event &e)
 			{
 				pushAndShow(app().makeView(attachParams(), EmuApp::ViewID::VIDEO_OPTIONS), e);
 			}
 		},
 		{
-			"Audio", attach,
+			"声音", attach,
 			[this](const Input::Event &e)
 			{
 				pushAndShow(app().makeView(attachParams(), EmuApp::ViewID::AUDIO_OPTIONS), e);
 			}
 		},
 		{
-			"System", attach,
+			"系统", attach,
 			[this](const Input::Event &e)
 			{
 				pushAndShow(app().makeView(attachParams(), EmuApp::ViewID::SYSTEM_OPTIONS), e);
 			}
 		},
 		{
-			"File Paths", attach,
+			"文件路径", attach,
 			[this](const Input::Event &e)
 			{
 				pushAndShow(app().makeView(attachParams(), EmuApp::ViewID::FILE_PATH_OPTIONS), e);
 			}
 		},
 		{
-			"GUI", attach,
+			"菜单", attach,
 			[this](const Input::Event &e)
 			{
 				pushAndShow(app().makeView(attachParams(), EmuApp::ViewID::GUI_OPTIONS), e);
 			}
 		},
 		{
-			"Online Documentation", attach,
+			"在线文档", attach,
 			[this]
 			{
 				appContext().openURL("https://www.explusalpha.com/contents/emuex/documentation");
@@ -410,7 +410,7 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach):
 	{
 		subConfig[lastIndex(subConfig)] =
 		{
-			"Beta Testing Opt-in/out", attach,
+			"Beta 测试 Opt-in/out", attach,
 			[this]()
 			{
 				appContext().openURL(std::format("https://play.google.com/apps/testing/{}", appContext().applicationId));
