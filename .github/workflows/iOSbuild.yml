@@ -15,7 +15,6 @@ jobs:
     - name: Set up environment
       run: |
         mkdir imagine-sdk
-        echo "ANDROID_NDK_PATH=${{ github.workspace }}/android-ndk" >> $GITHUB_ENV
         echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
         echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
@@ -44,7 +43,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        image: ["NES.emu", "GBA.emu", "SNES.emu"]
+        image: ["2600.emu", "C64.emu", "GBA.emu", "GBC.emu", "Lynx.emu", "MD.emu", "MSX.emu", "NEO.emu", "NES.emu", "NGP.emu", "PCE.emu", "Snes9x", "Swan.emu"]
     steps:
     - name: Install build dependencies
       run: |
@@ -59,7 +58,6 @@ jobs:
     
     - name: Set up environment
       run: |
-        echo "ANDROID_NDK_PATH=${{ github.workspace }}/android-ndk" >> $GITHUB_ENV
         echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
         echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
