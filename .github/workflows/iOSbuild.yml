@@ -1,10 +1,10 @@
-name: EX Emulators - FINAL IPA Build (Xcode Fix)
+name: EX Emulators - FINAL IPA Build (Path Fix)
 
 on: [push, pull_request]
 
 jobs:
   build_ipa_stable:
-    name: Build 2600.emu IPA (Final Attempt)
+    name: Build 2600.emu IPA (Final Path Fix)
     runs-on: macos-latest 
     steps:
       - name: Checkout repository
@@ -15,40 +15,44 @@ jobs:
       - name: Install build dependencies (Homebrew)
         run: |
           brew update
-          # 安装 iOS 构建所需的核心依赖
           brew install autoconf automake libtool make nasm pkg-config 
           
-      # --- 关键修复：更换为可用的 Xcode 16.4.0 ---
       - name: Select Xcode 16.4.0
         uses: maxim-lobanov/setup-xcode@v1 
         with:
-          # 使用运行器上实际存在的版本
           xcode-version: '16.4.0'
           
+      # --- 关键修复：创建虚拟 Make 文件路径 ---
+      - name: Set up Virtual Path Fixes
+        run: |
+          # 创建 /make 目录，并将其链接到项目根目录
+          sudo mkdir -p /make
+          # 链接 /shortcut 到项目根目录
+          sudo ln -s "${{ github.workspace }}" /shortcut
+
       - name: Run Full Make Build for iOS
         run: |
           JOBS=`sysctl -n hw.ncpu`
           echo "Building 2600.emu dependencies and application with $JOBS cores"
           
-          # 尝试编译所有核心库和应用，并使用通用的 'all' 目标
-          # 这通常能解决依赖文件的路径问题
-          make -f imagine/ios-release.mk install V=1 -j$JOBS || true # 尝试编译 imagine，如果失败则继续
-          make -f EmuFramework/ios-release.mk install V=1 -j$JOBS || true # 尝试编译 EmuFramework
+          # 尝试编译 imagine 核心库
+          make -f imagine/ios-release.mk install V=1 -j$JOBS || true 
+          # 尝试编译 EmuFramework 核心库
+          make -f EmuFramework/ios-release.mk install V=1 -j$JOBS || true 
           
           # 编译 2600.emu
           make -f 2600.emu/ios-release.mk install V=1 -j$JOBS
-          
+
       - name: Find and Package IPA
         run: |
-          # 查找生成的 .app bundle
           APP_PATH=$(find . -path "*/target/ios-release/*.app" | head -n 1)
           
           if [ -z "$APP_PATH" ]; then
-            echo "::error file=build.yml::Error: Could not find the .app file. The build likely failed due to missing dependencies. Check the 'Run Full Make Build' step log for file errors."
+            echo "::error file=build.yml::Error: Could not find the .app file. Check the 'Run Full Make Build' step log for file errors."
             exit 1
           fi
           
-          IPA_NAME="2600Emu-Final.ipa"
+          IPA_NAME="2600Emu-FinalFix.ipa"
           mkdir Payload
           cp -R "$APP_PATH" Payload/
           zip -r "$IPA_NAME" Payload
@@ -56,5 +60,5 @@ jobs:
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: 2600Emu-IPA-Final
-          path: 2600Emu-Final.ipa
+          name: 2600Emu-IPA-FinalFix
+          path: 2600Emu-FinalFix.ipa
