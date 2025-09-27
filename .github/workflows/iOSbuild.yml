@@ -145,9 +145,9 @@ jobs:
           PKG_CONFIG_PATH=${PKG_CONFIG_PATH} \
           inc_pkg_libarchive=0 \
           USE_LIBARCHIVE=0 \
-          ios_useExternalLibcxx=1 \
-          CPPFLAGS="-I${{ github.workspace }}/imagine/include -I$CXX_INCLUDE_PATH -I$IOS_SDK_PATH/usr/include -I${IMAGINE_SDK_PATH}/include -D_LIBCPP_DISABLE_AVAILABILITY" \
-          CXXFLAGS="-stdlib=libc++" -j$(sysctl -n hw.ncpu)
+          ios_useExternalLibcxx=0 \
+          CXXFLAGS="-x objective-c++ -stdlib=libc++" \
+          CPPFLAGS="-D__OBJC__=1 -DCONFIG_OS_IOS=1 -I${{ github.workspace }}/imagine/include -I$CXX_INCLUDE_PATH -I$IOS_SDK_PATH/usr/include -I${IMAGINE_SDK_PATH}/include" -j$(sysctl -n hw.ncpu)
         # Create IPA without signing
         cd target/${{ matrix.image }}
         mkdir -p Payload
