@@ -44,13 +44,13 @@ jobs:
         CXX_INCLUDE_PATH="$IOS_SDK_PATH/usr/include/c++/v1"
         echo "Using iOS SDK path: $IOS_SDK_PATH"
         echo "Using C++ headers path: $CXX_INCLUDE_PATH"
-        # Add inc_pkg_libarchive=0 to disable libarchive
-        # Add -I${{ github.workspace }}/imagine/include to fix header paths
+        # Add necessary flags to fix ApplicationContext and input type issues
         make -f make/shortcut/common-builds/ios-arm64.mk prefix=${IMAGINE_SDK_PATH} install V=1 -j$(sysctl -n hw.ncpu) projectPath=${{ github.workspace }}/imagine \
           inc_pkg_libarchive=0 \
           USE_LIBARCHIVE=0 \
-          ios_useExternalLibcxx=0 \
-          CPPFLAGS="-I${{ github.workspace }}/imagine/include -I$CXX_INCLUDE_PATH -I$IOS_SDK_PATH/usr/include"
+          ios_useExternalLibcxx=1 \
+          CPPFLAGS="-I${{ github.workspace }}/imagine/include -I$CXX_INCLUDE_PATH -I$IOS_SDK_PATH/usr/include -D_LIBCPP_DISABLE_AVAILABILITY"
+
     
     - name: Build and install EmuFramework
       working-directory: ${{ github.workspace }}/EmuFramework
@@ -61,13 +61,12 @@ jobs:
         CXX_INCLUDE_PATH="$IOS_SDK_PATH/usr/include/c++/v1"
         echo "Using iOS SDK path: $IOS_SDK_PATH"
         echo "Using C++ headers path: $CXX_INCLUDE_PATH"
-        # Add inc_pkg_libarchive=0 to disable libarchive
-        # Add -I${{ github.workspace }}/imagine/include to fix header paths
+        # Add necessary flags to fix ApplicationContext and input type issues
         make -f ${IMAGINE_PATH}/make/shortcut/common-builds/ios-arm64.mk prefix=${IMAGINE_SDK_PATH} install V=1 -j$(sysctl -n hw.ncpu) projectPath=${{ github.workspace }}/EmuFramework \
           inc_pkg_libarchive=0 \
           USE_LIBARCHIVE=0 \
-          ios_useExternalLibcxx=0 \
-          CPPFLAGS="-I${{ github.workspace }}/imagine/include -I$CXX_INCLUDE_PATH -I$IOS_SDK_PATH/usr/include"
+          ios_useExternalLibcxx=1 \
+          CPPFLAGS="-I${{ github.workspace }}/imagine/include -I$CXX_INCLUDE_PATH -I$IOS_SDK_PATH/usr/include -D_LIBCPP_DISABLE_AVAILABILITY"
     
     - name: Keep cache small
       run: rm -rf .git
@@ -146,8 +145,8 @@ jobs:
           PKG_CONFIG_PATH=${PKG_CONFIG_PATH} \
           inc_pkg_libarchive=0 \
           USE_LIBARCHIVE=0 \
-          ios_useExternalLibcxx=0 \
-          CPPFLAGS="-I${{ github.workspace }}/imagine/include -I$CXX_INCLUDE_PATH -I$IOS_SDK_PATH/usr/include -I${IMAGINE_SDK_PATH}/include" \
+          ios_useExternalLibcxx=1 \
+          CPPFLAGS="-I${{ github.workspace }}/imagine/include -I$CXX_INCLUDE_PATH -I$IOS_SDK_PATH/usr/include -I${IMAGINE_SDK_PATH}/include -D_LIBCPP_DISABLE_AVAILABILITY" \
           CXXFLAGS="-stdlib=libc++" -j$(sysctl -n hw.ncpu)
         # Create IPA without signing
         cd target/${{ matrix.image }}
