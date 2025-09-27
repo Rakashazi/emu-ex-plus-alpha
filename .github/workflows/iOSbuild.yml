@@ -1,10 +1,10 @@
-name: EX Emulators - FINAL IPA Build (Project Root Fix)
+name: EX Emulators - FINAL IPA Build (Dual Path Fix V2)
 
 on: [push, pull_request]
 
 jobs:
   build_ipa_stable:
-    name: Build 2600.emu IPA (Final Dual Path Fix)
+    name: Build 2600.emu IPA (Final Build Root Fix)
     runs-on: macos-latest 
     steps:
       - name: Checkout repository
@@ -27,9 +27,9 @@ jobs:
           JOBS=`sysctl -n hw.ncpu`
           echo "Building dependencies and application with $JOBS cores"
           
-          # ⚠️ 关键修改：同时注入 IMAGINE_PATH 和 PROJECT_ROOT
-          # PROJECT_ROOT 变量将用于修复 /shortcut/ 路径
-          ROOT_PATH_ARG="IMAGINE_PATH=${{ github.workspace }} PROJECT_ROOT=${{ github.workspace }}"
+          # ⚠️ 关键修改：同时注入 IMAGINE_PATH 和 BUILD_ROOT
+          # BUILD_ROOT 是最可能控制 /shortcut/ 路径的通用变量。
+          ROOT_PATH_ARG="IMAGINE_PATH=${{ github.workspace }} BUILD_ROOT=${{ github.workspace }}"
           
           # 1. 编译 imagine 核心库
           make -f imagine/ios-release.mk install $ROOT_PATH_ARG V=1 -j$JOBS
@@ -46,7 +46,7 @@ jobs:
           APP_PATH=$(find . -path "*/target/ios-release/*.app" | head -n 1)
           
           if [ -z "$APP_PATH" ]; then
-            echo "::error file=build.yml::Error: 找不到 .app 文件。编译已失败。请检查日志中的 make 步骤是否产生新的错误。"
+            echo "::error file=build.yml::Error: Could not find the .app file. The build failed. Please check the logs carefully for new errors."
             exit 1
           fi
           
