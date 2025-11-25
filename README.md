@@ -19,8 +19,6 @@
 | NGP emu                 | [![Build Status][Build]][Actions] | [![Emulator][Download]][NGP emu]           |
 | PCE emu                 | [![Build Status][Build]][Actions] | [![Emulator][Download]][PCE emu]           |
 | Saturn emu              | [![Build Status][Build]][Actions] | [![Emulator][Download]][Saturn emu]        |
-| Snes9x EX 1.43-9        | [![Build Status][Build]][Actions] | [![Emulator][Download]][Snes9x EX 1.43-9]  |
-| Snes9x EX 1.43-15       | [![Build Status][Build]][Actions] | [![Emulator][Download]][Snes9x EX 1.43-15] |
 | Snes9x EX Plus          | [![Build Status][Build]][Actions] | [![Emulator][Download]][Snes9x EX Plus]    |
 | Swan emu                | [![Build Status][Build]][Actions] | [![Emulator][Download]][Swan emu]          |
 
@@ -40,7 +38,5 @@
 [NGP emu]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/NgpEmu.zip
 [PCE emu]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/PceEmu.zip
 [Saturn emu]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/SaturnEmu.zip
-[Snes9x EX 1.43-9]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/Snes9xEX-9.zip
-[Snes9x EX 1.43-15]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/Snes9xEX-15.zip
 [Snes9x EX Plus]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/Snes9xEXPlus.zip
 [Swan emu]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/SwanEmu.zip
