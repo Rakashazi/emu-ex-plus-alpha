@@ -39,7 +39,10 @@ One of the following with **C++20 support**:
 - **MSVC**: Visual Studio 2019 or later (for Windows builds)
 
 #### Build Tools
-- **CMake**: Version 4.1 or later (primary build system)
+- **CMake**: Version 4.1 or later (primary build system) - **REQUIRED, NOT OPTIONAL**
+  - **Important**: CMake 3.x will NOT work - the project uses CMake 4.1+ features
+  - Installation: See [Installing CMake 4.1+](#installing-cmake-41) below
+- **Ninja**: Build system (required for CMake builds)
 - **GNU Make**: For Makefile-based builds
 - **pkg-config**: For dependency management
 - **Git**: For cloning the repository
@@ -55,9 +58,10 @@ One of the following with **C++20 support**:
 
 Example installation (Ubuntu/Debian):
 ```bash
-sudo apt-get install build-essential cmake pkg-config mold git \
+sudo apt-get install build-essential pkg-config mold git ninja-build \
   libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev \
   libgl1-mesa-dev libasound2-dev
+# Note: Do NOT install cmake from apt - it's too old (3.x). See "Installing CMake 4.1+" below.
 ```
 
 Example installation (Fedora/RHEL):
@@ -90,6 +94,47 @@ sudo dnf install gcc-c++ cmake pkgconfig mold git \
 #### Pandora
 - **Pandora SDK**: OpenPandora development environment
 - **ARM cross-compilation toolchain**
+
+---
+
+## Installing CMake 4.1+
+
+CMake 4.1+ is a **hard requirement** for this project. Standard package managers typically provide CMake 3.x, which will not work.
+
+### Option 1: Install from Binary (Recommended)
+
+```bash
+# Download CMake 4.1.0 binary
+cd /tmp
+wget https://github.com/Kitware/CMake/releases/download/v4.1.0/cmake-4.1.0-linux-x86_64.tar.gz
+
+# Extract and install
+tar -xzf cmake-4.1.0-linux-x86_64.tar.gz
+sudo cp -r cmake-4.1.0-linux-x86_64/bin/* /usr/local/bin/
+sudo cp -r cmake-4.1.0-linux-x86_64/share/* /usr/local/share/
+
+# Verify installation
+cmake --version
+# Should output: cmake version 4.1.0
+```
+
+### Option 2: Build from Source
+
+```bash
+# Download source
+cd /tmp
+wget https://github.com/Kitware/CMake/releases/download/v4.1.0/cmake-4.1.0.tar.gz
+tar -xzf cmake-4.1.0.tar.gz
+cd cmake-4.1.0
+
+# Build and install
+./bootstrap --parallel=$(nproc)
+make -j$(nproc)
+sudo make install
+
+# Verify
+cmake --version
+```
 
 ---
 
@@ -184,34 +229,53 @@ export ANDROID_NDK=$ANDROID_HOME/ndk/[VERSION]
 export PATH=$PATH:$ANDROID_HOME/platform-tools
 ```
 
-### Step 2: Build Dependencies
+### Step 2: Build All Dependencies
 
-Build all Android dependencies using the Imagine framework:
+**Critical Step**: Build the Imagine SDK and all required dependencies for all Android architectures:
 
 ```bash
 cd $IMAGINE_PATH/bundle/all
 bash makeAll-android.sh install
 ```
 
-This process will:
-- Download and build all required third-party libraries
-- Install them to the Imagine SDK path
-- Prepare the build environment for Android
+This builds:
+- **libcxx**: C++ standard library for Android
+- **libogg**: Ogg audio codec
+- **libvorbis**: Vorbis audio codec
+- **flac**: FLAC audio codec
+- **xz**: XZ compression library
+- **libarchive**: Archive file handling
 
-### Step 3: Build an Emulator
+For architectures: armv7, arm64, x86, x86_64
 
-Navigate to the emulator directory and build for Android:
+**Note**: This step can take 10-30 minutes depending on your system.
+
+### Step 3: Configure Imagine Framework
+
+```bash
+cd $IMAGINE_PATH
+./android.sh config
+./android.sh installLinks --config Release
+```
+
+### Step 4: Configure EmuFramework
+
+```bash
+cd $EMUFRAMEWORK_PATH
+./android.sh config
+./android.sh installLinks --config Release
+```
+
+### Step 5: Build an Emulator APK
+
+Navigate to the emulator directory and build:
 
 ```bash
 cd /path/to/emu-ex-plus-alpha/[EMULATOR].emu
-make -f android.mk
+make -f android.mk android-apk CONFIG=Release
 ```
 
-Or use the Android-specific build script if available.
-
-### Step 4: Generate APK
-
-The build process will generate an APK file in the `build/` directory that can be installed on Android devices.
+The APK will be generated in the build output directory and can be installed on Android devices.
 
 **Minimum Requirements:**
 - API Level: 21 (Android 5.0)
