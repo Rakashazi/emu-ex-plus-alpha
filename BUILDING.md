@@ -75,6 +75,7 @@ sudo dnf install gcc-c++ cmake pkgconfig mold git \
 - **Android NDK**: Latest version recommended
 - **Android SDK**: API level 21 (Android 5.0) or higher
 - **Java Development Kit (JDK)**: JDK 11 or later
+- **Build Tools**: automake, autoconf, autopoint, libtool, nasm, wget (required for building dependencies)
 
 #### iOS
 - **Xcode**: Latest version with Command Line Tools
@@ -229,7 +230,17 @@ export ANDROID_NDK=$ANDROID_HOME/ndk/[VERSION]
 export PATH=$PATH:$ANDROID_HOME/platform-tools
 ```
 
-### Step 2: Build All Dependencies
+### Step 2: Install Build Dependencies
+
+Before building Android dependencies, install required build tools:
+
+```bash
+sudo apt-get install automake autoconf autopoint libtool nasm wget
+```
+
+These tools are required by the dependency build scripts.
+
+### Step 3: Build All Dependencies
 
 **Critical Step**: Build the Imagine SDK and all required dependencies for all Android architectures:
 
@@ -248,9 +259,9 @@ This builds:
 
 For architectures: armv7, arm64, x86, x86_64
 
-**Note**: This step can take 10-30 minutes depending on your system.
+**Note**: This step can take 10-30 minutes depending on your system. The dependencies will be installed to `$IMAGINE_SDK_PATH` (defaults to `$HOME/imagine-sdk`).
 
-### Step 3: Configure Imagine Framework
+### Step 4: Configure Imagine Framework
 
 ```bash
 cd $IMAGINE_PATH
@@ -258,15 +269,15 @@ cd $IMAGINE_PATH
 ./android.sh installLinks --config Release
 ```
 
-### Step 4: Configure EmuFramework
+### Step 5: Configure EmuFramework
 
 ```bash
-cd $EMUFRAMEWORK_PATH
+cd /path/to/emu-ex-plus-alpha/EmuFramework
 ./android.sh config
 ./android.sh installLinks --config Release
 ```
 
-### Step 5: Build an Emulator APK
+### Step 6: Build an Emulator APK
 
 Navigate to the emulator directory and build:
 
