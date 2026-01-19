@@ -269,6 +269,8 @@ cd $IMAGINE_PATH
 ./android.sh installLinks --config Release
 ```
 
+**Note**: The `installLinks` command builds the Imagine Framework for all 4 architectures and installs symbolic links. This step compiles all source files with full optimizations (-O3, LTO) and can take 10-20 minutes per architecture. The process will appear to pause during compilation - this is normal.
+
 ### Step 5: Configure EmuFramework
 
 ```bash
@@ -276,6 +278,8 @@ cd /path/to/emu-ex-plus-alpha/EmuFramework
 ./android.sh config
 ./android.sh installLinks --config Release
 ```
+
+**Note**: Similar to Step 4, `installLinks` builds EmuFramework libraries for all architectures before creating links. Expect 10-20 minutes per architecture.
 
 ### Step 6: Build an Emulator APK
 
