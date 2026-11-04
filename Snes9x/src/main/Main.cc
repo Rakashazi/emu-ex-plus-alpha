@@ -15,6 +15,9 @@ module;
 #include <soundux.h>
 #endif
 #include <zlib.h>
+#if defined(SNES9X_ANDROID_BRIDGE) && !defined(SNES9X_VERSION_1_4)
+#include "../bridge/Bridge.hh"
+#endif
 
 module system;
 
@@ -58,6 +61,9 @@ void Snes9xSystem::renderFramebuffer(EmuVideo&)
 
 void Snes9xSystem::reset(EmuApp &, ResetMode mode)
 {
+#if defined(SNES9X_ANDROID_BRIDGE) && !defined(SNES9X_VERSION_1_4)
+	SnesBridge::instance().discontinuity();
+#endif
 	assume(hasContent());
 	if(mode == ResetMode::HARD)
 	{
@@ -115,6 +121,9 @@ static int unfreezeStateFrom(std::span<uint8_t> buff)
 
 void Snes9xSystem::readState(EmuApp &, std::span<uint8_t> buff)
 {
+#if defined(SNES9X_ANDROID_BRIDGE) && !defined(SNES9X_VERSION_1_4)
+	SnesBridge::instance().discontinuity();
+#endif
 	DynArray<uint8_t> uncompArr;
 	if(hasGzipHeader(buff))
 	{
@@ -220,6 +229,9 @@ IOBuffer Snes9xSystem::readSufamiTurboBios() const
 
 void Snes9xSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
+#if defined(SNES9X_ANDROID_BRIDGE) && !defined(SNES9X_VERSION_1_4)
+	SnesBridge::instance().close();
+#endif
 	auto size = io.size();
 	if(size > CMemory::MAX_ROM_SIZE + 512)
 	{
@@ -268,9 +280,17 @@ void Snes9xSystem::loadContent(IO &io, EmuSystemCreateParams, OnLoadProgressDele
 		}
 	}
 	setupSNESInput(EmuApp::get(appContext()).defaultVController());
+#if defined(SNES9X_ANDROID_BRIDGE) && !defined(SNES9X_VERSION_1_4)
+	SnesBridge::instance().open(Memory.ROM, Memory.CalculatedSize);
+#endif
 	saveStateSize = S9xFreezeSize();
 	IPPU.RenderThisFrame = TRUE;
 }
+
+#if defined(SNES9X_ANDROID_BRIDGE) && !defined(SNES9X_VERSION_1_4)
+void Snes9xSystem::closeSystem() { SnesBridge::instance().close(); }
+void Snes9xSystem::onStop() { SnesBridge::instance().cancel(); }
+#endif
 
 void Snes9xSystem::configAudioRate(FrameRate outputFrameRate, int outputRate)
 {
@@ -346,7 +366,16 @@ void Snes9xSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAu
 			mixSamples(samples, (EmuAudio*)audio);
 		}, (void*)audio);
 	#endif
+#if defined(SNES9X_ANDROID_BRIDGE) && !defined(SNES9X_VERSION_1_4)
+	auto manualPad = *S9xGetJoypadBits(0);
+	auto externalPad = snesActiveInputPort == SNES_JOYPAD ? SnesBridge::instance().next() : 0;
+	*S9xGetJoypadBits(0) = manualPad | externalPad;
+#endif
 	S9xMainLoop();
+#if defined(SNES9X_ANDROID_BRIDGE) && !defined(SNES9X_VERSION_1_4)
+	*S9xGetJoypadBits(0) = manualPad;
+	SnesBridge::instance().publish(Memory.RAM);
+#endif
 	// video rendered in S9xDeinitUpdate
 	#ifdef SNES9X_VERSION_1_4
 	auto samples = updateAudioFramesPerVideoFrame() * 2;

@@ -1,3 +1,5 @@
+> Experimental Android bridge proposal for [Rakashazi/emu-ex-plus-alpha](https://github.com/Rakashazi/emu-ex-plus-alpha), based on commit `1c12fac5ce49badaadff2e2f210dcc30b89f4943`. See [proposal, build and security scope](custom/README.md). This is not an official release; no modified emulator APK is distributed. Original credits and licenses remain unchanged.
+
 # EX Emulators
 
 The EX Emulator project is a series of emulators primarily targeting Android and Linux with a minimalist UI 

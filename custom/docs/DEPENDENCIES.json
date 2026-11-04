@@ -1,0 +1,62 @@
+[
+  {
+    "file": "android-ndk-r30-beta1-linux.zip",
+    "sha256": "d90fefe472186aa999942a76cb595537548aafdb449494ecd2cf455c9b3f95a5",
+    "bytes": 713550176
+  },
+  {
+    "file": "arch-core-common-1.1.1.jar",
+    "sha256": "3a616a32f433e9e23f556b38575c31b013613d3ae85206263b7625fe1f4c151a",
+    "bytes": 11567
+  },
+  {
+    "file": "cmake-4.1.4-linux-x86_64.tar.gz",
+    "sha256": "af5c72ce7ce61607d70ff80445130f6278204aa46c45127edc0dc36e26a687b2",
+    "bytes": 56413987
+  },
+  {
+    "file": "cmake-4.3.0-linux-x86_64.tar.gz",
+    "sha256": "201bdabe17a54e017f119cffa247648e9c44327e52473c2cc60a88fded94652a",
+    "bytes": 63971801
+  },
+  {
+    "file": "collections-28.0.0.jar",
+    "sha256": "93c258c8a09f531a267653829742c0f8f6da0e348b11cb8655b0855628f2d4f0",
+    "bytes": 42329
+  },
+  {
+    "file": "lifecycle-common-1.1.1.jar",
+    "sha256": "8d378e88ebd5189e09eef623414812c868fd90aa519d6160e2311fb8b81cff56",
+    "bytes": 20618
+  },
+  {
+    "file": "lifecycle-runtime-1.1.1.aar",
+    "sha256": "c4e4be66c1b2f0abec593571454e1de14013f7e0f96bf2a9f212931a48cae550",
+    "bytes": 9635
+  },
+  {
+    "file": "support-annotations-28.0.0.jar",
+    "sha256": "5d5b9414f02d3fa0ee7526b8d5ddae0da67c8ecc8c4d63ffa6cf91488a93b927",
+    "bytes": 27865
+  },
+  {
+    "file": "support-compat-28.0.0.aar",
+    "sha256": "e17e3b01dbea3f9ea1c86943292f903ca93d2231c6242e456e0b6a9c5817118a",
+    "bytes": 619633
+  },
+  {
+    "file": "support-compat-28.0.0.pom",
+    "sha256": "6b79a06c2282fc0f961cfd826a26ad41ff5c457b0c11d9a6b6a63e51f53d961a",
+    "bytes": 2268
+  },
+  {
+    "file": "support-core-utils-28.0.0.aar",
+    "sha256": "c81e1e98ca3cb2edae002c69cf35b22aec364b8cb2f1042c97e206eb5790ac41",
+    "bytes": 4190
+  },
+  {
+    "file": "versionedparcelable-28.0.0.aar",
+    "sha256": "60eb1cb08f71b65c3f6123135e03ebeb5930b5e126e1e5b2ac91b386908c9d02",
+    "bytes": 26936
+  }
+]

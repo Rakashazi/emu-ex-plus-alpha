@@ -60,3 +60,18 @@ target_sources(s9xp PRIVATE
 	snes9x/apu/bapu/smp/smp.cpp
 	snes9x/apu/bapu/smp/smp_state.cpp
 )
+option(SNES9X_ANDROID_BRIDGE "Enable the experimental local Android memory/controller bridge" OFF)
+if(SNES9X_ANDROID_BRIDGE)
+ if(NOT ENV STREQUAL android)
+  message(FATAL_ERROR "SNES9X_ANDROID_BRIDGE requires Android")
+ endif()
+ target_sources(s9xp PRIVATE bridge/Bridge.cc)
+ target_compile_definitions(s9xp PRIVATE SNES9X_ANDROID_BRIDGE=1)
+ # Keep stack protection on our JNI boundary even when upstream's optimized defaults disable it.
+ set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/bridge/Bridge.cc" TARGET_DIRECTORY s9xp
+  PROPERTIES COMPILE_OPTIONS "-fstack-protector-strong")
+ foreach(config debug release)
+  file(APPEND "${CMAKE_BINARY_DIR}/s9xp_${config}_retainedSymbols.txt"
+   "Java_org_snes9x_bridge_NativeBridge_info\nJava_org_snes9x_bridge_NativeBridge_read\nJava_org_snes9x_bridge_NativeBridge_queue\nJava_org_snes9x_bridge_NativeBridge_command\n")
+ endforeach()
+endif()

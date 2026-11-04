@@ -8,6 +8,9 @@ module;
 #include <display.h>
 #ifndef SNES9X_VERSION_1_4
 #include <controls.h>
+#ifdef SNES9X_ANDROID_BRIDGE
+#include "../bridge/Bridge.hh"
+#endif
 #endif
 
 module system;
@@ -39,10 +42,16 @@ void Snes9xSystem::handleInputAction(EmuApp*, InputAction a)
 	assume(player < AppMeta::maxPlayers);
 	auto &padData = *S9xGetJoypadBits(player);
 	padData = setOrClearBits(padData, bit(a.code), a.isPushed());
+#if defined(SNES9X_ANDROID_BRIDGE) && !defined(SNES9X_VERSION_1_4)
+	SnesBridge::instance().manualInput(player, padData);
+#endif
 }
 
 void Snes9xSystem::clearInputBuffers()
 {
+#if defined(SNES9X_ANDROID_BRIDGE) && !defined(SNES9X_VERSION_1_4)
+	for(unsigned p=0;p<5;++p) SnesBridge::instance().manualInput(p,0);
+#endif
 	for(auto p: iotaCount(AppMeta::maxPlayers))
 	{
 		*S9xGetJoypadBits(p) = 0;

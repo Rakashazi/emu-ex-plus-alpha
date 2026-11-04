@@ -1,0 +1,32 @@
+Executed 2026-11-04. Android fixture: SM-X936B / Android 16. No owner apps or game state replaced.
+
+security-native-host.log
+bridge tests passed
+
+securitytest-unauthorized.log
+PASS actual Binder READ permission enforced in isolated process
+
+securitytest-readonly.log
+PASS READ-only controller acquisition rejected
+PASS full WRAM read with READ only
+
+securitytest-hardened.log
+PASS wrong version type rejected
+PASS wrong offset type rejected
+PASS oversized request rejected
+PASS bounded extension field remains compatible
+PASS trailing parcel data rejected
+PASS maximum legitimate sequence accepted
+PASS one-way control blocked
+PASS expired lease while watchdog delayed rejected
+PASS reacquire and release
+No real emulator, tracker, ROM, game input or windows accessed
+
+security-release-verification.log
+Local-only ARM64 Release build/link: PASS
+APK debugging/backup/cleartext disabled; no Internet permission: PASS
+Exact Release native core; no test, game or private-key fixtures: PASS
+Pinned new signature and four exported JNI functions: PASS
+ELF RELRO, BIND_NOW, non-executable stack and stack-check reference: PASS
+
+Default-OFF configure and changed Main/input/module object compilation: PASS (no full OFF relink claimed)

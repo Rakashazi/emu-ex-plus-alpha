@@ -1,0 +1,11 @@
+/toolchain/
+/vendor/
+/imagine-sdk/
+/java-build/
+/apk-build/
+/build-logs/
+/artifacts/
+/signing/
+__pycache__/
+
+/security/qa-certificate.*

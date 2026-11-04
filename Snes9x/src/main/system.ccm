@@ -200,6 +200,10 @@ public:
 	FrameRate frameRate() const { return videoSystem() == VideoSystem::PAL ? palFrameRate : ntscFrameRate; }
 	void configAudioRate(FrameRate outputFrameRate, int outputRate);
 
+#if defined(SNES9X_ANDROID_BRIDGE) && !defined(SNES9X_VERSION_1_4)
+	void closeSystem();
+	void onStop();
+#endif
 	// optional API functions
 	void loadBackupMemory(EmuApp&);
 	void onFlushBackupMemory(EmuApp&, BackupMemoryDirtyFlags);
