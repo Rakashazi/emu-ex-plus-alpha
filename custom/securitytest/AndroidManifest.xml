@@ -1,0 +1,9 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.snes9x.bridge.securitytest" android:versionCode="1" android:versionName="1">
+ <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="36"/>
+ <uses-permission android:name="org.snes9x.bridge.permission.READ"/>
+ <uses-permission android:name="org.snes9x.bridge.permission.CONTROL"/>
+ <application android:label="Isolated bridge security test" android:debuggable="true" android:allowBackup="false" android:usesCleartextTraffic="false">
+  <service android:name="org.snes9x.bridge.BridgeService" android:process=":fixture" android:exported="false"/>
+ </application>
+ <instrumentation android:name="org.snes9x.bridge.SecurityChecks" android:targetPackage="org.snes9x.bridge.securitytest"/>
+</manifest>

@@ -298,7 +298,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 	}
 
 	{
-		static constexpr JNINativeMethod method[]
+		static const JNINativeMethod method[]
 		{
 			{
 				"onContentRectChanged", "(JIIIIII)V",

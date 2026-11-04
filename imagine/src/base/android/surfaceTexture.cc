@@ -61,7 +61,7 @@ static void initSurfaceJNI(JNIEnv *env)
 
 }
 
-export namespace IG
+namespace IG
 {
 
 jobject makeSurfaceTexture(ApplicationContext ctx, JNIEnv *env, jint texName)

@@ -1,0 +1,10 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.snes9x.bridge.test" android:versionCode="1" android:versionName="0.1">
+ <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="36"/>
+ <uses-permission android:name="org.snes9x.bridge.permission.READ"/>
+ <uses-permission android:name="org.snes9x.bridge.permission.CONTROL"/>
+ <queries><package android:name="org.snes9x.custom"/></queries>
+ <application android:debuggable="true" android:label="Snes9x Bridge Test" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:resizeableActivity="true">
+ <activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
+ </application>
+ <instrumentation android:name=".BridgeChecks" android:targetPackage="org.snes9x.bridge.test" android:label="Bridge acceptance checks"/>
+</manifest>

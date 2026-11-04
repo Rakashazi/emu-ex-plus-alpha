@@ -1,0 +1,7 @@
+Android Support Library 28.0.0; Android Architecture Components 1.1.1
+Copyright The Android Open Source Project.
+Licensed under the Apache License, Version 2.0; see Apache-2.0.txt.
+Artifacts are downloaded from Google's official Android Maven repository.
+Versions and SHA-256 digests are recorded in custom/docs/DEPENDENCIES.json.
+Imagine Java and native sources retain their original GPL notices.
+Snes9x core sources retain their original Snes9x license.
